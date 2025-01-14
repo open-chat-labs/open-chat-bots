@@ -12,7 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
-        components: rustfmt
+        with:
+          components: rustfmt
       - uses: actions-rs/cargo@v1
         with:
           command: fmt
@@ -24,7 +25,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
-        components: clippy
+        with:
+          components: clippy
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
