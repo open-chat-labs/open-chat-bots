@@ -5,6 +5,10 @@ on:
 
 name: Backend linting and unit tests
 
+defaults:
+  run:
+    working-directory: ./rs
+
 jobs:
   fmt:
     name: run fmt
