@@ -5,10 +5,8 @@ on:
 
 name: Backend linting and unit tests
 
-defaults:
-  run:
-    shell: bash
-    working-directory: ./rs
+env:
+  CARGO_MANIFEST_DIR: ./rs
 
 jobs:
   fmt:
