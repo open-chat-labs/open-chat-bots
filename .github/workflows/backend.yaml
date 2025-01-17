@@ -11,16 +11,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - working-directory: ./rs
+      - run: mv rs .
       - uses: actions-rust-lang/setup-rust-toolchain@v1
-      - uses: actions-rust-lang/rustfmt@v1
+      - uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --tests -- -D warnings
 
   clippy:
     name: run clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - working-directory: ./rs
+      - run: mv rs .
       - uses: actions-rust-lang/setup-rust-toolchain@v1
       - uses: actions-rs/cargo@v1
         with:
@@ -32,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - working-directory: ./rs
+      - run: mv rs .
       - uses: actions-rust-lang/setup-rust-toolchain@v1
       - uses: actions-rs/cargo@v1
         with:
