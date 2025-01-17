@@ -10,14 +10,16 @@ pub struct OpenChatClient<R> {
     runtime: Arc<R>,
 }
 
-impl<R: Runtime + 'static> OpenChatClient<R> {
+impl<R: Runtime + Send + Sync + 'static> OpenChatClient<R> {
     pub fn new(runtime: R) -> Self {
         Self {
             runtime: Arc::new(runtime),
         }
     }
 
-    pub fn send_text_message<F: FnOnce(BotAction, CallResult<(ActionResponse,)>) + 'static>(
+    pub fn send_text_message<
+        F: FnOnce(BotAction, CallResult<(ActionResponse,)>) + Send + Sync + 'static,
+    >(
         &self,
         context: &BotCommandContext,
         text: String,
@@ -35,7 +37,7 @@ impl<R: Runtime + 'static> OpenChatClient<R> {
         });
 
         let runtime = self.runtime.clone();
-        R::spawn(async move {
+        self.runtime.spawn(async move {
             let response = runtime
                 .execute_bot_action(bot_api_gateway, jwt, action.clone())
                 .await;

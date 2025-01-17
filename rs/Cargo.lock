@@ -1522,7 +1522,10 @@ dependencies = [
 name = "oc_bots_sdk_offchain"
 version = "0.1.0"
 dependencies = [
+ "candid",
  "ic-agent",
+ "oc_bots_sdk",
+ "tokio",
 ]
 
 [[package]]

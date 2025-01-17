@@ -7,7 +7,7 @@ use std::future::Future;
 pub struct CanisterRuntime;
 
 impl Runtime for CanisterRuntime {
-    async fn call_canister<A: ArgumentEncoder, R: for<'a> ArgumentDecoder<'a>>(
+    async fn call_canister<A: ArgumentEncoder + Send, R: for<'a> ArgumentDecoder<'a>>(
         &self,
         canister_id: CanisterId,
         method_name: &str,
@@ -19,7 +19,7 @@ impl Runtime for CanisterRuntime {
         }
     }
 
-    fn spawn<F: Future<Output = ()> + 'static>(f: F) {
+    fn spawn<F: Future<Output = ()> + 'static>(&self, f: F) {
         ic_cdk::spawn(f)
     }
 
