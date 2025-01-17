@@ -1,4 +1,6 @@
-use crate::types::{CallResult, CanisterId, TimestampMillis};
+use crate::types::{
+    ActionArgs, ActionResponse, BotAction, CallResult, CanisterId, TimestampMillis,
+};
 use candid::utils::{ArgumentDecoder, ArgumentEncoder};
 use std::future::Future;
 
@@ -10,17 +12,18 @@ pub trait Runtime {
         args: A,
     ) -> impl Future<Output = CallResult<R>>;
 
-    fn call_canister_fire_and_forget<
-        A: ArgumentEncoder + 'static,
-        R: for<'a> ArgumentDecoder<'a>,
-        F: FnOnce(CallResult<R>) + 'static,
-    >(
-        &self,
-        canister_id: CanisterId,
-        method_name: &'static str,
-        args: A,
-        on_response: F,
-    );
+    fn spawn<F: Future<Output = ()> + 'static>(f: F);
 
     fn now(&self) -> TimestampMillis;
+
+    fn execute_bot_action(
+        &self,
+        bot_api_gateway: CanisterId,
+        jwt: String,
+        action: BotAction,
+    ) -> impl Future<Output = CallResult<(ActionResponse,)>> {
+        let args = ActionArgs { action, jwt };
+
+        self.call_canister(bot_api_gateway, "execute_bot_action", (args.clone(),))
+    }
 }
