@@ -16,7 +16,7 @@ jobs:
           toolchain: stable
       - uses: actions-rust-lang/rustfmt@v1
         with:
-          manifest-path: ./rs
+          manifest-path: rs/Cargo.toml
 
   clippy:
     name: run clippy
@@ -28,9 +28,8 @@ jobs:
           toolchain: stable
       - uses: actions-rs/cargo@v1
         with:
-          manifest-path: ./rs
           command: clippy
-          args: --tests -- -D warnings
+          args: --tests --manifest-path rs/Cargo.toml -- -D warnings
 
   unit_tests:
     name: run unit tests
@@ -42,5 +41,4 @@ jobs:
           toolchain: stable
       - uses: actions-rs/cargo@v1
         with:
-          manifest-path: ./rs
-          command: test
+          command: test --manifest-path rs/Cargo.toml
