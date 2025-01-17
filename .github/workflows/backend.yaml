@@ -14,8 +14,9 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
-      - run: cd ./rs
       - uses: actions-rust-lang/rustfmt@v1
+        with:
+          manifest-path: ./rs
 
   clippy:
     name: run clippy
@@ -25,9 +26,9 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
-      - run: cd ./rs
       - uses: actions-rs/cargo@v1
         with:
+          manifest-path: ./rs
           command: clippy
           args: --tests -- -D warnings
 
@@ -39,7 +40,7 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
-      - run: cd ./rs
       - uses: actions-rs/cargo@v1
         with:
+          manifest-path: ./rs
           command: test
