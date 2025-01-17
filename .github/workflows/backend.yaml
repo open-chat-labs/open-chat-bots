@@ -41,4 +41,5 @@ jobs:
           toolchain: stable
       - uses: actions-rs/cargo@v1
         with:
-          command: test --manifest-path rs/Cargo.toml
+          command: test
+          args: --manifest-path rs/Cargo.toml
