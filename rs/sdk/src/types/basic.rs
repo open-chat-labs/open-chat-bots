@@ -7,7 +7,7 @@ pub type TimestampMillis = u64;
 pub type TimestampNanos = u64;
 pub type Milliseconds = u64;
 pub type Nanoseconds = u64;
-pub type MessageId = String; // u128 encoded as string
+pub type MessageId = String; // u64 encoded as string
 pub type Hash = [u8; 32];
 
 #[derive(CandidType, Serialize, Deserialize, Copy, Clone, Debug)]
