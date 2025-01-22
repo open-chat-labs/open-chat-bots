@@ -1,58 +1,54 @@
 use crate::api::Message;
 use crate::runtime::Runtime;
 use crate::types::{
-    ActionArgs, ActionResponse, BotAction, BotCommandContext, BotMessageAction, MessageContent,
+    ActionResponse, BotAction, BotCommandContext, BotMessageAction, CallResult, MessageContent,
     TextContent,
 };
+use std::sync::Arc;
 
 pub struct OpenChatClient<R> {
-    runtime: R,
+    runtime: Arc<R>,
 }
 
-impl<R: Runtime> OpenChatClient<R> {
-    pub const fn new(runtime: R) -> Self {
-        Self { runtime }
+impl<R: Runtime + Send + Sync + 'static> OpenChatClient<R> {
+    pub fn new(runtime: R) -> Self {
+        Self {
+            runtime: Arc::new(runtime),
+        }
     }
 
-    pub fn send_text_message<F: FnOnce(ActionArgs, ActionResponse) + 'static>(
+    pub fn send_text_message<
+        F: FnOnce(BotAction, CallResult<(ActionResponse,)>) + Send + Sync + 'static,
+    >(
         &self,
         context: &BotCommandContext,
         text: String,
         finalised: bool,
         on_response: F,
     ) -> Message {
+        let message_id = context.message_id();
         let content = MessageContent::Text(TextContent { text });
+        let bot_api_gateway = context.bot_api_gateway();
+        let jwt = context.jwt().to_string();
 
         let action = BotAction::SendMessage(BotMessageAction {
             content: content.clone(),
             finalised,
         });
 
-        self.execute_bot_action_fire_and_forget(context, action, on_response);
+        let runtime = self.runtime.clone();
+        self.runtime.spawn(async move {
+            let response = runtime
+                .execute_bot_action(bot_api_gateway, jwt, action.clone())
+                .await;
+
+            on_response(action, response);
+        });
 
         Message {
-            id: context.message_id(),
+            id: message_id,
             content,
             finalised,
         }
-    }
-
-    fn execute_bot_action_fire_and_forget<F: FnOnce(ActionArgs, ActionResponse) + 'static>(
-        &self,
-        context: &BotCommandContext,
-        action: BotAction,
-        on_result: F,
-    ) {
-        let args = ActionArgs {
-            action,
-            jwt: context.jwt().to_string(),
-        };
-
-        self.runtime.call_canister_fire_and_forget(
-            context.bot_api_gateway(),
-            "execute_bot_action",
-            (args.clone(),),
-            move |result| on_result(args, result),
-        )
     }
 }

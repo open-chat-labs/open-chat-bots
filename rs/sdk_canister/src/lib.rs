@@ -3,5 +3,7 @@ pub mod env;
 
 pub use canister_runtime::CanisterRuntime;
 use oc_bots_sdk::OpenChatClient;
+use std::sync::LazyLock;
 
-pub const OPENCHAT_CLIENT: OpenChatClient<CanisterRuntime> = OpenChatClient::new(CanisterRuntime);
+pub static OPENCHAT_CLIENT: LazyLock<OpenChatClient<CanisterRuntime>> =
+    LazyLock::new(|| OpenChatClient::new(CanisterRuntime));
