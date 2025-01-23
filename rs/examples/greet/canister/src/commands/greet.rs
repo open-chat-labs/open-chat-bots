@@ -1,9 +1,12 @@
 use crate::state;
-use oc_bots_sdk::api::{InternalError, SuccessResult};
+use oc_bots_sdk::api::{
+    InternalError, MessagePermission, SlashCommandPermissions, SlashCommandSchema, SuccessResult,
+};
 use oc_bots_sdk::types::BotCommandContext;
 use oc_bots_sdk_canister::OPENCHAT_CLIENT;
+use std::collections::HashSet;
 
-pub fn greet(context: BotCommandContext) -> Result<SuccessResult, InternalError> {
+pub fn execute(context: BotCommandContext) -> Result<SuccessResult, InternalError> {
     let user_id = context.initiator();
     let text = format!("hello @UserId({user_id})");
 
@@ -21,4 +24,18 @@ pub fn greet(context: BotCommandContext) -> Result<SuccessResult, InternalError>
     Ok(SuccessResult {
         message: Some(message),
     })
+}
+
+pub fn schema() -> SlashCommandSchema {
+    SlashCommandSchema {
+        name: "greet".to_string(),
+        description: Some("This will greet the caller".to_string()),
+        placeholder: Some("Please wait".to_string()),
+        params: vec![],
+        permissions: SlashCommandPermissions {
+            community: HashSet::new(),
+            chat: HashSet::new(),
+            message: HashSet::from_iter([MessagePermission::Text]),
+        },
+    }
 }

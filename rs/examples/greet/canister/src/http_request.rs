@@ -1,6 +1,5 @@
-use crate::{
-    execute_command::execute_command, get_definition::get_definition, metrics::get_metrics,
-};
+use crate::commands::execute_command;
+use crate::{get_definition::get_definition, metrics::get_metrics};
 use ic_cdk::{query, update};
 use ic_http_certification::{HttpRequest, HttpResponse};
 use oc_bots_sdk::api::CommandResponse;

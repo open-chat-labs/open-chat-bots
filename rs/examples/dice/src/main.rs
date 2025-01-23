@@ -4,17 +4,13 @@ use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::Router;
 use clap::Parser;
-use oc_bots_sdk::api::{
-    BotDefinition, MessagePermission, NumberParam, SlashCommandParam, SlashCommandParamType,
-    SlashCommandPermissions, SlashCommandSchema,
-};
+use oc_bots_sdk::api::BotDefinition;
 use oc_bots_sdk::OpenChatClient;
 use oc_bots_sdk_offchain::AgentRuntime;
-use std::collections::HashSet;
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
-mod execute_command;
+mod commands;
 
 #[tokio::main]
 async fn main() {
@@ -48,7 +44,7 @@ async fn main() {
 }
 
 async fn execute_command(State(state): State<Arc<AppState>>, jwt: String) -> (StatusCode, Bytes) {
-    match execute_command::execute_command(jwt, &state.oc_client, &state.oc_public_key).await {
+    match commands::execute_command(jwt, &state.oc_client, &state.oc_public_key).await {
         Ok(message) => (
             StatusCode::OK,
             Bytes::from(serde_json::to_vec(&message).unwrap()),
@@ -64,61 +60,7 @@ fn bot_definition_as_string() -> String {
 fn bot_definition() -> BotDefinition {
     BotDefinition {
         description: "Use this bot to roll dice or toss coins".to_string(),
-        commands: vec![
-            SlashCommandSchema {
-                name: "roll".to_string(),
-                description: Some("Let's roll some dice!".to_string()),
-                placeholder: Some("Rolling...".to_string()),
-                params: vec![
-                    SlashCommandParam {
-                        name: "sides".to_string(),
-                        description: Some("The number of sides on each die".to_string()),
-                        placeholder: Some("6".to_string()),
-                        required: false,
-                        param_type: SlashCommandParamType::NumberParam(NumberParam {
-                            min_value: 1f64,
-                            max_value: u32::MAX.into(),
-                            choices: Vec::new(),
-                        }),
-                    },
-                    SlashCommandParam {
-                        name: "count".to_string(),
-                        description: Some("The number of dice to roll".to_string()),
-                        placeholder: Some("1".to_string()),
-                        required: false,
-                        param_type: SlashCommandParamType::NumberParam(NumberParam {
-                            min_value: 1f64,
-                            max_value: 10f64,
-                            choices: Vec::new(),
-                        }),
-                    },
-                ],
-                permissions: SlashCommandPermissions {
-                    message: HashSet::from_iter([MessagePermission::Text]),
-                    ..Default::default()
-                },
-            },
-            SlashCommandSchema {
-                name: "coin".to_string(),
-                description: Some("Let's toss some coins!".to_string()),
-                placeholder: Some("Tossing...".to_string()),
-                params: vec![SlashCommandParam {
-                    name: "count".to_string(),
-                    description: Some("The number of coins to toss".to_string()),
-                    placeholder: Some("1".to_string()),
-                    required: false,
-                    param_type: SlashCommandParamType::NumberParam(NumberParam {
-                        min_value: 1f64,
-                        max_value: 10f64,
-                        choices: Vec::new(),
-                    }),
-                }],
-                permissions: SlashCommandPermissions {
-                    message: HashSet::from_iter([MessagePermission::Text]),
-                    ..Default::default()
-                },
-            },
-        ],
+        commands: vec![commands::coin::schema(), commands::roll::schema()],
     }
 }
 

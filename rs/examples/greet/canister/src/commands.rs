@@ -1,10 +1,13 @@
-use crate::{commands, state};
+use crate::state;
 use oc_bots_sdk::types::BotCommandContext;
 use oc_bots_sdk::{
     api::{BadRequest, CommandResponse},
     types::TokenError,
 };
 use oc_bots_sdk_canister::env::now;
+
+pub mod greet;
+pub mod joke;
 
 pub async fn execute_command(jwt: &str) -> CommandResponse {
     let public_key = state::read(|state| state.oc_public_key().to_string());
@@ -22,8 +25,8 @@ pub async fn execute_command(jwt: &str) -> CommandResponse {
     };
 
     let result = match context.command().name.as_str() {
-        "greet" => commands::greet(context),
-        "joke" => commands::joke(context),
+        "greet" => greet::execute(context),
+        "joke" => joke::execute(context),
         _ => return CommandResponse::BadRequest(BadRequest::CommandNotFound),
     };
 
