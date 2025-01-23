@@ -18,7 +18,7 @@ Like all bots, a command bot is a server component (which may be an IC canister 
 
 The commands that are supported must be described in accordance with the bot definition schema which is described [here](./schema/README.md).
 
-Your job is to provide an instance of this definition schema and a server which supports its commands. When defining your schema, pay close attention to the OpenChat permissions that each command will require. Your commands will be actively prevented from taking any actions requiring permission that the bot did not specify that it would need.
+Your job is to provide an instance of this definition schema and a server which supports its commands. When defining your schema, pay close attention to the OpenChat permissions that each command will require. Your commands will be actively prevented from taking any actions requiring permissions that the bot did not specify that it would need.
 
 To test your bot, we recommend that you start by running OpenChat locally. Please refer to the [OpenChat readme](https://github.com/open-chat-labs/open-chat/blob/master/README.md) for help with this. When you have a test bot running and an instance of OpenChat running locally you are ready to try to register your bot using the built-in `/register_bot` command (which is only available in developer mode).
 
