@@ -40,9 +40,15 @@ To understand how to handle receiving this token it is best to refer to the spec
 
 #### Command lifecycle
 
-The intention is that a single command will result in at most a single message sent to the relevant OpenChat context. However it is possible to send more than one action to the OpenChat backend to update the same message if necessary. This might be desireable if your bot is running some longer running operation and you want to give the user some temporary feedback on progress.
+A bot's `execute_command` request handler should return as quickly as possible. What the bot returns depends on the nature of the bot and what task(s) it will be performing. If the bot is able to synchronously and quickly respond to the user's command then it should respond with the final message that it sends to the OpenChat backend. We indicate that the message is the final version by setting the finalised flag to true in that case.
 
-To be continued ...
+However, in many cases, the bot will have some asynchronous and/or longer running task to perform such as coordinating some data retrieval from another serivce. In this case, it is a good idea to provide some feedback to the user telling them what the bot is doing in the form of a placeholder progress message.
+
+There are couple of different strategies that you can employ to achieve this. Firstly, you can specify a placeholder message for a command within the bot definition schema. This placeholder will then be inserted into the timeline of the user executing the command _immediately_. The advantage of this is that the feedback to the user is instant. The disadvantage is that the message must be static i.e. something like "Processing command ..." rather than a dynamic message based on the command's actual arguments like "Searching Spotify for the artist 'Prince'".
+
+A second approach is to have your bot immediately return with the placeholder progress message _before_ it goes on to perform its asynchronous work. In this scenario, the bot should create a placeholder progress message (using the provided libraries). This is a message with the `finalised` flag set to false to indicate that it is not the final version of the message. This message should be immediately return to the OpenChat frontend and also sent to the OpenChat backend (so that _other_ OpenChat users will also see it). The bot, can then perform it's work and finish off by sending a _final_ message (a message created with the finalised flag set to true) to the OpenChat backend.
+
+It is up to you to choose the appropriate combination of techniques for your case. Please refer to the example bots in this project to see our recommended approach and, of course, reach out to us on OpenChat if you would like advice or help about how best to structure your bot.
 
 ### For off-chain typescript bots
 
