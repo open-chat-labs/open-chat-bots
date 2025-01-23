@@ -88,8 +88,8 @@ fn coin(args: &[CommandArg]) -> Result<String, BadRequest> {
         if i > 0 {
             output.push('\n');
         }
-        let coin_toss = random::<bool>();
-        output.push_str(&coin_toss.to_string());
+        let heads = random::<bool>();
+        output.push_str(if heads { "heads" } else { "tails" });
     }
     Ok(output)
 }
