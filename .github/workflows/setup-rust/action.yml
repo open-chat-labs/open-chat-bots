@@ -1,0 +1,7 @@
+name: Setup Rust
+
+runs:
+  using: 'composite'
+  steps:
+    - run: mv rs/rust-toolchain.toml .
+    - uses: actions-rust-lang/setup-rust-toolchain@v1
