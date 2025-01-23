@@ -1,6 +1,6 @@
 use candid::Principal;
 use clap::Parser;
-use oc_bots_sdk_offchain::agent;
+use oc_bots_sdk_offchain::build_agent;
 use std::{collections::HashMap, error::Error, fs::File};
 
 mod insert_jokes;
@@ -19,9 +19,9 @@ pub struct Config {
     #[arg(long)]
     url: String,
 
-    /// The DFX identity of controller
+    /// The PEM file used to create the identity
     #[arg(long)]
-    controller: String,
+    pem_file: String,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -32,7 +32,7 @@ struct Record {
 
 pub async fn run(config: Config) -> Result<(), Box<dyn Error + Send + Sync>> {
     // Create an IC agent
-    let agent = agent::build(config.url, &config.controller).await;
+    let agent = build_agent(config.url, &config.pem_file).await;
 
     // Load the jokes from the CSV file
     let mut jokes: HashMap<u32, String> = HashMap::new();

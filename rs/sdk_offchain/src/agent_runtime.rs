@@ -10,6 +10,12 @@ pub struct AgentRuntime {
     runtime: tokio::runtime::Runtime,
 }
 
+impl AgentRuntime {
+    pub fn new(agent: Agent, runtime: tokio::runtime::Runtime) -> Self {
+        Self { agent, runtime }
+    }
+}
+
 impl Runtime for AgentRuntime {
     async fn call_canister<A: ArgumentEncoder + Send, R: for<'a> ArgumentDecoder<'a>>(
         &self,

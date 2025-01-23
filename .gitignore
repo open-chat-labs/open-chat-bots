@@ -12,3 +12,6 @@
 
 # rust
 target/
+
+# Environment variables
+.env

@@ -11,8 +11,7 @@ pub struct ActionArgs {
 
 pub type CallResult<T> = Result<T, CallError>;
 pub type CallError = (i32, String);
-
-pub type ActionResponse = CallResult<(Result<(), BotApiError>,)>;
+pub type ActionResponse = Result<(), BotApiError>;
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub enum BotApiError {

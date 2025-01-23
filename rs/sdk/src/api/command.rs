@@ -23,6 +23,40 @@ pub enum CommandArgValue {
     User(UserId),
 }
 
+impl CommandArgValue {
+    pub fn as_string(&self) -> Option<&str> {
+        if let CommandArgValue::String(s) = self {
+            Some(s)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_number(&self) -> Option<f64> {
+        if let CommandArgValue::Number(n) = self {
+            Some(*n)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_bool(&self) -> Option<bool> {
+        if let CommandArgValue::Boolean(b) = self {
+            Some(*b)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_user(&self) -> Option<UserId> {
+        if let CommandArgValue::User(u) = self {
+            Some(*u)
+        } else {
+            None
+        }
+    }
+}
+
 #[allow(clippy::large_enum_variant)]
 #[derive(Serialize)]
 pub enum CommandResponse {
@@ -43,7 +77,7 @@ pub struct Message {
     pub finalised: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub enum BadRequest {
     AccessTokenNotFound,
     AccessTokenInvalid,

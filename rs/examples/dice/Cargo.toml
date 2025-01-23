@@ -1,0 +1,16 @@
+[package]
+name = "dice_bot"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { workspace = true, features = [] }
+clap = { workspace = true, features = ["derive"] }
+dotenv = { workspace = true }
+oc_bots_sdk = { path = "../../sdk" }
+oc_bots_sdk_offchain = { path = "../../sdk_offchain" }
+rand = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+tower-http = { workspace = true, features = ["cors"] }
+tracing-subscriber = { workspace = true }

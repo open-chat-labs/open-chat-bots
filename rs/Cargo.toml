@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "examples/dice",
     "examples/greet/canister",
     "examples/greet/loader",
     "sdk",
@@ -9,9 +10,11 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
+axum = "0.8.1"
 candid = "0.10.10"
 clap = "4.5.4"
 ct-codecs = "1.1.1"
+dotenv = "0.15.0"
 getrandom = { version = "0.2.15", features = ["custom"] }
 hmac-sha256 = { version = "1.1.7", features = ["traits010"] }
 http = "1.1.0"
@@ -29,6 +32,8 @@ serde = "1.0.216"
 serde_json = "1.0.128"
 sha2 = "0.10.8"
 tokio = "1.37.0"
+tower-http = "0.6.2"
+tracing-subscriber = "0.3.19"
 
 [profile.release]
 lto = true
