@@ -36,6 +36,20 @@ Once the bot is added to the community or group it will be available to your use
 
 Once a user has selected a command and filled in any parameters that may be required, OpenChat will attempt to obtain an authorisation token. We will check that the user and the bot have the permission to do what they are asking to do in principal and then, if all is well, we will create an authorisation token in the form of a json web token signed with the OpenChat private key. This token will then be automatically sent to your bot's endpoint and contains all of the information required by your bot to take action.
 
+```
+User          OC Frontend           OC Backend          Bot Server
+ |-- executes ---->|                    |                  |
+ |                 |-- request auth --> |                  |
+ |                 |<-- auth token ---- |                  |
+ |                 |--------------- send auth -----------> |
+ |                 |<------------- bot response ---------- |
+ |                 |                    |<---- action -----|
+ |                 |                    |---- response --->|
+ |                 |                    |<---- action -----|
+ |                 |                    |---- response --->|
+ |                 |                    |                  |
+```
+
 To understand how to handle receiving this token it is best to refer to the specific code examples in this repo and to the readme files referenced below. The important takeaways though are that the token _must_ be sent on when communicating between your bot server and the OpenChat backend (so that OpenChat can be sure that the interaction was initiated and authorised within OpenChat). And it is _highly recommended_ that your bot should verify the signature of the token using the OpenChat public key rather than simply decode and trust its contents. If you use the supplied support libraries (as we strongly recommend that you do), both of these things will be taken care of for you and your interactions with the OpenChat backend should be straightforward.
 
 #### Command lifecycle
