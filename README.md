@@ -28,7 +28,7 @@ The `/register_bot` command will load a modal to allow you to enter the details 
 
 #### Installing the bot
 
-Once a bot is registered with OpenChat it becomes available to be added to any community or group by the owner(s) of that community or group. This is done via the members panel. When you choose to add a bot to a community or a group you will be presented with a summary of what commands the bot provides and what permissions it is asking for. You, as an owner of the community or group can choose which permissions you are prepared to actually _grant_ to the bot and this may restrict the commands which will be ultimately availble in this context.
+Once a bot is registered with OpenChat it becomes available to be added to any community or group by the owner(s) of that community or group. This is done via the members panel. When you choose to add a bot to a community or a group you will be presented with a summary of what commands the bot provides and what permissions it is asking for. You, as an owner of the community or group can choose which permissions you are prepared to actually _grant_ to the bot. If any permission requested by the bot is _not_ granted, then any commands which require that permission will not be available to the users in this context.
 
 Once the bot is added to the community or group it will be available to your users. They can simply start typing with a `/` to see which commands are available in the current context. OpenChat will use the information in the definition schema you provided to show the user what the commands are and what (if any) parameters they require.
 
