@@ -24,7 +24,7 @@ To test your bot, we recommend that you start by running OpenChat locally. Pleas
 
 #### Registering the bot
 
-This `/register_bot` command will load a modal to allow you to enter the details of your bot. Importantly this included the endpoint that OpenChat should use to communicate with your bot. When you enter this endpoint, we will then attempt to load and validate your bot's definition schema. Take the time to browse through the parsed definition - this is how OpenChat understands your bot's behaviour and how it will control the user's interactions with your bot. When you are happy, you can register the bot. Note that in the live environment, your bot can only be registered via a special proposal type within the OpenChat proposals channel. This is to ensure that each bot get a certain level of scrutiny and that the DAO agrees in principal that it is a useful addition.
+The `/register_bot` command will load a modal to allow you to enter the details of your bot. Importantly this includes the endpoint that OpenChat should use to communicate with your bot. When you provide this endpoint, we will then attempt to load and validate your bot's definition schema. Take the time to browse through the parsed definition - this is how OpenChat understands your bot's behaviour and how it will control the user's interactions with your bot. When you are happy, you can register the bot. Note that in the live environment, your bot can only be registered via a special proposal type within the OpenChat proposals channel. This is to ensure that each bot get a certain level of scrutiny and that the DAO agrees in principal that it is a useful addition.
 
 #### Installing the bot
 
