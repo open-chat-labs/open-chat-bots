@@ -30,7 +30,9 @@ pub enum SlashCommandParamType {
     UserParam,
     BooleanParam,
     StringParam(StringParam),
-    NumberParam(NumberParam),
+    IntegerParam(IntegerParam),
+    #[serde(alias = "NumberParam")]
+    DecimalParam(DecimalParam),
 }
 
 #[derive(Serialize)]
@@ -41,7 +43,14 @@ pub struct StringParam {
 }
 
 #[derive(Serialize)]
-pub struct NumberParam {
+pub struct IntegerParam {
+    pub min_value: i128,
+    pub max_value: i128,
+    pub choices: Vec<SlashCommandOptionChoice<i128>>,
+}
+
+#[derive(Serialize)]
+pub struct DecimalParam {
     pub min_value: f64,
     pub max_value: f64,
     pub choices: Vec<SlashCommandOptionChoice<f64>>,
