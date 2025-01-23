@@ -7,7 +7,7 @@ SDKs for building Bots for OpenChat with examples
 There are broadly three different categories of bot that OpenChat currently supports.
 
 - **Command bots** which accept a command from an OpenChat user from within the OpenChat interface.
-- **Integration bots** which accept a command from an external system usins an API key.
+- **Integration bots** which accept a command from an external system using an API key.
 - **Autonomous bots** which generate their own commands and interact with the OpenChat backend autonomously.
 
 There is some overlap in these capabilities and it is quite possible to create a single bot which acts in all three different ways. We will provide examples of all the different approaches and when you might use each type of bot. Let's discuss these bot types and how they work in more detail.
@@ -18,7 +18,7 @@ Like all bots, a command bot is a server component (which may be an IC canister 
 
 The commands that are supported must be described in accordance with the bot definition schema which is described [here](./schema/README.md).
 
-Your job is to provide an instance of this definition schema and a server which supports its commands. When defining your schema, pay close attention to the OpenChat permissions that each command will require. Your commands will actively prevented from taking any actions requiring permission that the bot did not specify that it would need.
+Your job is to provide an instance of this definition schema and a server which supports its commands. When defining your schema, pay close attention to the OpenChat permissions that each command will require. Your commands will be actively prevented from taking any actions requiring permission that the bot did not specify that it would need.
 
 To test your bot, we recommend that you start by running OpenChat locally. Please refer to the [OpenChat readme](https://github.com/open-chat-labs/open-chat/blob/master/README.md) for help with this. When you have a test bot running and an instance of OpenChat running locally you are ready to try to register your bot using the built-in `/register_bot` command (which is only available in developer mode).
 
