@@ -9,7 +9,7 @@ use std::str;
 
 #[query]
 fn http_request(request: HttpRequest) -> HttpResponse {
-    if request.method.to_ascii_uppercase() == "GET" {
+    if request.method.eq_ignore_ascii_case("GET") {
         if let Ok(path) = request.get_path() {
             if path == "/metrics" {
                 let body = to_json(&get_metrics());
@@ -22,7 +22,7 @@ fn http_request(request: HttpRequest) -> HttpResponse {
         return text_response(200, body);
     }
 
-    if request.method.to_ascii_uppercase() == "POST" {
+    if request.method.eq_ignore_ascii_case("POST") {
         if let Ok(path) = request.get_path() {
             if path == "/execute_command" {
                 return upgrade();
@@ -35,7 +35,7 @@ fn http_request(request: HttpRequest) -> HttpResponse {
 
 #[update]
 async fn http_request_update(request: HttpRequest) -> HttpResponse {
-    if request.method.to_ascii_uppercase() == "POST" {
+    if request.method.eq_ignore_ascii_case("POST") {
         if let Ok(path) = request.get_path() {
             if path == "/execute_command" {
                 let (status_code, body) = match str::from_utf8(&request.body) {
