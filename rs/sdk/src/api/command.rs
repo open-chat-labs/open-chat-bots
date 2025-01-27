@@ -19,6 +19,7 @@ pub struct CommandArg {
 pub enum CommandArgValue {
     String(String),
     Integer(i128),
+    #[serde(alias = "Number")]
     Decimal(f64),
     Boolean(bool),
     User(UserId),
