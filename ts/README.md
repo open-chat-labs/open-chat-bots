@@ -34,7 +34,7 @@ req.botClient = new BotClient({
 });
 ```
 
-We can see that there are some input arguments required to construct an instance of the `BotClient`. Some of the values for the input arguments required here can be obtained by navigating to your user profile inside OpenChat (running in the target environment), opening the Advanced section and clicking on the "Bot client data" button. This will provide OC publick key, the OpenStorage index canister and the IC host url for your environment.
+We can see that there are some input arguments required to construct an instance of the `BotClient`. Some of the values for the input arguments required here can be obtained by navigating to your user profile inside OpenChat (running in the target environment), opening the Advanced section and clicking on the "Bot client data" button. This will provide the OC public key, the OpenStorage index canister and the IC host url for your environment.
 
 Let's briefly explain what each of these arguments are for:
 
