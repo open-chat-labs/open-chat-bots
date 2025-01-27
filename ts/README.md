@@ -34,7 +34,9 @@ req.botClient = new BotClient({
 });
 ```
 
-We can see that there are some input arguments required to construct an instance of the `BotClient`. Let's briefly explain each of these arguments:
+We can see that there are some input arguments required to construct an instance of the `BotClient`. Some of the values for the input arguments required here can be obtained by navigating to your user profile inside OpenChat (running in the target environment), opening the Advanced section and clicking on the "Bot client data" button. This will provide the OC public key, the OpenStorage index canister and the IC host url for your environment.
+
+Let's briefly explain what each of these arguments are for:
 
 ### StorageIndexCanister
 
@@ -69,8 +71,6 @@ This will print the correct principal to the console.
 ### OpenChatPublicKey
 
 To authorise the execution of bot commands a user requests an authorisation token from the OpenChat backend. If granted, OpenChat will sign this jwt token using it's own private key. The public key part of this key pair needs to be passed into the BotClient so that the BotClient can verify and decode the auth token. This is important because the auth token contains all of the context and arguments of the command to be executed. We need to be able to decode it and to be sure that it originated in the OpenChat system.
-
-TBD - how to get the public key.
 
 ### EncodedJwt
 
