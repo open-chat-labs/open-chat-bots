@@ -18,7 +18,7 @@ pub struct CommandArg {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum CommandArgValue {
     String(String),
-    Integer(i128),
+    Integer(i64),
     #[serde(alias = "Number")]
     Decimal(f64),
     Boolean(bool),
@@ -34,7 +34,7 @@ impl CommandArgValue {
         }
     }
 
-    pub fn as_integer(&self) -> Option<i128> {
+    pub fn as_integer(&self) -> Option<i64> {
         if let CommandArgValue::Integer(n) = self {
             Some(*n)
         } else {
