@@ -3,6 +3,7 @@ use crate::api::Command;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug)]
 pub enum TokenError {
     Invalid(String),
     Expired,

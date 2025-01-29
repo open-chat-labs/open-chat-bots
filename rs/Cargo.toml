@@ -2,7 +2,7 @@
 members = [
     "examples/dice",
     "examples/greet/canister",
-    "examples/greet/loader",
+    "examples/greet/loader", "examples/relay",
     "sdk",
     "sdk_canister",
     "sdk_offchain",
@@ -11,6 +11,7 @@ resolver = "2"
 
 [workspace.dependencies]
 axum = "0.8.1"
+base64 = "0.22.1"
 candid = "0.10.10"
 clap = "4.5.4"
 ct-codecs = "1.1.1"

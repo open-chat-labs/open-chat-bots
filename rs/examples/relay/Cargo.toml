@@ -1,0 +1,17 @@
+[package]
+name = "relay"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+candid = { workspace = true }
+ic-cdk = { workspace = true }
+ic-http-certification = { workspace = true }
+ic_principal = { workspace = true }
+oc_bots_sdk = { path = "../../sdk" }
+oc_bots_sdk_canister = { path = "../../sdk_canister" }
+serde = { workspace = true }
