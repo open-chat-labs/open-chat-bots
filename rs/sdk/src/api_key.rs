@@ -15,9 +15,7 @@ impl<R: Runtime + Send + Sync + 'static> OpenChatClientForApiKey<R> {
         OpenChatClientForApiKey { runtime, context }
     }
 
-    pub async fn send_text_message<
-        F: FnOnce(BotAction, CallResult<(ActionResponse,)>) + Send + Sync + 'static,
-    >(
+    pub async fn send_text_message(
         &self,
         text: String,
         finalised: bool,
