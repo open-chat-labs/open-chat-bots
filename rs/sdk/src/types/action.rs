@@ -44,6 +44,12 @@ pub enum BotActionScope {
     Community(BotActionCommunityDetails),
 }
 
+#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+pub enum AccessTokenScope {
+    Chat(Chat),
+    Community(CanisterId),
+}
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct BotActionChatDetails {
     pub chat: Chat,

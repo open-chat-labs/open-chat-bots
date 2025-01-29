@@ -12,7 +12,7 @@ pub async fn execute_command(
     oc_client: &OpenChatClient<AgentRuntime>,
     oc_public_key: &str,
 ) -> Result<Message, BadRequest> {
-    let context = match BotCommandContext::parse(jwt.to_string(), oc_public_key, now()) {
+    let context = match BotCommandContext::parse(jwt, oc_public_key, now()) {
         Ok(c) => c,
         Err(bad_request) => {
             return Err(match bad_request {
@@ -28,5 +28,9 @@ pub async fn execute_command(
         "coin" => coin::execute(&command.args),
         _ => Err(BadRequest::CommandNotFound),
     }
-    .map(|text| oc_client.send_text_message(&context, text, true, |_, _| ()))
+    .map(|text| {
+        oc_client
+            .with_command_context(context)
+            .send_text_message(text, true, |_, _| ())
+    })
 }

@@ -10,8 +10,9 @@ pub fn execute(context: BotCommandContext) -> Result<SuccessResult, InternalErro
     let text = state::read(|state| state.get_random_joke());
 
     // Send the message to OpenChat but don't wait for the response
-    let message =
-        OPENCHAT_CLIENT.send_text_message(&context, text, true, |args, response| match response {
+    let message = OPENCHAT_CLIENT
+        .with_command_context(context)
+        .send_text_message(text, true, |args, response| match response {
             Ok(result) if result.0.is_ok() => {
                 state::mutate(|state| state.increment_jokes_sent());
             }
