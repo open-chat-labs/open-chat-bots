@@ -1,13 +1,14 @@
-use serde::Serialize;
+use candid::CandidType;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-#[derive(Serialize)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct BotDefinition {
     pub description: String,
     pub commands: Vec<SlashCommandSchema>,
 }
 
-#[derive(Serialize)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct SlashCommandSchema {
     pub name: String,
     pub description: Option<String>,
@@ -16,7 +17,7 @@ pub struct SlashCommandSchema {
     pub permissions: SlashCommandPermissions,
 }
 
-#[derive(Serialize)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct SlashCommandParam {
     pub name: String,
     pub description: Option<String>,
@@ -25,51 +26,50 @@ pub struct SlashCommandParam {
     pub param_type: SlashCommandParamType,
 }
 
-#[derive(Serialize)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum SlashCommandParamType {
     UserParam,
     BooleanParam,
     StringParam(StringParam),
     IntegerParam(IntegerParam),
-    #[serde(alias = "NumberParam")]
     DecimalParam(DecimalParam),
 }
 
-#[derive(Serialize)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct StringParam {
     pub min_length: u16,
     pub max_length: u16,
     pub choices: Vec<SlashCommandOptionChoice<String>>,
 }
 
-#[derive(Serialize)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct IntegerParam {
-    pub min_value: i128,
-    pub max_value: i128,
-    pub choices: Vec<SlashCommandOptionChoice<i128>>,
+    pub min_value: i64,
+    pub max_value: i64,
+    pub choices: Vec<SlashCommandOptionChoice<i64>>,
 }
 
-#[derive(Serialize)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct DecimalParam {
     pub min_value: f64,
     pub max_value: f64,
     pub choices: Vec<SlashCommandOptionChoice<f64>>,
 }
 
-#[derive(Serialize)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct SlashCommandOptionChoice<T> {
     pub name: String,
     pub value: T,
 }
 
-#[derive(Serialize, Default)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
 pub struct SlashCommandPermissions {
     pub community: HashSet<CommunityPermission>,
     pub chat: HashSet<GroupPermission>,
     pub message: HashSet<MessagePermission>,
 }
 
-#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum CommunityPermission {
     ChangeRoles,
     UpdateDetails,
@@ -80,7 +80,7 @@ pub enum CommunityPermission {
     ManageUserGroups,
 }
 
-#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum GroupPermission {
     ChangeRoles,
     UpdateGroup,
@@ -94,7 +94,7 @@ pub enum GroupPermission {
     StartVideoCall,
 }
 
-#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum MessagePermission {
     Text,
     Image,

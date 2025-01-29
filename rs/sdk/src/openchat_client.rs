@@ -26,7 +26,7 @@ impl<R: Runtime + Send + Sync + 'static> OpenChatClient<R> {
         finalised: bool,
         on_response: F,
     ) -> Message {
-        let message_id = context.message_id();
+        let message_id = context.chat_scope().unwrap().message_id.clone();
         let content = MessageContent::Text(TextContent { text });
         let bot_api_gateway = context.bot_api_gateway();
         let jwt = context.jwt().to_string();

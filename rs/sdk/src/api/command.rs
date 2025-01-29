@@ -1,25 +1,24 @@
+use crate::types::{MessageContent, MessageId, UserId};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
-use crate::types::{MessageContent, MessageId, UserId};
-
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Command {
     pub name: String,
     pub args: Vec<CommandArg>,
+    pub initiator: UserId,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct CommandArg {
     pub name: String,
     pub value: CommandArgValue,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum CommandArgValue {
     String(String),
     Integer(i64),
-    #[serde(alias = "Number")]
     Decimal(f64),
     Boolean(bool),
     User(UserId),
@@ -68,26 +67,26 @@ impl CommandArgValue {
 }
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Serialize)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum CommandResponse {
     Success(SuccessResult),
     BadRequest(BadRequest),
     InternalError(InternalError),
 }
 
-#[derive(Serialize)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct SuccessResult {
     pub message: Option<Message>,
 }
 
-#[derive(Serialize)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Message {
     pub id: MessageId,
     pub content: MessageContent,
     pub finalised: bool,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum BadRequest {
     AccessTokenNotFound,
     AccessTokenInvalid,
@@ -96,7 +95,7 @@ pub enum BadRequest {
     ArgsInvalid,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum InternalError {
     Invalid(String),
     CanisterError(CanisterError),
