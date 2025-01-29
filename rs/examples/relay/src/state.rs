@@ -27,6 +27,7 @@ pub fn read<F: FnOnce(&State) -> R, R>(f: F) -> R {
     STATE.with_borrow(|s| f(s.as_ref().expect(STATE_NOT_INITIALIZED)))
 }
 
+#[allow(dead_code)]
 pub fn mutate<F: FnOnce(&mut State) -> R, R>(f: F) -> R {
     STATE.with_borrow_mut(|s| f(s.as_mut().expect(STATE_NOT_INITIALIZED)))
 }

@@ -12,6 +12,8 @@ candid = { workspace = true }
 ic-cdk = { workspace = true }
 ic-http-certification = { workspace = true }
 ic_principal = { workspace = true }
+ic-stable-structures = { workspace = true }
 oc_bots_sdk = { path = "../../sdk" }
 oc_bots_sdk_canister = { path = "../../sdk_canister" }
+rmp-serde = { workspace = true }
 serde = { workspace = true }

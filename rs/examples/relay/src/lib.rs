@@ -2,6 +2,8 @@ use oc_bots_sdk::types::{BotAction, BotApiKeyContext};
 use oc_bots_sdk_canister::{env, OPENCHAT_CLIENT};
 
 mod http_request;
+mod lifecycle;
+mod memory;
 mod state;
 
 async fn execute_action_with_api_key(action: BotAction, api_key: String) {
@@ -17,5 +19,7 @@ async fn execute_action_with_jwt(action: BotAction, jwt: String) {
         .with_api_key_context(context)
         .execute_bot_action(action)
         .await
+        .unwrap()
+        .0
         .unwrap();
 }

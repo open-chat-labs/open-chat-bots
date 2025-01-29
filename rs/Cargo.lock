@@ -1915,9 +1915,11 @@ dependencies = [
  "candid",
  "ic-cdk",
  "ic-http-certification",
+ "ic-stable-structures",
  "ic_principal",
  "oc_bots_sdk",
  "oc_bots_sdk_canister",
+ "rmp-serde",
  "serde",
 ]
 

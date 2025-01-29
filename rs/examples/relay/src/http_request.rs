@@ -49,6 +49,7 @@ async fn http_request_update(request: HttpRequest) -> HttpResponse {
     not_found()
 }
 
+#[allow(dead_code)]
 fn text_response(status_code: u16, body: String) -> HttpResponse {
     HttpResponse {
         status_code,
