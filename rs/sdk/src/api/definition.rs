@@ -6,6 +6,7 @@ use std::collections::HashSet;
 pub struct BotDefinition {
     pub description: String,
     pub commands: Vec<SlashCommandSchema>,
+    pub autonomous_config: Option<AutonomousConfig>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -14,7 +15,12 @@ pub struct SlashCommandSchema {
     pub description: Option<String>,
     pub placeholder: Option<String>,
     pub params: Vec<SlashCommandParam>,
-    pub permissions: SlashCommandPermissions,
+    pub permissions: BotPermissions,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+pub struct AutonomousConfig {
+    pub permissions: BotPermissions,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -63,7 +69,7 @@ pub struct SlashCommandOptionChoice<T> {
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
-pub struct SlashCommandPermissions {
+pub struct BotPermissions {
     pub community: HashSet<CommunityPermission>,
     pub chat: HashSet<GroupPermission>,
     pub message: HashSet<MessagePermission>,

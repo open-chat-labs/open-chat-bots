@@ -1,6 +1,6 @@
 use oc_bots_sdk::api::{
-    BadRequest, CommandArg, IntegerParam, MessagePermission, SlashCommandParam,
-    SlashCommandParamType, SlashCommandPermissions, SlashCommandSchema,
+    BadRequest, BotPermissions, CommandArg, IntegerParam, MessagePermission, SlashCommandParam,
+    SlashCommandParamType, SlashCommandSchema,
 };
 use rand::{thread_rng, Rng};
 use std::collections::HashSet;
@@ -63,7 +63,7 @@ pub fn schema() -> SlashCommandSchema {
                 }),
             },
         ],
-        permissions: SlashCommandPermissions {
+        permissions: BotPermissions {
             message: HashSet::from_iter([MessagePermission::Text]),
             ..Default::default()
         },

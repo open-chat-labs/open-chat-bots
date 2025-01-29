@@ -59,7 +59,7 @@
                     }
                 },
                 "permissions": {
-                    "$ref": "#/definitions/SlashCommandPermissions",
+                    "$ref": "#/definitions/BotPermissions",
                     "description": "The permissions required to execute the command. These are broken down into Community level, Chat level and Message level permissions."
                 }
             },
@@ -214,7 +214,7 @@
             "required": ["name", "value"],
             "additionalProperties": false
         },
-        "SlashCommandPermissions": {
+        "BotPermissions": {
             "type": "object",
             "description": "Permissions required for slash commands to execute.",
             "properties": {
