@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 
 pub type CanisterId = Principal;
+pub type ChannelId = u32;
 pub type TimestampMillis = u64;
 pub type TimestampNanos = u64;
 pub type Milliseconds = u64;
@@ -28,9 +29,9 @@ impl Debug for UserId {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub enum StringChat {
-    Direct(String),
-    Group(String),
-    Channel(String, String),
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub enum Chat {
+    Direct(CanisterId),
+    Group(CanisterId),
+    Channel(CanisterId, ChannelId),
 }

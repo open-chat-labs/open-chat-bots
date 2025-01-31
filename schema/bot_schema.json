@@ -233,7 +233,7 @@
     },
     "BotPermissions": {
       "type": "object",
-      "description": "Permissions required for slash commands or autonomous bots to execute.",
+      "description": "Permissions required for slash commands to execute.",
       "properties": {
         "community": {
           "type": "array",

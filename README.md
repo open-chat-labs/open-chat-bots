@@ -115,3 +115,19 @@ See [the typescript readme](./ts/README.md).
 ### For information about the required bot schema
 
 See [the bot definition schema readme](./schema/README.md).
+
+    "autonomous_config": {
+      "$ref": "#/definitions/AutonomousConfig",
+      "description": "Configuration for the bot's autonomous behaviour"
+    }
+
+    "AutonomousConfig": {
+      "type": "object",
+      "description": "Configuration for the bot's autonomous behaviour",
+      "properies": {
+        "permissions": {
+          "$ref": "#/definitions/BotPermissions",
+          "description": "The permissions required to execute in this context. These are broken down into Community level, Chat level and Message level permissions."
+        }
+      }
+    },

@@ -1597,14 +1597,14 @@ export type SlashCommandParamType = { 'UserParam' : null } |
   { 'NumberParam' : NumberParam } |
   { 'StringParam' : StringParam } |
   { 'BooleanParam' : null };
-export interface SlashCommandPermissions {
+export interface BotPermissions {
   'chat' : Array<GroupPermission>,
   'community' : Array<CommunityPermission>,
   'thread' : Array<MessagePermission>,
   'message' : Array<MessagePermission>,
 }
 export interface SlashCommandSchema {
-  'permissions' : SlashCommandPermissions,
+  'permissions' : BotPermissions,
   'name' : string,
   'description' : [] | [string],
   'params' : Array<SlashCommandParam>,

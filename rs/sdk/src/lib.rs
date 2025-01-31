@@ -1,4 +1,6 @@
 pub mod api;
+mod api_key;
+mod command;
 mod openchat_client;
 mod runtime;
 pub mod types;

@@ -1,24 +1,25 @@
+use crate::types::{MessageContent, MessageId, UserId};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
-use crate::types::{MessageContent, MessageId, UserId};
-
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Command {
     pub name: String,
     pub args: Vec<CommandArg>,
+    pub initiator: UserId,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct CommandArg {
     pub name: String,
     pub value: CommandArgValue,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum CommandArgValue {
     String(String),
-    Number(f64),
+    Integer(i64),
+    Decimal(f64),
     Boolean(bool),
     User(UserId),
 }
@@ -32,8 +33,16 @@ impl CommandArgValue {
         }
     }
 
-    pub fn as_number(&self) -> Option<f64> {
-        if let CommandArgValue::Number(n) = self {
+    pub fn as_integer(&self) -> Option<i64> {
+        if let CommandArgValue::Integer(n) = self {
+            Some(*n)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_decimal(&self) -> Option<f64> {
+        if let CommandArgValue::Decimal(n) = self {
             Some(*n)
         } else {
             None
@@ -58,26 +67,26 @@ impl CommandArgValue {
 }
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Serialize)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum CommandResponse {
     Success(SuccessResult),
     BadRequest(BadRequest),
     InternalError(InternalError),
 }
 
-#[derive(Serialize)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct SuccessResult {
     pub message: Option<Message>,
 }
 
-#[derive(Serialize)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Message {
     pub id: MessageId,
     pub content: MessageContent,
     pub finalised: bool,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum BadRequest {
     AccessTokenNotFound,
     AccessTokenInvalid,
@@ -86,7 +95,7 @@ pub enum BadRequest {
     ArgsInvalid,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum InternalError {
     Invalid(String),
     CanisterError(CanisterError),

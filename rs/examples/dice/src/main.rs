@@ -61,6 +61,7 @@ fn bot_definition() -> BotDefinition {
     BotDefinition {
         description: "Use this bot to roll dice or toss coins".to_string(),
         commands: vec![commands::coin::schema(), commands::roll::schema()],
+        autonomous_config: None,
     }
 }
 

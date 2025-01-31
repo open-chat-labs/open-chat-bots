@@ -1,9 +1,7 @@
-use crate::api::Message;
+use crate::api_key::OpenChatClientForApiKey;
+use crate::command::OpenChatClientForCommand;
 use crate::runtime::Runtime;
-use crate::types::{
-    ActionResponse, BotAction, BotCommandContext, BotMessageAction, CallResult, MessageContent,
-    TextContent,
-};
+use crate::types::{BotApiKeyContext, BotCommandContext};
 use std::sync::Arc;
 
 pub struct OpenChatClient<R> {
@@ -17,38 +15,11 @@ impl<R: Runtime + Send + Sync + 'static> OpenChatClient<R> {
         }
     }
 
-    pub fn send_text_message<
-        F: FnOnce(BotAction, CallResult<(ActionResponse,)>) + Send + Sync + 'static,
-    >(
-        &self,
-        context: &BotCommandContext,
-        text: String,
-        finalised: bool,
-        on_response: F,
-    ) -> Message {
-        let message_id = context.message_id();
-        let content = MessageContent::Text(TextContent { text });
-        let bot_api_gateway = context.bot_api_gateway();
-        let jwt = context.jwt().to_string();
+    pub fn with_command_context(&self, context: BotCommandContext) -> OpenChatClientForCommand<R> {
+        OpenChatClientForCommand::new(self.runtime.clone(), context)
+    }
 
-        let action = BotAction::SendMessage(BotMessageAction {
-            content: content.clone(),
-            finalised,
-        });
-
-        let runtime = self.runtime.clone();
-        self.runtime.spawn(async move {
-            let response = runtime
-                .execute_bot_action(bot_api_gateway, jwt, action.clone())
-                .await;
-
-            on_response(action, response);
-        });
-
-        Message {
-            id: message_id,
-            content,
-            finalised,
-        }
+    pub fn with_api_key_context(&self, context: BotApiKeyContext) -> OpenChatClientForApiKey<R> {
+        OpenChatClientForApiKey::new(self.runtime.clone(), context)
     }
 }
