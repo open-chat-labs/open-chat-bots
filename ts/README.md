@@ -20,21 +20,24 @@ npm i @open-ic/openchat-botclient-ts
 
 ## Initialisation
 
-The library exports a `BotClient` constructor which is designed to be created at the beginning of an execute_command POST request. One idiomatic way to achieve this is to use middleware on the request root to create the instance of the `BotClient`.
+The library exports a `BotClientFactory` constructor which is designed to be created when your bot starts up. This will be given a number of pieces of environment specific configuration which are necessary to construct valid clients to talk to the OpenChat backend.
+
+This client factory is capable of creating different types of client instance for interacting with the OpenChat backend. You will want to create a different kind of client depending on whether you are handling a _command_ request or a request made with an _API key_. Accordingly you will either need to call `createCommandChatClient` or `createApiKeyChatClient` respectively.
+
+One ideomatic pattern to work with is to use express middleware to create the right kind of client and attach it to the request object so that it is available to downstream route handlers.
 
 For an example of this you can refer to [the middleware](./packages/example/src/middleware/botclient.ts) used in the sample implementation.
 
 ```typescript
-req.botClient = new BotClient({
-  openStorageCanisterId: storageIndexCanister,
-  icHost: icHost,
-  identityPrivateKey: privateKey,
-  openchatPublicKey: ocPublic,
-  encodedJwt: req.body,
+const factory = new BotClientFactory({
+  openchatPublicKey: process.env.OC_PUBLIC!,
+  icHost: process.env.IC_HOST!,
+  identityPrivateKey: process.env.IDENTITY_PRIVATE!,
+  openStorageCanisterId: process.env.STORAGE_INDEX_CANISTER!,
 });
 ```
 
-We can see that there are some input arguments required to construct an instance of the `BotClient`. Some of the values for the input arguments required here can be obtained by navigating to your user profile inside OpenChat (running in the target environment), opening the Advanced section and clicking on the "Bot client data" button. This will provide the OC public key, the OpenStorage index canister and the IC host url for your environment.
+We can see that there are some input arguments required to construct an instance of the `BotClientFactory`. Some of the values for the input arguments required here can be obtained by navigating to your user profile inside OpenChat (running in the target environment), opening the Advanced section and clicking on the "Bot client data" button. This will provide the OC public key, the OpenStorage index canister and the IC host url for your environment.
 
 Let's briefly explain what each of these arguments are for:
 
@@ -74,9 +77,13 @@ To authorise the execution of bot commands a user requests an authorisation toke
 
 ### EncodedJwt
 
-As mentioned, each call to the bot's `execute_command` endpoint will be passed a signed json webtoken in the request body. This is a plain text value and just needs to be passed into the BotClient as is. The BotClient will then use the OpenChat public key to decode and verify this token and, if valid, it will expose the relevant values that it contains for use throughout the lifespan of your bot request.
+In addition when creating an instance of _command_ client via `BotClientFactory.createCommandChatClient` you will also need to provide the encoded JWT auth token that you will find in the body of the request made to the bot's `execute_command` endpoint. This is a plain text value and just needs to be passed into the BotClientFactory function as is. The BotClientFactory will then use the OpenChat public key to decode and verify this token and, if valid, it will expose the relevant values that it contains for use throughout the lifespan of your bot request.
 
-## Usage
+### API Key
+
+In the case where we are using `BotClientFactory.createApiKeyChatClient` you will need to pass in an API key instead (which will be used to obtain an auth token behind the scenes). This API key will be provide in an `x-api-key` HTTP header.
+
+## Command Usage
 
 The easiest way to grasp the usage of the OpenChat BotClient is to look at one of the sample command handlers in the example bot implementation, for example [the album command](./packages/example/src/handlers/album.ts), which is commented for clarity.
 
@@ -155,27 +162,12 @@ Note that each time we call `sendTextMessage` within the lifecycle of a single c
 
 Note also that it is always possible for the calls to the OpenChat back end to return error responses or to throw errors so you will need appropriate error handling. The typescript types will help you track the possible ways that a call to the OpenChat backend can fail.
 
+## API key Usage
+
+For an example usage of the API key method, take a look at the [executeAction](./packages/example/src/handlers/executeAction.ts) file. It is quite similar to the command case except there is no command for us to inspect in this case. Of course the third party system with which we are integrating may have sent data to us along with the request in any format it likes. In the case of our example we are simply relaying whatever is in the request body on as an OpenChat text message.
+
 ## BotClient interface
 
 Here is a full description of the BotClient interface.
 
-| Method / Property                                                                                                                                                    | Description                                                                                         |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `stringArg(name: string): string \| undefined`                                                                                                                       | Attempts to find and return a string type argument from the command payload.                        |
-| `booleanArg(name: string): boolean \| undefined`                                                                                                                     | Attempts to find and return a boolean type argument from the command payload.                       |
-| `numberArg(name: string): number \| undefined`                                                                                                                       | Attempts to find and return a number type argument from the command payload.                        |
-| `userArg(name: string): string \| undefined`                                                                                                                         | Attempts to find and return a user type argument from the command payload.                          |
-| `commandArgs: BotCommandArg[]`                                                                                                                                       | Returns the full list of command arguments in the order they were specified.                        |
-| `commandName: string`                                                                                                                                                | Returns the command name.                                                                           |
-| `messageId: string`                                                                                                                                                  | Returns the messageId of the OpenChat message associated with this command execution.               |
-| `threadRootMessageId: number \| undefined \| null`                                                                                                                   | Returns the messageId of the root message in the thread if this command was executed from a thread. |
-| `chatId: Chat`                                                                                                                                                       | Returns the ID of the Chat context in which the command was executed.                               |
-| `initiator: string`                                                                                                                                                  | Returns the userId of the user who initiated the command.                                           |
-| `botId: string`                                                                                                                                                      | Returns the ID of the bot which the user interacted with to initiate the command.                   |
-| `sendFileMessage(finalised: boolean, name: string, data: Uint8Array, mimeType: string, fileSize: number, caption?: string): Promise<ExecuteBotCommandResponse>`      | Uploads file data and sends a file message to the OpenChat backend.                                 |
-| `sendImageMessage(finalised: boolean, imageData: Uint8Array, mimeType: string, width: number, height: number, caption?: string): Promise<ExecuteBotCommandResponse>` | Uploads image data and sends an image message to the OpenChat backend.                              |
-| `sendTextMessage(finalised: boolean, text: string): Promise<ExecuteBotCommandResponse>`                                                                              | Sends a text message to the OpenChat backend.                                                       |
-| `createFileMessage(finalised: boolean, name: string, data: Uint8Array, mimeType: string, fileSize: number, caption?: string): Promise<Message>`                      | Uploads file data and creates a file message that can be sent to the OpenChat backend.              |
-| `createImageMessage(finalised: boolean, imageData: Uint8Array, mimeType: string, width: number, height: number, caption?: string): Promise<Message>`                 | Uploads image data and creates an image message that can be sent to the OpenChat backend.           |
-| `createTextMessage(finalised: boolean, text: string): Promise<Message>`                                                                                              | Creates a text message that can be sent to the OpenChat backend.                                    |
-| `sendMessage(message: Message): Promise<ExecuteBotCommandResponse>`                                                                                                  | Sends a previously created message to the OpenChat backend.                                         |
+TBD
