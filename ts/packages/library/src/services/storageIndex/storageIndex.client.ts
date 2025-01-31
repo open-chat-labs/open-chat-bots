@@ -4,7 +4,7 @@ import {
     type CandidAllocatedBucketResponse,
     type StorageIndexService,
 } from "./candid/idl";
-import { CandidService } from "../utils/candidService";
+import { CandidService } from "../../utils/candidService";
 
 export class StorageIndexClient extends CandidService {
     private service: StorageIndexService;
@@ -12,7 +12,7 @@ export class StorageIndexClient extends CandidService {
     constructor(agent: HttpAgent, canisterId: string, icHost: string) {
         super();
 
-        this.service = this.createServiceClient<StorageIndexService>(
+        this.service = CandidService.createServiceClient<StorageIndexService>(
             idlFactory,
             canisterId,
             icHost,
@@ -25,7 +25,7 @@ export class StorageIndexClient extends CandidService {
         fileSize: bigint,
         fileIdSeed: bigint | undefined,
     ): Promise<CandidAllocatedBucketResponse> {
-        return this.handleResponse(
+        return CandidService.handleResponse(
             this.service.allocated_bucket_v2({
                 file_hash: fileHash,
                 file_size: fileSize,

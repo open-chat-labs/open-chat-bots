@@ -8,9 +8,34 @@ const emptyPermissions = {
 
 export default function schema(_: Request, res: Response) {
   res.status(200).json({
+    autonomous_config: {
+      permissions: {
+        message: ["Text", "Image", "P2pSwap", "VideoCall"],
+        community: ["RemoveMembers", "ChangeRoles"],
+        chat: [],
+      },
+    },
     description:
       "This is a demonstration bot which runs various commands against the Spotify API.",
     commands: [
+      {
+        name: "start_ping",
+        description: "Begin pinging OpenChat",
+        permissions: {
+          ...emptyPermissions,
+          message: ["Text"],
+        },
+        params: [],
+      },
+      {
+        name: "stop_ping",
+        description: "Stop pinging OpenChat",
+        permissions: {
+          ...emptyPermissions,
+          message: ["Text"],
+        },
+        params: [],
+      },
       {
         name: "news",
         description: "Show a list of the current news headlines",

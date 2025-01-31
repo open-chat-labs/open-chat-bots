@@ -1,7 +1,7 @@
 import { Response } from "express";
 import fs from "fs";
 import mime from "mime-types";
-import { ExtendedRequest } from "../types";
+import { WithCommandChatClient } from "../types";
 import { success } from "./success";
 
 async function processFile(filePath: string) {
@@ -21,7 +21,7 @@ async function processFile(filePath: string) {
   }
 }
 
-export default async function file(req: ExtendedRequest, res: Response) {
+export default async function file(req: WithCommandChatClient, res: Response) {
   const client = req.botClient;
   const placeholder = await client.createTextMessage(
     false,

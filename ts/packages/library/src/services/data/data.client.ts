@@ -1,11 +1,11 @@
 import type { HttpAgent } from "@dfinity/agent";
 import { Principal } from "@dfinity/principal";
 import { sha3_256 } from "js-sha3";
+import { random128 } from "../../utils/rng";
+import type { ProjectedAllowance } from "../storageIndex/candid/types";
 import { StorageIndexClient } from "../storageIndex/storageIndex.client";
 import { StorageBucketClient } from "../storageBucket/storageBucket.client";
-import { random128 } from "../utils/rng";
-import type { BotClientConfig } from "../bot_gateway/client";
-import type { ProjectedAllowance } from "../storageIndex/candid/types";
+import type { BotClientConfig } from "../../types";
 
 export type BlobReference = {
     blobId: bigint;

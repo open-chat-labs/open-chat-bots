@@ -71,3 +71,33 @@ See [the typescript readme](./ts/README.md).
 ### For information about the required bot schema
 
 See [the bot definition schema readme](./schema/README.md).
+
+### Integration Bots
+
+```
+External System           Bot Server            OC Backend
+       |                       |                     |
+       |-- action + API key -->|                     |
+       |                       |--- request auth --->|
+       |                       |<---- auth token ----|
+       |<--- bot response -----|                     |
+       |                       |------- action ----->|
+       |                       |<----- response -----|
+       |                       |------- action ----->|
+       |                       |<----- response -----|
+       |                       |                     |
+```
+
+### Autonomous Bots
+
+```
+                 Bot Server            OC Backend
+                      |                     |
+  init with API key ->|                     |
+                      |--- request auth --->|<-------|
+                      |<---- auth token ----|        |
+                      |                     |        |
+                      |------- action ----->|        |
+                      |<----- response -----|        |
+                      |                     |--------|
+```

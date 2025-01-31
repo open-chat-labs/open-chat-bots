@@ -19798,199 +19798,6 @@ var esm = /*#__PURE__*/Object.freeze({
     wrapDER: wrapDER
 });
 
-class HttpError extends Error {
-    constructor(code, error) {
-        super(error.message);
-        this.code = code;
-        this.stack = error.stack;
-        this.name = "HttpError";
-    }
-}
-class DestinationInvalidError extends HttpError {
-    constructor(error) {
-        super(404, error);
-        this.name = "DestinationInvalidError";
-    }
-}
-class AuthError extends HttpError {
-    constructor(code, error) {
-        super(code, error);
-        this.code = code;
-        this.name = "AuthError";
-    }
-}
-class ReplicaNotUpToDateError extends Error {
-    static byTimestamp(replicaTimestamp, clientTimestamp, failedPostCheck) {
-        const message = `Replica not up to date (timestamp). Client: ${clientTimestamp}. Replica: ${replicaTimestamp}. FailedPostCheck: ${failedPostCheck}`;
-        return new ReplicaNotUpToDateError(message);
-    }
-    constructor(message) {
-        super(message);
-    }
-}
-function toCanisterResponseError(error) {
-    if (error instanceof ReplicaNotUpToDateError) {
-        return error;
-    }
-    let code = 500;
-    if (error.message.includes("DestinationInvalid")) {
-        // this will allow us to short-circuit the retry mechanism in this circumstance
-        return new DestinationInvalidError(error);
-    }
-    const statusLine = error.message
-        .split("\n")
-        .map((l) => l.trim().toLowerCase())
-        .find((l) => l.startsWith("code:") || l.startsWith("http status code:"));
-    if (statusLine) {
-        const parts = statusLine.split(":");
-        if (parts && parts.length > 1) {
-            let valueText = parts[1].trim();
-            const valueParts = valueText.split(" ");
-            if (valueParts && valueParts.length > 1) {
-                valueText = valueParts[0].trim();
-            }
-            code = parseInt(valueText, 10);
-            if (isNaN(code)) {
-                code = 500;
-            }
-        }
-    }
-    return code === 401 || code === 403 ? new AuthError(code, error) : new HttpError(code, error);
-}
-
-class CandidService {
-    createServiceClient(factory, canisterId, host, agent) {
-        const isMainnet = host.includes("icp-api.io");
-        if (!isMainnet) {
-            agent.fetchRootKey();
-        }
-        return Actor.createActor(factory, {
-            agent,
-            canisterId,
-        });
-    }
-    handleResponse(service, mapper, args) {
-        return service.then(mapper).catch((err) => {
-            console.log(err, args);
-            throw toCanisterResponseError(err);
-        });
-    }
-    constructor() { }
-}
-
-const idlFactory$2 = ({ IDL }) => {
-  const GiphyImageVariant = IDL.Record({
-    'url' : IDL.Text,
-    'height' : IDL.Nat32,
-    'mime_type' : IDL.Text,
-    'width' : IDL.Nat32,
-  });
-  const GiphyContent = IDL.Record({
-    'title' : IDL.Text,
-    'desktop' : GiphyImageVariant,
-    'caption' : IDL.Opt(IDL.Text),
-    'mobile' : GiphyImageVariant,
-  });
-  const CanisterId = IDL.Principal;
-  const BlobReference = IDL.Record({
-    'blob_id' : IDL.Nat,
-    'canister_id' : CanisterId,
-  });
-  const FileContent = IDL.Record({
-    'name' : IDL.Text,
-    'mime_type' : IDL.Text,
-    'file_size' : IDL.Nat32,
-    'blob_reference' : IDL.Opt(BlobReference),
-    'caption' : IDL.Opt(IDL.Text),
-  });
-  const UserId = CanisterId;
-  const TotalPollVotes = IDL.Variant({
-    'Anonymous' : IDL.Vec(IDL.Tuple(IDL.Nat32, IDL.Nat32)),
-    'Visible' : IDL.Vec(IDL.Tuple(IDL.Nat32, IDL.Vec(UserId))),
-    'Hidden' : IDL.Nat32,
-  });
-  const PollVotes = IDL.Record({
-    'total' : TotalPollVotes,
-    'user' : IDL.Vec(IDL.Nat32),
-  });
-  const TimestampMillis = IDL.Nat64;
-  const PollConfig = IDL.Record({
-    'allow_multiple_votes_per_user' : IDL.Bool,
-    'text' : IDL.Opt(IDL.Text),
-    'show_votes_before_end_date' : IDL.Bool,
-    'end_date' : IDL.Opt(TimestampMillis),
-    'anonymous' : IDL.Bool,
-    'allow_user_to_change_vote' : IDL.Bool,
-    'options' : IDL.Vec(IDL.Text),
-  });
-  const PollContent = IDL.Record({
-    'votes' : PollVotes,
-    'ended' : IDL.Bool,
-    'config' : PollConfig,
-  });
-  const TextContent = IDL.Record({ 'text' : IDL.Text });
-  const ImageContent = IDL.Record({
-    'height' : IDL.Nat32,
-    'mime_type' : IDL.Text,
-    'blob_reference' : IDL.Opt(BlobReference),
-    'thumbnail_data' : IDL.Text,
-    'caption' : IDL.Opt(IDL.Text),
-    'width' : IDL.Nat32,
-  });
-  const AudioContent = IDL.Record({
-    'mime_type' : IDL.Text,
-    'blob_reference' : IDL.Opt(BlobReference),
-    'caption' : IDL.Opt(IDL.Text),
-  });
-  const VideoContent = IDL.Record({
-    'height' : IDL.Nat32,
-    'image_blob_reference' : IDL.Opt(BlobReference),
-    'video_blob_reference' : IDL.Opt(BlobReference),
-    'mime_type' : IDL.Text,
-    'thumbnail_data' : IDL.Text,
-    'caption' : IDL.Opt(IDL.Text),
-    'width' : IDL.Nat32,
-  });
-  const MessageContent = IDL.Variant({
-    'Giphy' : GiphyContent,
-    'File' : FileContent,
-    'Poll' : PollContent,
-    'Text' : TextContent,
-    'Image' : ImageContent,
-    'Audio' : AudioContent,
-    'Video' : VideoContent,
-  });
-  const BotAction = IDL.Variant({
-    'SendMessage' : IDL.Record({
-      'content' : MessageContent,
-      'finalised' : IDL.Bool,
-    }),
-  });
-  const ExecuteBotCommandArgs = IDL.Record({
-    'jwt' : IDL.Text,
-    'action' : BotAction,
-  });
-  const ExecuteBotCommandResponse = IDL.Variant({
-    'Ok' : IDL.Null,
-    'Err' : IDL.Variant({
-      'Invalid' : IDL.Text,
-      'CanisterError' : IDL.Variant({
-        'NotAuthorized' : IDL.Null,
-        'Other' : IDL.Text,
-        'Frozen' : IDL.Null,
-      }),
-      'C2CError' : IDL.Tuple(IDL.Nat32, IDL.Text),
-    }),
-  });
-  return IDL.Service({
-    'execute_bot_action' : IDL.Func(
-        [ExecuteBotCommandArgs],
-        [ExecuteBotCommandResponse],
-        [],
-      ),
-  });
-};
-
 var cjs = {};
 
 var secp256k1$1 = {};
@@ -29499,963 +29306,6 @@ function requireCjs () {
 
 var cjsExports = requireCjs();
 
-var sha3 = {exports: {}};
-
-/**
- * [js-sha3]{@link https://github.com/emn178/js-sha3}
- *
- * @version 0.9.3
- * @author Chen, Yi-Cyuan [emn178@gmail.com]
- * @copyright Chen, Yi-Cyuan 2015-2023
- * @license MIT
- */
-
-var hasRequiredSha3;
-
-function requireSha3 () {
-	if (hasRequiredSha3) return sha3.exports;
-	hasRequiredSha3 = 1;
-	(function (module) {
-		/*jslint bitwise: true */
-		(function () {
-
-		  var INPUT_ERROR = 'input is invalid type';
-		  var FINALIZE_ERROR = 'finalize already called';
-		  var WINDOW = typeof window === 'object';
-		  var root = WINDOW ? window : {};
-		  if (root.JS_SHA3_NO_WINDOW) {
-		    WINDOW = false;
-		  }
-		  var WEB_WORKER = !WINDOW && typeof self === 'object';
-		  var NODE_JS = !root.JS_SHA3_NO_NODE_JS && typeof process === 'object' && process.versions && process.versions.node;
-		  if (NODE_JS) {
-		    root = commonjsGlobal;
-		  } else if (WEB_WORKER) {
-		    root = self;
-		  }
-		  var COMMON_JS = !root.JS_SHA3_NO_COMMON_JS && 'object' === 'object' && module.exports;
-		  var ARRAY_BUFFER = !root.JS_SHA3_NO_ARRAY_BUFFER && typeof ArrayBuffer !== 'undefined';
-		  var HEX_CHARS = '0123456789abcdef'.split('');
-		  var SHAKE_PADDING = [31, 7936, 2031616, 520093696];
-		  var CSHAKE_PADDING = [4, 1024, 262144, 67108864];
-		  var KECCAK_PADDING = [1, 256, 65536, 16777216];
-		  var PADDING = [6, 1536, 393216, 100663296];
-		  var SHIFT = [0, 8, 16, 24];
-		  var RC = [1, 0, 32898, 0, 32906, 2147483648, 2147516416, 2147483648, 32907, 0, 2147483649,
-		    0, 2147516545, 2147483648, 32777, 2147483648, 138, 0, 136, 0, 2147516425, 0,
-		    2147483658, 0, 2147516555, 0, 139, 2147483648, 32905, 2147483648, 32771,
-		    2147483648, 32770, 2147483648, 128, 2147483648, 32778, 0, 2147483658, 2147483648,
-		    2147516545, 2147483648, 32896, 2147483648, 2147483649, 0, 2147516424, 2147483648];
-		  var BITS = [224, 256, 384, 512];
-		  var SHAKE_BITS = [128, 256];
-		  var OUTPUT_TYPES = ['hex', 'buffer', 'arrayBuffer', 'array', 'digest'];
-		  var CSHAKE_BYTEPAD = {
-		    '128': 168,
-		    '256': 136
-		  };
-
-
-		  var isArray = root.JS_SHA3_NO_NODE_JS || !Array.isArray
-		    ? function (obj) {
-		        return Object.prototype.toString.call(obj) === '[object Array]';
-		      }
-		    : Array.isArray;
-
-		  var isView = (ARRAY_BUFFER && (root.JS_SHA3_NO_ARRAY_BUFFER_IS_VIEW || !ArrayBuffer.isView))
-		    ? function (obj) {
-		        return typeof obj === 'object' && obj.buffer && obj.buffer.constructor === ArrayBuffer;
-		      }
-		    : ArrayBuffer.isView;
-
-		  // [message: string, isString: bool]
-		  var formatMessage = function (message) {
-		    var type = typeof message;
-		    if (type === 'string') {
-		      return [message, true];
-		    }
-		    if (type !== 'object' || message === null) {
-		      throw new Error(INPUT_ERROR);
-		    }
-		    if (ARRAY_BUFFER && message.constructor === ArrayBuffer) {
-		      return [new Uint8Array(message), false];
-		    }
-		    if (!isArray(message) && !isView(message)) {
-		      throw new Error(INPUT_ERROR);
-		    }
-		    return [message, false];
-		  };
-
-		  var empty = function (message) {
-		    return formatMessage(message)[0].length === 0;
-		  };
-
-		  var cloneArray = function (array) {
-		    var newArray = [];
-		    for (var i = 0; i < array.length; ++i) {
-		      newArray[i] = array[i];
-		    }
-		    return newArray;
-		  };
-
-		  var createOutputMethod = function (bits, padding, outputType) {
-		    return function (message) {
-		      return new Keccak(bits, padding, bits).update(message)[outputType]();
-		    };
-		  };
-
-		  var createShakeOutputMethod = function (bits, padding, outputType) {
-		    return function (message, outputBits) {
-		      return new Keccak(bits, padding, outputBits).update(message)[outputType]();
-		    };
-		  };
-
-		  var createCshakeOutputMethod = function (bits, padding, outputType) {
-		    return function (message, outputBits, n, s) {
-		      return methods['cshake' + bits].update(message, outputBits, n, s)[outputType]();
-		    };
-		  };
-
-		  var createKmacOutputMethod = function (bits, padding, outputType) {
-		    return function (key, message, outputBits, s) {
-		      return methods['kmac' + bits].update(key, message, outputBits, s)[outputType]();
-		    };
-		  };
-
-		  var createOutputMethods = function (method, createMethod, bits, padding) {
-		    for (var i = 0; i < OUTPUT_TYPES.length; ++i) {
-		      var type = OUTPUT_TYPES[i];
-		      method[type] = createMethod(bits, padding, type);
-		    }
-		    return method;
-		  };
-
-		  var createMethod = function (bits, padding) {
-		    var method = createOutputMethod(bits, padding, 'hex');
-		    method.create = function () {
-		      return new Keccak(bits, padding, bits);
-		    };
-		    method.update = function (message) {
-		      return method.create().update(message);
-		    };
-		    return createOutputMethods(method, createOutputMethod, bits, padding);
-		  };
-
-		  var createShakeMethod = function (bits, padding) {
-		    var method = createShakeOutputMethod(bits, padding, 'hex');
-		    method.create = function (outputBits) {
-		      return new Keccak(bits, padding, outputBits);
-		    };
-		    method.update = function (message, outputBits) {
-		      return method.create(outputBits).update(message);
-		    };
-		    return createOutputMethods(method, createShakeOutputMethod, bits, padding);
-		  };
-
-		  var createCshakeMethod = function (bits, padding) {
-		    var w = CSHAKE_BYTEPAD[bits];
-		    var method = createCshakeOutputMethod(bits, padding, 'hex');
-		    method.create = function (outputBits, n, s) {
-		      if (empty(n) && empty(s)) {
-		        return methods['shake' + bits].create(outputBits);
-		      } else {
-		        return new Keccak(bits, padding, outputBits).bytepad([n, s], w);
-		      }
-		    };
-		    method.update = function (message, outputBits, n, s) {
-		      return method.create(outputBits, n, s).update(message);
-		    };
-		    return createOutputMethods(method, createCshakeOutputMethod, bits, padding);
-		  };
-
-		  var createKmacMethod = function (bits, padding) {
-		    var w = CSHAKE_BYTEPAD[bits];
-		    var method = createKmacOutputMethod(bits, padding, 'hex');
-		    method.create = function (key, outputBits, s) {
-		      return new Kmac(bits, padding, outputBits).bytepad(['KMAC', s], w).bytepad([key], w);
-		    };
-		    method.update = function (key, message, outputBits, s) {
-		      return method.create(key, outputBits, s).update(message);
-		    };
-		    return createOutputMethods(method, createKmacOutputMethod, bits, padding);
-		  };
-
-		  var algorithms = [
-		    { name: 'keccak', padding: KECCAK_PADDING, bits: BITS, createMethod: createMethod },
-		    { name: 'sha3', padding: PADDING, bits: BITS, createMethod: createMethod },
-		    { name: 'shake', padding: SHAKE_PADDING, bits: SHAKE_BITS, createMethod: createShakeMethod },
-		    { name: 'cshake', padding: CSHAKE_PADDING, bits: SHAKE_BITS, createMethod: createCshakeMethod },
-		    { name: 'kmac', padding: CSHAKE_PADDING, bits: SHAKE_BITS, createMethod: createKmacMethod }
-		  ];
-
-		  var methods = {}, methodNames = [];
-
-		  for (var i = 0; i < algorithms.length; ++i) {
-		    var algorithm = algorithms[i];
-		    var bits = algorithm.bits;
-		    for (var j = 0; j < bits.length; ++j) {
-		      var methodName = algorithm.name + '_' + bits[j];
-		      methodNames.push(methodName);
-		      methods[methodName] = algorithm.createMethod(bits[j], algorithm.padding);
-		      if (algorithm.name !== 'sha3') {
-		        var newMethodName = algorithm.name + bits[j];
-		        methodNames.push(newMethodName);
-		        methods[newMethodName] = methods[methodName];
-		      }
-		    }
-		  }
-
-		  function Keccak(bits, padding, outputBits) {
-		    this.blocks = [];
-		    this.s = [];
-		    this.padding = padding;
-		    this.outputBits = outputBits;
-		    this.reset = true;
-		    this.finalized = false;
-		    this.block = 0;
-		    this.start = 0;
-		    this.blockCount = (1600 - (bits << 1)) >> 5;
-		    this.byteCount = this.blockCount << 2;
-		    this.outputBlocks = outputBits >> 5;
-		    this.extraBytes = (outputBits & 31) >> 3;
-
-		    for (var i = 0; i < 50; ++i) {
-		      this.s[i] = 0;
-		    }
-		  }
-
-		  Keccak.prototype.update = function (message) {
-		    if (this.finalized) {
-		      throw new Error(FINALIZE_ERROR);
-		    }
-		    var result = formatMessage(message);
-		    message = result[0];
-		    var isString = result[1];
-		    var blocks = this.blocks, byteCount = this.byteCount, length = message.length,
-		      blockCount = this.blockCount, index = 0, s = this.s, i, code;
-
-		    while (index < length) {
-		      if (this.reset) {
-		        this.reset = false;
-		        blocks[0] = this.block;
-		        for (i = 1; i < blockCount + 1; ++i) {
-		          blocks[i] = 0;
-		        }
-		      }
-		      if (isString) {
-		        for (i = this.start; index < length && i < byteCount; ++index) {
-		          code = message.charCodeAt(index);
-		          if (code < 0x80) {
-		            blocks[i >> 2] |= code << SHIFT[i++ & 3];
-		          } else if (code < 0x800) {
-		            blocks[i >> 2] |= (0xc0 | (code >> 6)) << SHIFT[i++ & 3];
-		            blocks[i >> 2] |= (0x80 | (code & 0x3f)) << SHIFT[i++ & 3];
-		          } else if (code < 0xd800 || code >= 0xe000) {
-		            blocks[i >> 2] |= (0xe0 | (code >> 12)) << SHIFT[i++ & 3];
-		            blocks[i >> 2] |= (0x80 | ((code >> 6) & 0x3f)) << SHIFT[i++ & 3];
-		            blocks[i >> 2] |= (0x80 | (code & 0x3f)) << SHIFT[i++ & 3];
-		          } else {
-		            code = 0x10000 + (((code & 0x3ff) << 10) | (message.charCodeAt(++index) & 0x3ff));
-		            blocks[i >> 2] |= (0xf0 | (code >> 18)) << SHIFT[i++ & 3];
-		            blocks[i >> 2] |= (0x80 | ((code >> 12) & 0x3f)) << SHIFT[i++ & 3];
-		            blocks[i >> 2] |= (0x80 | ((code >> 6) & 0x3f)) << SHIFT[i++ & 3];
-		            blocks[i >> 2] |= (0x80 | (code & 0x3f)) << SHIFT[i++ & 3];
-		          }
-		        }
-		      } else {
-		        for (i = this.start; index < length && i < byteCount; ++index) {
-		          blocks[i >> 2] |= message[index] << SHIFT[i++ & 3];
-		        }
-		      }
-		      this.lastByteIndex = i;
-		      if (i >= byteCount) {
-		        this.start = i - byteCount;
-		        this.block = blocks[blockCount];
-		        for (i = 0; i < blockCount; ++i) {
-		          s[i] ^= blocks[i];
-		        }
-		        f(s);
-		        this.reset = true;
-		      } else {
-		        this.start = i;
-		      }
-		    }
-		    return this;
-		  };
-
-		  Keccak.prototype.encode = function (x, right) {
-		    var o = x & 255, n = 1;
-		    var bytes = [o];
-		    x = x >> 8;
-		    o = x & 255;
-		    while (o > 0) {
-		      bytes.unshift(o);
-		      x = x >> 8;
-		      o = x & 255;
-		      ++n;
-		    }
-		    if (right) {
-		      bytes.push(n);
-		    } else {
-		      bytes.unshift(n);
-		    }
-		    this.update(bytes);
-		    return bytes.length;
-		  };
-
-		  Keccak.prototype.encodeString = function (str) {
-		    var result = formatMessage(str);
-		    str = result[0];
-		    var isString = result[1];
-		    var bytes = 0, length = str.length;
-		    if (isString) {
-		      for (var i = 0; i < str.length; ++i) {
-		        var code = str.charCodeAt(i);
-		        if (code < 0x80) {
-		          bytes += 1;
-		        } else if (code < 0x800) {
-		          bytes += 2;
-		        } else if (code < 0xd800 || code >= 0xe000) {
-		          bytes += 3;
-		        } else {
-		          code = 0x10000 + (((code & 0x3ff) << 10) | (str.charCodeAt(++i) & 0x3ff));
-		          bytes += 4;
-		        }
-		      }
-		    } else {
-		      bytes = length;
-		    }
-		    bytes += this.encode(bytes * 8);
-		    this.update(str);
-		    return bytes;
-		  };
-
-		  Keccak.prototype.bytepad = function (strs, w) {
-		    var bytes = this.encode(w);
-		    for (var i = 0; i < strs.length; ++i) {
-		      bytes += this.encodeString(strs[i]);
-		    }
-		    var paddingBytes = (w - bytes % w) % w;
-		    var zeros = [];
-		    zeros.length = paddingBytes;
-		    this.update(zeros);
-		    return this;
-		  };
-
-		  Keccak.prototype.finalize = function () {
-		    if (this.finalized) {
-		      return;
-		    }
-		    this.finalized = true;
-		    var blocks = this.blocks, i = this.lastByteIndex, blockCount = this.blockCount, s = this.s;
-		    blocks[i >> 2] |= this.padding[i & 3];
-		    if (this.lastByteIndex === this.byteCount) {
-		      blocks[0] = blocks[blockCount];
-		      for (i = 1; i < blockCount + 1; ++i) {
-		        blocks[i] = 0;
-		      }
-		    }
-		    blocks[blockCount - 1] |= 0x80000000;
-		    for (i = 0; i < blockCount; ++i) {
-		      s[i] ^= blocks[i];
-		    }
-		    f(s);
-		  };
-
-		  Keccak.prototype.toString = Keccak.prototype.hex = function () {
-		    this.finalize();
-
-		    var blockCount = this.blockCount, s = this.s, outputBlocks = this.outputBlocks,
-		      extraBytes = this.extraBytes, i = 0, j = 0;
-		    var hex = '', block;
-		    while (j < outputBlocks) {
-		      for (i = 0; i < blockCount && j < outputBlocks; ++i, ++j) {
-		        block = s[i];
-		        hex += HEX_CHARS[(block >> 4) & 0x0F] + HEX_CHARS[block & 0x0F] +
-		          HEX_CHARS[(block >> 12) & 0x0F] + HEX_CHARS[(block >> 8) & 0x0F] +
-		          HEX_CHARS[(block >> 20) & 0x0F] + HEX_CHARS[(block >> 16) & 0x0F] +
-		          HEX_CHARS[(block >> 28) & 0x0F] + HEX_CHARS[(block >> 24) & 0x0F];
-		      }
-		      if (j % blockCount === 0) {
-		        s = cloneArray(s);
-		        f(s);
-		        i = 0;
-		      }
-		    }
-		    if (extraBytes) {
-		      block = s[i];
-		      hex += HEX_CHARS[(block >> 4) & 0x0F] + HEX_CHARS[block & 0x0F];
-		      if (extraBytes > 1) {
-		        hex += HEX_CHARS[(block >> 12) & 0x0F] + HEX_CHARS[(block >> 8) & 0x0F];
-		      }
-		      if (extraBytes > 2) {
-		        hex += HEX_CHARS[(block >> 20) & 0x0F] + HEX_CHARS[(block >> 16) & 0x0F];
-		      }
-		    }
-		    return hex;
-		  };
-
-		  Keccak.prototype.arrayBuffer = function () {
-		    this.finalize();
-
-		    var blockCount = this.blockCount, s = this.s, outputBlocks = this.outputBlocks,
-		      extraBytes = this.extraBytes, i = 0, j = 0;
-		    var bytes = this.outputBits >> 3;
-		    var buffer;
-		    if (extraBytes) {
-		      buffer = new ArrayBuffer((outputBlocks + 1) << 2);
-		    } else {
-		      buffer = new ArrayBuffer(bytes);
-		    }
-		    var array = new Uint32Array(buffer);
-		    while (j < outputBlocks) {
-		      for (i = 0; i < blockCount && j < outputBlocks; ++i, ++j) {
-		        array[j] = s[i];
-		      }
-		      if (j % blockCount === 0) {
-		        s = cloneArray(s);
-		        f(s);
-		      }
-		    }
-		    if (extraBytes) {
-		      array[j] = s[i];
-		      buffer = buffer.slice(0, bytes);
-		    }
-		    return buffer;
-		  };
-
-		  Keccak.prototype.buffer = Keccak.prototype.arrayBuffer;
-
-		  Keccak.prototype.digest = Keccak.prototype.array = function () {
-		    this.finalize();
-
-		    var blockCount = this.blockCount, s = this.s, outputBlocks = this.outputBlocks,
-		      extraBytes = this.extraBytes, i = 0, j = 0;
-		    var array = [], offset, block;
-		    while (j < outputBlocks) {
-		      for (i = 0; i < blockCount && j < outputBlocks; ++i, ++j) {
-		        offset = j << 2;
-		        block = s[i];
-		        array[offset] = block & 0xFF;
-		        array[offset + 1] = (block >> 8) & 0xFF;
-		        array[offset + 2] = (block >> 16) & 0xFF;
-		        array[offset + 3] = (block >> 24) & 0xFF;
-		      }
-		      if (j % blockCount === 0) {
-		        s = cloneArray(s);
-		        f(s);
-		      }
-		    }
-		    if (extraBytes) {
-		      offset = j << 2;
-		      block = s[i];
-		      array[offset] = block & 0xFF;
-		      if (extraBytes > 1) {
-		        array[offset + 1] = (block >> 8) & 0xFF;
-		      }
-		      if (extraBytes > 2) {
-		        array[offset + 2] = (block >> 16) & 0xFF;
-		      }
-		    }
-		    return array;
-		  };
-
-		  function Kmac(bits, padding, outputBits) {
-		    Keccak.call(this, bits, padding, outputBits);
-		  }
-
-		  Kmac.prototype = new Keccak();
-
-		  Kmac.prototype.finalize = function () {
-		    this.encode(this.outputBits, true);
-		    return Keccak.prototype.finalize.call(this);
-		  };
-
-		  var f = function (s) {
-		    var h, l, n, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
-		      b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16, b17,
-		      b18, b19, b20, b21, b22, b23, b24, b25, b26, b27, b28, b29, b30, b31, b32, b33,
-		      b34, b35, b36, b37, b38, b39, b40, b41, b42, b43, b44, b45, b46, b47, b48, b49;
-		    for (n = 0; n < 48; n += 2) {
-		      c0 = s[0] ^ s[10] ^ s[20] ^ s[30] ^ s[40];
-		      c1 = s[1] ^ s[11] ^ s[21] ^ s[31] ^ s[41];
-		      c2 = s[2] ^ s[12] ^ s[22] ^ s[32] ^ s[42];
-		      c3 = s[3] ^ s[13] ^ s[23] ^ s[33] ^ s[43];
-		      c4 = s[4] ^ s[14] ^ s[24] ^ s[34] ^ s[44];
-		      c5 = s[5] ^ s[15] ^ s[25] ^ s[35] ^ s[45];
-		      c6 = s[6] ^ s[16] ^ s[26] ^ s[36] ^ s[46];
-		      c7 = s[7] ^ s[17] ^ s[27] ^ s[37] ^ s[47];
-		      c8 = s[8] ^ s[18] ^ s[28] ^ s[38] ^ s[48];
-		      c9 = s[9] ^ s[19] ^ s[29] ^ s[39] ^ s[49];
-
-		      h = c8 ^ ((c2 << 1) | (c3 >>> 31));
-		      l = c9 ^ ((c3 << 1) | (c2 >>> 31));
-		      s[0] ^= h;
-		      s[1] ^= l;
-		      s[10] ^= h;
-		      s[11] ^= l;
-		      s[20] ^= h;
-		      s[21] ^= l;
-		      s[30] ^= h;
-		      s[31] ^= l;
-		      s[40] ^= h;
-		      s[41] ^= l;
-		      h = c0 ^ ((c4 << 1) | (c5 >>> 31));
-		      l = c1 ^ ((c5 << 1) | (c4 >>> 31));
-		      s[2] ^= h;
-		      s[3] ^= l;
-		      s[12] ^= h;
-		      s[13] ^= l;
-		      s[22] ^= h;
-		      s[23] ^= l;
-		      s[32] ^= h;
-		      s[33] ^= l;
-		      s[42] ^= h;
-		      s[43] ^= l;
-		      h = c2 ^ ((c6 << 1) | (c7 >>> 31));
-		      l = c3 ^ ((c7 << 1) | (c6 >>> 31));
-		      s[4] ^= h;
-		      s[5] ^= l;
-		      s[14] ^= h;
-		      s[15] ^= l;
-		      s[24] ^= h;
-		      s[25] ^= l;
-		      s[34] ^= h;
-		      s[35] ^= l;
-		      s[44] ^= h;
-		      s[45] ^= l;
-		      h = c4 ^ ((c8 << 1) | (c9 >>> 31));
-		      l = c5 ^ ((c9 << 1) | (c8 >>> 31));
-		      s[6] ^= h;
-		      s[7] ^= l;
-		      s[16] ^= h;
-		      s[17] ^= l;
-		      s[26] ^= h;
-		      s[27] ^= l;
-		      s[36] ^= h;
-		      s[37] ^= l;
-		      s[46] ^= h;
-		      s[47] ^= l;
-		      h = c6 ^ ((c0 << 1) | (c1 >>> 31));
-		      l = c7 ^ ((c1 << 1) | (c0 >>> 31));
-		      s[8] ^= h;
-		      s[9] ^= l;
-		      s[18] ^= h;
-		      s[19] ^= l;
-		      s[28] ^= h;
-		      s[29] ^= l;
-		      s[38] ^= h;
-		      s[39] ^= l;
-		      s[48] ^= h;
-		      s[49] ^= l;
-
-		      b0 = s[0];
-		      b1 = s[1];
-		      b32 = (s[11] << 4) | (s[10] >>> 28);
-		      b33 = (s[10] << 4) | (s[11] >>> 28);
-		      b14 = (s[20] << 3) | (s[21] >>> 29);
-		      b15 = (s[21] << 3) | (s[20] >>> 29);
-		      b46 = (s[31] << 9) | (s[30] >>> 23);
-		      b47 = (s[30] << 9) | (s[31] >>> 23);
-		      b28 = (s[40] << 18) | (s[41] >>> 14);
-		      b29 = (s[41] << 18) | (s[40] >>> 14);
-		      b20 = (s[2] << 1) | (s[3] >>> 31);
-		      b21 = (s[3] << 1) | (s[2] >>> 31);
-		      b2 = (s[13] << 12) | (s[12] >>> 20);
-		      b3 = (s[12] << 12) | (s[13] >>> 20);
-		      b34 = (s[22] << 10) | (s[23] >>> 22);
-		      b35 = (s[23] << 10) | (s[22] >>> 22);
-		      b16 = (s[33] << 13) | (s[32] >>> 19);
-		      b17 = (s[32] << 13) | (s[33] >>> 19);
-		      b48 = (s[42] << 2) | (s[43] >>> 30);
-		      b49 = (s[43] << 2) | (s[42] >>> 30);
-		      b40 = (s[5] << 30) | (s[4] >>> 2);
-		      b41 = (s[4] << 30) | (s[5] >>> 2);
-		      b22 = (s[14] << 6) | (s[15] >>> 26);
-		      b23 = (s[15] << 6) | (s[14] >>> 26);
-		      b4 = (s[25] << 11) | (s[24] >>> 21);
-		      b5 = (s[24] << 11) | (s[25] >>> 21);
-		      b36 = (s[34] << 15) | (s[35] >>> 17);
-		      b37 = (s[35] << 15) | (s[34] >>> 17);
-		      b18 = (s[45] << 29) | (s[44] >>> 3);
-		      b19 = (s[44] << 29) | (s[45] >>> 3);
-		      b10 = (s[6] << 28) | (s[7] >>> 4);
-		      b11 = (s[7] << 28) | (s[6] >>> 4);
-		      b42 = (s[17] << 23) | (s[16] >>> 9);
-		      b43 = (s[16] << 23) | (s[17] >>> 9);
-		      b24 = (s[26] << 25) | (s[27] >>> 7);
-		      b25 = (s[27] << 25) | (s[26] >>> 7);
-		      b6 = (s[36] << 21) | (s[37] >>> 11);
-		      b7 = (s[37] << 21) | (s[36] >>> 11);
-		      b38 = (s[47] << 24) | (s[46] >>> 8);
-		      b39 = (s[46] << 24) | (s[47] >>> 8);
-		      b30 = (s[8] << 27) | (s[9] >>> 5);
-		      b31 = (s[9] << 27) | (s[8] >>> 5);
-		      b12 = (s[18] << 20) | (s[19] >>> 12);
-		      b13 = (s[19] << 20) | (s[18] >>> 12);
-		      b44 = (s[29] << 7) | (s[28] >>> 25);
-		      b45 = (s[28] << 7) | (s[29] >>> 25);
-		      b26 = (s[38] << 8) | (s[39] >>> 24);
-		      b27 = (s[39] << 8) | (s[38] >>> 24);
-		      b8 = (s[48] << 14) | (s[49] >>> 18);
-		      b9 = (s[49] << 14) | (s[48] >>> 18);
-
-		      s[0] = b0 ^ (~b2 & b4);
-		      s[1] = b1 ^ (~b3 & b5);
-		      s[10] = b10 ^ (~b12 & b14);
-		      s[11] = b11 ^ (~b13 & b15);
-		      s[20] = b20 ^ (~b22 & b24);
-		      s[21] = b21 ^ (~b23 & b25);
-		      s[30] = b30 ^ (~b32 & b34);
-		      s[31] = b31 ^ (~b33 & b35);
-		      s[40] = b40 ^ (~b42 & b44);
-		      s[41] = b41 ^ (~b43 & b45);
-		      s[2] = b2 ^ (~b4 & b6);
-		      s[3] = b3 ^ (~b5 & b7);
-		      s[12] = b12 ^ (~b14 & b16);
-		      s[13] = b13 ^ (~b15 & b17);
-		      s[22] = b22 ^ (~b24 & b26);
-		      s[23] = b23 ^ (~b25 & b27);
-		      s[32] = b32 ^ (~b34 & b36);
-		      s[33] = b33 ^ (~b35 & b37);
-		      s[42] = b42 ^ (~b44 & b46);
-		      s[43] = b43 ^ (~b45 & b47);
-		      s[4] = b4 ^ (~b6 & b8);
-		      s[5] = b5 ^ (~b7 & b9);
-		      s[14] = b14 ^ (~b16 & b18);
-		      s[15] = b15 ^ (~b17 & b19);
-		      s[24] = b24 ^ (~b26 & b28);
-		      s[25] = b25 ^ (~b27 & b29);
-		      s[34] = b34 ^ (~b36 & b38);
-		      s[35] = b35 ^ (~b37 & b39);
-		      s[44] = b44 ^ (~b46 & b48);
-		      s[45] = b45 ^ (~b47 & b49);
-		      s[6] = b6 ^ (~b8 & b0);
-		      s[7] = b7 ^ (~b9 & b1);
-		      s[16] = b16 ^ (~b18 & b10);
-		      s[17] = b17 ^ (~b19 & b11);
-		      s[26] = b26 ^ (~b28 & b20);
-		      s[27] = b27 ^ (~b29 & b21);
-		      s[36] = b36 ^ (~b38 & b30);
-		      s[37] = b37 ^ (~b39 & b31);
-		      s[46] = b46 ^ (~b48 & b40);
-		      s[47] = b47 ^ (~b49 & b41);
-		      s[8] = b8 ^ (~b0 & b2);
-		      s[9] = b9 ^ (~b1 & b3);
-		      s[18] = b18 ^ (~b10 & b12);
-		      s[19] = b19 ^ (~b11 & b13);
-		      s[28] = b28 ^ (~b20 & b22);
-		      s[29] = b29 ^ (~b21 & b23);
-		      s[38] = b38 ^ (~b30 & b32);
-		      s[39] = b39 ^ (~b31 & b33);
-		      s[48] = b48 ^ (~b40 & b42);
-		      s[49] = b49 ^ (~b41 & b43);
-
-		      s[0] ^= RC[n];
-		      s[1] ^= RC[n + 1];
-		    }
-		  };
-
-		  if (COMMON_JS) {
-		    module.exports = methods;
-		  } else {
-		    for (i = 0; i < methodNames.length; ++i) {
-		      root[methodNames[i]] = methods[methodNames[i]];
-		    }
-		  }
-		})(); 
-	} (sha3));
-	return sha3.exports;
-}
-
-var sha3Exports = requireSha3();
-
-const idlFactory$1 = ({ IDL }) => {
-  const CanisterId = IDL.Principal;
-  const AddBucketCanisterArgs = IDL.Record({ 'canister_id' : CanisterId });
-  const AddBucketCanisterResponse = IDL.Variant({
-    'BucketAlreadyAdded' : IDL.Null,
-    'Success' : IDL.Null,
-    'InternalError' : IDL.Text,
-  });
-  const UserId = CanisterId;
-  const UserConfig = IDL.Record({
-    'byte_limit' : IDL.Nat64,
-    'user_id' : UserId,
-  });
-  const AddOrUpdateUsersArgs = IDL.Record({ 'users' : IDL.Vec(UserConfig) });
-  const AddOrUpdateUsersResponse = IDL.Variant({ 'Success' : IDL.Null });
-  const Hash = IDL.Vec(IDL.Nat8);
-  const AllocatedBucketArgs = IDL.Record({
-    'file_hash' : Hash,
-    'file_size' : IDL.Nat64,
-    'file_id_seed' : IDL.Opt(IDL.Nat),
-  });
-  const ProjectedAllowance = IDL.Record({
-    'bytes_used_after_operation' : IDL.Nat64,
-    'byte_limit' : IDL.Nat64,
-    'bytes_used_after_upload' : IDL.Nat64,
-    'bytes_used' : IDL.Nat64,
-  });
-  const FileId = IDL.Nat;
-  const AllocatedBucketSuccessResult = IDL.Record({
-    'byte_limit' : IDL.Nat64,
-    'canister_id' : CanisterId,
-    'bytes_used_after_upload' : IDL.Nat64,
-    'bytes_used' : IDL.Nat64,
-    'projected_allowance' : ProjectedAllowance,
-    'chunk_size' : IDL.Nat32,
-    'file_id' : FileId,
-  });
-  const AllocatedBucketResponse = IDL.Variant({
-    'Success' : AllocatedBucketSuccessResult,
-    'AllowanceExceeded' : ProjectedAllowance,
-    'UserNotFound' : IDL.Null,
-    'BucketUnavailable' : IDL.Null,
-  });
-  const CanForwardArgs = IDL.Record({
-    'file_hash' : Hash,
-    'file_size' : IDL.Nat64,
-  });
-  const CanForwardResponse = IDL.Variant({
-    'Success' : ProjectedAllowance,
-    'AllowanceExceeded' : ProjectedAllowance,
-    'UserNotFound' : IDL.Null,
-  });
-  const AccessorId = IDL.Principal;
-  const RemoveAccessorArgs = IDL.Record({ 'accessor_id' : AccessorId });
-  const RemoveAccessorResponse = IDL.Variant({ 'Success' : IDL.Null });
-  const RemoveUserArgs = IDL.Record({ 'user_id' : UserId });
-  const RemoveUserResponse = IDL.Variant({ 'Success' : IDL.Null });
-  const SetBucketFullArgs = IDL.Record({
-    'full' : IDL.Bool,
-    'bucket' : CanisterId,
-  });
-  const SetBucketFullResponse = IDL.Variant({ 'Success' : IDL.Null });
-  const UserArgs = IDL.Record({});
-  const UserRecord = IDL.Record({
-    'byte_limit' : IDL.Nat64,
-    'bytes_used' : IDL.Nat64,
-  });
-  const UserResponse = IDL.Variant({
-    'Success' : UserRecord,
-    'UserNotFound' : IDL.Null,
-  });
-  return IDL.Service({
-    'add_bucket_canister' : IDL.Func(
-        [AddBucketCanisterArgs],
-        [AddBucketCanisterResponse],
-        [],
-      ),
-    'add_or_update_users' : IDL.Func(
-        [AddOrUpdateUsersArgs],
-        [AddOrUpdateUsersResponse],
-        [],
-      ),
-    'allocated_bucket_v2' : IDL.Func(
-        [AllocatedBucketArgs],
-        [AllocatedBucketResponse],
-        ['query'],
-      ),
-    'can_forward' : IDL.Func([CanForwardArgs], [CanForwardResponse], ['query']),
-    'remove_accessor' : IDL.Func(
-        [RemoveAccessorArgs],
-        [RemoveAccessorResponse],
-        [],
-      ),
-    'remove_user' : IDL.Func([RemoveUserArgs], [RemoveUserResponse], []),
-    'set_bucket_full' : IDL.Func(
-        [SetBucketFullArgs],
-        [SetBucketFullResponse],
-        [],
-      ),
-    'user' : IDL.Func([UserArgs], [UserResponse], ['query']),
-  });
-};
-
-class StorageIndexClient extends CandidService {
-    constructor(agent, canisterId, icHost) {
-        super();
-        this.service = this.createServiceClient(idlFactory$1, canisterId, icHost, agent);
-    }
-    allocatedBucket(fileHash, fileSize, fileIdSeed) {
-        return this.handleResponse(this.service.allocated_bucket_v2({
-            file_hash: fileHash,
-            file_size: fileSize,
-            file_id_seed: fileIdSeed === undefined ? [] : [fileIdSeed],
-        }), (resp) => resp);
-    }
-}
-
-const idlFactory = ({ IDL }) => {
-  const FileId = IDL.Nat;
-  const DeleteFileArgs = IDL.Record({ 'file_id' : FileId });
-  const DeleteFileResponse = IDL.Variant({
-    'NotFound' : IDL.Null,
-    'NotAuthorized' : IDL.Null,
-    'Success' : IDL.Null,
-  });
-  const DeleteFilesArgs = IDL.Record({ 'file_ids' : IDL.Vec(FileId) });
-  const DeleteFileFailureReason = IDL.Variant({
-    'NotFound' : IDL.Null,
-    'NotAuthorized' : IDL.Null,
-  });
-  const DeleteFileFailure = IDL.Record({
-    'reason' : DeleteFileFailureReason,
-    'file_id' : FileId,
-  });
-  const DeleteFilesResponse = IDL.Record({
-    'failures' : IDL.Vec(DeleteFileFailure),
-    'success' : IDL.Vec(FileId),
-  });
-  const FileInfoArgs = IDL.Record({ 'file_id' : FileId });
-  const Hash = IDL.Vec(IDL.Nat8);
-  const FileInfoSuccessResult = IDL.Record({
-    'is_owner' : IDL.Bool,
-    'file_hash' : Hash,
-    'file_size' : IDL.Nat64,
-  });
-  const FileInfoResponse = IDL.Variant({
-    'NotFound' : IDL.Null,
-    'Success' : FileInfoSuccessResult,
-  });
-  const AccessorId = IDL.Principal;
-  const ForwardFileArgs = IDL.Record({
-    'accessors' : IDL.Vec(AccessorId),
-    'file_id' : FileId,
-  });
-  const ForwardFileResponse = IDL.Variant({
-    'NotFound' : IDL.Null,
-    'NotAuthorized' : IDL.Null,
-    'Success' : FileId,
-  });
-  const TimestampMillis = IDL.Nat64;
-  const UploadChunkArgs = IDL.Record({
-    'accessors' : IDL.Vec(AccessorId),
-    'chunk_index' : IDL.Nat32,
-    'hash' : Hash,
-    'mime_type' : IDL.Text,
-    'total_size' : IDL.Nat64,
-    'bytes' : IDL.Vec(IDL.Nat8),
-    'expiry' : IDL.Opt(TimestampMillis),
-    'chunk_size' : IDL.Nat32,
-    'file_id' : FileId,
-  });
-  const UploadChunkResponse = IDL.Variant({
-    'ChunkAlreadyExists' : IDL.Null,
-    'Full' : IDL.Null,
-    'ChunkSizeMismatch' : IDL.Null,
-    'FileTooBig' : IDL.Null,
-    'ChunkIndexTooHigh' : IDL.Null,
-    'Success' : IDL.Null,
-    'FileExpired' : IDL.Null,
-    'HashMismatch' : IDL.Null,
-    'FileAlreadyExists' : IDL.Null,
-    'AllowanceExceeded' : IDL.Null,
-    'InvalidFileId' : IDL.Null,
-    'UserNotFound' : IDL.Null,
-  });
-  return IDL.Service({
-    'delete_file' : IDL.Func([DeleteFileArgs], [DeleteFileResponse], []),
-    'delete_files' : IDL.Func([DeleteFilesArgs], [DeleteFilesResponse], []),
-    'file_info' : IDL.Func([FileInfoArgs], [FileInfoResponse], ['query']),
-    'forward_file' : IDL.Func([ForwardFileArgs], [ForwardFileResponse], []),
-    'upload_chunk_v2' : IDL.Func([UploadChunkArgs], [UploadChunkResponse], []),
-  });
-};
-
-class StorageBucketClient extends CandidService {
-    constructor(agent, canisterId, icHost) {
-        super();
-        this.service = this.createServiceClient(idlFactory, canisterId, icHost, agent);
-    }
-    uploadChunk(fileId, hash, mimeType, accessors, totalSize, chunkSize, chunkIndex, bytes, expiryTimestampMillis) {
-        return this.handleResponse(this.service.upload_chunk_v2({
-            accessors,
-            chunk_index: chunkIndex,
-            file_id: fileId,
-            hash,
-            mime_type: mimeType,
-            total_size: totalSize,
-            bytes,
-            chunk_size: chunkSize,
-            expiry: expiryTimestampMillis !== undefined ? [expiryTimestampMillis] : [],
-        }), (resp) => resp);
-    }
-}
-
-function random128() {
-    const bytes = new BigUint64Array(2);
-    crypto.getRandomValues(bytes);
-    return (bytes[0] << BigInt(64)) + bytes[1];
-}
-
-class DataClient extends EventTarget {
-    constructor(agent, config) {
-        super();
-        this.agent = agent;
-        this.config = config;
-        this.storageIndexClient = new StorageIndexClient(agent, config.openStorageCanisterId, config.icHost);
-    }
-    async uploadData(accessorCanisterIds, mimeType, data) {
-        const accessorIds = accessorCanisterIds.map((c) => Principal$1.fromText(c));
-        const response = await this.uploadFile(mimeType, accessorIds, data);
-        return this.extractBlobReference(response);
-    }
-    extractBlobReference(response) {
-        return {
-            canisterId: response.canisterId.toString(),
-            blobId: response.fileId,
-        };
-    }
-    async uploadFile(mimeType, accessors, bytes, expiryTimestampMillis) {
-        const hash = new Uint8Array(hashBytes(bytes));
-        const fileSize = bytes.byteLength;
-        const allocatedBucketResponse = await this.storageIndexClient.allocatedBucket(hash, BigInt(fileSize), random128());
-        if (!("Success" in allocatedBucketResponse)) {
-            // TODO make this better!
-            throw new Error(JSON.stringify(allocatedBucketResponse));
-        }
-        const bucketCanisterId = allocatedBucketResponse.Success.canister_id.toString();
-        const fileId = allocatedBucketResponse.Success.file_id;
-        const chunkSize = allocatedBucketResponse.Success.chunk_size;
-        const chunkCount = Math.ceil(fileSize / chunkSize);
-        const chunkIndexes = [...Array(chunkCount).keys()];
-        const bucketClient = new StorageBucketClient(this.agent, bucketCanisterId, this.config.icHost);
-        let chunksCompleted = 0;
-        const promises = chunkIndexes.map(async (chunkIndex) => {
-            const start = chunkIndex * chunkSize;
-            const end = Math.min(start + chunkSize, fileSize);
-            const chunkBytes = new Uint8Array(bytes.slice(start, end));
-            let attempt = 0;
-            while (attempt++ < 5) {
-                try {
-                    const chunkResponse = await bucketClient.uploadChunk(fileId, hash, mimeType, accessors, BigInt(fileSize), chunkSize, chunkIndex, chunkBytes, expiryTimestampMillis);
-                    if ("Success" in chunkResponse) {
-                        chunksCompleted++;
-                        return;
-                    }
-                }
-                catch (e) {
-                    console.log("Error uploading chunk " + chunkIndex, e);
-                }
-            }
-            throw new Error("Failed to upload chunk");
-        });
-        await Promise.all(promises);
-        return {
-            canisterId: bucketCanisterId,
-            fileId,
-            pathPrefix: "/files/",
-            projectedAllowance: allocatedBucketResponse.Success.projected_allowance,
-        };
-    }
-}
-function hashBytes(bytes) {
-    const hash = sha3Exports.sha3_256.create();
-    hash.update(bytes);
-    return hash.arrayBuffer();
-}
-
 var jws = {};
 
 var safeBuffer = {exports: {}};
@@ -36766,6 +35616,210 @@ function requireJsonwebtoken () {
 var jsonwebtokenExports = requireJsonwebtoken();
 var jwt = /*@__PURE__*/getDefaultExportFromCjs(jsonwebtokenExports);
 
+class HttpError extends Error {
+    constructor(code, error) {
+        super(error.message);
+        this.code = code;
+        this.stack = error.stack;
+        this.name = "HttpError";
+    }
+}
+class DestinationInvalidError extends HttpError {
+    constructor(error) {
+        super(404, error);
+        this.name = "DestinationInvalidError";
+    }
+}
+class AuthError extends HttpError {
+    constructor(code, error) {
+        super(code, error);
+        this.code = code;
+        this.name = "AuthError";
+    }
+}
+class ReplicaNotUpToDateError extends Error {
+    static byTimestamp(replicaTimestamp, clientTimestamp, failedPostCheck) {
+        const message = `Replica not up to date (timestamp). Client: ${clientTimestamp}. Replica: ${replicaTimestamp}. FailedPostCheck: ${failedPostCheck}`;
+        return new ReplicaNotUpToDateError(message);
+    }
+    constructor(message) {
+        super(message);
+    }
+}
+function toCanisterResponseError(error) {
+    if (error instanceof ReplicaNotUpToDateError) {
+        return error;
+    }
+    let code = 500;
+    if (error.message.includes("DestinationInvalid")) {
+        // this will allow us to short-circuit the retry mechanism in this circumstance
+        return new DestinationInvalidError(error);
+    }
+    const statusLine = error.message
+        .split("\n")
+        .map((l) => l.trim().toLowerCase())
+        .find((l) => l.startsWith("code:") || l.startsWith("http status code:"));
+    if (statusLine) {
+        const parts = statusLine.split(":");
+        if (parts && parts.length > 1) {
+            let valueText = parts[1].trim();
+            const valueParts = valueText.split(" ");
+            if (valueParts && valueParts.length > 1) {
+                valueText = valueParts[0].trim();
+            }
+            code = parseInt(valueText, 10);
+            if (isNaN(code)) {
+                code = 500;
+            }
+        }
+    }
+    return code === 401 || code === 403 ? new AuthError(code, error) : new HttpError(code, error);
+}
+
+class CandidService {
+    static createServiceClient(factory, canisterId, host, agent) {
+        const isMainnet = host.includes("icp-api.io");
+        if (!isMainnet) {
+            agent.fetchRootKey();
+        }
+        return Actor.createActor(factory, {
+            agent,
+            canisterId,
+        });
+    }
+    static handleResponse(service, mapper, args) {
+        return service.then(mapper).catch((err) => {
+            console.log(err, args);
+            throw toCanisterResponseError(err);
+        });
+    }
+    constructor() { }
+}
+
+const idlFactory$2 = ({ IDL }) => {
+  const AccessTokenArgs = IDL.Variant({ 'BotActionByApiKey' : IDL.Text });
+  const AccessTokenResponse = IDL.Variant({
+    'NotAuthorized' : IDL.Null,
+    'Success' : IDL.Text,
+    'InternalError' : IDL.Text,
+  });
+  const GiphyImageVariant = IDL.Record({
+    'url' : IDL.Text,
+    'height' : IDL.Nat32,
+    'mime_type' : IDL.Text,
+    'width' : IDL.Nat32,
+  });
+  const GiphyContent = IDL.Record({
+    'title' : IDL.Text,
+    'desktop' : GiphyImageVariant,
+    'caption' : IDL.Opt(IDL.Text),
+    'mobile' : GiphyImageVariant,
+  });
+  const CanisterId = IDL.Principal;
+  const BlobReference = IDL.Record({
+    'blob_id' : IDL.Nat,
+    'canister_id' : CanisterId,
+  });
+  const FileContent = IDL.Record({
+    'name' : IDL.Text,
+    'mime_type' : IDL.Text,
+    'file_size' : IDL.Nat32,
+    'blob_reference' : IDL.Opt(BlobReference),
+    'caption' : IDL.Opt(IDL.Text),
+  });
+  const UserId = CanisterId;
+  const TotalPollVotes = IDL.Variant({
+    'Anonymous' : IDL.Vec(IDL.Tuple(IDL.Nat32, IDL.Nat32)),
+    'Visible' : IDL.Vec(IDL.Tuple(IDL.Nat32, IDL.Vec(UserId))),
+    'Hidden' : IDL.Nat32,
+  });
+  const PollVotes = IDL.Record({
+    'total' : TotalPollVotes,
+    'user' : IDL.Vec(IDL.Nat32),
+  });
+  const TimestampMillis = IDL.Nat64;
+  const PollConfig = IDL.Record({
+    'allow_multiple_votes_per_user' : IDL.Bool,
+    'text' : IDL.Opt(IDL.Text),
+    'show_votes_before_end_date' : IDL.Bool,
+    'end_date' : IDL.Opt(TimestampMillis),
+    'anonymous' : IDL.Bool,
+    'allow_user_to_change_vote' : IDL.Bool,
+    'options' : IDL.Vec(IDL.Text),
+  });
+  const PollContent = IDL.Record({
+    'votes' : PollVotes,
+    'ended' : IDL.Bool,
+    'config' : PollConfig,
+  });
+  const TextContent = IDL.Record({ 'text' : IDL.Text });
+  const ImageContent = IDL.Record({
+    'height' : IDL.Nat32,
+    'mime_type' : IDL.Text,
+    'blob_reference' : IDL.Opt(BlobReference),
+    'thumbnail_data' : IDL.Text,
+    'caption' : IDL.Opt(IDL.Text),
+    'width' : IDL.Nat32,
+  });
+  const AudioContent = IDL.Record({
+    'mime_type' : IDL.Text,
+    'blob_reference' : IDL.Opt(BlobReference),
+    'caption' : IDL.Opt(IDL.Text),
+  });
+  const VideoContent = IDL.Record({
+    'height' : IDL.Nat32,
+    'image_blob_reference' : IDL.Opt(BlobReference),
+    'video_blob_reference' : IDL.Opt(BlobReference),
+    'mime_type' : IDL.Text,
+    'thumbnail_data' : IDL.Text,
+    'caption' : IDL.Opt(IDL.Text),
+    'width' : IDL.Nat32,
+  });
+  const MessageContent = IDL.Variant({
+    'Giphy' : GiphyContent,
+    'File' : FileContent,
+    'Poll' : PollContent,
+    'Text' : TextContent,
+    'Image' : ImageContent,
+    'Audio' : AudioContent,
+    'Video' : VideoContent,
+  });
+  const BotAction = IDL.Variant({
+    'SendMessage' : IDL.Record({
+      'content' : MessageContent,
+      'finalised' : IDL.Bool,
+    }),
+  });
+  const ExecuteBotCommandArgs = IDL.Record({
+    'jwt' : IDL.Text,
+    'action' : BotAction,
+  });
+  const ExecuteBotCommandResponse = IDL.Variant({
+    'Ok' : IDL.Null,
+    'Err' : IDL.Variant({
+      'Invalid' : IDL.Text,
+      'CanisterError' : IDL.Variant({
+        'NotAuthorized' : IDL.Null,
+        'Other' : IDL.Text,
+        'Frozen' : IDL.Null,
+      }),
+      'C2CError' : IDL.Tuple(IDL.Nat32, IDL.Text),
+    }),
+  });
+  return IDL.Service({
+    'access_token_v2' : IDL.Func(
+        [AccessTokenArgs],
+        [AccessTokenResponse],
+        ['query'],
+      ),
+    'execute_bot_action' : IDL.Func(
+        [ExecuteBotCommandArgs],
+        [ExecuteBotCommandResponse],
+        [],
+      ),
+  });
+};
+
 function argumentsInvalid() {
     return "ArgsInvalid";
 }
@@ -36790,99 +35844,1091 @@ class BadRequestError extends Error {
     }
 }
 
-var _BotClient_instances, _BotClient_botService, _BotClient_agent, _BotClient_identity, _BotClient_decodedJwt, _BotClient_encodedJwt, _BotClient_validateConfig, _BotClient_principalBytesToString, _BotClient_namedArg, _BotClient_decodeJwt, _BotClient_createIdentity, _BotClient_extractCanisterFromChat, _BotClient_executeAction;
-class BotClient extends CandidService {
-    constructor(config) {
+var _BotGatewayClient_botService;
+class BotGatewayClient extends CandidService {
+    constructor(canisterId, agent, env) {
         super();
-        _BotClient_instances.add(this);
-        this.config = config;
-        _BotClient_botService.set(this, undefined);
-        _BotClient_agent.set(this, undefined);
-        _BotClient_identity.set(this, undefined);
-        _BotClient_decodedJwt.set(this, undefined);
-        _BotClient_encodedJwt.set(this, undefined);
-        __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_validateConfig).call(this, config);
-        __classPrivateFieldSet$4(this, _BotClient_encodedJwt, config.encodedJwt, "f");
-        __classPrivateFieldSet$4(this, _BotClient_decodedJwt, __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_decodeJwt).call(this, config.encodedJwt), "f");
-        __classPrivateFieldSet$4(this, _BotClient_identity, __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_createIdentity).call(this, config.identityPrivateKey), "f");
-        console.log("Principal: ", __classPrivateFieldGet$4(this, _BotClient_identity, "f").getPrincipal().toText());
-        __classPrivateFieldSet$4(this, _BotClient_agent, new HttpAgent({
-            identity: __classPrivateFieldGet$4(this, _BotClient_identity, "f"),
-            host: config.icHost,
-            retryTimes: 5,
-        }), "f");
-        __classPrivateFieldSet$4(this, _BotClient_botService, this.createServiceClient(idlFactory$2, __classPrivateFieldGet$4(this, _BotClient_decodedJwt, "f").bot_api_gateway, config.icHost, __classPrivateFieldGet$4(this, _BotClient_agent, "f")), "f");
+        this.env = env;
+        _BotGatewayClient_botService.set(this, undefined);
+        __classPrivateFieldSet$4(this, _BotGatewayClient_botService, CandidService.createServiceClient(idlFactory$2, canisterId, env.icHost, agent), "f");
     }
-    stringArg(name) {
-        const arg = __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_namedArg).call(this, name);
-        return arg !== undefined && "String" in arg.value ? arg.value.String : undefined;
-    }
-    booleanArg(name) {
-        const arg = __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_namedArg).call(this, name);
-        return arg !== undefined && "Boolean" in arg.value ? arg.value.Boolean : undefined;
-    }
-    numberArg(name) {
-        const arg = __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_namedArg).call(this, name);
-        return arg !== undefined && "Number" in arg.value ? arg.value.Number : undefined;
-    }
-    userArg(name) {
-        const arg = __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_namedArg).call(this, name);
-        return arg !== undefined && "User" in arg.value
-            ? __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_principalBytesToString).call(this, arg.value.User)
-            : undefined;
-    }
-    get commandArgs() {
-        return __classPrivateFieldGet$4(this, _BotClient_decodedJwt, "f").command.args;
-    }
-    get commandName() {
-        return __classPrivateFieldGet$4(this, _BotClient_decodedJwt, "f").command.name;
-    }
-    get messageId() {
-        return __classPrivateFieldGet$4(this, _BotClient_decodedJwt, "f").message_id;
-    }
-    get threadRootMessageId() {
-        return __classPrivateFieldGet$4(this, _BotClient_decodedJwt, "f").thread_root_message_index;
-    }
-    get chatId() {
-        return __classPrivateFieldGet$4(this, _BotClient_decodedJwt, "f").chat;
-    }
-    get initiator() {
-        return __classPrivateFieldGet$4(this, _BotClient_decodedJwt, "f").initiator;
-    }
-    get botId() {
-        return __classPrivateFieldGet$4(this, _BotClient_decodedJwt, "f").bot;
-    }
-    createFileMessage(finalised, name, data, mimeType, fileSize, caption) {
-        const dataClient = new DataClient(__classPrivateFieldGet$4(this, _BotClient_agent, "f"), this.config);
-        const canisterId = __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_extractCanisterFromChat).call(this);
-        const uploadContentPromise = dataClient.uploadData([canisterId], mimeType, data);
-        return uploadContentPromise.then((blobRef) => {
-            return {
-                id: this.messageId,
-                content: {
-                    File: {
-                        name,
-                        file_size: fileSize,
-                        mime_type: mimeType,
-                        blob_reference: [
-                            {
-                                blob_id: blobRef.blobId,
-                                canister_id: Principal$1.fromText(blobRef.canisterId),
-                            },
-                        ],
-                        caption: caption ? [caption] : [],
-                    },
-                },
-                finalised,
-            };
+    executeAction(action, jwt) {
+        return CandidService.handleResponse(__classPrivateFieldGet$4(this, _BotGatewayClient_botService, "f").execute_bot_action({
+            jwt,
+            action: action,
+        }), (res) => {
+            if (!("Ok" in res)) {
+                console.error("Call to execute_bot_action failed with: ", JSON.stringify(res));
+            }
+            return res;
+        }).catch((err) => {
+            console.error("Call to execute_bot_action failed with: ", JSON.stringify(err));
+            throw err;
         });
     }
-    sendFileMessage(finalised, name, data, mimeType, fileSize, caption) {
-        return this.createFileMessage(finalised, name, data, mimeType, fileSize, caption).then((msg) => this.sendMessage(msg));
+    getAuthToken(apiKey) {
+        return CandidService.handleResponse(__classPrivateFieldGet$4(this, _BotGatewayClient_botService, "f").access_token_v2({
+            BotActionByApiKey: apiKey,
+        }), (res) => {
+            if ("Success" in res) {
+                return res.Success;
+            }
+            console.error("Unable to obtain an auth jwt: ", res);
+            throw accessTokenInvalid();
+        }).catch((err) => {
+            console.error("Call to access_token_v2 failed with: ", JSON.stringify(err));
+            throw err;
+        });
+    }
+}
+_BotGatewayClient_botService = new WeakMap();
+
+var _BotClientBase_instances, _BotClientBase_encodedJwt, _BotClientBase_botService, _BotClientBase_decodeJwt;
+class BotClientBase extends CandidService {
+    constructor(agent, env, encodedJwt) {
+        super();
+        _BotClientBase_instances.add(this);
+        this.env = env;
+        _BotClientBase_encodedJwt.set(this, undefined);
+        _BotClientBase_botService.set(this, undefined);
+        __classPrivateFieldSet$4(this, _BotClientBase_encodedJwt, encodedJwt, "f");
+        this.decodedJwt = __classPrivateFieldGet$4(this, _BotClientBase_instances, "m", _BotClientBase_decodeJwt).call(this, encodedJwt);
+        __classPrivateFieldSet$4(this, _BotClientBase_botService, new BotGatewayClient(this.decodedJwt.bot_api_gateway, agent, env), "f");
+    }
+    get scope() {
+        return this.decodedJwt.scope;
+    }
+    isChatScope() {
+        return "Chat" in this.scope;
+    }
+    isCommunityScope() {
+        return "Community" in this.scope;
+    }
+    get botId() {
+        return this.decodedJwt.bot;
+    }
+    executeAction(action) {
+        return __classPrivateFieldGet$4(this, _BotClientBase_botService, "f").executeAction(action, __classPrivateFieldGet$4(this, _BotClientBase_encodedJwt, "f"));
+    }
+}
+_BotClientBase_encodedJwt = new WeakMap(), _BotClientBase_botService = new WeakMap(), _BotClientBase_instances = new WeakSet(), _BotClientBase_decodeJwt = function _BotClientBase_decodeJwt(token) {
+    const publicKey = this.env.openchatPublicKey.replace(/\\n/g, "\n");
+    try {
+        const decoded = jwt.verify(token, publicKey, { algorithms: ["ES256"] });
+        if (typeof decoded !== "string") {
+            return decoded;
+        }
+        else {
+            console.error(`Unable to decode jwt`, token);
+            throw new BadRequestError("AccessTokenInvalid");
+        }
+    }
+    catch (err) {
+        console.error(`Unable to decode jwt`, err, token);
+        throw new BadRequestError("AccessTokenInvalid");
+    }
+};
+
+var sha3 = {exports: {}};
+
+/**
+ * [js-sha3]{@link https://github.com/emn178/js-sha3}
+ *
+ * @version 0.9.3
+ * @author Chen, Yi-Cyuan [emn178@gmail.com]
+ * @copyright Chen, Yi-Cyuan 2015-2023
+ * @license MIT
+ */
+
+var hasRequiredSha3;
+
+function requireSha3 () {
+	if (hasRequiredSha3) return sha3.exports;
+	hasRequiredSha3 = 1;
+	(function (module) {
+		/*jslint bitwise: true */
+		(function () {
+
+		  var INPUT_ERROR = 'input is invalid type';
+		  var FINALIZE_ERROR = 'finalize already called';
+		  var WINDOW = typeof window === 'object';
+		  var root = WINDOW ? window : {};
+		  if (root.JS_SHA3_NO_WINDOW) {
+		    WINDOW = false;
+		  }
+		  var WEB_WORKER = !WINDOW && typeof self === 'object';
+		  var NODE_JS = !root.JS_SHA3_NO_NODE_JS && typeof process === 'object' && process.versions && process.versions.node;
+		  if (NODE_JS) {
+		    root = commonjsGlobal;
+		  } else if (WEB_WORKER) {
+		    root = self;
+		  }
+		  var COMMON_JS = !root.JS_SHA3_NO_COMMON_JS && 'object' === 'object' && module.exports;
+		  var ARRAY_BUFFER = !root.JS_SHA3_NO_ARRAY_BUFFER && typeof ArrayBuffer !== 'undefined';
+		  var HEX_CHARS = '0123456789abcdef'.split('');
+		  var SHAKE_PADDING = [31, 7936, 2031616, 520093696];
+		  var CSHAKE_PADDING = [4, 1024, 262144, 67108864];
+		  var KECCAK_PADDING = [1, 256, 65536, 16777216];
+		  var PADDING = [6, 1536, 393216, 100663296];
+		  var SHIFT = [0, 8, 16, 24];
+		  var RC = [1, 0, 32898, 0, 32906, 2147483648, 2147516416, 2147483648, 32907, 0, 2147483649,
+		    0, 2147516545, 2147483648, 32777, 2147483648, 138, 0, 136, 0, 2147516425, 0,
+		    2147483658, 0, 2147516555, 0, 139, 2147483648, 32905, 2147483648, 32771,
+		    2147483648, 32770, 2147483648, 128, 2147483648, 32778, 0, 2147483658, 2147483648,
+		    2147516545, 2147483648, 32896, 2147483648, 2147483649, 0, 2147516424, 2147483648];
+		  var BITS = [224, 256, 384, 512];
+		  var SHAKE_BITS = [128, 256];
+		  var OUTPUT_TYPES = ['hex', 'buffer', 'arrayBuffer', 'array', 'digest'];
+		  var CSHAKE_BYTEPAD = {
+		    '128': 168,
+		    '256': 136
+		  };
+
+
+		  var isArray = root.JS_SHA3_NO_NODE_JS || !Array.isArray
+		    ? function (obj) {
+		        return Object.prototype.toString.call(obj) === '[object Array]';
+		      }
+		    : Array.isArray;
+
+		  var isView = (ARRAY_BUFFER && (root.JS_SHA3_NO_ARRAY_BUFFER_IS_VIEW || !ArrayBuffer.isView))
+		    ? function (obj) {
+		        return typeof obj === 'object' && obj.buffer && obj.buffer.constructor === ArrayBuffer;
+		      }
+		    : ArrayBuffer.isView;
+
+		  // [message: string, isString: bool]
+		  var formatMessage = function (message) {
+		    var type = typeof message;
+		    if (type === 'string') {
+		      return [message, true];
+		    }
+		    if (type !== 'object' || message === null) {
+		      throw new Error(INPUT_ERROR);
+		    }
+		    if (ARRAY_BUFFER && message.constructor === ArrayBuffer) {
+		      return [new Uint8Array(message), false];
+		    }
+		    if (!isArray(message) && !isView(message)) {
+		      throw new Error(INPUT_ERROR);
+		    }
+		    return [message, false];
+		  };
+
+		  var empty = function (message) {
+		    return formatMessage(message)[0].length === 0;
+		  };
+
+		  var cloneArray = function (array) {
+		    var newArray = [];
+		    for (var i = 0; i < array.length; ++i) {
+		      newArray[i] = array[i];
+		    }
+		    return newArray;
+		  };
+
+		  var createOutputMethod = function (bits, padding, outputType) {
+		    return function (message) {
+		      return new Keccak(bits, padding, bits).update(message)[outputType]();
+		    };
+		  };
+
+		  var createShakeOutputMethod = function (bits, padding, outputType) {
+		    return function (message, outputBits) {
+		      return new Keccak(bits, padding, outputBits).update(message)[outputType]();
+		    };
+		  };
+
+		  var createCshakeOutputMethod = function (bits, padding, outputType) {
+		    return function (message, outputBits, n, s) {
+		      return methods['cshake' + bits].update(message, outputBits, n, s)[outputType]();
+		    };
+		  };
+
+		  var createKmacOutputMethod = function (bits, padding, outputType) {
+		    return function (key, message, outputBits, s) {
+		      return methods['kmac' + bits].update(key, message, outputBits, s)[outputType]();
+		    };
+		  };
+
+		  var createOutputMethods = function (method, createMethod, bits, padding) {
+		    for (var i = 0; i < OUTPUT_TYPES.length; ++i) {
+		      var type = OUTPUT_TYPES[i];
+		      method[type] = createMethod(bits, padding, type);
+		    }
+		    return method;
+		  };
+
+		  var createMethod = function (bits, padding) {
+		    var method = createOutputMethod(bits, padding, 'hex');
+		    method.create = function () {
+		      return new Keccak(bits, padding, bits);
+		    };
+		    method.update = function (message) {
+		      return method.create().update(message);
+		    };
+		    return createOutputMethods(method, createOutputMethod, bits, padding);
+		  };
+
+		  var createShakeMethod = function (bits, padding) {
+		    var method = createShakeOutputMethod(bits, padding, 'hex');
+		    method.create = function (outputBits) {
+		      return new Keccak(bits, padding, outputBits);
+		    };
+		    method.update = function (message, outputBits) {
+		      return method.create(outputBits).update(message);
+		    };
+		    return createOutputMethods(method, createShakeOutputMethod, bits, padding);
+		  };
+
+		  var createCshakeMethod = function (bits, padding) {
+		    var w = CSHAKE_BYTEPAD[bits];
+		    var method = createCshakeOutputMethod(bits, padding, 'hex');
+		    method.create = function (outputBits, n, s) {
+		      if (empty(n) && empty(s)) {
+		        return methods['shake' + bits].create(outputBits);
+		      } else {
+		        return new Keccak(bits, padding, outputBits).bytepad([n, s], w);
+		      }
+		    };
+		    method.update = function (message, outputBits, n, s) {
+		      return method.create(outputBits, n, s).update(message);
+		    };
+		    return createOutputMethods(method, createCshakeOutputMethod, bits, padding);
+		  };
+
+		  var createKmacMethod = function (bits, padding) {
+		    var w = CSHAKE_BYTEPAD[bits];
+		    var method = createKmacOutputMethod(bits, padding, 'hex');
+		    method.create = function (key, outputBits, s) {
+		      return new Kmac(bits, padding, outputBits).bytepad(['KMAC', s], w).bytepad([key], w);
+		    };
+		    method.update = function (key, message, outputBits, s) {
+		      return method.create(key, outputBits, s).update(message);
+		    };
+		    return createOutputMethods(method, createKmacOutputMethod, bits, padding);
+		  };
+
+		  var algorithms = [
+		    { name: 'keccak', padding: KECCAK_PADDING, bits: BITS, createMethod: createMethod },
+		    { name: 'sha3', padding: PADDING, bits: BITS, createMethod: createMethod },
+		    { name: 'shake', padding: SHAKE_PADDING, bits: SHAKE_BITS, createMethod: createShakeMethod },
+		    { name: 'cshake', padding: CSHAKE_PADDING, bits: SHAKE_BITS, createMethod: createCshakeMethod },
+		    { name: 'kmac', padding: CSHAKE_PADDING, bits: SHAKE_BITS, createMethod: createKmacMethod }
+		  ];
+
+		  var methods = {}, methodNames = [];
+
+		  for (var i = 0; i < algorithms.length; ++i) {
+		    var algorithm = algorithms[i];
+		    var bits = algorithm.bits;
+		    for (var j = 0; j < bits.length; ++j) {
+		      var methodName = algorithm.name + '_' + bits[j];
+		      methodNames.push(methodName);
+		      methods[methodName] = algorithm.createMethod(bits[j], algorithm.padding);
+		      if (algorithm.name !== 'sha3') {
+		        var newMethodName = algorithm.name + bits[j];
+		        methodNames.push(newMethodName);
+		        methods[newMethodName] = methods[methodName];
+		      }
+		    }
+		  }
+
+		  function Keccak(bits, padding, outputBits) {
+		    this.blocks = [];
+		    this.s = [];
+		    this.padding = padding;
+		    this.outputBits = outputBits;
+		    this.reset = true;
+		    this.finalized = false;
+		    this.block = 0;
+		    this.start = 0;
+		    this.blockCount = (1600 - (bits << 1)) >> 5;
+		    this.byteCount = this.blockCount << 2;
+		    this.outputBlocks = outputBits >> 5;
+		    this.extraBytes = (outputBits & 31) >> 3;
+
+		    for (var i = 0; i < 50; ++i) {
+		      this.s[i] = 0;
+		    }
+		  }
+
+		  Keccak.prototype.update = function (message) {
+		    if (this.finalized) {
+		      throw new Error(FINALIZE_ERROR);
+		    }
+		    var result = formatMessage(message);
+		    message = result[0];
+		    var isString = result[1];
+		    var blocks = this.blocks, byteCount = this.byteCount, length = message.length,
+		      blockCount = this.blockCount, index = 0, s = this.s, i, code;
+
+		    while (index < length) {
+		      if (this.reset) {
+		        this.reset = false;
+		        blocks[0] = this.block;
+		        for (i = 1; i < blockCount + 1; ++i) {
+		          blocks[i] = 0;
+		        }
+		      }
+		      if (isString) {
+		        for (i = this.start; index < length && i < byteCount; ++index) {
+		          code = message.charCodeAt(index);
+		          if (code < 0x80) {
+		            blocks[i >> 2] |= code << SHIFT[i++ & 3];
+		          } else if (code < 0x800) {
+		            blocks[i >> 2] |= (0xc0 | (code >> 6)) << SHIFT[i++ & 3];
+		            blocks[i >> 2] |= (0x80 | (code & 0x3f)) << SHIFT[i++ & 3];
+		          } else if (code < 0xd800 || code >= 0xe000) {
+		            blocks[i >> 2] |= (0xe0 | (code >> 12)) << SHIFT[i++ & 3];
+		            blocks[i >> 2] |= (0x80 | ((code >> 6) & 0x3f)) << SHIFT[i++ & 3];
+		            blocks[i >> 2] |= (0x80 | (code & 0x3f)) << SHIFT[i++ & 3];
+		          } else {
+		            code = 0x10000 + (((code & 0x3ff) << 10) | (message.charCodeAt(++index) & 0x3ff));
+		            blocks[i >> 2] |= (0xf0 | (code >> 18)) << SHIFT[i++ & 3];
+		            blocks[i >> 2] |= (0x80 | ((code >> 12) & 0x3f)) << SHIFT[i++ & 3];
+		            blocks[i >> 2] |= (0x80 | ((code >> 6) & 0x3f)) << SHIFT[i++ & 3];
+		            blocks[i >> 2] |= (0x80 | (code & 0x3f)) << SHIFT[i++ & 3];
+		          }
+		        }
+		      } else {
+		        for (i = this.start; index < length && i < byteCount; ++index) {
+		          blocks[i >> 2] |= message[index] << SHIFT[i++ & 3];
+		        }
+		      }
+		      this.lastByteIndex = i;
+		      if (i >= byteCount) {
+		        this.start = i - byteCount;
+		        this.block = blocks[blockCount];
+		        for (i = 0; i < blockCount; ++i) {
+		          s[i] ^= blocks[i];
+		        }
+		        f(s);
+		        this.reset = true;
+		      } else {
+		        this.start = i;
+		      }
+		    }
+		    return this;
+		  };
+
+		  Keccak.prototype.encode = function (x, right) {
+		    var o = x & 255, n = 1;
+		    var bytes = [o];
+		    x = x >> 8;
+		    o = x & 255;
+		    while (o > 0) {
+		      bytes.unshift(o);
+		      x = x >> 8;
+		      o = x & 255;
+		      ++n;
+		    }
+		    if (right) {
+		      bytes.push(n);
+		    } else {
+		      bytes.unshift(n);
+		    }
+		    this.update(bytes);
+		    return bytes.length;
+		  };
+
+		  Keccak.prototype.encodeString = function (str) {
+		    var result = formatMessage(str);
+		    str = result[0];
+		    var isString = result[1];
+		    var bytes = 0, length = str.length;
+		    if (isString) {
+		      for (var i = 0; i < str.length; ++i) {
+		        var code = str.charCodeAt(i);
+		        if (code < 0x80) {
+		          bytes += 1;
+		        } else if (code < 0x800) {
+		          bytes += 2;
+		        } else if (code < 0xd800 || code >= 0xe000) {
+		          bytes += 3;
+		        } else {
+		          code = 0x10000 + (((code & 0x3ff) << 10) | (str.charCodeAt(++i) & 0x3ff));
+		          bytes += 4;
+		        }
+		      }
+		    } else {
+		      bytes = length;
+		    }
+		    bytes += this.encode(bytes * 8);
+		    this.update(str);
+		    return bytes;
+		  };
+
+		  Keccak.prototype.bytepad = function (strs, w) {
+		    var bytes = this.encode(w);
+		    for (var i = 0; i < strs.length; ++i) {
+		      bytes += this.encodeString(strs[i]);
+		    }
+		    var paddingBytes = (w - bytes % w) % w;
+		    var zeros = [];
+		    zeros.length = paddingBytes;
+		    this.update(zeros);
+		    return this;
+		  };
+
+		  Keccak.prototype.finalize = function () {
+		    if (this.finalized) {
+		      return;
+		    }
+		    this.finalized = true;
+		    var blocks = this.blocks, i = this.lastByteIndex, blockCount = this.blockCount, s = this.s;
+		    blocks[i >> 2] |= this.padding[i & 3];
+		    if (this.lastByteIndex === this.byteCount) {
+		      blocks[0] = blocks[blockCount];
+		      for (i = 1; i < blockCount + 1; ++i) {
+		        blocks[i] = 0;
+		      }
+		    }
+		    blocks[blockCount - 1] |= 0x80000000;
+		    for (i = 0; i < blockCount; ++i) {
+		      s[i] ^= blocks[i];
+		    }
+		    f(s);
+		  };
+
+		  Keccak.prototype.toString = Keccak.prototype.hex = function () {
+		    this.finalize();
+
+		    var blockCount = this.blockCount, s = this.s, outputBlocks = this.outputBlocks,
+		      extraBytes = this.extraBytes, i = 0, j = 0;
+		    var hex = '', block;
+		    while (j < outputBlocks) {
+		      for (i = 0; i < blockCount && j < outputBlocks; ++i, ++j) {
+		        block = s[i];
+		        hex += HEX_CHARS[(block >> 4) & 0x0F] + HEX_CHARS[block & 0x0F] +
+		          HEX_CHARS[(block >> 12) & 0x0F] + HEX_CHARS[(block >> 8) & 0x0F] +
+		          HEX_CHARS[(block >> 20) & 0x0F] + HEX_CHARS[(block >> 16) & 0x0F] +
+		          HEX_CHARS[(block >> 28) & 0x0F] + HEX_CHARS[(block >> 24) & 0x0F];
+		      }
+		      if (j % blockCount === 0) {
+		        s = cloneArray(s);
+		        f(s);
+		        i = 0;
+		      }
+		    }
+		    if (extraBytes) {
+		      block = s[i];
+		      hex += HEX_CHARS[(block >> 4) & 0x0F] + HEX_CHARS[block & 0x0F];
+		      if (extraBytes > 1) {
+		        hex += HEX_CHARS[(block >> 12) & 0x0F] + HEX_CHARS[(block >> 8) & 0x0F];
+		      }
+		      if (extraBytes > 2) {
+		        hex += HEX_CHARS[(block >> 20) & 0x0F] + HEX_CHARS[(block >> 16) & 0x0F];
+		      }
+		    }
+		    return hex;
+		  };
+
+		  Keccak.prototype.arrayBuffer = function () {
+		    this.finalize();
+
+		    var blockCount = this.blockCount, s = this.s, outputBlocks = this.outputBlocks,
+		      extraBytes = this.extraBytes, i = 0, j = 0;
+		    var bytes = this.outputBits >> 3;
+		    var buffer;
+		    if (extraBytes) {
+		      buffer = new ArrayBuffer((outputBlocks + 1) << 2);
+		    } else {
+		      buffer = new ArrayBuffer(bytes);
+		    }
+		    var array = new Uint32Array(buffer);
+		    while (j < outputBlocks) {
+		      for (i = 0; i < blockCount && j < outputBlocks; ++i, ++j) {
+		        array[j] = s[i];
+		      }
+		      if (j % blockCount === 0) {
+		        s = cloneArray(s);
+		        f(s);
+		      }
+		    }
+		    if (extraBytes) {
+		      array[j] = s[i];
+		      buffer = buffer.slice(0, bytes);
+		    }
+		    return buffer;
+		  };
+
+		  Keccak.prototype.buffer = Keccak.prototype.arrayBuffer;
+
+		  Keccak.prototype.digest = Keccak.prototype.array = function () {
+		    this.finalize();
+
+		    var blockCount = this.blockCount, s = this.s, outputBlocks = this.outputBlocks,
+		      extraBytes = this.extraBytes, i = 0, j = 0;
+		    var array = [], offset, block;
+		    while (j < outputBlocks) {
+		      for (i = 0; i < blockCount && j < outputBlocks; ++i, ++j) {
+		        offset = j << 2;
+		        block = s[i];
+		        array[offset] = block & 0xFF;
+		        array[offset + 1] = (block >> 8) & 0xFF;
+		        array[offset + 2] = (block >> 16) & 0xFF;
+		        array[offset + 3] = (block >> 24) & 0xFF;
+		      }
+		      if (j % blockCount === 0) {
+		        s = cloneArray(s);
+		        f(s);
+		      }
+		    }
+		    if (extraBytes) {
+		      offset = j << 2;
+		      block = s[i];
+		      array[offset] = block & 0xFF;
+		      if (extraBytes > 1) {
+		        array[offset + 1] = (block >> 8) & 0xFF;
+		      }
+		      if (extraBytes > 2) {
+		        array[offset + 2] = (block >> 16) & 0xFF;
+		      }
+		    }
+		    return array;
+		  };
+
+		  function Kmac(bits, padding, outputBits) {
+		    Keccak.call(this, bits, padding, outputBits);
+		  }
+
+		  Kmac.prototype = new Keccak();
+
+		  Kmac.prototype.finalize = function () {
+		    this.encode(this.outputBits, true);
+		    return Keccak.prototype.finalize.call(this);
+		  };
+
+		  var f = function (s) {
+		    var h, l, n, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
+		      b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16, b17,
+		      b18, b19, b20, b21, b22, b23, b24, b25, b26, b27, b28, b29, b30, b31, b32, b33,
+		      b34, b35, b36, b37, b38, b39, b40, b41, b42, b43, b44, b45, b46, b47, b48, b49;
+		    for (n = 0; n < 48; n += 2) {
+		      c0 = s[0] ^ s[10] ^ s[20] ^ s[30] ^ s[40];
+		      c1 = s[1] ^ s[11] ^ s[21] ^ s[31] ^ s[41];
+		      c2 = s[2] ^ s[12] ^ s[22] ^ s[32] ^ s[42];
+		      c3 = s[3] ^ s[13] ^ s[23] ^ s[33] ^ s[43];
+		      c4 = s[4] ^ s[14] ^ s[24] ^ s[34] ^ s[44];
+		      c5 = s[5] ^ s[15] ^ s[25] ^ s[35] ^ s[45];
+		      c6 = s[6] ^ s[16] ^ s[26] ^ s[36] ^ s[46];
+		      c7 = s[7] ^ s[17] ^ s[27] ^ s[37] ^ s[47];
+		      c8 = s[8] ^ s[18] ^ s[28] ^ s[38] ^ s[48];
+		      c9 = s[9] ^ s[19] ^ s[29] ^ s[39] ^ s[49];
+
+		      h = c8 ^ ((c2 << 1) | (c3 >>> 31));
+		      l = c9 ^ ((c3 << 1) | (c2 >>> 31));
+		      s[0] ^= h;
+		      s[1] ^= l;
+		      s[10] ^= h;
+		      s[11] ^= l;
+		      s[20] ^= h;
+		      s[21] ^= l;
+		      s[30] ^= h;
+		      s[31] ^= l;
+		      s[40] ^= h;
+		      s[41] ^= l;
+		      h = c0 ^ ((c4 << 1) | (c5 >>> 31));
+		      l = c1 ^ ((c5 << 1) | (c4 >>> 31));
+		      s[2] ^= h;
+		      s[3] ^= l;
+		      s[12] ^= h;
+		      s[13] ^= l;
+		      s[22] ^= h;
+		      s[23] ^= l;
+		      s[32] ^= h;
+		      s[33] ^= l;
+		      s[42] ^= h;
+		      s[43] ^= l;
+		      h = c2 ^ ((c6 << 1) | (c7 >>> 31));
+		      l = c3 ^ ((c7 << 1) | (c6 >>> 31));
+		      s[4] ^= h;
+		      s[5] ^= l;
+		      s[14] ^= h;
+		      s[15] ^= l;
+		      s[24] ^= h;
+		      s[25] ^= l;
+		      s[34] ^= h;
+		      s[35] ^= l;
+		      s[44] ^= h;
+		      s[45] ^= l;
+		      h = c4 ^ ((c8 << 1) | (c9 >>> 31));
+		      l = c5 ^ ((c9 << 1) | (c8 >>> 31));
+		      s[6] ^= h;
+		      s[7] ^= l;
+		      s[16] ^= h;
+		      s[17] ^= l;
+		      s[26] ^= h;
+		      s[27] ^= l;
+		      s[36] ^= h;
+		      s[37] ^= l;
+		      s[46] ^= h;
+		      s[47] ^= l;
+		      h = c6 ^ ((c0 << 1) | (c1 >>> 31));
+		      l = c7 ^ ((c1 << 1) | (c0 >>> 31));
+		      s[8] ^= h;
+		      s[9] ^= l;
+		      s[18] ^= h;
+		      s[19] ^= l;
+		      s[28] ^= h;
+		      s[29] ^= l;
+		      s[38] ^= h;
+		      s[39] ^= l;
+		      s[48] ^= h;
+		      s[49] ^= l;
+
+		      b0 = s[0];
+		      b1 = s[1];
+		      b32 = (s[11] << 4) | (s[10] >>> 28);
+		      b33 = (s[10] << 4) | (s[11] >>> 28);
+		      b14 = (s[20] << 3) | (s[21] >>> 29);
+		      b15 = (s[21] << 3) | (s[20] >>> 29);
+		      b46 = (s[31] << 9) | (s[30] >>> 23);
+		      b47 = (s[30] << 9) | (s[31] >>> 23);
+		      b28 = (s[40] << 18) | (s[41] >>> 14);
+		      b29 = (s[41] << 18) | (s[40] >>> 14);
+		      b20 = (s[2] << 1) | (s[3] >>> 31);
+		      b21 = (s[3] << 1) | (s[2] >>> 31);
+		      b2 = (s[13] << 12) | (s[12] >>> 20);
+		      b3 = (s[12] << 12) | (s[13] >>> 20);
+		      b34 = (s[22] << 10) | (s[23] >>> 22);
+		      b35 = (s[23] << 10) | (s[22] >>> 22);
+		      b16 = (s[33] << 13) | (s[32] >>> 19);
+		      b17 = (s[32] << 13) | (s[33] >>> 19);
+		      b48 = (s[42] << 2) | (s[43] >>> 30);
+		      b49 = (s[43] << 2) | (s[42] >>> 30);
+		      b40 = (s[5] << 30) | (s[4] >>> 2);
+		      b41 = (s[4] << 30) | (s[5] >>> 2);
+		      b22 = (s[14] << 6) | (s[15] >>> 26);
+		      b23 = (s[15] << 6) | (s[14] >>> 26);
+		      b4 = (s[25] << 11) | (s[24] >>> 21);
+		      b5 = (s[24] << 11) | (s[25] >>> 21);
+		      b36 = (s[34] << 15) | (s[35] >>> 17);
+		      b37 = (s[35] << 15) | (s[34] >>> 17);
+		      b18 = (s[45] << 29) | (s[44] >>> 3);
+		      b19 = (s[44] << 29) | (s[45] >>> 3);
+		      b10 = (s[6] << 28) | (s[7] >>> 4);
+		      b11 = (s[7] << 28) | (s[6] >>> 4);
+		      b42 = (s[17] << 23) | (s[16] >>> 9);
+		      b43 = (s[16] << 23) | (s[17] >>> 9);
+		      b24 = (s[26] << 25) | (s[27] >>> 7);
+		      b25 = (s[27] << 25) | (s[26] >>> 7);
+		      b6 = (s[36] << 21) | (s[37] >>> 11);
+		      b7 = (s[37] << 21) | (s[36] >>> 11);
+		      b38 = (s[47] << 24) | (s[46] >>> 8);
+		      b39 = (s[46] << 24) | (s[47] >>> 8);
+		      b30 = (s[8] << 27) | (s[9] >>> 5);
+		      b31 = (s[9] << 27) | (s[8] >>> 5);
+		      b12 = (s[18] << 20) | (s[19] >>> 12);
+		      b13 = (s[19] << 20) | (s[18] >>> 12);
+		      b44 = (s[29] << 7) | (s[28] >>> 25);
+		      b45 = (s[28] << 7) | (s[29] >>> 25);
+		      b26 = (s[38] << 8) | (s[39] >>> 24);
+		      b27 = (s[39] << 8) | (s[38] >>> 24);
+		      b8 = (s[48] << 14) | (s[49] >>> 18);
+		      b9 = (s[49] << 14) | (s[48] >>> 18);
+
+		      s[0] = b0 ^ (~b2 & b4);
+		      s[1] = b1 ^ (~b3 & b5);
+		      s[10] = b10 ^ (~b12 & b14);
+		      s[11] = b11 ^ (~b13 & b15);
+		      s[20] = b20 ^ (~b22 & b24);
+		      s[21] = b21 ^ (~b23 & b25);
+		      s[30] = b30 ^ (~b32 & b34);
+		      s[31] = b31 ^ (~b33 & b35);
+		      s[40] = b40 ^ (~b42 & b44);
+		      s[41] = b41 ^ (~b43 & b45);
+		      s[2] = b2 ^ (~b4 & b6);
+		      s[3] = b3 ^ (~b5 & b7);
+		      s[12] = b12 ^ (~b14 & b16);
+		      s[13] = b13 ^ (~b15 & b17);
+		      s[22] = b22 ^ (~b24 & b26);
+		      s[23] = b23 ^ (~b25 & b27);
+		      s[32] = b32 ^ (~b34 & b36);
+		      s[33] = b33 ^ (~b35 & b37);
+		      s[42] = b42 ^ (~b44 & b46);
+		      s[43] = b43 ^ (~b45 & b47);
+		      s[4] = b4 ^ (~b6 & b8);
+		      s[5] = b5 ^ (~b7 & b9);
+		      s[14] = b14 ^ (~b16 & b18);
+		      s[15] = b15 ^ (~b17 & b19);
+		      s[24] = b24 ^ (~b26 & b28);
+		      s[25] = b25 ^ (~b27 & b29);
+		      s[34] = b34 ^ (~b36 & b38);
+		      s[35] = b35 ^ (~b37 & b39);
+		      s[44] = b44 ^ (~b46 & b48);
+		      s[45] = b45 ^ (~b47 & b49);
+		      s[6] = b6 ^ (~b8 & b0);
+		      s[7] = b7 ^ (~b9 & b1);
+		      s[16] = b16 ^ (~b18 & b10);
+		      s[17] = b17 ^ (~b19 & b11);
+		      s[26] = b26 ^ (~b28 & b20);
+		      s[27] = b27 ^ (~b29 & b21);
+		      s[36] = b36 ^ (~b38 & b30);
+		      s[37] = b37 ^ (~b39 & b31);
+		      s[46] = b46 ^ (~b48 & b40);
+		      s[47] = b47 ^ (~b49 & b41);
+		      s[8] = b8 ^ (~b0 & b2);
+		      s[9] = b9 ^ (~b1 & b3);
+		      s[18] = b18 ^ (~b10 & b12);
+		      s[19] = b19 ^ (~b11 & b13);
+		      s[28] = b28 ^ (~b20 & b22);
+		      s[29] = b29 ^ (~b21 & b23);
+		      s[38] = b38 ^ (~b30 & b32);
+		      s[39] = b39 ^ (~b31 & b33);
+		      s[48] = b48 ^ (~b40 & b42);
+		      s[49] = b49 ^ (~b41 & b43);
+
+		      s[0] ^= RC[n];
+		      s[1] ^= RC[n + 1];
+		    }
+		  };
+
+		  if (COMMON_JS) {
+		    module.exports = methods;
+		  } else {
+		    for (i = 0; i < methodNames.length; ++i) {
+		      root[methodNames[i]] = methods[methodNames[i]];
+		    }
+		  }
+		})(); 
+	} (sha3));
+	return sha3.exports;
+}
+
+var sha3Exports = requireSha3();
+
+function random128() {
+    const bytes = new BigUint64Array(2);
+    crypto.getRandomValues(bytes);
+    return (bytes[0] << BigInt(64)) + bytes[1];
+}
+
+const idlFactory$1 = ({ IDL }) => {
+  const CanisterId = IDL.Principal;
+  const AddBucketCanisterArgs = IDL.Record({ 'canister_id' : CanisterId });
+  const AddBucketCanisterResponse = IDL.Variant({
+    'BucketAlreadyAdded' : IDL.Null,
+    'Success' : IDL.Null,
+    'InternalError' : IDL.Text,
+  });
+  const UserId = CanisterId;
+  const UserConfig = IDL.Record({
+    'byte_limit' : IDL.Nat64,
+    'user_id' : UserId,
+  });
+  const AddOrUpdateUsersArgs = IDL.Record({ 'users' : IDL.Vec(UserConfig) });
+  const AddOrUpdateUsersResponse = IDL.Variant({ 'Success' : IDL.Null });
+  const Hash = IDL.Vec(IDL.Nat8);
+  const AllocatedBucketArgs = IDL.Record({
+    'file_hash' : Hash,
+    'file_size' : IDL.Nat64,
+    'file_id_seed' : IDL.Opt(IDL.Nat),
+  });
+  const ProjectedAllowance = IDL.Record({
+    'bytes_used_after_operation' : IDL.Nat64,
+    'byte_limit' : IDL.Nat64,
+    'bytes_used_after_upload' : IDL.Nat64,
+    'bytes_used' : IDL.Nat64,
+  });
+  const FileId = IDL.Nat;
+  const AllocatedBucketSuccessResult = IDL.Record({
+    'byte_limit' : IDL.Nat64,
+    'canister_id' : CanisterId,
+    'bytes_used_after_upload' : IDL.Nat64,
+    'bytes_used' : IDL.Nat64,
+    'projected_allowance' : ProjectedAllowance,
+    'chunk_size' : IDL.Nat32,
+    'file_id' : FileId,
+  });
+  const AllocatedBucketResponse = IDL.Variant({
+    'Success' : AllocatedBucketSuccessResult,
+    'AllowanceExceeded' : ProjectedAllowance,
+    'UserNotFound' : IDL.Null,
+    'BucketUnavailable' : IDL.Null,
+  });
+  const CanForwardArgs = IDL.Record({
+    'file_hash' : Hash,
+    'file_size' : IDL.Nat64,
+  });
+  const CanForwardResponse = IDL.Variant({
+    'Success' : ProjectedAllowance,
+    'AllowanceExceeded' : ProjectedAllowance,
+    'UserNotFound' : IDL.Null,
+  });
+  const AccessorId = IDL.Principal;
+  const RemoveAccessorArgs = IDL.Record({ 'accessor_id' : AccessorId });
+  const RemoveAccessorResponse = IDL.Variant({ 'Success' : IDL.Null });
+  const RemoveUserArgs = IDL.Record({ 'user_id' : UserId });
+  const RemoveUserResponse = IDL.Variant({ 'Success' : IDL.Null });
+  const SetBucketFullArgs = IDL.Record({
+    'full' : IDL.Bool,
+    'bucket' : CanisterId,
+  });
+  const SetBucketFullResponse = IDL.Variant({ 'Success' : IDL.Null });
+  const UserArgs = IDL.Record({});
+  const UserRecord = IDL.Record({
+    'byte_limit' : IDL.Nat64,
+    'bytes_used' : IDL.Nat64,
+  });
+  const UserResponse = IDL.Variant({
+    'Success' : UserRecord,
+    'UserNotFound' : IDL.Null,
+  });
+  return IDL.Service({
+    'add_bucket_canister' : IDL.Func(
+        [AddBucketCanisterArgs],
+        [AddBucketCanisterResponse],
+        [],
+      ),
+    'add_or_update_users' : IDL.Func(
+        [AddOrUpdateUsersArgs],
+        [AddOrUpdateUsersResponse],
+        [],
+      ),
+    'allocated_bucket_v2' : IDL.Func(
+        [AllocatedBucketArgs],
+        [AllocatedBucketResponse],
+        ['query'],
+      ),
+    'can_forward' : IDL.Func([CanForwardArgs], [CanForwardResponse], ['query']),
+    'remove_accessor' : IDL.Func(
+        [RemoveAccessorArgs],
+        [RemoveAccessorResponse],
+        [],
+      ),
+    'remove_user' : IDL.Func([RemoveUserArgs], [RemoveUserResponse], []),
+    'set_bucket_full' : IDL.Func(
+        [SetBucketFullArgs],
+        [SetBucketFullResponse],
+        [],
+      ),
+    'user' : IDL.Func([UserArgs], [UserResponse], ['query']),
+  });
+};
+
+class StorageIndexClient extends CandidService {
+    constructor(agent, canisterId, icHost) {
+        super();
+        this.service = CandidService.createServiceClient(idlFactory$1, canisterId, icHost, agent);
+    }
+    allocatedBucket(fileHash, fileSize, fileIdSeed) {
+        return CandidService.handleResponse(this.service.allocated_bucket_v2({
+            file_hash: fileHash,
+            file_size: fileSize,
+            file_id_seed: fileIdSeed === undefined ? [] : [fileIdSeed],
+        }), (resp) => resp);
+    }
+}
+
+const idlFactory = ({ IDL }) => {
+  const FileId = IDL.Nat;
+  const DeleteFileArgs = IDL.Record({ 'file_id' : FileId });
+  const DeleteFileResponse = IDL.Variant({
+    'NotFound' : IDL.Null,
+    'NotAuthorized' : IDL.Null,
+    'Success' : IDL.Null,
+  });
+  const DeleteFilesArgs = IDL.Record({ 'file_ids' : IDL.Vec(FileId) });
+  const DeleteFileFailureReason = IDL.Variant({
+    'NotFound' : IDL.Null,
+    'NotAuthorized' : IDL.Null,
+  });
+  const DeleteFileFailure = IDL.Record({
+    'reason' : DeleteFileFailureReason,
+    'file_id' : FileId,
+  });
+  const DeleteFilesResponse = IDL.Record({
+    'failures' : IDL.Vec(DeleteFileFailure),
+    'success' : IDL.Vec(FileId),
+  });
+  const FileInfoArgs = IDL.Record({ 'file_id' : FileId });
+  const Hash = IDL.Vec(IDL.Nat8);
+  const FileInfoSuccessResult = IDL.Record({
+    'is_owner' : IDL.Bool,
+    'file_hash' : Hash,
+    'file_size' : IDL.Nat64,
+  });
+  const FileInfoResponse = IDL.Variant({
+    'NotFound' : IDL.Null,
+    'Success' : FileInfoSuccessResult,
+  });
+  const AccessorId = IDL.Principal;
+  const ForwardFileArgs = IDL.Record({
+    'accessors' : IDL.Vec(AccessorId),
+    'file_id' : FileId,
+  });
+  const ForwardFileResponse = IDL.Variant({
+    'NotFound' : IDL.Null,
+    'NotAuthorized' : IDL.Null,
+    'Success' : FileId,
+  });
+  const TimestampMillis = IDL.Nat64;
+  const UploadChunkArgs = IDL.Record({
+    'accessors' : IDL.Vec(AccessorId),
+    'chunk_index' : IDL.Nat32,
+    'hash' : Hash,
+    'mime_type' : IDL.Text,
+    'total_size' : IDL.Nat64,
+    'bytes' : IDL.Vec(IDL.Nat8),
+    'expiry' : IDL.Opt(TimestampMillis),
+    'chunk_size' : IDL.Nat32,
+    'file_id' : FileId,
+  });
+  const UploadChunkResponse = IDL.Variant({
+    'ChunkAlreadyExists' : IDL.Null,
+    'Full' : IDL.Null,
+    'ChunkSizeMismatch' : IDL.Null,
+    'FileTooBig' : IDL.Null,
+    'ChunkIndexTooHigh' : IDL.Null,
+    'Success' : IDL.Null,
+    'FileExpired' : IDL.Null,
+    'HashMismatch' : IDL.Null,
+    'FileAlreadyExists' : IDL.Null,
+    'AllowanceExceeded' : IDL.Null,
+    'InvalidFileId' : IDL.Null,
+    'UserNotFound' : IDL.Null,
+  });
+  return IDL.Service({
+    'delete_file' : IDL.Func([DeleteFileArgs], [DeleteFileResponse], []),
+    'delete_files' : IDL.Func([DeleteFilesArgs], [DeleteFilesResponse], []),
+    'file_info' : IDL.Func([FileInfoArgs], [FileInfoResponse], ['query']),
+    'forward_file' : IDL.Func([ForwardFileArgs], [ForwardFileResponse], []),
+    'upload_chunk_v2' : IDL.Func([UploadChunkArgs], [UploadChunkResponse], []),
+  });
+};
+
+class StorageBucketClient extends CandidService {
+    constructor(agent, canisterId, icHost) {
+        super();
+        this.service = CandidService.createServiceClient(idlFactory, canisterId, icHost, agent);
+    }
+    uploadChunk(fileId, hash, mimeType, accessors, totalSize, chunkSize, chunkIndex, bytes, expiryTimestampMillis) {
+        return CandidService.handleResponse(this.service.upload_chunk_v2({
+            accessors,
+            chunk_index: chunkIndex,
+            file_id: fileId,
+            hash,
+            mime_type: mimeType,
+            total_size: totalSize,
+            bytes,
+            chunk_size: chunkSize,
+            expiry: expiryTimestampMillis !== undefined ? [expiryTimestampMillis] : [],
+        }), (resp) => resp);
+    }
+}
+
+class DataClient extends EventTarget {
+    constructor(agent, config) {
+        super();
+        this.agent = agent;
+        this.config = config;
+        this.storageIndexClient = new StorageIndexClient(agent, config.openStorageCanisterId, config.icHost);
+    }
+    async uploadData(accessorCanisterIds, mimeType, data) {
+        const accessorIds = accessorCanisterIds.map((c) => Principal$1.fromText(c));
+        const response = await this.uploadFile(mimeType, accessorIds, data);
+        return this.extractBlobReference(response);
+    }
+    extractBlobReference(response) {
+        return {
+            canisterId: response.canisterId.toString(),
+            blobId: response.fileId,
+        };
+    }
+    async uploadFile(mimeType, accessors, bytes, expiryTimestampMillis) {
+        const hash = new Uint8Array(hashBytes(bytes));
+        const fileSize = bytes.byteLength;
+        const allocatedBucketResponse = await this.storageIndexClient.allocatedBucket(hash, BigInt(fileSize), random128());
+        if (!("Success" in allocatedBucketResponse)) {
+            // TODO make this better!
+            throw new Error(JSON.stringify(allocatedBucketResponse));
+        }
+        const bucketCanisterId = allocatedBucketResponse.Success.canister_id.toString();
+        const fileId = allocatedBucketResponse.Success.file_id;
+        const chunkSize = allocatedBucketResponse.Success.chunk_size;
+        const chunkCount = Math.ceil(fileSize / chunkSize);
+        const chunkIndexes = [...Array(chunkCount).keys()];
+        const bucketClient = new StorageBucketClient(this.agent, bucketCanisterId, this.config.icHost);
+        let chunksCompleted = 0;
+        const promises = chunkIndexes.map(async (chunkIndex) => {
+            const start = chunkIndex * chunkSize;
+            const end = Math.min(start + chunkSize, fileSize);
+            const chunkBytes = new Uint8Array(bytes.slice(start, end));
+            let attempt = 0;
+            while (attempt++ < 5) {
+                try {
+                    const chunkResponse = await bucketClient.uploadChunk(fileId, hash, mimeType, accessors, BigInt(fileSize), chunkSize, chunkIndex, chunkBytes, expiryTimestampMillis);
+                    if ("Success" in chunkResponse) {
+                        chunksCompleted++;
+                        return;
+                    }
+                }
+                catch (e) {
+                    console.log("Error uploading chunk " + chunkIndex, e);
+                }
+            }
+            throw new Error("Failed to upload chunk");
+        });
+        await Promise.all(promises);
+        return {
+            canisterId: bucketCanisterId,
+            fileId,
+            pathPrefix: "/files/",
+            projectedAllowance: allocatedBucketResponse.Success.projected_allowance,
+        };
+    }
+}
+function hashBytes(bytes) {
+    const hash = sha3Exports.sha3_256.create();
+    hash.update(bytes);
+    return hash.arrayBuffer();
+}
+
+var _BotApiKeyChatClient_instances, _BotApiKeyChatClient_extractCanisterFromChat;
+// TODO - there is a horrific amount of duplication in here at the moment
+class BotApiKeyChatClient extends BotClientBase {
+    constructor(agent, env, encodedJwt) {
+        super(agent, env, encodedJwt);
+        _BotApiKeyChatClient_instances.add(this);
+        this.agent = agent;
+        if (!this.isChatScope) {
+            throw new BadRequestError("AccessTokenInvalid");
+        }
+    }
+    createTextMessage(finalised, text) {
+        return Promise.resolve({
+            id: this.messageId,
+            content: {
+                Text: { text },
+            },
+            finalised,
+        });
+    }
+    get scope() {
+        return super.scope;
+    }
+    get messageId() {
+        return this.scope.Chat.message_id;
+    }
+    get threadRootMessageId() {
+        return this.scope.Chat.thread_root_message_index;
+    }
+    get chatId() {
+        return this.scope.Chat.chat;
+    }
+    sendTextMessage(finalised, text) {
+        return this.createTextMessage(finalised, text).then((msg) => this.sendMessage(msg));
+    }
+    sendMessage(message) {
+        return this.executeAction({
+            SendMessage: message,
+        });
     }
     createImageMessage(finalised, imageData, mimeType, width, height, caption) {
-        const dataClient = new DataClient(__classPrivateFieldGet$4(this, _BotClient_agent, "f"), this.config);
-        const canisterId = __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_extractCanisterFromChat).call(this);
+        const dataClient = new DataClient(this.agent, this.env);
+        const canisterId = __classPrivateFieldGet$4(this, _BotApiKeyChatClient_instances, "m", _BotApiKeyChatClient_extractCanisterFromChat).call(this);
         console.log("Upload canister: ", canisterId);
         const uploadContentPromise = dataClient.uploadData([canisterId], mimeType, imageData);
         return uploadContentPromise.then((blobRef) => {
@@ -36910,6 +36956,61 @@ class BotClient extends CandidService {
     sendImageMessage(finalised, imageData, mimeType, width, height, caption) {
         return this.createImageMessage(finalised, imageData, mimeType, width, height, caption).then((msg) => this.sendMessage(msg));
     }
+    createFileMessage(finalised, name, data, mimeType, fileSize, caption) {
+        const dataClient = new DataClient(this.agent, this.env);
+        const canisterId = __classPrivateFieldGet$4(this, _BotApiKeyChatClient_instances, "m", _BotApiKeyChatClient_extractCanisterFromChat).call(this);
+        const uploadContentPromise = dataClient.uploadData([canisterId], mimeType, data);
+        return uploadContentPromise.then((blobRef) => {
+            return {
+                id: this.messageId,
+                content: {
+                    File: {
+                        name,
+                        file_size: fileSize,
+                        mime_type: mimeType,
+                        blob_reference: [
+                            {
+                                blob_id: blobRef.blobId,
+                                canister_id: Principal$1.fromText(blobRef.canisterId),
+                            },
+                        ],
+                        caption: caption ? [caption] : [],
+                    },
+                },
+                finalised,
+            };
+        });
+    }
+    sendFileMessage(finalised, name, data, mimeType, fileSize, caption) {
+        return this.createFileMessage(finalised, name, data, mimeType, fileSize, caption).then((msg) => this.sendMessage(msg));
+    }
+}
+_BotApiKeyChatClient_instances = new WeakSet(), _BotApiKeyChatClient_extractCanisterFromChat = function _BotApiKeyChatClient_extractCanisterFromChat() {
+    if ("Group" in this.scope.Chat.chat) {
+        return this.scope.Chat.chat.Group.toString();
+    }
+    else if ("Channel" in this.scope.Chat.chat) {
+        return this.scope.Chat.chat.Channel[0].toString();
+    }
+    return "";
+};
+
+class BotApiKeyCommunityClient extends BotClientBase {
+    constructor(agent, env, encodedJwt) {
+        super(agent, env, encodedJwt);
+    }
+}
+
+var _BotCommandChatClient_instances, _BotCommandChatClient_extractCanisterFromChat, _BotCommandChatClient_namedArg, _BotCommandChatClient_principalBytesToString;
+class BotCommandChatClient extends BotClientBase {
+    constructor(agent, env, encodedJwt) {
+        super(agent, env, encodedJwt);
+        _BotCommandChatClient_instances.add(this);
+        this.agent = agent;
+        if (!this.isChatScope) {
+            throw new BadRequestError("AccessTokenInvalid");
+        }
+    }
     createTextMessage(finalised, text) {
         return Promise.resolve({
             id: this.messageId,
@@ -36919,50 +37020,137 @@ class BotClient extends CandidService {
             finalised,
         });
     }
+    get scope() {
+        return super.scope;
+    }
+    get messageId() {
+        return this.scope.Chat.message_id;
+    }
+    get threadRootMessageId() {
+        return this.scope.Chat.thread_root_message_index;
+    }
+    get chatId() {
+        return this.scope.Chat.chat;
+    }
+    stringArg(name) {
+        const arg = __classPrivateFieldGet$4(this, _BotCommandChatClient_instances, "m", _BotCommandChatClient_namedArg).call(this, name);
+        return arg !== undefined && "String" in arg.value ? arg.value.String : undefined;
+    }
+    booleanArg(name) {
+        const arg = __classPrivateFieldGet$4(this, _BotCommandChatClient_instances, "m", _BotCommandChatClient_namedArg).call(this, name);
+        return arg !== undefined && "Boolean" in arg.value ? arg.value.Boolean : undefined;
+    }
+    numberArg(name) {
+        const arg = __classPrivateFieldGet$4(this, _BotCommandChatClient_instances, "m", _BotCommandChatClient_namedArg).call(this, name);
+        return arg !== undefined && "Number" in arg.value ? arg.value.Number : undefined;
+    }
+    userArg(name) {
+        const arg = __classPrivateFieldGet$4(this, _BotCommandChatClient_instances, "m", _BotCommandChatClient_namedArg).call(this, name);
+        return arg !== undefined && "User" in arg.value
+            ? __classPrivateFieldGet$4(this, _BotCommandChatClient_instances, "m", _BotCommandChatClient_principalBytesToString).call(this, arg.value.User)
+            : undefined;
+    }
+    get commandArgs() {
+        return this.decodedJwt.command.args;
+    }
+    get commandName() {
+        return this.decodedJwt.command.name;
+    }
+    get initiator() {
+        return this.decodedJwt.command.initiator;
+    }
     sendTextMessage(finalised, text) {
         return this.createTextMessage(finalised, text).then((msg) => this.sendMessage(msg));
     }
     sendMessage(message) {
-        return __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_executeAction).call(this, message);
+        return this.executeAction({
+            SendMessage: message,
+        });
+    }
+    createImageMessage(finalised, imageData, mimeType, width, height, caption) {
+        const dataClient = new DataClient(this.agent, this.env);
+        const canisterId = __classPrivateFieldGet$4(this, _BotCommandChatClient_instances, "m", _BotCommandChatClient_extractCanisterFromChat).call(this);
+        console.log("Upload canister: ", canisterId);
+        const uploadContentPromise = dataClient.uploadData([canisterId], mimeType, imageData);
+        return uploadContentPromise.then((blobRef) => {
+            return {
+                id: this.messageId,
+                content: {
+                    Image: {
+                        height,
+                        mime_type: mimeType,
+                        blob_reference: [
+                            {
+                                blob_id: blobRef.blobId,
+                                canister_id: Principal$1.fromText(blobRef.canisterId),
+                            },
+                        ],
+                        thumbnail_data: "",
+                        caption: caption ? [caption] : [],
+                        width,
+                    },
+                },
+                finalised,
+            };
+        });
+    }
+    sendImageMessage(finalised, imageData, mimeType, width, height, caption) {
+        return this.createImageMessage(finalised, imageData, mimeType, width, height, caption).then((msg) => this.sendMessage(msg));
+    }
+    createFileMessage(finalised, name, data, mimeType, fileSize, caption) {
+        const dataClient = new DataClient(this.agent, this.env);
+        const canisterId = __classPrivateFieldGet$4(this, _BotCommandChatClient_instances, "m", _BotCommandChatClient_extractCanisterFromChat).call(this);
+        const uploadContentPromise = dataClient.uploadData([canisterId], mimeType, data);
+        return uploadContentPromise.then((blobRef) => {
+            return {
+                id: this.messageId,
+                content: {
+                    File: {
+                        name,
+                        file_size: fileSize,
+                        mime_type: mimeType,
+                        blob_reference: [
+                            {
+                                blob_id: blobRef.blobId,
+                                canister_id: Principal$1.fromText(blobRef.canisterId),
+                            },
+                        ],
+                        caption: caption ? [caption] : [],
+                    },
+                },
+                finalised,
+            };
+        });
+    }
+    sendFileMessage(finalised, name, data, mimeType, fileSize, caption) {
+        return this.createFileMessage(finalised, name, data, mimeType, fileSize, caption).then((msg) => this.sendMessage(msg));
     }
 }
-_BotClient_botService = new WeakMap(), _BotClient_agent = new WeakMap(), _BotClient_identity = new WeakMap(), _BotClient_decodedJwt = new WeakMap(), _BotClient_encodedJwt = new WeakMap(), _BotClient_instances = new WeakSet(), _BotClient_validateConfig = function _BotClient_validateConfig(config) {
-    if (config.encodedJwt === undefined) {
-        throw new BadRequestError("AccessTokenNotFound");
+_BotCommandChatClient_instances = new WeakSet(), _BotCommandChatClient_extractCanisterFromChat = function _BotCommandChatClient_extractCanisterFromChat() {
+    if ("Group" in this.scope.Chat.chat) {
+        return this.scope.Chat.chat.Group.toString();
     }
-    else if (config.icHost === undefined) {
-        throw new Error("IC Host not provided");
+    else if ("Channel" in this.scope.Chat.chat) {
+        return this.scope.Chat.chat.Channel[0].toString();
     }
-    else if (config.identityPrivateKey === undefined) {
-        throw new Error("Identity private key not provided");
-    }
-    else if (config.openStorageCanisterId === undefined) {
-        throw new Error("OpenStorage index canister not provided");
-    }
-    else if (config.openchatPublicKey === undefined) {
-        throw new Error("OpenChat public key not provided");
-    }
-}, _BotClient_principalBytesToString = function _BotClient_principalBytesToString(bytes) {
+    return "";
+}, _BotCommandChatClient_namedArg = function _BotCommandChatClient_namedArg(name) {
+    return this.decodedJwt.command.args.find((a) => a.name === name);
+}, _BotCommandChatClient_principalBytesToString = function _BotCommandChatClient_principalBytesToString(bytes) {
     return Principal$1.fromUint8Array(bytes).toString();
-}, _BotClient_namedArg = function _BotClient_namedArg(name) {
-    return __classPrivateFieldGet$4(this, _BotClient_decodedJwt, "f").command.args.find((a) => a.name === name);
-}, _BotClient_decodeJwt = function _BotClient_decodeJwt(token) {
-    const publicKey = this.config.openchatPublicKey.replace(/\\n/g, "\n");
-    try {
-        const decoded = jwt.verify(token, publicKey, { algorithms: ["ES256"] });
-        if (typeof decoded !== "string") {
-            return decoded;
-        }
-        else {
-            console.error(`Unable to decode jwt`, token);
-            throw new BadRequestError("AccessTokenInvalid");
-        }
-    }
-    catch (err) {
-        console.error(`Unable to decode jwt`, err, token);
-        throw new BadRequestError("AccessTokenInvalid");
-    }
-}, _BotClient_createIdentity = function _BotClient_createIdentity(privateKey) {
+};
+
+var _BotClientFactory_instances, _BotClientFactory_agent, _BotClientFactory_validateConfig, _BotClientFactory_getAuthToken;
+function createAgent(env) {
+    const identity = createIdentity(env.identityPrivateKey);
+    console.log("Principal: ", identity.getPrincipal().toText());
+    return new HttpAgent({
+        identity,
+        host: env.icHost,
+        retryTimes: 5,
+    });
+}
+function createIdentity(privateKey) {
     const privateKeyPem = privateKey.replace(/\\n/g, "\n");
     try {
         return cjsExports.Secp256k1KeyIdentity.fromPem(privateKeyPem);
@@ -36971,30 +37159,60 @@ _BotClient_botService = new WeakMap(), _BotClient_agent = new WeakMap(), _BotCli
         console.error("Unable to create identity from private key", err);
         throw err;
     }
-}, _BotClient_extractCanisterFromChat = function _BotClient_extractCanisterFromChat() {
-    if ("Group" in __classPrivateFieldGet$4(this, _BotClient_decodedJwt, "f").chat) {
-        return __classPrivateFieldGet$4(this, _BotClient_decodedJwt, "f").chat.Group.toString();
+}
+function decodeApiKey(apiKey) {
+    const buffer = Buffer.from(apiKey, "base64");
+    const decoded = buffer.toString("utf-8");
+    return JSON.parse(decoded);
+}
+class BotClientFactory {
+    constructor(env) {
+        _BotClientFactory_instances.add(this);
+        this.env = env;
+        _BotClientFactory_agent.set(this, undefined);
+        __classPrivateFieldGet$4(this, _BotClientFactory_instances, "m", _BotClientFactory_validateConfig).call(this, env);
+        __classPrivateFieldSet$4(this, _BotClientFactory_agent, createAgent(env), "f");
     }
-    else if ("Channel" in __classPrivateFieldGet$4(this, _BotClient_decodedJwt, "f").chat) {
-        return __classPrivateFieldGet$4(this, _BotClient_decodedJwt, "f").chat.Channel[0].toString();
+    createApiKeyChatClient(apiKey) {
+        return __classPrivateFieldGet$4(this, _BotClientFactory_instances, "m", _BotClientFactory_getAuthToken).call(this, apiKey).then((token) => new BotApiKeyChatClient(__classPrivateFieldGet$4(this, _BotClientFactory_agent, "f"), this.env, token));
     }
-    return "";
-}, _BotClient_executeAction = function _BotClient_executeAction(message) {
-    return this.handleResponse(__classPrivateFieldGet$4(this, _BotClient_botService, "f").execute_bot_action({
-        jwt: __classPrivateFieldGet$4(this, _BotClient_encodedJwt, "f"),
-        action: {
-            SendMessage: message,
-        },
-    }), (res) => {
-        if (!("Ok" in res)) {
-            console.error("Call to execute_bot_action failed with: ", JSON.stringify(res));
-        }
-        return res;
-    }).catch((err) => {
-        console.error("Call to execute_bot_action failed with: ", JSON.stringify(err));
-        throw err;
-    });
+    createApiKeyCommunityClient(apiKey) {
+        return __classPrivateFieldGet$4(this, _BotClientFactory_instances, "m", _BotClientFactory_getAuthToken).call(this, apiKey).then((token) => new BotApiKeyCommunityClient(__classPrivateFieldGet$4(this, _BotClientFactory_agent, "f"), this.env, token));
+    }
+    createCommandChatClient(encodedJwt) {
+        return new BotCommandChatClient(__classPrivateFieldGet$4(this, _BotClientFactory_agent, "f"), this.env, encodedJwt);
+    }
+    createCommandCommunityClient(encodedJwt) {
+        return new BotCommandChatClient(__classPrivateFieldGet$4(this, _BotClientFactory_agent, "f"), this.env, encodedJwt);
+    }
+}
+_BotClientFactory_agent = new WeakMap(), _BotClientFactory_instances = new WeakSet(), _BotClientFactory_validateConfig = function _BotClientFactory_validateConfig(env) {
+    if (env.icHost === undefined) {
+        throw new Error("IC Host not provided");
+    }
+    else if (env.identityPrivateKey === undefined) {
+        throw new Error("Identity private key not provided");
+    }
+    else if (env.openStorageCanisterId === undefined) {
+        throw new Error("OpenStorage index canister not provided");
+    }
+    else if (env.openchatPublicKey === undefined) {
+        throw new Error("OpenChat public key not provided");
+    }
+}, _BotClientFactory_getAuthToken = function _BotClientFactory_getAuthToken(apiKey) {
+    const key = decodeApiKey(apiKey);
+    const botService = new BotGatewayClient(key.gateway, __classPrivateFieldGet$4(this, _BotClientFactory_agent, "f"), this.env);
+    return botService.getAuthToken(apiKey);
 };
 
-export { BadRequestError, BotClient, accessTokenExpired, accessTokenInvalid, accessTokenNotFound, argumentsInvalid, commandNotFound, tooManyRequests };
+class BotCommandCommunityClient extends BotClientBase {
+    constructor(agent, env, encodedJwt) {
+        super(agent, env, encodedJwt);
+        if (!this.isCommunityScope) {
+            throw new BadRequestError("AccessTokenInvalid");
+        }
+    }
+}
+
+export { BadRequestError, BotApiKeyChatClient, BotApiKeyCommunityClient, BotClientFactory, BotCommandChatClient, BotCommandCommunityClient, accessTokenExpired, accessTokenInvalid, accessTokenNotFound, argumentsInvalid, commandNotFound, tooManyRequests };
 //# sourceMappingURL=index.mjs.map

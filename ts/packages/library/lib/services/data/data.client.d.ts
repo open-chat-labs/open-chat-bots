@@ -1,6 +1,6 @@
 import type { HttpAgent } from "@dfinity/agent";
-import type { BotClientConfig } from "../bot_gateway/client";
 import type { ProjectedAllowance } from "../storageIndex/candid/types";
+import type { BotClientConfig } from "../../types";
 export type BlobReference = {
     blobId: bigint;
     canisterId: string;

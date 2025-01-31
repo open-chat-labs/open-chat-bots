@@ -1,4 +1,10 @@
 export const idlFactory = ({ IDL }) => {
+  const AccessTokenArgs = IDL.Variant({ 'BotActionByApiKey' : IDL.Text });
+  const AccessTokenResponse = IDL.Variant({
+    'NotAuthorized' : IDL.Null,
+    'Success' : IDL.Text,
+    'InternalError' : IDL.Text,
+  });
   const GiphyImageVariant = IDL.Record({
     'url' : IDL.Text,
     'height' : IDL.Nat32,
@@ -103,6 +109,11 @@ export const idlFactory = ({ IDL }) => {
     }),
   });
   return IDL.Service({
+    'access_token_v2' : IDL.Func(
+        [AccessTokenArgs],
+        [AccessTokenResponse],
+        ['query'],
+      ),
     'execute_bot_action' : IDL.Func(
         [ExecuteBotCommandArgs],
         [ExecuteBotCommandResponse],

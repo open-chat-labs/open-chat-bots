@@ -2,6 +2,10 @@ import type { Principal } from '@dfinity/principal';
 import type { ActorMethod } from '@dfinity/agent';
 import type { IDL } from '@dfinity/candid';
 
+export type AccessTokenArgs = { 'BotActionByApiKey' : string };
+export type AccessTokenResponse = { 'NotAuthorized' : null } |
+  { 'Success' : string } |
+  { 'InternalError' : string };
 export interface AudioContent {
   'mime_type' : string,
   'blob_reference' : [] | [BlobReference],
@@ -94,6 +98,7 @@ export interface VideoContent {
   'width' : number,
 }
 export interface _SERVICE {
+  'access_token_v2' : ActorMethod<[AccessTokenArgs], AccessTokenResponse>,
   'execute_bot_action' : ActorMethod<
     [ExecuteBotCommandArgs],
     ExecuteBotCommandResponse

@@ -14,10 +14,12 @@ import song from "./song";
 import image from "./image";
 import file from "./file";
 import news from "./news";
-import { ExtendedRequest } from "../types";
+import start_ping from "./start_ping";
+import stop_ping from "./stop_ping";
+import { WithCommandChatClient } from "../types";
 
-function hasBotClient(req: Request): req is ExtendedRequest {
-  return (req as ExtendedRequest).botClient !== undefined;
+function hasBotClient(req: Request): req is WithCommandChatClient {
+  return (req as WithCommandChatClient).botClient !== undefined;
 }
 
 export default function executeCommand(req: Request, res: Response) {
@@ -29,6 +31,10 @@ export default function executeCommand(req: Request, res: Response) {
   console.log("Command: ", client.commandName, client.commandArgs);
 
   switch (client.commandName) {
+    case "start_ping":
+      return start_ping(req, res);
+    case "stop_ping":
+      return stop_ping(req, res);
     case "file":
       return file(req, res);
     case "news":

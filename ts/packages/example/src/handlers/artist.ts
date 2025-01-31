@@ -1,10 +1,10 @@
 import { Response } from "express";
 import { getSpotifyAccessToken, searchSpotifyArtists } from "./spotify";
 import { argumentsInvalid } from "@open-ic/openchat-botclient-ts";
-import { ExtendedRequest } from "../types";
+import { WithCommandChatClient } from "../types";
 import { success } from "./success";
 
-export default async function (req: ExtendedRequest, res: Response) {
+export default async function (req: WithCommandChatClient, res: Response) {
   const client = req.botClient;
   const artist = client.stringArg("artist");
   if (artist === undefined) {

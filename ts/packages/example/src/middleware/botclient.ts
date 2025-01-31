@@ -4,26 +4,42 @@
  * See the readme for more explanation.
  */
 import { Request, Response, NextFunction } from "express";
-import { BotClient, BadRequestError } from "@open-ic/openchat-botclient-ts";
-import { ExtendedRequest } from "../types";
+import {
+  BadRequestError,
+  BotClientFactory,
+} from "@open-ic/openchat-botclient-ts";
+import { WithApiKeyChatClient, WithCommandChatClient } from "../types";
 
-export default function createBotClient(
-  ocPublic: string,
-  privateKey: string,
-  icHost: string,
-  storageIndexCanister: string
-) {
+export function createCommandChatClient(factory: BotClientFactory) {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      (req as ExtendedRequest).botClient = new BotClient({
-        openStorageCanisterId: storageIndexCanister,
-        icHost,
-        identityPrivateKey: privateKey,
-        openchatPublicKey: ocPublic,
-        encodedJwt: req.body,
-      });
+      (req as WithCommandChatClient).botClient =
+        factory.createCommandChatClient(req.body);
       console.log("Bot client created");
       next();
+    } catch (err: any) {
+      console.log("Error creating bot client: ", err);
+      if (err instanceof BadRequestError) {
+        res.status(400).send(err.message);
+      } else {
+        res.status(500).send(err.message);
+      }
+    }
+  };
+}
+
+export function createApiChatClient(factory: BotClientFactory) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const apiKey = req.headers["x-api-key"];
+      if (typeof apiKey !== "string") {
+        res.status(400).send("Request header x-api-key not found");
+      } else {
+        (req as WithApiKeyChatClient).botClient =
+          await factory.createApiKeyChatClient(apiKey);
+        console.log("Bot client created");
+        next();
+      }
     } catch (err: any) {
       console.log("Error creating bot client: ", err);
       if (err instanceof BadRequestError) {

@@ -1,6 +1,6 @@
 import { Response } from "express";
 import sharp from "sharp";
-import { ExtendedRequest } from "../types";
+import { WithCommandChatClient } from "../types";
 import { success } from "./success";
 
 const MAX_SIZE_BYTES = 0.5 * 1024 * 1024;
@@ -35,7 +35,7 @@ async function processImage(filePath: string) {
   }
 }
 
-export default async function image(req: ExtendedRequest, res: Response) {
+export default async function image(req: WithCommandChatClient, res: Response) {
   const client = req.botClient;
   const placeholder = await client.createTextMessage(
     false,

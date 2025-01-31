@@ -124,6 +124,17 @@ type ExecuteBotCommandResponse = variant {
     };
 };
 
+type AccessTokenArgs = variant {
+    BotActionByApiKey: text;
+};
+
+type AccessTokenResponse = variant {
+    Success: text;
+    NotAuthorized;
+    InternalError: text;
+};
+
 service : {
     execute_bot_action : (ExecuteBotCommandArgs) -> (ExecuteBotCommandResponse);
+    access_token_v2: (AccessTokenArgs) -> (AccessTokenResponse) query;
 };

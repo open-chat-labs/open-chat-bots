@@ -12,7 +12,7 @@
   "description": "",
   "dependencies": {
     "@dfinity/identity-secp256k1": "^2.2.0",
-    "@open-ic/openchat-botclient-ts": "^1.0.9",
+    "@open-ic/openchat-botclient-ts": "../library",
     "cheerio": "^1.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

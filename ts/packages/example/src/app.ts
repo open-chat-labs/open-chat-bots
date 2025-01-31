@@ -7,8 +7,13 @@ import express from "express";
 import cors from "cors";
 import executeCommand from "./handlers/executeCommand";
 import schema from "./handlers/schema";
-import createBotClient from "./middleware/botclient";
+import {
+  createApiChatClient,
+  createCommandChatClient,
+} from "./middleware/botclient";
 import { rateLimit } from "express-rate-limit";
+import { BotClientFactory } from "@open-ic/openchat-botclient-ts";
+import executeAction from "./handlers/executeAction";
 
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
@@ -24,18 +29,25 @@ const app = express();
  * Here, some of the various arguments needed to create an instance of the BotClient are retrieved from environment variables.
  * See the readme for more information.
  */
-const OC_PUBLIC = process.env.OC_PUBLIC!;
-const IDENTITY_PRIVATE = process.env.IDENTITY_PRIVATE!;
-const IC_HOST = process.env.IC_HOST!;
-const STORAGE_INDEX_CANISTER = process.env.STORAGE_INDEX_CANISTER!;
+const factory = new BotClientFactory({
+  openchatPublicKey: process.env.OC_PUBLIC!,
+  icHost: process.env.IC_HOST!,
+  identityPrivateKey: process.env.IDENTITY_PRIVATE!,
+  openStorageCanisterId: process.env.STORAGE_INDEX_CANISTER!,
+});
 
 app.use(cors());
 app.use(limiter);
 app.use(express.text());
 app.post(
   "/execute_command",
-  createBotClient(OC_PUBLIC, IDENTITY_PRIVATE, IC_HOST, STORAGE_INDEX_CANISTER), // insert the middleware that will create the OpenChat BotClient
+  createCommandChatClient(factory), // insert the middleware that will create the OpenChat BotClient
   executeCommand
+);
+app.post(
+  "/execute_action",
+  createApiChatClient(factory), // insert the middleware that will create the OpenChat BotClient
+  executeAction
 );
 app.get("/", schema);
 

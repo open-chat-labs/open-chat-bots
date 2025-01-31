@@ -5,7 +5,7 @@ import {
     type CandidUploadChunkResponse,
     type StorageBucketService,
 } from "./candid/idl";
-import { CandidService } from "../utils/candidService";
+import { CandidService } from "../../utils/candidService";
 
 export class StorageBucketClient extends CandidService {
     private service: StorageBucketService;
@@ -13,7 +13,7 @@ export class StorageBucketClient extends CandidService {
     constructor(agent: HttpAgent, canisterId: string, icHost: string) {
         super();
 
-        this.service = this.createServiceClient<StorageBucketService>(
+        this.service = CandidService.createServiceClient<StorageBucketService>(
             idlFactory,
             canisterId,
             icHost,
@@ -32,7 +32,7 @@ export class StorageBucketClient extends CandidService {
         bytes: Uint8Array,
         expiryTimestampMillis: bigint | undefined,
     ): Promise<CandidUploadChunkResponse> {
-        return this.handleResponse(
+        return CandidService.handleResponse(
             this.service.upload_chunk_v2({
                 accessors,
                 chunk_index: chunkIndex,

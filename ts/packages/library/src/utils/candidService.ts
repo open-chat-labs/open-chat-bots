@@ -3,7 +3,7 @@ import type { IDL } from "@dfinity/candid";
 import { toCanisterResponseError } from "./error";
 
 export abstract class CandidService {
-    protected createServiceClient<T>(
+    static createServiceClient<T>(
         factory: IDL.InterfaceFactory,
         canisterId: string,
         host: string,
@@ -19,7 +19,7 @@ export abstract class CandidService {
         });
     }
 
-    protected handleResponse<From, To>(
+    static handleResponse<From, To>(
         service: Promise<From>,
         mapper: (from: From) => To,
         args?: unknown,
