@@ -31,6 +31,7 @@ pub async fn execute_command(
     .map(|text| {
         oc_client
             .with_command_context(context)
-            .send_text_message(text, true, |_, _| ())
+            .send_text_message(text)
+            .execute(|_, _| ())
     })
 }
