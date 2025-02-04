@@ -20,9 +20,9 @@ npm i @open-ic/openchat-botclient-ts
 
 ## Initialisation
 
-The library exports a `BotClientFactory` constructor which is designed to be created when your bot starts up. This will be given a number of pieces of environment specific configuration which are necessary to construct valid clients to talk to the OpenChat backend.
+The library exports a `BotClientFactory` constructor which is designed to be created when your bot starts up. This will be given a number of pieces of environment specific configuration which are necessary to construct a valid client to talk to the OpenChat backend.
 
-This client factory is capable of creating different types of client instance for interacting with the OpenChat backend. You will want to create a different kind of client depending on whether you are handling a _command_ request or a request made with an _API key_. Accordingly you will either need to call `createCommandChatClient` or `createApiKeyChatClient` respectively.
+This client factory exposes two methods `createClientFromJwt` and `createClientFromApiKey` depending on whether you are respondind to a command or using an API key.
 
 One ideomatic pattern to work with is to use express middleware to create the right kind of client and attach it to the request object so that it is available to downstream route handlers.
 
@@ -77,11 +77,11 @@ To authorise the execution of bot commands a user requests an authorisation toke
 
 ### EncodedJwt
 
-In addition when creating an instance of _command_ client via `BotClientFactory.createCommandChatClient` you will also need to provide the encoded JWT auth token that you will find in the body of the request made to the bot's `execute_command` endpoint. This is a plain text value and just needs to be passed into the BotClientFactory function as is. The BotClientFactory will then use the OpenChat public key to decode and verify this token and, if valid, it will expose the relevant values that it contains for use throughout the lifespan of your bot request.
+In addition when creating an instance of _command_ client via `BotClientFactory.createClientFromJwt` you will also need to provide the encoded JWT auth token that you will find in the body of the request made to the bot's `execute_command` endpoint. This is a plain text value and just needs to be passed into the BotClientFactory function as is. The BotClientFactory will then use the OpenChat public key to decode and verify this token and, if valid, it will expose the relevant values that it contains for use throughout the lifespan of your bot request.
 
 ### API Key
 
-In the case where we are using `BotClientFactory.createApiKeyChatClient` you will need to pass in an API key instead (which will be used to obtain an auth token behind the scenes). This API key will be provide in an `x-api-key` HTTP header.
+In the case where we are using `BotClientFactory.createClientFromApiKey` you will need to pass in an API key instead. This API key will be provide in an `x-api-key` HTTP header.
 
 ## Command Usage
 
@@ -111,6 +111,8 @@ if (album === undefined) {
 Note that arguments are typed and named, so we ask specifically for a string argument with the name "album" in this case. Note that we must check that this argument actually exists after asking for it (this might be easily overlooked particularly if you are using javascript).
 
 If we find that the argument does not exist then we cannot proceed and must return a 400 http response. We can also use the `argumentsInvalid` helper function exported by the library to structure this 400 response correctly.
+
+Note that the _same_ client library is used regardless of whether you are responding to a command or using an API key. Keep in mind that the there will be no command if you have not initialised the library within a command context (with a jwt).
 
 #### Send a placeholder response
 
