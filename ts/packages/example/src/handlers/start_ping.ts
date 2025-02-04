@@ -1,9 +1,9 @@
 import { Response } from "express";
 import { ping } from "./ping";
 import { success } from "./success";
-import { WithCommandChatClient } from "../types";
+import { WithBotClient } from "../types";
 
-export default async function (req: WithCommandChatClient, res: Response) {
+export default async function (req: WithBotClient, res: Response) {
   const client = req.botClient;
   const msg = await client.createTextMessage(true, "Starting to ping ...");
 

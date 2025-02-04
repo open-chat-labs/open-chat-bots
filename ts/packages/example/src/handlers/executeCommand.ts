@@ -16,10 +16,10 @@ import file from "./file";
 import news from "./news";
 import start_ping from "./start_ping";
 import stop_ping from "./stop_ping";
-import { WithCommandChatClient } from "../types";
+import { WithBotClient } from "../types";
 
-function hasBotClient(req: Request): req is WithCommandChatClient {
-  return (req as WithCommandChatClient).botClient !== undefined;
+function hasBotClient(req: Request): req is WithBotClient {
+  return (req as WithBotClient).botClient !== undefined;
 }
 
 export default function executeCommand(req: Request, res: Response) {

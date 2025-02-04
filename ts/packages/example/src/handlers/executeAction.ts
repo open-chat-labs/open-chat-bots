@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
-import { WithApiKeyChatClient } from "../types";
+import { WithBotClient } from "../types";
 import { success } from "./success";
 
-function hasBotClient(req: Request): req is WithApiKeyChatClient {
-  return (req as WithApiKeyChatClient).botClient !== undefined;
+function hasBotClient(req: Request): req is WithBotClient {
+  return (req as WithBotClient).botClient !== undefined;
 }
 
 export default async function executeAction(req: Request, res: Response) {

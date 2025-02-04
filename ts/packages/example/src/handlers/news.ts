@@ -1,5 +1,5 @@
 import { Response } from "express";
-import { WithCommandChatClient } from "../types";
+import { WithBotClient } from "../types";
 import { success } from "./success";
 import * as cheerio from "cheerio";
 
@@ -49,7 +49,7 @@ function toMarkdown(news: NewsSummary[]): string {
   return news.map(({ title, link }) => `* [${title}](${link})`).join("\n");
 }
 
-export default async function news(req: WithCommandChatClient, res: Response) {
+export default async function news(req: WithBotClient, res: Response) {
   const client = req.botClient;
   const news = await scrapeBBCNews();
   const msg = await client.createTextMessage(true, toMarkdown(news), true);

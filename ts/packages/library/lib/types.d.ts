@@ -34,6 +34,7 @@ import type { Chat } from "./services/storageIndex/candid/types";
 }
  */
 export type DecodedJwt = {
+    kind: "jwt";
     exp: number;
     claim_type: string;
     bot_api_gateway: string;
@@ -42,6 +43,14 @@ export type DecodedJwt = {
     granted_permissions: BotPermissions;
     command: BotCommand;
 };
+export type DecodedApiKey = {
+    kind: "api_key";
+    gateway: string;
+    bot_id: string;
+    scope: BotActionScope;
+    secret: string;
+};
+export type DecodedPayload = DecodedApiKey | DecodedJwt;
 export type BotPermissions = {
     community: CommunityPermission[];
     chat: ChatPermission[];
@@ -96,12 +105,6 @@ export type Message = {
     content: MessageContent;
     finalised: boolean;
     blockLevelMarkdown?: boolean;
-};
-export type DecodedApiKey = {
-    gateway: string;
-    bot_id: string;
-    scope: BotActionScope;
-    secret: string;
 };
 export type AuthToken = JwtAuthToken | ApiKey;
 export type JwtAuthToken = {

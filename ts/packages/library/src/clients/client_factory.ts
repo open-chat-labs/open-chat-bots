@@ -1,9 +1,7 @@
 import { HttpAgent } from "@dfinity/agent";
 import { Secp256k1KeyIdentity } from "@dfinity/identity-secp256k1";
 import type { BotClientConfig } from "../types";
-import { ApiKeyBotChatClient } from "./api_chat_client";
-import { ApiKeyBotCommunityClient } from "./api_community_client";
-import { CommandBotChatClient } from "./command_chat_client";
+import { BotClient } from "./bot_client";
 
 function createAgent(env: BotClientConfig): HttpAgent {
     const identity = createIdentity(env.identityPrivateKey);
@@ -45,19 +43,11 @@ export class BotClientFactory {
         }
     }
 
-    createApiKeyChatClient(apiKey: string): ApiKeyBotChatClient {
-        return new ApiKeyBotChatClient(this.#agent, this.env, apiKey);
+    createClientFromApiKey(apiKey: string): BotClient {
+        return new BotClient(this.#agent, this.env, { kind: "api_key", token: apiKey });
     }
 
-    createApiKeyCommunityClient(apiKey: string): ApiKeyBotCommunityClient {
-        return new ApiKeyBotCommunityClient(this.#agent, this.env, apiKey);
-    }
-
-    createCommandChatClient(encodedJwt: string): CommandBotChatClient {
-        return new CommandBotChatClient(this.#agent, this.env, encodedJwt);
-    }
-
-    createCommandCommunityClient(encodedJwt: string): CommandBotChatClient {
-        return new CommandBotChatClient(this.#agent, this.env, encodedJwt);
+    createClientFromJwt(jwt: string): BotClient {
+        return new BotClient(this.#agent, this.env, { kind: "jwt", token: jwt });
     }
 }

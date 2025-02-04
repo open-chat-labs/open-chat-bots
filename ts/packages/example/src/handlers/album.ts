@@ -4,10 +4,10 @@
 import { Response } from "express";
 import { getSpotifyAccessToken, searchSpotifyAlbums } from "./spotify";
 import { argumentsInvalid } from "@open-ic/openchat-botclient-ts";
-import { WithCommandChatClient } from "../types";
+import { WithBotClient } from "../types";
 import { success } from "./success";
 
-export default async function (req: WithCommandChatClient, res: Response) {
+export default async function (req: WithBotClient, res: Response) {
   // Obtain a reference to the BotClient
   const client = req.botClient;
 
