@@ -1,8 +1,9 @@
 use super::{CanisterId, Chat, MessageContent, MessageId, MessageIndex};
 use crate::api::{CommunityPermission, GroupPermission, MessagePermission};
 use candid::CandidType;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashSet;
+use std::str::FromStr;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct ActionArgs {
@@ -54,6 +55,7 @@ pub enum AccessTokenScope {
 pub struct BotActionChatDetails {
     pub chat: Chat,
     pub thread_root_message_index: Option<MessageIndex>,
+    #[serde(deserialize_with = "deserialize_message_id")]
     pub message_id: MessageId,
 }
 
@@ -67,4 +69,24 @@ pub struct BotPermissions {
     pub community: HashSet<CommunityPermission>,
     pub chat: HashSet<GroupPermission>,
     pub message: HashSet<MessagePermission>,
+}
+
+fn deserialize_message_id<'de, D: Deserializer<'de>>(d: D) -> Result<MessageId, D::Error> {
+    MessageIdIntOrString::deserialize(d).map(|v| v.into())
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum MessageIdIntOrString {
+    Int(u64),
+    String(String),
+}
+
+impl From<MessageIdIntOrString> for MessageId {
+    fn from(value: MessageIdIntOrString) -> Self {
+        match value {
+            MessageIdIntOrString::Int(i) => i,
+            MessageIdIntOrString::String(s) => u64::from_str(&s).unwrap(),
+        }
+    }
 }
