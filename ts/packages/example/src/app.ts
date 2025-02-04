@@ -14,6 +14,7 @@ import {
 import { rateLimit } from "express-rate-limit";
 import { BotClientFactory } from "@open-ic/openchat-botclient-ts";
 import executeAction from "./handlers/executeAction";
+import createChannel from "./handlers/createChannel";
 
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
@@ -48,6 +49,11 @@ app.post(
   "/execute_action",
   createApiChatClient(factory), // insert the middleware that will create the OpenChat BotClient
   executeAction
+);
+app.post(
+  "/create_channel",
+  createApiChatClient(factory), // insert the middleware that will create the OpenChat BotClient
+  createChannel
 );
 app.get("/", schema);
 

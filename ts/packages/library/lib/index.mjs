@@ -35702,8 +35702,169 @@ class CandidService {
     constructor() { }
 }
 
+const defaultChannelOptions = {
+    isPublic: true,
+    permissions: {
+        change_roles: { Admins: null },
+        remove_members: { Moderators: null },
+        delete_messages: { Moderators: null },
+        update_group: { Admins: null },
+        pin_messages: { Admins: null },
+        invite_users: { Admins: null },
+        add_members: { Admins: null },
+        mention_all_members: { Members: null },
+        react_to_messages: { Members: null },
+        start_video_call: { Members: null },
+        thread_permissions: [],
+        message_permissions: {
+            audio: [],
+            video: [],
+            video_call: [],
+            custom: [],
+            file: [],
+            poll: [],
+            text: [],
+            crypto: [],
+            giphy: [],
+            default: { Members: null },
+            image: [],
+            prize: [],
+            p2p_swap: [{ None: null }],
+        },
+    },
+    messagesVisibleToNonMembers: false,
+    historyVisibleToNewJoiners: true,
+    rules: { text: "", enabled: false },
+};
+
 const idlFactory$2 = ({ IDL }) => {
+  const PermissionRole = IDL.Variant({
+    'None' : IDL.Null,
+    'Moderators' : IDL.Null,
+    'Owner' : IDL.Null,
+    'Admins' : IDL.Null,
+    'Members' : IDL.Null,
+  });
+  const CustomPermission = IDL.Record({
+    'subtype' : IDL.Text,
+    'role' : PermissionRole,
+  });
+  const MessagePermissions = IDL.Record({
+    'audio' : IDL.Opt(PermissionRole),
+    'video' : IDL.Opt(PermissionRole),
+    'video_call' : IDL.Opt(PermissionRole),
+    'custom' : IDL.Vec(CustomPermission),
+    'file' : IDL.Opt(PermissionRole),
+    'poll' : IDL.Opt(PermissionRole),
+    'text' : IDL.Opt(PermissionRole),
+    'crypto' : IDL.Opt(PermissionRole),
+    'giphy' : IDL.Opt(PermissionRole),
+    'default' : PermissionRole,
+    'image' : IDL.Opt(PermissionRole),
+    'prize' : IDL.Opt(PermissionRole),
+    'p2p_swap' : IDL.Opt(PermissionRole),
+  });
+  const GroupPermissions = IDL.Record({
+    'mention_all_members' : PermissionRole,
+    'delete_messages' : PermissionRole,
+    'remove_members' : PermissionRole,
+    'update_group' : PermissionRole,
+    'message_permissions' : MessagePermissions,
+    'invite_users' : PermissionRole,
+    'thread_permissions' : IDL.Opt(MessagePermissions),
+    'change_roles' : PermissionRole,
+    'start_video_call' : PermissionRole,
+    'add_members' : PermissionRole,
+    'pin_messages' : PermissionRole,
+    'react_to_messages' : PermissionRole,
+  });
+  const CanisterId = IDL.Principal;
+  const VerifiedCredentialGate = IDL.Record({
+    'credential_arguments' : IDL.Vec(
+      IDL.Tuple(
+        IDL.Text,
+        IDL.Variant({ 'Int' : IDL.Int32, 'String' : IDL.Text }),
+      )
+    ),
+    'issuer_origin' : IDL.Text,
+    'issuer_canister_id' : CanisterId,
+    'credential_name' : IDL.Text,
+    'credential_type' : IDL.Text,
+  });
+  const Milliseconds = IDL.Nat64;
+  const SnsNeuronGate = IDL.Record({
+    'min_stake_e8s' : IDL.Opt(IDL.Nat64),
+    'min_dissolve_delay' : IDL.Opt(Milliseconds),
+    'governance_canister_id' : CanisterId,
+  });
+  const TokenBalanceGate = IDL.Record({
+    'min_balance' : IDL.Nat,
+    'ledger_canister_id' : CanisterId,
+  });
+  const PaymentGate = IDL.Record({
+    'fee' : IDL.Nat,
+    'ledger_canister_id' : CanisterId,
+    'amount' : IDL.Nat,
+  });
+  const AccessGateNonComposite = IDL.Variant({
+    'UniquePerson' : IDL.Null,
+    'VerifiedCredential' : VerifiedCredentialGate,
+    'ReferredByMember' : IDL.Null,
+    'SnsNeuron' : SnsNeuronGate,
+    'Locked' : IDL.Null,
+    'TokenBalance' : TokenBalanceGate,
+    'DiamondMember' : IDL.Null,
+    'Payment' : PaymentGate,
+    'LifetimeDiamondMember' : IDL.Null,
+  });
+  const AccessGate = IDL.Variant({
+    'UniquePerson' : IDL.Null,
+    'VerifiedCredential' : VerifiedCredentialGate,
+    'ReferredByMember' : IDL.Null,
+    'SnsNeuron' : SnsNeuronGate,
+    'Locked' : IDL.Null,
+    'TokenBalance' : TokenBalanceGate,
+    'Composite' : IDL.Record({
+      'and' : IDL.Bool,
+      'inner' : IDL.Vec(AccessGateNonComposite),
+    }),
+    'DiamondMember' : IDL.Null,
+    'Payment' : PaymentGate,
+    'LifetimeDiamondMember' : IDL.Null,
+  });
+  const AccessGateConfig = IDL.Record({
+    'gate' : AccessGate,
+    'expiry' : IDL.Opt(Milliseconds),
+  });
+  const AuthToken = IDL.Variant({ 'Jwt' : IDL.Text, 'ApiKey' : IDL.Text });
+  const Rules = IDL.Record({ 'text' : IDL.Text, 'enabled' : IDL.Bool });
+  const Document = IDL.Record({
+    'id' : IDL.Nat,
+    'data' : IDL.Vec(IDL.Nat8),
+    'mime_type' : IDL.Text,
+  });
+  const BotCreateChannelArgs = IDL.Record({
+    'is_public' : IDL.Bool,
+    'permissions' : IDL.Opt(GroupPermissions),
+    'gate_config' : IDL.Opt(AccessGateConfig),
+    'auth_token' : AuthToken,
+    'external_url' : IDL.Opt(IDL.Text),
+    'name' : IDL.Text,
+    'description' : IDL.Text,
+    'events_ttl' : IDL.Opt(Milliseconds),
+    'messages_visible_to_non_members' : IDL.Bool,
+    'history_visible_to_new_joiners' : IDL.Bool,
+    'rules' : Rules,
+    'avatar' : IDL.Opt(Document),
+  });
   const ChannelId = IDL.Nat32;
+  const BotCreateChannelResponse = IDL.Variant({
+    'NotAuthorized' : IDL.Null,
+    'Success' : IDL.Record({ 'channel_id' : ChannelId }),
+    'InvalidRequest' : IDL.Text,
+    'C2CError' : IDL.Tuple(IDL.Int32, IDL.Text),
+    'Frozen' : IDL.Null,
+  });
   const GiphyImageVariant = IDL.Record({
     'url' : IDL.Text,
     'height' : IDL.Nat32,
@@ -35716,7 +35877,6 @@ const idlFactory$2 = ({ IDL }) => {
     'caption' : IDL.Opt(IDL.Text),
     'mobile' : GiphyImageVariant,
   });
-  const CanisterId = IDL.Principal;
   const BlobReference = IDL.Record({
     'blob_id' : IDL.Nat,
     'canister_id' : CanisterId,
@@ -35785,7 +35945,6 @@ const idlFactory$2 = ({ IDL }) => {
     'Audio' : AudioContent,
     'Video' : VideoContent,
   });
-  const AuthToken = IDL.Variant({ 'Jwt' : IDL.Text, 'ApiKey' : IDL.Text });
   const MessageId = IDL.Nat64;
   const BotSendMessageArgs = IDL.Record({
     'channel_id' : IDL.Opt(ChannelId),
@@ -35797,23 +35956,27 @@ const idlFactory$2 = ({ IDL }) => {
   });
   const EventIndex = IDL.Nat32;
   const MessageIndex = IDL.Nat32;
-  const SuccessResult = IDL.Record({
-    'timestamp' : TimestampMillis,
-    'message_id' : MessageId,
-    'event_index' : EventIndex,
-    'expires_at' : IDL.Opt(TimestampMillis),
-    'message_index' : MessageIndex,
-  });
   const BotSendMessageResponse = IDL.Variant({
     'ThreadNotFound' : IDL.Null,
     'NotAuthorized' : IDL.Null,
-    'Success' : SuccessResult,
+    'Success' : IDL.Record({
+      'timestamp' : TimestampMillis,
+      'message_id' : MessageId,
+      'event_index' : EventIndex,
+      'expires_at' : IDL.Opt(TimestampMillis),
+      'message_index' : MessageIndex,
+    }),
     'InvalidRequest' : IDL.Text,
     'MessageAlreadyFinalised' : IDL.Null,
     'C2CError' : IDL.Tuple(IDL.Int32, IDL.Text),
     'Frozen' : IDL.Null,
   });
   return IDL.Service({
+    'bot_create_channel' : IDL.Func(
+        [BotCreateChannelArgs],
+        [BotCreateChannelResponse],
+        [],
+      ),
     'bot_send_message' : IDL.Func(
         [BotSendMessageArgs],
         [BotSendMessageResponse],
@@ -35821,6 +35984,12 @@ const idlFactory$2 = ({ IDL }) => {
       ),
   });
 };
+
+function random128() {
+    const bytes = new BigUint64Array(2);
+    crypto.getRandomValues(bytes);
+    return (bytes[0] << BigInt(64)) + bytes[1];
+}
 
 var _BotGatewayClient_instances, _BotGatewayClient_botService, _BotGatewayClient_mapAuthToken;
 class BotGatewayClient extends CandidService {
@@ -35849,6 +36018,36 @@ class BotGatewayClient extends CandidService {
             throw err;
         });
     }
+    createChannel(name, description, options, auth) {
+        return CandidService.handleResponse(__classPrivateFieldGet$4(this, _BotGatewayClient_botService, "f").bot_create_channel({
+            is_public: options.isPublic,
+            permissions: optional(options.permissions, identity),
+            gate_config: optional(options.gateConfig, identity),
+            auth_token: __classPrivateFieldGet$4(this, _BotGatewayClient_instances, "m", _BotGatewayClient_mapAuthToken).call(this, auth),
+            external_url: optional(options.externalUrl, identity),
+            name,
+            description,
+            events_ttl: optional(options.eventsTtl, identity),
+            messages_visible_to_non_members: options.messagesVisibleToNonMembers,
+            history_visible_to_new_joiners: options.historyVisibleToNewJoiners,
+            rules: options.rules,
+            avatar: optional(options.avatar, (data) => {
+                return {
+                    id: random128(),
+                    data,
+                    mime_type: "image/jpg",
+                };
+            }),
+        }), (res) => {
+            if (!("Success" in res)) {
+                console.error("Call to execute_bot_action failed with: ", JSON.stringify(res));
+            }
+            return res;
+        }).catch((err) => {
+            console.error("Call to execute_bot_action failed with: ", JSON.stringify(err));
+            throw err;
+        });
+    }
 }
 _BotGatewayClient_botService = new WeakMap(), _BotGatewayClient_instances = new WeakSet(), _BotGatewayClient_mapAuthToken = function _BotGatewayClient_mapAuthToken(auth) {
     switch (auth.kind) {
@@ -35862,6 +36061,12 @@ _BotGatewayClient_botService = new WeakMap(), _BotGatewayClient_instances = new 
             };
     }
 };
+function optional(domain, mapper) {
+    return domain === undefined ? [] : [mapper(domain)];
+}
+function identity(a) {
+    return a;
+}
 
 var sha3 = {exports: {}};
 
@@ -36533,12 +36738,6 @@ function requireSha3 () {
 
 var sha3Exports = requireSha3();
 
-function random128() {
-    const bytes = new BigUint64Array(2);
-    crypto.getRandomValues(bytes);
-    return (bytes[0] << BigInt(64)) + bytes[1];
-}
-
 const idlFactory$1 = ({ IDL }) => {
   const CanisterId = IDL.Principal;
   const AddBucketCanisterArgs = IDL.Record({ 'canister_id' : CanisterId });
@@ -36851,6 +37050,9 @@ class BotClient extends CandidService {
     sendMessage(message) {
         return __classPrivateFieldGet$4(this, _BotClient_botService, "f").sendMessage(message, __classPrivateFieldGet$4(this, _BotClient_auth, "f"));
     }
+    createChannel(name, description, options) {
+        return __classPrivateFieldGet$4(this, _BotClient_botService, "f").createChannel(name, description, { ...defaultChannelOptions, ...options }, __classPrivateFieldGet$4(this, _BotClient_auth, "f"));
+    }
     get scope() {
         return __classPrivateFieldGet$4(this, _BotClient_decoded, "f").scope;
     }
@@ -37113,5 +37315,5 @@ BigInt.prototype.toJSON = function () {
     return this.toString();
 };
 
-export { BadRequestError, BotClient, BotClientFactory, accessTokenExpired, accessTokenInvalid, accessTokenNotFound, argumentsInvalid, commandNotFound, tooManyRequests };
+export { BadRequestError, BotClient, BotClientFactory, accessTokenExpired, accessTokenInvalid, accessTokenNotFound, argumentsInvalid, commandNotFound, defaultChannelOptions, tooManyRequests };
 //# sourceMappingURL=index.mjs.map

@@ -1,13 +1,14 @@
 import { HttpAgent } from "@dfinity/agent";
 import { CandidService } from "../utils/candidService";
-import type { AuthToken, BotActionChatScope, BotActionCommunityScope, BotActionScope, BotClientConfig, BotCommand, BotCommandArg, Message } from "../types";
-import type { BotSendMessageResponse } from "../services/bot_gateway/candid/types";
+import { type AuthToken, type BotActionChatScope, type BotActionCommunityScope, type BotActionScope, type BotClientConfig, type BotCommand, type BotCommandArg, type ChannelOptions, type Message } from "../types";
+import type { BotCreateChannelResponse, BotSendMessageResponse } from "../services/bot_gateway/candid/types";
 import type { Chat } from "../services/storageIndex/candid/types";
 export declare class BotClient extends CandidService {
     #private;
     constructor(agent: HttpAgent, env: BotClientConfig, auth: AuthToken);
     get command(): BotCommand | undefined;
     sendMessage(message: Message): Promise<BotSendMessageResponse>;
+    createChannel(name: string, description: string, options?: Partial<ChannelOptions>): Promise<BotCreateChannelResponse>;
     get scope(): BotActionScope;
     get chatScope(): BotActionChatScope | undefined;
     get communityScope(): BotActionCommunityScope | undefined;

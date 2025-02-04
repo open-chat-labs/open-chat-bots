@@ -2,6 +2,31 @@ import type { Principal } from '@dfinity/principal';
 import type { ActorMethod } from '@dfinity/agent';
 import type { IDL } from '@dfinity/candid';
 
+export type AccessGate = { 'UniquePerson' : null } |
+  { 'VerifiedCredential' : VerifiedCredentialGate } |
+  { 'ReferredByMember' : null } |
+  { 'SnsNeuron' : SnsNeuronGate } |
+  { 'Locked' : null } |
+  { 'TokenBalance' : TokenBalanceGate } |
+  {
+    'Composite' : { 'and' : boolean, 'inner' : Array<AccessGateNonComposite> }
+  } |
+  { 'DiamondMember' : null } |
+  { 'Payment' : PaymentGate } |
+  { 'LifetimeDiamondMember' : null };
+export interface AccessGateConfig {
+  'gate' : AccessGate,
+  'expiry' : [] | [Milliseconds],
+}
+export type AccessGateNonComposite = { 'UniquePerson' : null } |
+  { 'VerifiedCredential' : VerifiedCredentialGate } |
+  { 'ReferredByMember' : null } |
+  { 'SnsNeuron' : SnsNeuronGate } |
+  { 'Locked' : null } |
+  { 'TokenBalance' : TokenBalanceGate } |
+  { 'DiamondMember' : null } |
+  { 'Payment' : PaymentGate } |
+  { 'LifetimeDiamondMember' : null };
 export interface AudioContent {
   'mime_type' : string,
   'blob_reference' : [] | [BlobReference],
@@ -13,13 +38,25 @@ export interface BlobReference {
   'blob_id' : bigint,
   'canister_id' : CanisterId,
 }
-export type BotApiCallError = { 'Invalid' : string } |
-  {
-    'CanisterError' : { 'NotAuthorized' : null } |
-      { 'Other' : string } |
-      { 'Frozen' : null }
-  } |
-  { 'C2CError' : [number, string] };
+export interface BotCreateChannelArgs {
+  'is_public' : boolean,
+  'permissions' : [] | [GroupPermissions],
+  'gate_config' : [] | [AccessGateConfig],
+  'auth_token' : AuthToken,
+  'external_url' : [] | [string],
+  'name' : string,
+  'description' : string,
+  'events_ttl' : [] | [Milliseconds],
+  'messages_visible_to_non_members' : boolean,
+  'history_visible_to_new_joiners' : boolean,
+  'rules' : Rules,
+  'avatar' : [] | [Document],
+}
+export type BotCreateChannelResponse = { 'NotAuthorized' : null } |
+  { 'Success' : { 'channel_id' : ChannelId } } |
+  { 'InvalidRequest' : string } |
+  { 'C2CError' : [number, string] } |
+  { 'Frozen' : null };
 export interface BotSendMessageArgs {
   'channel_id' : [] | [ChannelId],
   'content' : MessageContent,
@@ -30,13 +67,30 @@ export interface BotSendMessageArgs {
 }
 export type BotSendMessageResponse = { 'ThreadNotFound' : null } |
   { 'NotAuthorized' : null } |
-  { 'Success' : SuccessResult } |
+  {
+    'Success' : {
+      'timestamp' : TimestampMillis,
+      'message_id' : MessageId,
+      'event_index' : EventIndex,
+      'expires_at' : [] | [TimestampMillis],
+      'message_index' : MessageIndex,
+    }
+  } |
   { 'InvalidRequest' : string } |
   { 'MessageAlreadyFinalised' : null } |
   { 'C2CError' : [number, string] } |
   { 'Frozen' : null };
 export type CanisterId = Principal;
 export type ChannelId = number;
+export interface CustomPermission {
+  'subtype' : string,
+  'role' : PermissionRole,
+}
+export interface Document {
+  'id' : bigint,
+  'data' : Uint8Array | number[],
+  'mime_type' : string,
+}
 export type EventIndex = number;
 export interface FileContent {
   'name' : string,
@@ -57,6 +111,20 @@ export interface GiphyImageVariant {
   'mime_type' : string,
   'width' : number,
 }
+export interface GroupPermissions {
+  'mention_all_members' : PermissionRole,
+  'delete_messages' : PermissionRole,
+  'remove_members' : PermissionRole,
+  'update_group' : PermissionRole,
+  'message_permissions' : MessagePermissions,
+  'invite_users' : PermissionRole,
+  'thread_permissions' : [] | [MessagePermissions],
+  'change_roles' : PermissionRole,
+  'start_video_call' : PermissionRole,
+  'add_members' : PermissionRole,
+  'pin_messages' : PermissionRole,
+  'react_to_messages' : PermissionRole,
+}
 export interface ImageContent {
   'height' : number,
   'mime_type' : string,
@@ -74,6 +142,32 @@ export type MessageContent = { 'Giphy' : GiphyContent } |
   { 'Video' : VideoContent };
 export type MessageId = bigint;
 export type MessageIndex = number;
+export interface MessagePermissions {
+  'audio' : [] | [PermissionRole],
+  'video' : [] | [PermissionRole],
+  'video_call' : [] | [PermissionRole],
+  'custom' : Array<CustomPermission>,
+  'file' : [] | [PermissionRole],
+  'poll' : [] | [PermissionRole],
+  'text' : [] | [PermissionRole],
+  'crypto' : [] | [PermissionRole],
+  'giphy' : [] | [PermissionRole],
+  'default' : PermissionRole,
+  'image' : [] | [PermissionRole],
+  'prize' : [] | [PermissionRole],
+  'p2p_swap' : [] | [PermissionRole],
+}
+export type Milliseconds = bigint;
+export interface PaymentGate {
+  'fee' : bigint,
+  'ledger_canister_id' : CanisterId,
+  'amount' : bigint,
+}
+export type PermissionRole = { 'None' : null } |
+  { 'Moderators' : null } |
+  { 'Owner' : null } |
+  { 'Admins' : null } |
+  { 'Members' : null };
 export interface PollConfig {
   'allow_multiple_votes_per_user' : boolean,
   'text' : [] | [string],
@@ -92,19 +186,31 @@ export interface PollVotes {
   'total' : TotalPollVotes,
   'user' : Uint32Array | number[],
 }
-export interface SuccessResult {
-  'timestamp' : TimestampMillis,
-  'message_id' : MessageId,
-  'event_index' : EventIndex,
-  'expires_at' : [] | [TimestampMillis],
-  'message_index' : MessageIndex,
+export interface Rules { 'text' : string, 'enabled' : boolean }
+export interface SnsNeuronGate {
+  'min_stake_e8s' : [] | [bigint],
+  'min_dissolve_delay' : [] | [Milliseconds],
+  'governance_canister_id' : CanisterId,
 }
 export interface TextContent { 'text' : string }
 export type TimestampMillis = bigint;
+export interface TokenBalanceGate {
+  'min_balance' : bigint,
+  'ledger_canister_id' : CanisterId,
+}
 export type TotalPollVotes = { 'Anonymous' : Array<[number, number]> } |
   { 'Visible' : Array<[number, Array<UserId>]> } |
   { 'Hidden' : number };
 export type UserId = CanisterId;
+export interface VerifiedCredentialGate {
+  'credential_arguments' : Array<
+    [string, { 'Int' : number } | { 'String' : string }]
+  >,
+  'issuer_origin' : string,
+  'issuer_canister_id' : CanisterId,
+  'credential_name' : string,
+  'credential_type' : string,
+}
 export interface VideoContent {
   'height' : number,
   'image_blob_reference' : [] | [BlobReference],
@@ -115,6 +221,10 @@ export interface VideoContent {
   'width' : number,
 }
 export interface _SERVICE {
+  'bot_create_channel' : ActorMethod<
+    [BotCreateChannelArgs],
+    BotCreateChannelResponse
+  >,
   'bot_send_message' : ActorMethod<
     [BotSendMessageArgs],
     BotSendMessageResponse
