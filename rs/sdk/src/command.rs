@@ -24,7 +24,7 @@ impl<R: Runtime + Send + Sync + 'static> OpenChatClientForCommand<R> {
         finalised: bool,
         on_response: F,
     ) -> Message {
-        let message_id = self.context.chat_scope().unwrap().message_id.clone();
+        let message_id = self.context.chat_scope().unwrap().message_id;
         let content = MessageContent::Text(TextContent { text });
         let action = BotAction::SendMessage(BotMessageAction {
             content: content.clone(),
