@@ -1,9 +1,8 @@
 import { HttpAgent } from "@dfinity/agent";
 import { CandidService } from "../../utils/candidService";
 import { type BotService, idlFactory } from "./candid/idl";
-import type { ExecuteBotCommandResponse } from "./candid/types";
-import { accessTokenInvalid } from "../../utils/badrequest";
-import type { BotAction, BotClientConfig } from "../../types";
+import type { BotSendMessageResponse, AuthToken as ApiAuthToken } from "./candid/types";
+import type { AuthToken, BotClientConfig, Message } from "../../types";
 
 export class BotGatewayClient extends CandidService {
     #botService: BotService;
@@ -23,38 +22,37 @@ export class BotGatewayClient extends CandidService {
         );
     }
 
-    executeAction(action: BotAction, jwt: string): Promise<ExecuteBotCommandResponse> {
+    #mapAuthToken(auth: AuthToken): ApiAuthToken {
+        switch (auth.kind) {
+            case "api_key":
+                return {
+                    ApiKey: auth.token,
+                };
+            case "jwt":
+                return {
+                    Jwt: auth.token,
+                };
+        }
+    }
+
+    sendMessage(message: Message, auth: AuthToken): Promise<BotSendMessageResponse> {
         return CandidService.handleResponse(
-            this.#botService.execute_bot_action({
-                jwt,
-                action: action,
+            this.#botService.bot_send_message({
+                channel_id: [],
+                message_id: [],
+                content: message.content,
+                finalised: message.finalised,
+                block_level_markdown: message.blockLevelMarkdown ?? false,
+                auth_token: this.#mapAuthToken(auth),
             }),
             (res) => {
-                if (!("Ok" in res)) {
+                if (!("Success" in res)) {
                     console.error("Call to execute_bot_action failed with: ", JSON.stringify(res));
                 }
                 return res;
             },
         ).catch((err) => {
             console.error("Call to execute_bot_action failed with: ", JSON.stringify(err));
-            throw err;
-        });
-    }
-
-    getAuthToken(apiKey: string): Promise<string> {
-        return CandidService.handleResponse(
-            this.#botService.access_token_v2({
-                BotActionByApiKey: apiKey,
-            }),
-            (res) => {
-                if ("Success" in res) {
-                    return res.Success;
-                }
-                console.error("Unable to obtain an auth jwt: ", res);
-                throw accessTokenInvalid();
-            },
-        ).catch((err) => {
-            console.error("Call to access_token_v2 failed with: ", JSON.stringify(err));
             throw err;
         });
     }

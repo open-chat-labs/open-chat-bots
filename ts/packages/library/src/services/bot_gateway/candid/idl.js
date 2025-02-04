@@ -1,10 +1,5 @@
 export const idlFactory = ({ IDL }) => {
-  const AccessTokenArgs = IDL.Variant({ 'BotActionByApiKey' : IDL.Text });
-  const AccessTokenResponse = IDL.Variant({
-    'NotAuthorized' : IDL.Null,
-    'Success' : IDL.Text,
-    'InternalError' : IDL.Text,
-  });
+  const ChannelId = IDL.Nat32;
   const GiphyImageVariant = IDL.Record({
     'url' : IDL.Text,
     'height' : IDL.Nat32,
@@ -86,37 +81,38 @@ export const idlFactory = ({ IDL }) => {
     'Audio' : AudioContent,
     'Video' : VideoContent,
   });
-  const BotAction = IDL.Variant({
-    'SendMessage' : IDL.Record({
-      'content' : MessageContent,
-      'finalised' : IDL.Bool,
-    }),
+  const AuthToken = IDL.Variant({ 'Jwt' : IDL.Text, 'ApiKey' : IDL.Text });
+  const MessageId = IDL.Nat64;
+  const BotSendMessageArgs = IDL.Record({
+    'channel_id' : IDL.Opt(ChannelId),
+    'content' : MessageContent,
+    'auth_token' : AuthToken,
+    'block_level_markdown' : IDL.Bool,
+    'finalised' : IDL.Bool,
+    'message_id' : IDL.Opt(MessageId),
   });
-  const ExecuteBotCommandArgs = IDL.Record({
-    'jwt' : IDL.Text,
-    'action' : BotAction,
+  const EventIndex = IDL.Nat32;
+  const MessageIndex = IDL.Nat32;
+  const SuccessResult = IDL.Record({
+    'timestamp' : TimestampMillis,
+    'message_id' : MessageId,
+    'event_index' : EventIndex,
+    'expires_at' : IDL.Opt(TimestampMillis),
+    'message_index' : MessageIndex,
   });
-  const ExecuteBotCommandResponse = IDL.Variant({
-    'Ok' : IDL.Null,
-    'Err' : IDL.Variant({
-      'Invalid' : IDL.Text,
-      'CanisterError' : IDL.Variant({
-        'NotAuthorized' : IDL.Null,
-        'Other' : IDL.Text,
-        'Frozen' : IDL.Null,
-      }),
-      'C2CError' : IDL.Tuple(IDL.Nat32, IDL.Text),
-    }),
+  const BotSendMessageResponse = IDL.Variant({
+    'ThreadNotFound' : IDL.Null,
+    'NotAuthorized' : IDL.Null,
+    'Success' : SuccessResult,
+    'InvalidRequest' : IDL.Text,
+    'MessageAlreadyFinalised' : IDL.Null,
+    'C2CError' : IDL.Tuple(IDL.Int32, IDL.Text),
+    'Frozen' : IDL.Null,
   });
   return IDL.Service({
-    'access_token_v2' : IDL.Func(
-        [AccessTokenArgs],
-        [AccessTokenResponse],
-        ['query'],
-      ),
-    'execute_bot_action' : IDL.Func(
-        [ExecuteBotCommandArgs],
-        [ExecuteBotCommandResponse],
+    'bot_send_message' : IDL.Func(
+        [BotSendMessageArgs],
+        [BotSendMessageResponse],
         [],
       ),
   });

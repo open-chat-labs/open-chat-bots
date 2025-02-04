@@ -1,18 +1,14 @@
 import { Principal } from "@dfinity/principal";
-import { BotClientBase } from "./client_base";
 import type { HttpAgent } from "@dfinity/agent";
-import type { BotActionChatScope, BotClientConfig, BotCommandArg, Message } from "../types";
+import type { BotActionChatScope, BotClientConfig, Message } from "../types";
 import { BadRequestError } from "../utils/badrequest";
 import type { Chat } from "../services/storageBucket/candid/types";
-import type { ExecuteBotCommandResponse } from "../services/bot_gateway/candid/types";
+import type { BotSendMessageResponse } from "../services/bot_gateway/candid/types";
 import { DataClient } from "../services/data/data.client";
+import { CommandBotClientBase } from "./command_client_base";
 
-export class BotCommandChatClient extends BotClientBase {
-    constructor(
-        private agent: HttpAgent,
-        env: BotClientConfig,
-        encodedJwt: string,
-    ) {
+export class CommandBotChatClient extends CommandBotClientBase {
+    constructor(agent: HttpAgent, env: BotClientConfig, encodedJwt: string) {
         super(agent, env, encodedJwt);
         if (!this.isChatScope) {
             throw new BadRequestError("AccessTokenInvalid");
@@ -28,13 +24,18 @@ export class BotCommandChatClient extends BotClientBase {
         return "";
     }
 
-    createTextMessage(finalised: boolean, text: string): Promise<Message> {
+    createTextMessage(
+        finalised: boolean,
+        text: string,
+        blockLevelMarkdown: boolean = false,
+    ): Promise<Message> {
         return Promise.resolve({
             id: this.messageId,
             content: {
                 Text: { text },
             },
             finalised,
+            blockLevelMarkdown,
         });
     }
 
@@ -43,7 +44,7 @@ export class BotCommandChatClient extends BotClientBase {
     }
 
     public get messageId(): bigint {
-        return this.scope.Chat.message_id;
+        return BigInt(this.scope.Chat.message_id);
     }
 
     public get threadRootMessageId(): number | undefined | null {
@@ -54,56 +55,14 @@ export class BotCommandChatClient extends BotClientBase {
         return this.scope.Chat.chat;
     }
 
-    #namedArg(name: string): BotCommandArg | undefined {
-        return this.decodedJwt.command.args.find((a) => a.name === name);
-    }
-
-    #principalBytesToString(bytes: Uint8Array): string {
-        return Principal.fromUint8Array(bytes).toString();
-    }
-
-    public stringArg(name: string): string | undefined {
-        const arg = this.#namedArg(name);
-        return arg !== undefined && "String" in arg.value ? arg.value.String : undefined;
-    }
-
-    public booleanArg(name: string): boolean | undefined {
-        const arg = this.#namedArg(name);
-        return arg !== undefined && "Boolean" in arg.value ? arg.value.Boolean : undefined;
-    }
-
-    public numberArg(name: string): number | undefined {
-        const arg = this.#namedArg(name);
-        return arg !== undefined && "Number" in arg.value ? arg.value.Number : undefined;
-    }
-
-    public userArg(name: string): string | undefined {
-        const arg = this.#namedArg(name);
-        return arg !== undefined && "User" in arg.value
-            ? this.#principalBytesToString(arg.value.User)
-            : undefined;
-    }
-
-    public get commandArgs(): BotCommandArg[] {
-        return this.decodedJwt.command.args;
-    }
-
-    public get commandName(): string {
-        return this.decodedJwt.command.name;
-    }
-
-    public get initiator(): string {
-        return this.decodedJwt.command.initiator;
-    }
-
-    sendTextMessage(finalised: boolean, text: string): Promise<ExecuteBotCommandResponse> {
-        return this.createTextMessage(finalised, text).then((msg) => this.sendMessage(msg));
-    }
-
-    sendMessage(message: Message): Promise<ExecuteBotCommandResponse> {
-        return this.executeAction({
-            SendMessage: message,
-        });
+    sendTextMessage(
+        finalised: boolean,
+        text: string,
+        blockLevelMarkdown?: boolean,
+    ): Promise<BotSendMessageResponse> {
+        return this.createTextMessage(finalised, text, blockLevelMarkdown).then((msg) =>
+            this.sendMessage(msg),
+        );
     }
 
     createImageMessage(
@@ -149,7 +108,7 @@ export class BotCommandChatClient extends BotClientBase {
         width: number,
         height: number,
         caption?: string,
-    ): Promise<ExecuteBotCommandResponse> {
+    ): Promise<BotSendMessageResponse> {
         return this.createImageMessage(finalised, imageData, mimeType, width, height, caption).then(
             (msg) => this.sendMessage(msg),
         );
@@ -196,7 +155,7 @@ export class BotCommandChatClient extends BotClientBase {
         mimeType: string,
         fileSize: number,
         caption?: string,
-    ): Promise<ExecuteBotCommandResponse> {
+    ): Promise<BotSendMessageResponse> {
         return this.createFileMessage(finalised, name, data, mimeType, fileSize, caption).then(
             (msg) => this.sendMessage(msg),
         );

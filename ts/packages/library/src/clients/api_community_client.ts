@@ -1,9 +1,9 @@
 import type { HttpAgent } from "@dfinity/agent";
-import { BotClientBase } from "./client_base";
 import type { BotClientConfig } from "../types";
+import { ApiKeyBotClientBase } from "./api_client_base";
 
-export class BotApiKeyCommunityClient extends BotClientBase {
-    constructor(agent: HttpAgent, env: BotClientConfig, encodedJwt: string) {
-        super(agent, env, encodedJwt);
+export class ApiKeyBotCommunityClient extends ApiKeyBotClientBase {
+    constructor(agent: HttpAgent, env: BotClientConfig, apiKey: string) {
+        super(agent, env, apiKey);
     }
 }

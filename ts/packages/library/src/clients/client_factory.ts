@@ -1,10 +1,9 @@
 import { HttpAgent } from "@dfinity/agent";
 import { Secp256k1KeyIdentity } from "@dfinity/identity-secp256k1";
-import type { BotActionScope, BotClientConfig } from "../types";
-import { BotApiKeyChatClient } from "./api_chat_client";
-import { BotApiKeyCommunityClient } from "./api_community_client";
-import { BotCommandChatClient } from "./command_chat_client";
-import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
+import type { BotClientConfig } from "../types";
+import { ApiKeyBotChatClient } from "./api_chat_client";
+import { ApiKeyBotCommunityClient } from "./api_community_client";
+import { CommandBotChatClient } from "./command_chat_client";
 
 function createAgent(env: BotClientConfig): HttpAgent {
     const identity = createIdentity(env.identityPrivateKey);
@@ -24,19 +23,6 @@ function createIdentity(privateKey: string) {
         console.error("Unable to create identity from private key", err);
         throw err;
     }
-}
-
-type ApiKey = {
-    gateway: string;
-    bot_id: string;
-    scope: BotActionScope;
-    secret: string;
-};
-
-function decodeApiKey(apiKey: string): ApiKey {
-    const buffer = Buffer.from(apiKey, "base64");
-    const decoded = buffer.toString("utf-8");
-    return JSON.parse(decoded) as ApiKey;
 }
 
 export class BotClientFactory {
@@ -59,29 +45,19 @@ export class BotClientFactory {
         }
     }
 
-    #getAuthToken(apiKey: string): Promise<string> {
-        const key = decodeApiKey(apiKey);
-        const botService = new BotGatewayClient(key.gateway, this.#agent, this.env);
-        return botService.getAuthToken(apiKey);
+    createApiKeyChatClient(apiKey: string): ApiKeyBotChatClient {
+        return new ApiKeyBotChatClient(this.#agent, this.env, apiKey);
     }
 
-    createApiKeyChatClient(apiKey: string): Promise<BotApiKeyChatClient> {
-        return this.#getAuthToken(apiKey).then(
-            (token) => new BotApiKeyChatClient(this.#agent, this.env, token),
-        );
+    createApiKeyCommunityClient(apiKey: string): ApiKeyBotCommunityClient {
+        return new ApiKeyBotCommunityClient(this.#agent, this.env, apiKey);
     }
 
-    createApiKeyCommunityClient(apiKey: string): Promise<BotApiKeyCommunityClient> {
-        return this.#getAuthToken(apiKey).then(
-            (token) => new BotApiKeyCommunityClient(this.#agent, this.env, token),
-        );
+    createCommandChatClient(encodedJwt: string): CommandBotChatClient {
+        return new CommandBotChatClient(this.#agent, this.env, encodedJwt);
     }
 
-    createCommandChatClient(encodedJwt: string): BotCommandChatClient {
-        return new BotCommandChatClient(this.#agent, this.env, encodedJwt);
-    }
-
-    createCommandCommunityClient(encodedJwt: string): BotCommandChatClient {
-        return new BotCommandChatClient(this.#agent, this.env, encodedJwt);
+    createCommandCommunityClient(encodedJwt: string): CommandBotChatClient {
+        return new CommandBotChatClient(this.#agent, this.env, encodedJwt);
     }
 }

@@ -29,14 +29,14 @@ export function createCommandChatClient(factory: BotClientFactory) {
 }
 
 export function createApiChatClient(factory: BotClientFactory) {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     try {
       const apiKey = req.headers["x-api-key"];
       if (typeof apiKey !== "string") {
         res.status(400).send("Request header x-api-key not found");
       } else {
         (req as WithApiKeyChatClient).botClient =
-          await factory.createApiKeyChatClient(apiKey);
+          factory.createApiKeyChatClient(apiKey);
         console.log("Bot client created");
         next();
       }

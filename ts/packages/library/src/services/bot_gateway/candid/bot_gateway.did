@@ -1,5 +1,15 @@
 type CanisterId = principal;
-type UserId = CanisterId; 
+type ChannelId = nat32;
+type EventIndex = nat32;
+type MessageId = nat64;
+type MessageIndex = nat32;
+type TimestampMillis = nat64;
+type UserId = CanisterId;
+
+type BlobReference = record {
+    canister_id : CanisterId;
+    blob_id : nat;
+};
 
 type MessageContent = variant {
     Text : TextContent;
@@ -22,11 +32,6 @@ type ImageContent = record {
     caption : opt text;
     mime_type : text;
     blob_reference : opt BlobReference;
-};
-
-type BlobReference = record {
-    canister_id : CanisterId;
-    blob_id : nat;
 };
 
 type VideoContent = record {
@@ -53,6 +58,12 @@ type FileContent = record {
     blob_reference : opt BlobReference;
 };
 
+type PollContent = record {
+    config : PollConfig;
+    votes : PollVotes;
+    ended : bool;
+};
+
 type PollConfig = record {
     text : opt text;
     options : vec text;
@@ -61,14 +72,6 @@ type PollConfig = record {
     show_votes_before_end_date : bool;
     allow_multiple_votes_per_user : bool;
     allow_user_to_change_vote : bool;
-};
-
-type TimestampMillis = nat64;
-
-type PollContent = record {
-    config : PollConfig;
-    votes : PollVotes;
-    ended : bool;
 };
 
 type PollVotes = record {
@@ -82,13 +85,6 @@ type TotalPollVotes = variant {
     Hidden : nat32;
 };
 
-type GiphyImageVariant = record {
-    width : nat32;
-    height : nat32;
-    url : text;
-    mime_type : text;
-};
-
 type GiphyContent = record {
     caption : opt text;
     title : text;
@@ -96,45 +92,57 @@ type GiphyContent = record {
     mobile : GiphyImageVariant;
 };
 
-type BotAction = variant {
-    SendMessage: record {
-        content: MessageContent;
-        finalised: bool;
+type GiphyImageVariant = record {
+    width : nat32;
+    height : nat32;
+    url : text;
+    mime_type : text;
+};
+
+type BotApiCallError = variant {
+    Invalid : text;
+    CanisterError : variant {
+        NotAuthorized;
+        Frozen;
+        Other : text;
     };
+    C2CError: record {int32; text};
 };
 
-type ExecuteBotCommandArgs = record {
-    action: BotAction;
-    jwt: text;
+type BotSendMessageArgs = record {
+    channel_id : opt ChannelId;
+    message_id : opt MessageId;
+    content : MessageContent;
+    block_level_markdown : bool;
+    finalised : bool;
+    auth_token: AuthToken;
 };
 
-type ExecuteBotCommandResponse = variant {
-    Ok;
-    Err : variant {
-        Invalid : text;
-        CanisterError : variant {
-            NotAuthorized;
-            Frozen;
-            Other : text;
-        };
-        C2CError: record {
-            0 : nat32;
-            1 : text;
-        };
-    };
+type AuthToken = variant {
+    Jwt : text;
+    ApiKey : text;
 };
 
-type AccessTokenArgs = variant {
-    BotActionByApiKey: text;
-};
-
-type AccessTokenResponse = variant {
-    Success: text;
+type BotSendMessageResponse = variant {
+    Success : SuccessResult;
+    InvalidRequest : text;
     NotAuthorized;
-    InternalError: text;
+    Frozen;
+    ThreadNotFound;
+    MessageAlreadyFinalised;
+    C2CError : record {int32; text};
+};
+
+type SuccessResult = record {
+    message_id : MessageId;
+    event_index : EventIndex;
+    message_index : MessageIndex;
+    timestamp : TimestampMillis;
+    expires_at : opt TimestampMillis;
 };
 
 service : {
-    execute_bot_action : (ExecuteBotCommandArgs) -> (ExecuteBotCommandResponse);
-    access_token_v2: (AccessTokenArgs) -> (AccessTokenResponse) query;
+    bot_send_message : (BotSendMessageArgs) -> (BotSendMessageResponse);
 };
+
+

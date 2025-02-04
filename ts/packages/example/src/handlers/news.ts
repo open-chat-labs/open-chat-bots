@@ -46,13 +46,13 @@ async function scrapeBBCNews(): Promise<NewsSummary[]> {
 }
 
 function toMarkdown(news: NewsSummary[]): string {
-  return news.map(({ title, link }) => `[${title}](${link})`).join("\n");
+  return news.map(({ title, link }) => `* [${title}](${link})`).join("\n");
 }
 
 export default async function news(req: WithCommandChatClient, res: Response) {
   const client = req.botClient;
   const news = await scrapeBBCNews();
-  const msg = await client.createTextMessage(true, toMarkdown(news));
+  const msg = await client.createTextMessage(true, toMarkdown(news), true);
 
   res.status(200).json(success(msg));
   client

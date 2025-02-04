@@ -95,8 +95,20 @@ export type Message = {
     id: bigint;
     content: MessageContent;
     finalised: boolean;
+    blockLevelMarkdown?: boolean;
 };
-export type BotAction = SendMessageAction;
-export type SendMessageAction = {
-    SendMessage: Message;
+export type DecodedApiKey = {
+    gateway: string;
+    bot_id: string;
+    scope: BotActionScope;
+    secret: string;
+};
+export type AuthToken = JwtAuthToken | ApiKey;
+export type JwtAuthToken = {
+    kind: "jwt";
+    token: string;
+};
+export type ApiKey = {
+    kind: "api_key";
+    token: string;
 };

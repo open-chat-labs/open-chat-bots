@@ -1,20 +1,15 @@
 import { Principal } from "@dfinity/principal";
-import { BotClientBase } from "./client_base";
 import type { HttpAgent } from "@dfinity/agent";
 import { BadRequestError } from "../utils/badrequest";
 import type { BotActionChatScope, BotClientConfig, Message } from "../types";
 import type { Chat } from "../services/storageBucket/candid/types";
-import type { ExecuteBotCommandResponse } from "../services/bot_gateway/candid/types";
+import type { BotSendMessageResponse } from "../services/bot_gateway/candid/types";
 import { DataClient } from "../services/data/data.client";
+import { ApiKeyBotClientBase } from "./api_client_base";
 
-// TODO - there is a horrific amount of duplication in here at the moment
-export class BotApiKeyChatClient extends BotClientBase {
-    constructor(
-        private agent: HttpAgent,
-        env: BotClientConfig,
-        encodedJwt: string,
-    ) {
-        super(agent, env, encodedJwt);
+export class ApiKeyBotChatClient extends ApiKeyBotClientBase {
+    constructor(agent: HttpAgent, env: BotClientConfig, apiKey: string) {
+        super(agent, env, apiKey);
         if (!this.isChatScope) {
             throw new BadRequestError("AccessTokenInvalid");
         }
@@ -29,13 +24,18 @@ export class BotApiKeyChatClient extends BotClientBase {
         return "";
     }
 
-    createTextMessage(finalised: boolean, text: string): Promise<Message> {
+    createTextMessage(
+        finalised: boolean,
+        text: string,
+        blockLevelMarkdown: boolean = false,
+    ): Promise<Message> {
         return Promise.resolve({
             id: this.messageId,
             content: {
                 Text: { text },
             },
             finalised,
+            blockLevelMarkdown,
         });
     }
 
@@ -55,14 +55,14 @@ export class BotApiKeyChatClient extends BotClientBase {
         return this.scope.Chat.chat;
     }
 
-    sendTextMessage(finalised: boolean, text: string): Promise<ExecuteBotCommandResponse> {
-        return this.createTextMessage(finalised, text).then((msg) => this.sendMessage(msg));
-    }
-
-    sendMessage(message: Message): Promise<ExecuteBotCommandResponse> {
-        return this.executeAction({
-            SendMessage: message,
-        });
+    sendTextMessage(
+        finalised: boolean,
+        text: string,
+        blockLevelMarkdown?: boolean,
+    ): Promise<BotSendMessageResponse> {
+        return this.createTextMessage(finalised, text, blockLevelMarkdown).then((msg) =>
+            this.sendMessage(msg),
+        );
     }
 
     createImageMessage(
@@ -108,7 +108,7 @@ export class BotApiKeyChatClient extends BotClientBase {
         width: number,
         height: number,
         caption?: string,
-    ): Promise<ExecuteBotCommandResponse> {
+    ): Promise<BotSendMessageResponse> {
         return this.createImageMessage(finalised, imageData, mimeType, width, height, caption).then(
             (msg) => this.sendMessage(msg),
         );
@@ -155,7 +155,7 @@ export class BotApiKeyChatClient extends BotClientBase {
         mimeType: string,
         fileSize: number,
         caption?: string,
-    ): Promise<ExecuteBotCommandResponse> {
+    ): Promise<BotSendMessageResponse> {
         return this.createFileMessage(finalised, name, data, mimeType, fileSize, caption).then(
             (msg) => this.sendMessage(msg),
         );

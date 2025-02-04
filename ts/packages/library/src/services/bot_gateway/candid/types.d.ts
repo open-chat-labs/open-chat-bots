@@ -2,34 +2,42 @@ import type { Principal } from '@dfinity/principal';
 import type { ActorMethod } from '@dfinity/agent';
 import type { IDL } from '@dfinity/candid';
 
-export type AccessTokenArgs = { 'BotActionByApiKey' : string };
-export type AccessTokenResponse = { 'NotAuthorized' : null } |
-  { 'Success' : string } |
-  { 'InternalError' : string };
 export interface AudioContent {
   'mime_type' : string,
   'blob_reference' : [] | [BlobReference],
   'caption' : [] | [string],
 }
+export type AuthToken = { 'Jwt' : string } |
+  { 'ApiKey' : string };
 export interface BlobReference {
   'blob_id' : bigint,
   'canister_id' : CanisterId,
 }
-export type BotAction = {
-    'SendMessage' : { 'content' : MessageContent, 'finalised' : boolean }
-  };
-export type CanisterId = Principal;
-export interface ExecuteBotCommandArgs { 'jwt' : string, 'action' : BotAction }
-export type ExecuteBotCommandResponse = { 'Ok' : null } |
+export type BotApiCallError = { 'Invalid' : string } |
   {
-    'Err' : { 'Invalid' : string } |
-      {
-        'CanisterError' : { 'NotAuthorized' : null } |
-          { 'Other' : string } |
-          { 'Frozen' : null }
-      } |
-      { 'C2CError' : [number, string] }
-  };
+    'CanisterError' : { 'NotAuthorized' : null } |
+      { 'Other' : string } |
+      { 'Frozen' : null }
+  } |
+  { 'C2CError' : [number, string] };
+export interface BotSendMessageArgs {
+  'channel_id' : [] | [ChannelId],
+  'content' : MessageContent,
+  'auth_token' : AuthToken,
+  'block_level_markdown' : boolean,
+  'finalised' : boolean,
+  'message_id' : [] | [MessageId],
+}
+export type BotSendMessageResponse = { 'ThreadNotFound' : null } |
+  { 'NotAuthorized' : null } |
+  { 'Success' : SuccessResult } |
+  { 'InvalidRequest' : string } |
+  { 'MessageAlreadyFinalised' : null } |
+  { 'C2CError' : [number, string] } |
+  { 'Frozen' : null };
+export type CanisterId = Principal;
+export type ChannelId = number;
+export type EventIndex = number;
 export interface FileContent {
   'name' : string,
   'mime_type' : string,
@@ -64,6 +72,8 @@ export type MessageContent = { 'Giphy' : GiphyContent } |
   { 'Image' : ImageContent } |
   { 'Audio' : AudioContent } |
   { 'Video' : VideoContent };
+export type MessageId = bigint;
+export type MessageIndex = number;
 export interface PollConfig {
   'allow_multiple_votes_per_user' : boolean,
   'text' : [] | [string],
@@ -82,6 +92,13 @@ export interface PollVotes {
   'total' : TotalPollVotes,
   'user' : Uint32Array | number[],
 }
+export interface SuccessResult {
+  'timestamp' : TimestampMillis,
+  'message_id' : MessageId,
+  'event_index' : EventIndex,
+  'expires_at' : [] | [TimestampMillis],
+  'message_index' : MessageIndex,
+}
 export interface TextContent { 'text' : string }
 export type TimestampMillis = bigint;
 export type TotalPollVotes = { 'Anonymous' : Array<[number, number]> } |
@@ -98,10 +115,9 @@ export interface VideoContent {
   'width' : number,
 }
 export interface _SERVICE {
-  'access_token_v2' : ActorMethod<[AccessTokenArgs], AccessTokenResponse>,
-  'execute_bot_action' : ActorMethod<
-    [ExecuteBotCommandArgs],
-    ExecuteBotCommandResponse
+  'bot_send_message' : ActorMethod<
+    [BotSendMessageArgs],
+    BotSendMessageResponse
   >,
 }
 export declare const idlFactory: IDL.InterfaceFactory;

@@ -1,9 +1,9 @@
 import type { HttpAgent } from "@dfinity/agent";
-import { BotClientBase } from "./client_base";
 import type { BotClientConfig } from "../types";
 import { BadRequestError } from "../utils/badrequest";
+import { CommandBotClientBase } from "./command_client_base";
 
-export class BotCommandCommunityClient extends BotClientBase {
+export class CommandBotCommunityClient extends CommandBotClientBase {
     constructor(agent: HttpAgent, env: BotClientConfig, encodedJwt: string) {
         super(agent, env, encodedJwt);
         if (!this.isCommunityScope) {
