@@ -36,8 +36,10 @@ export class BotClient extends CandidService {
         switch (this.#auth.kind) {
             case "api_key":
                 this.#decoded = this.#decodeApiKey(this.#auth.token);
+                break;
             case "jwt":
                 this.#decoded = this.#decodeJwt(this.#auth.token);
+                break;
         }
         this.#botService = new BotGatewayClient(this.#botApiGateway, agent, env);
     }
@@ -63,7 +65,7 @@ export class BotClient extends CandidService {
         try {
             const decoded = jwt.verify(token, publicKey, { algorithms: ["ES256"] });
             if (typeof decoded !== "string") {
-                return decoded as DecodedJwt;
+                return { ...decoded, kind: "jwt" } as DecodedJwt;
             } else {
                 console.error(`Unable to decode jwt`, token);
                 throw new BadRequestError("AccessTokenInvalid");
@@ -124,7 +126,7 @@ export class BotClient extends CandidService {
     }
 
     public get messageId(): bigint | undefined {
-        if (isChatScope(this.scope)) {
+        if (isChatScope(this.scope) && this.scope.Chat.message_id !== undefined) {
             return BigInt(this.scope.Chat.message_id);
         }
     }

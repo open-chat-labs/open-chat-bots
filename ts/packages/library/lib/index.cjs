@@ -36838,8 +36838,10 @@ class BotClient extends CandidService {
         switch (__classPrivateFieldGet$4(this, _BotClient_auth, "f").kind) {
             case "api_key":
                 __classPrivateFieldSet$4(this, _BotClient_decoded, __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_decodeApiKey).call(this, __classPrivateFieldGet$4(this, _BotClient_auth, "f").token), "f");
+                break;
             case "jwt":
                 __classPrivateFieldSet$4(this, _BotClient_decoded, __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_decodeJwt).call(this, __classPrivateFieldGet$4(this, _BotClient_auth, "f").token), "f");
+                break;
         }
         __classPrivateFieldSet$4(this, _BotClient_botService, new BotGatewayClient(__classPrivateFieldGet$4(this, _BotClient_instances, "a", _BotClient_botApiGateway_get), agent, env), "f");
     }
@@ -36865,7 +36867,7 @@ class BotClient extends CandidService {
         }
     }
     get messageId() {
-        if (isChatScope(this.scope)) {
+        if (isChatScope(this.scope) && this.scope.Chat.message_id !== undefined) {
             return BigInt(this.scope.Chat.message_id);
         }
     }
@@ -36999,7 +37001,7 @@ _BotClient_botService = new WeakMap(), _BotClient_auth = new WeakMap(), _BotClie
     try {
         const decoded = jwt.verify(token, publicKey, { algorithms: ["ES256"] });
         if (typeof decoded !== "string") {
-            return decoded;
+            return { ...decoded, kind: "jwt" };
         }
         else {
             console.error(`Unable to decode jwt`, token);

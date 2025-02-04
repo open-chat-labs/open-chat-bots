@@ -69,7 +69,7 @@ export type BotActionChatScope = {
     Chat: {
         chat: Chat;
         thread_root_message_index?: number;
-        message_id: bigint;
+        message_id?: bigint;
     };
 };
 export type BotActionCommunityScope = {
