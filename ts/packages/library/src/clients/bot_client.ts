@@ -2,21 +2,26 @@ import jwt from "jsonwebtoken";
 import { BadRequestError } from "../utils/error_response";
 import { HttpAgent } from "@dfinity/agent";
 import { CandidService } from "../utils/candidService";
-import type {
-    AuthToken,
-    BotActionChatScope,
-    BotActionCommunityScope,
-    BotActionScope,
-    BotClientConfig,
-    BotCommand,
-    BotCommandArg,
-    DecodedApiKey,
-    DecodedJwt,
-    DecodedPayload,
-    Message,
+import {
+    defaultChannelOptions,
+    type AuthToken,
+    type BotActionChatScope,
+    type BotActionCommunityScope,
+    type BotActionScope,
+    type BotClientConfig,
+    type BotCommand,
+    type BotCommandArg,
+    type ChannelOptions,
+    type DecodedApiKey,
+    type DecodedJwt,
+    type DecodedPayload,
+    type Message,
 } from "../types";
 import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
-import type { BotSendMessageResponse } from "../services/bot_gateway/candid/types";
+import type {
+    BotCreateChannelResponse,
+    BotSendMessageResponse,
+} from "../services/bot_gateway/candid/types";
 import type { Chat } from "../services/storageIndex/candid/types";
 import { DataClient } from "../services/data/data.client";
 import { Principal } from "@dfinity/principal";
@@ -107,6 +112,19 @@ export class BotClient extends CandidService {
 
     public sendMessage(message: Message): Promise<BotSendMessageResponse> {
         return this.#botService.sendMessage(message, this.#auth);
+    }
+
+    public createChannel(
+        name: string,
+        description: string,
+        options?: Partial<ChannelOptions>,
+    ): Promise<BotCreateChannelResponse> {
+        return this.#botService.createChannel(
+            name,
+            description,
+            { ...defaultChannelOptions, ...options },
+            this.#auth,
+        );
     }
 
     public get scope(): BotActionScope {

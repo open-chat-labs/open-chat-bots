@@ -1,8 +1,13 @@
 import { HttpAgent } from "@dfinity/agent";
 import { CandidService } from "../../utils/candidService";
 import { type BotService, idlFactory } from "./candid/idl";
-import type { BotSendMessageResponse, AuthToken as ApiAuthToken } from "./candid/types";
-import type { AuthToken, BotClientConfig, Message } from "../../types";
+import type {
+    BotSendMessageResponse,
+    AuthToken as ApiAuthToken,
+    BotCreateChannelResponse,
+} from "./candid/types";
+import type { AuthToken, BotClientConfig, ChannelOptions, Message } from "../../types";
+import { random128 } from "../../utils/rng";
 
 export class BotGatewayClient extends CandidService {
     #botService: BotService;
@@ -56,4 +61,51 @@ export class BotGatewayClient extends CandidService {
             throw err;
         });
     }
+
+    createChannel(
+        name: string,
+        description: string,
+        options: ChannelOptions,
+        auth: AuthToken,
+    ): Promise<BotCreateChannelResponse> {
+        return CandidService.handleResponse(
+            this.#botService.bot_create_channel({
+                is_public: options.isPublic,
+                permissions: optional(options.permissions, identity),
+                gate_config: optional(options.gateConfig, identity),
+                auth_token: this.#mapAuthToken(auth),
+                external_url: optional(options.externalUrl, identity),
+                name,
+                description,
+                events_ttl: optional(options.eventsTtl, identity),
+                messages_visible_to_non_members: options.messagesVisibleToNonMembers,
+                history_visible_to_new_joiners: options.historyVisibleToNewJoiners,
+                rules: options.rules,
+                avatar: optional(options.avatar, (data) => {
+                    return {
+                        id: random128(),
+                        data,
+                        mime_type: "image/jpg",
+                    };
+                }),
+            }),
+            (res) => {
+                if (!("Success" in res)) {
+                    console.error("Call to execute_bot_action failed with: ", JSON.stringify(res));
+                }
+                return res;
+            },
+        ).catch((err) => {
+            console.error("Call to execute_bot_action failed with: ", JSON.stringify(err));
+            throw err;
+        });
+    }
+}
+
+function optional<A, B>(domain: A | undefined, mapper: (a: A) => B): [] | [B] {
+    return domain === undefined ? [] : [mapper(domain)];
+}
+
+function identity<A>(a: A): A {
+    return a;
 }

@@ -11,7 +11,12 @@ export default function schema(_: Request, res: Response) {
     autonomous_config: {
       permissions: {
         message: ["Text", "Image", "P2pSwap", "VideoCall"],
-        community: ["RemoveMembers", "ChangeRoles"],
+        community: [
+          "RemoveMembers",
+          "ChangeRoles",
+          "CreatePublicChannel",
+          "CreatePrivateChannel",
+        ],
         chat: [],
       },
     },

@@ -2,6 +2,7 @@ import { Response } from "express";
 import sharp from "sharp";
 import { WithBotClient } from "../types";
 import { success } from "./success";
+import path from "path";
 
 const MAX_SIZE_BYTES = 0.5 * 1024 * 1024;
 
@@ -46,7 +47,7 @@ export default async function image(req: WithBotClient, res: Response) {
 
   res.status(200).json(success(placeholder));
 
-  const filePath = "./picture.png";
+  const filePath = path.join(__dirname, "..", "..", "picture.png");
   const { uint8Array, width, height, format } = await processImage(filePath);
 
   client.sendImageMessage(

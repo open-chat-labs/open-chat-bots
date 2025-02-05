@@ -1,4 +1,4 @@
-import type { MessageContent } from "./services/bot_gateway/candid/types";
+import type { AccessGateConfig, GroupPermissions, MessageContent, Rules } from "./services/bot_gateway/candid/types";
 import type { Chat } from "./services/storageIndex/candid/types";
 /**
  * {
@@ -115,3 +115,15 @@ export type ApiKey = {
     kind: "api_key";
     token: string;
 };
+export type ChannelOptions = {
+    isPublic: boolean;
+    permissions?: GroupPermissions;
+    gateConfig?: AccessGateConfig;
+    externalUrl?: string;
+    eventsTtl?: bigint;
+    messagesVisibleToNonMembers: boolean;
+    historyVisibleToNewJoiners: boolean;
+    rules: Rules;
+    avatar?: Uint8Array;
+};
+export declare const defaultChannelOptions: ChannelOptions;
