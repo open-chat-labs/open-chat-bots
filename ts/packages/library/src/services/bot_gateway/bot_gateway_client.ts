@@ -8,6 +8,7 @@ import type {
 } from "./candid/types";
 import type { AuthToken, BotClientConfig, ChannelOptions, Message } from "../../types";
 import { random128 } from "../../utils/rng";
+import { identity, apiOptional, apiGroupPermissions, apiAccessGateConfig } from "../../mapping";
 
 export class BotGatewayClient extends CandidService {
     #botService: BotService;
@@ -71,17 +72,17 @@ export class BotGatewayClient extends CandidService {
         return CandidService.handleResponse(
             this.#botService.bot_create_channel({
                 is_public: options.isPublic,
-                permissions: optional(options.permissions, identity),
-                gate_config: optional(options.gateConfig, identity),
+                permissions: apiOptional(options.permissions, apiGroupPermissions),
+                gate_config: apiOptional(options.gateConfig, apiAccessGateConfig),
                 auth_token: this.#mapAuthToken(auth),
-                external_url: optional(options.externalUrl, identity),
+                external_url: apiOptional(options.externalUrl, identity),
                 name,
                 description,
-                events_ttl: optional(options.eventsTtl, identity),
+                events_ttl: apiOptional(options.eventsTtl, identity),
                 messages_visible_to_non_members: options.messagesVisibleToNonMembers,
                 history_visible_to_new_joiners: options.historyVisibleToNewJoiners,
                 rules: options.rules,
-                avatar: optional(options.avatar, (data) => {
+                avatar: apiOptional(options.avatar, (data) => {
                     return {
                         id: random128(),
                         data,
@@ -100,12 +101,4 @@ export class BotGatewayClient extends CandidService {
             throw err;
         });
     }
-}
-
-function optional<A, B>(domain: A | undefined, mapper: (a: A) => B): [] | [B] {
-    return domain === undefined ? [] : [mapper(domain)];
-}
-
-function identity<A>(a: A): A {
-    return a;
 }

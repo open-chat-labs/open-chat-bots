@@ -1,9 +1,5 @@
-import type {
-    AccessGateConfig,
-    GroupPermissions,
-    MessageContent,
-    Rules,
-} from "./services/bot_gateway/candid/types";
+import type { AccessGateConfig, GroupPermissions, Rules } from "./domain/index";
+import type { MessageContent } from "./services/bot_gateway/candid/types";
 import type { Chat } from "./services/storageIndex/candid/types";
 
 /**
@@ -184,31 +180,20 @@ export type ChannelOptions = {
 export const defaultChannelOptions: ChannelOptions = {
     isPublic: true,
     permissions: {
-        change_roles: { Admins: null },
-        remove_members: { Moderators: null },
-        delete_messages: { Moderators: null },
-        update_group: { Admins: null },
-        pin_messages: { Admins: null },
-        invite_users: { Admins: null },
-        add_members: { Admins: null },
-        mention_all_members: { Members: null },
-        react_to_messages: { Members: null },
-        start_video_call: { Members: null },
-        thread_permissions: [],
-        message_permissions: {
-            audio: [],
-            video: [],
-            video_call: [],
+        changeRoles: "admins",
+        removeMembers: "moderators",
+        deleteMessages: "moderators",
+        updateGroup: "admins",
+        pinMessages: "admins",
+        inviteUsers: "admins",
+        addMembers: "admins",
+        mentionAllMembers: "members",
+        reactToMessages: "members",
+        startVideoCall: "members",
+        messagePermissions: {
             custom: [],
-            file: [],
-            poll: [],
-            text: [],
-            crypto: [],
-            giphy: [],
-            default: { Members: null },
-            image: [],
-            prize: [],
-            p2p_swap: [{ None: null }],
+            default: "members",
+            p2pSwap: "none",
         },
     },
     messagesVisibleToNonMembers: false,
