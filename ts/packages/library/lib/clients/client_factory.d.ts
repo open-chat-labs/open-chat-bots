@@ -1,5 +1,5 @@
-import type { BotClientConfig } from "../types";
 import { BotClient } from "./bot_client";
+import type { BotClientConfig } from "../domain";
 export declare class BotClientFactory {
     #private;
     private env;

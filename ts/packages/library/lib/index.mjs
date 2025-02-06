@@ -35702,41 +35702,6 @@ class CandidService {
     constructor() { }
 }
 
-const defaultChannelOptions = {
-    isPublic: true,
-    permissions: {
-        change_roles: { Admins: null },
-        remove_members: { Moderators: null },
-        delete_messages: { Moderators: null },
-        update_group: { Admins: null },
-        pin_messages: { Admins: null },
-        invite_users: { Admins: null },
-        add_members: { Admins: null },
-        mention_all_members: { Members: null },
-        react_to_messages: { Members: null },
-        start_video_call: { Members: null },
-        thread_permissions: [],
-        message_permissions: {
-            audio: [],
-            video: [],
-            video_call: [],
-            custom: [],
-            file: [],
-            poll: [],
-            text: [],
-            crypto: [],
-            giphy: [],
-            default: { Members: null },
-            image: [],
-            prize: [],
-            p2p_swap: [{ None: null }],
-        },
-    },
-    messagesVisibleToNonMembers: false,
-    historyVisibleToNewJoiners: true,
-    rules: { text: "", enabled: false },
-};
-
 const idlFactory$2 = ({ IDL }) => {
   const PermissionRole = IDL.Variant({
     'None' : IDL.Null,
@@ -35985,30 +35950,16 @@ const idlFactory$2 = ({ IDL }) => {
   });
 };
 
-function random128() {
-    const bytes = new BigUint64Array(2);
-    crypto.getRandomValues(bytes);
-    return (bytes[0] << BigInt(64)) + bytes[1];
-}
-
-var _BotGatewayClient_instances, _BotGatewayClient_botService, _BotGatewayClient_mapAuthToken;
+var _BotGatewayClient_botService;
 class BotGatewayClient extends CandidService {
     constructor(canisterId, agent, env) {
         super();
-        _BotGatewayClient_instances.add(this);
         this.env = env;
         _BotGatewayClient_botService.set(this, undefined);
         __classPrivateFieldSet$4(this, _BotGatewayClient_botService, CandidService.createServiceClient(idlFactory$2, canisterId, env.icHost, agent), "f");
     }
     sendMessage(message, auth) {
-        return CandidService.handleResponse(__classPrivateFieldGet$4(this, _BotGatewayClient_botService, "f").bot_send_message({
-            channel_id: [],
-            message_id: [],
-            content: message.content,
-            finalised: message.finalised,
-            block_level_markdown: message.blockLevelMarkdown ?? false,
-            auth_token: __classPrivateFieldGet$4(this, _BotGatewayClient_instances, "m", _BotGatewayClient_mapAuthToken).call(this, auth),
-        }), (res) => {
+        return CandidService.handleResponse(__classPrivateFieldGet$4(this, _BotGatewayClient_botService, "f").bot_send_message(message.toInputArgs(auth)), (res) => {
             if (!("Success" in res)) {
                 console.error("Call to execute_bot_action failed with: ", JSON.stringify(res));
             }
@@ -36018,27 +35969,8 @@ class BotGatewayClient extends CandidService {
             throw err;
         });
     }
-    createChannel(name, description, options, auth) {
-        return CandidService.handleResponse(__classPrivateFieldGet$4(this, _BotGatewayClient_botService, "f").bot_create_channel({
-            is_public: options.isPublic,
-            permissions: optional(options.permissions, identity),
-            gate_config: optional(options.gateConfig, identity),
-            auth_token: __classPrivateFieldGet$4(this, _BotGatewayClient_instances, "m", _BotGatewayClient_mapAuthToken).call(this, auth),
-            external_url: optional(options.externalUrl, identity),
-            name,
-            description,
-            events_ttl: optional(options.eventsTtl, identity),
-            messages_visible_to_non_members: options.messagesVisibleToNonMembers,
-            history_visible_to_new_joiners: options.historyVisibleToNewJoiners,
-            rules: options.rules,
-            avatar: optional(options.avatar, (data) => {
-                return {
-                    id: random128(),
-                    data,
-                    mime_type: "image/jpg",
-                };
-            }),
-        }), (res) => {
+    createChannel(channel, auth) {
+        return CandidService.handleResponse(__classPrivateFieldGet$4(this, _BotGatewayClient_botService, "f").bot_create_channel(channel.toInputArgs(auth)), (res) => {
             if (!("Success" in res)) {
                 console.error("Call to execute_bot_action failed with: ", JSON.stringify(res));
             }
@@ -36049,24 +35981,7 @@ class BotGatewayClient extends CandidService {
         });
     }
 }
-_BotGatewayClient_botService = new WeakMap(), _BotGatewayClient_instances = new WeakSet(), _BotGatewayClient_mapAuthToken = function _BotGatewayClient_mapAuthToken(auth) {
-    switch (auth.kind) {
-        case "api_key":
-            return {
-                ApiKey: auth.token,
-            };
-        case "jwt":
-            return {
-                Jwt: auth.token,
-            };
-    }
-};
-function optional(domain, mapper) {
-    return domain === undefined ? [] : [mapper(domain)];
-}
-function identity(a) {
-    return a;
-}
+_BotGatewayClient_botService = new WeakMap();
 
 var sha3 = {exports: {}};
 
@@ -36738,6 +36653,12 @@ function requireSha3 () {
 
 var sha3Exports = requireSha3();
 
+function random128() {
+    const bytes = new BigUint64Array(2);
+    crypto.getRandomValues(bytes);
+    return (bytes[0] << BigInt(64)) + bytes[1];
+}
+
 const idlFactory$1 = ({ IDL }) => {
   const CanisterId = IDL.Principal;
   const AddBucketCanisterArgs = IDL.Record({ 'canister_id' : CanisterId });
@@ -37019,6 +36940,342 @@ function hashBytes(bytes) {
     return hash.arrayBuffer();
 }
 
+function apiAuthToken(auth) {
+    switch (auth.kind) {
+        case "api_key":
+            return {
+                ApiKey: auth.token,
+            };
+        case "jwt":
+            return {
+                Jwt: auth.token,
+            };
+    }
+}
+function apiBlobReference(domain) {
+    return {
+        blob_id: domain.blobId,
+        canister_id: Principal$1.fromText(domain.canisterId),
+    };
+}
+function apiAccessGateConfig(domain) {
+    return {
+        gate: apiAccessGate(domain.gate),
+        expiry: apiOptional(domain.expiry, identity),
+    };
+}
+function apiAccessGate(domain) {
+    if (domain.kind === "composite_gate") {
+        return {
+            Composite: {
+                and: domain.operator === "and",
+                inner: domain.gates.map(apiLeafAccessGate),
+            },
+        };
+    }
+    return apiLeafAccessGate(domain);
+}
+function apiLeafAccessGate(domain) {
+    switch (domain.kind) {
+        case "neuron_gate":
+            return {
+                SnsNeuron: {
+                    governance_canister_id: Principal$1.fromText(domain.governanceCanister),
+                    min_stake_e8s: domain.minStakeE8s ? [BigInt(domain.minStakeE8s)] : [],
+                    min_dissolve_delay: domain.minDissolveDelay
+                        ? [BigInt(domain.minDissolveDelay)]
+                        : [],
+                },
+            };
+        case "payment_gate":
+            return {
+                Payment: {
+                    ledger_canister_id: Principal$1.fromText(domain.ledgerCanister),
+                    amount: domain.amount,
+                    fee: domain.fee,
+                },
+            };
+        case "diamond_gate":
+            return { DiamondMember: null };
+        case "lifetime_diamond_gate":
+            return { LifetimeDiamondMember: null };
+        case "unique_person_gate":
+            return { UniquePerson: null };
+        case "credential_gate":
+            return {
+                VerifiedCredential: {
+                    credential_name: domain.credential.credentialName,
+                    issuer_canister_id: Principal$1.fromText(domain.credential.issuerCanisterId),
+                    issuer_origin: domain.credential.issuerOrigin,
+                    credential_type: domain.credential.credentialType,
+                    credential_arguments: Object.entries(domain.credential.credentialArguments ?? {}).map(([k, v]) => [k, typeof v === "string" ? { String: v } : { Int: v }]),
+                },
+            };
+        case "token_balance_gate":
+            return {
+                TokenBalance: {
+                    ledger_canister_id: Principal$1.fromText(domain.ledgerCanister),
+                    min_balance: domain.minBalance,
+                },
+            };
+        case "locked_gate":
+            return { Locked: null };
+        case "referred_by_member_gate":
+            return { ReferredByMember: null };
+        default:
+            throw new Error(`Received a domain level group gate that we cannot parse: ${domain}`);
+    }
+}
+function apiPermissionRole(domain) {
+    switch (domain) {
+        case "admins":
+            return { Admins: null };
+        case "members":
+            return { Members: null };
+        case "moderators":
+            return { Moderators: null };
+        case "none":
+            return { None: null };
+        case "owners":
+            return { Owner: null };
+    }
+}
+function apiMessagePermissions(domain) {
+    return {
+        audio: apiOptional(domain.audio, apiPermissionRole),
+        video: apiOptional(domain.video, apiPermissionRole),
+        video_call: apiOptional(domain.videoCall, apiPermissionRole),
+        custom: domain.custom.map((p) => ({
+            subtype: p.subtype,
+            role: apiPermissionRole(p.role),
+        })),
+        file: apiOptional(domain.file, apiPermissionRole),
+        poll: apiOptional(domain.poll, apiPermissionRole),
+        text: apiOptional(domain.text, apiPermissionRole),
+        crypto: apiOptional(domain.crypto, apiPermissionRole),
+        giphy: apiOptional(domain.giphy, apiPermissionRole),
+        default: apiPermissionRole(domain.default),
+        image: apiOptional(domain.image, apiPermissionRole),
+        prize: apiOptional(domain.prize, apiPermissionRole),
+        p2p_swap: apiOptional(domain.p2pSwap, apiPermissionRole),
+    };
+}
+function apiGroupPermissions(domain) {
+    return {
+        mention_all_members: apiPermissionRole(domain.mentionAllMembers),
+        delete_messages: apiPermissionRole(domain.deleteMessages),
+        remove_members: apiPermissionRole(domain.removeMembers),
+        update_group: apiPermissionRole(domain.updateGroup),
+        message_permissions: apiMessagePermissions(domain.messagePermissions),
+        invite_users: apiPermissionRole(domain.inviteUsers),
+        thread_permissions: apiOptional(domain.threadPermissions, apiMessagePermissions),
+        change_roles: apiPermissionRole(domain.changeRoles),
+        start_video_call: apiPermissionRole(domain.startVideoCall),
+        add_members: apiPermissionRole(domain.addMembers),
+        pin_messages: apiPermissionRole(domain.pinMessages),
+        react_to_messages: apiPermissionRole(domain.reactToMessages),
+    };
+}
+function apiOptional(domain, mapper) {
+    return domain === undefined ? [] : [mapper(domain)];
+}
+function identity(a) {
+    return a;
+}
+
+var _Channel_isPublic, _Channel_permissions, _Channel_messagesVisibleToNonMembers, _Channel_historyVisibleToNewJoiners, _Channel_rules, _Channel_gateConfig, _Channel_externalUrl, _Channel_avatar, _Channel_eventsTtl;
+class Channel {
+    setMessagesVisibleToNonMembers(val) {
+        __classPrivateFieldSet$4(this, _Channel_messagesVisibleToNonMembers, val, "f");
+        return this;
+    }
+    setIsPublic(val) {
+        __classPrivateFieldSet$4(this, _Channel_isPublic, val, "f");
+        return this;
+    }
+    setThreadPermissions(perm, role) {
+        if (__classPrivateFieldGet$4(this, _Channel_permissions, "f").threadPermissions === undefined) {
+            __classPrivateFieldGet$4(this, _Channel_permissions, "f").threadPermissions = { custom: [], default: "members" };
+        }
+        __classPrivateFieldGet$4(this, _Channel_permissions, "f").threadPermissions[perm] = role;
+        return this;
+    }
+    setMessagePermissions(perm, role) {
+        __classPrivateFieldGet$4(this, _Channel_permissions, "f").messagePermissions[perm] = role;
+        return this;
+    }
+    setGroupPermission(perm, role) {
+        __classPrivateFieldGet$4(this, _Channel_permissions, "f")[perm] = role;
+        return this;
+    }
+    setHistoryVisibleToNewJoiners(val) {
+        __classPrivateFieldSet$4(this, _Channel_historyVisibleToNewJoiners, val, "f");
+        return this;
+    }
+    setRules(text) {
+        __classPrivateFieldSet$4(this, _Channel_rules, { text, enabled: true }, "f");
+        return this;
+    }
+    set gateConfig(val) {
+        __classPrivateFieldSet$4(this, _Channel_gateConfig, val, "f");
+    }
+    setExternalUrl(val) {
+        __classPrivateFieldSet$4(this, _Channel_externalUrl, val, "f");
+        return this;
+    }
+    setAvatar(val) {
+        __classPrivateFieldSet$4(this, _Channel_avatar, val, "f");
+        return this;
+    }
+    setEventsTtl(val) {
+        __classPrivateFieldSet$4(this, _Channel_eventsTtl, val, "f");
+        return this;
+    }
+    constructor(name, description) {
+        this.name = name;
+        this.description = description;
+        _Channel_isPublic.set(this, true);
+        _Channel_permissions.set(this, {
+            changeRoles: "admins",
+            removeMembers: "moderators",
+            deleteMessages: "moderators",
+            updateGroup: "admins",
+            pinMessages: "admins",
+            inviteUsers: "admins",
+            addMembers: "admins",
+            mentionAllMembers: "members",
+            reactToMessages: "members",
+            startVideoCall: "members",
+            messagePermissions: {
+                custom: [],
+                default: "members",
+                p2pSwap: "none",
+            },
+        });
+        _Channel_messagesVisibleToNonMembers.set(this, false);
+        _Channel_historyVisibleToNewJoiners.set(this, true);
+        _Channel_rules.set(this, { text: "", enabled: false });
+        _Channel_gateConfig.set(this, undefined);
+        _Channel_externalUrl.set(this, undefined);
+        _Channel_avatar.set(this, undefined);
+        _Channel_eventsTtl.set(this, undefined);
+    }
+    toInputArgs(auth) {
+        return {
+            is_public: __classPrivateFieldGet$4(this, _Channel_isPublic, "f"),
+            permissions: apiOptional(__classPrivateFieldGet$4(this, _Channel_permissions, "f"), apiGroupPermissions),
+            gate_config: apiOptional(__classPrivateFieldGet$4(this, _Channel_gateConfig, "f"), apiAccessGateConfig),
+            auth_token: apiAuthToken(auth),
+            external_url: apiOptional(__classPrivateFieldGet$4(this, _Channel_externalUrl, "f"), identity),
+            name: this.name,
+            description: this.description,
+            events_ttl: apiOptional(__classPrivateFieldGet$4(this, _Channel_eventsTtl, "f"), identity),
+            messages_visible_to_non_members: __classPrivateFieldGet$4(this, _Channel_messagesVisibleToNonMembers, "f"),
+            history_visible_to_new_joiners: __classPrivateFieldGet$4(this, _Channel_historyVisibleToNewJoiners, "f"),
+            rules: __classPrivateFieldGet$4(this, _Channel_rules, "f"),
+            avatar: apiOptional(__classPrivateFieldGet$4(this, _Channel_avatar, "f"), (data) => {
+                return {
+                    id: random128(),
+                    data,
+                    mime_type: "image/jpg",
+                };
+            }),
+        };
+    }
+}
+_Channel_isPublic = new WeakMap(), _Channel_permissions = new WeakMap(), _Channel_messagesVisibleToNonMembers = new WeakMap(), _Channel_historyVisibleToNewJoiners = new WeakMap(), _Channel_rules = new WeakMap(), _Channel_gateConfig = new WeakMap(), _Channel_externalUrl = new WeakMap(), _Channel_avatar = new WeakMap(), _Channel_eventsTtl = new WeakMap();
+
+var _Message_channelId, _Message_messageId, _Message_contextMessageId, _Message_finalised, _Message_blockLevelMarkdown;
+class Message {
+    constructor(content) {
+        _Message_channelId.set(this, undefined);
+        _Message_messageId.set(this, undefined);
+        _Message_contextMessageId.set(this, undefined);
+        _Message_finalised.set(this, true);
+        _Message_blockLevelMarkdown.set(this, false);
+        this.content = content;
+    }
+    setChannelId(id) {
+        __classPrivateFieldSet$4(this, _Message_channelId, id, "f");
+        return this;
+    }
+    setFinalised(finalised) {
+        __classPrivateFieldSet$4(this, _Message_finalised, finalised, "f");
+        return this;
+    }
+    setBlockLevelMarkdown(blm) {
+        __classPrivateFieldSet$4(this, _Message_blockLevelMarkdown, blm, "f");
+        return this;
+    }
+    setMessageId(messageId) {
+        __classPrivateFieldSet$4(this, _Message_messageId, messageId, "f");
+        return this;
+    }
+    setContextMessageId(messageId) {
+        __classPrivateFieldSet$4(this, _Message_contextMessageId, messageId, "f");
+        return this;
+    }
+    toResponse() {
+        return {
+            id: __classPrivateFieldGet$4(this, _Message_contextMessageId, "f") ?? 0n,
+            content: this.content,
+            finalised: __classPrivateFieldGet$4(this, _Message_finalised, "f"),
+            blockLevelMarkdown: __classPrivateFieldGet$4(this, _Message_blockLevelMarkdown, "f"),
+        };
+    }
+    toInputArgs(auth) {
+        return {
+            channel_id: apiOptional(__classPrivateFieldGet$4(this, _Message_channelId, "f"), identity),
+            message_id: apiOptional(__classPrivateFieldGet$4(this, _Message_messageId, "f"), identity),
+            content: this.content,
+            finalised: __classPrivateFieldGet$4(this, _Message_finalised, "f"),
+            block_level_markdown: __classPrivateFieldGet$4(this, _Message_blockLevelMarkdown, "f") ?? false,
+            auth_token: apiAuthToken(auth),
+        };
+    }
+}
+_Message_channelId = new WeakMap(), _Message_messageId = new WeakMap(), _Message_contextMessageId = new WeakMap(), _Message_finalised = new WeakMap(), _Message_blockLevelMarkdown = new WeakMap();
+class TextMessage extends Message {
+    constructor(text) {
+        super({ Text: { text } });
+    }
+}
+class ImageMessage extends Message {
+    constructor(width, height, mimeType, blobReference) {
+        super({
+            Image: {
+                height,
+                mime_type: mimeType,
+                blob_reference: apiOptional(blobReference, apiBlobReference),
+                thumbnail_data: "",
+                caption: [],
+                width,
+            },
+        });
+    }
+    setCaption(caption) {
+        this.content.Image.caption = apiOptional(caption, identity);
+        return this;
+    }
+}
+class FileMessage extends Message {
+    constructor(name, mimeType, fileSize, blobReference) {
+        super({
+            File: {
+                name,
+                file_size: fileSize,
+                mime_type: mimeType,
+                blob_reference: apiOptional(blobReference, apiBlobReference),
+                caption: [],
+            },
+        });
+    }
+    setCaption(caption) {
+        this.content.File.caption = apiOptional(caption, identity);
+        return this;
+    }
+}
+
 var _BotClient_instances, _BotClient_botService, _BotClient_auth, _BotClient_decoded, _BotClient_env, _BotClient_agent, _BotClient_botApiGateway_get, _BotClient_decodeApiKey, _BotClient_decodeJwt, _BotClient_extractCanisterFromChat, _BotClient_principalBytesToString, _BotClient_hasCommand, _BotClient_namedArg;
 class BotClient extends CandidService {
     constructor(agent, env, auth) {
@@ -37050,8 +37307,8 @@ class BotClient extends CandidService {
     sendMessage(message) {
         return __classPrivateFieldGet$4(this, _BotClient_botService, "f").sendMessage(message, __classPrivateFieldGet$4(this, _BotClient_auth, "f"));
     }
-    createChannel(name, description, options) {
-        return __classPrivateFieldGet$4(this, _BotClient_botService, "f").createChannel(name, description, { ...defaultChannelOptions, ...options }, __classPrivateFieldGet$4(this, _BotClient_auth, "f"));
+    createChannel(channel) {
+        return __classPrivateFieldGet$4(this, _BotClient_botService, "f").createChannel(channel, __classPrivateFieldGet$4(this, _BotClient_auth, "f"));
     }
     get scope() {
         return __classPrivateFieldGet$4(this, _BotClient_decoded, "f").scope;
@@ -37112,76 +37369,24 @@ class BotClient extends CandidService {
     get initiator() {
         return this.command?.initiator;
     }
-    sendTextMessage(finalised, text, blockLevelMarkdown) {
-        return this.createTextMessage(finalised, text, blockLevelMarkdown).then((msg) => this.sendMessage(msg));
+    createTextMessage(text) {
+        return Promise.resolve(new TextMessage(text).setContextMessageId(this.messageId));
     }
-    createTextMessage(finalised, text, blockLevelMarkdown = false) {
-        return Promise.resolve({
-            id: this.messageId ?? 0n,
-            content: {
-                Text: { text },
-            },
-            finalised,
-            blockLevelMarkdown,
-        });
-    }
-    createImageMessage(finalised, imageData, mimeType, width, height, caption) {
+    createImageMessage(imageData, mimeType, width, height) {
         const dataClient = new DataClient(__classPrivateFieldGet$4(this, _BotClient_agent, "f"), __classPrivateFieldGet$4(this, _BotClient_env, "f"));
         const canisterId = __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_extractCanisterFromChat).call(this);
-        console.log("Upload canister: ", canisterId);
         const uploadContentPromise = dataClient.uploadData([canisterId], mimeType, imageData);
-        return uploadContentPromise.then((blobRef) => {
-            return {
-                id: this.messageId ?? 0n,
-                content: {
-                    Image: {
-                        height,
-                        mime_type: mimeType,
-                        blob_reference: [
-                            {
-                                blob_id: blobRef.blobId,
-                                canister_id: Principal$1.fromText(blobRef.canisterId),
-                            },
-                        ],
-                        thumbnail_data: "",
-                        caption: caption ? [caption] : [],
-                        width,
-                    },
-                },
-                finalised,
-            };
+        return uploadContentPromise.then((blobReference) => {
+            return new ImageMessage(width, height, mimeType, blobReference).setContextMessageId(this.messageId);
         });
     }
-    sendImageMessage(finalised, imageData, mimeType, width, height, caption) {
-        return this.createImageMessage(finalised, imageData, mimeType, width, height, caption).then((msg) => this.sendMessage(msg));
-    }
-    createFileMessage(finalised, name, data, mimeType, fileSize, caption) {
+    createFileMessage(name, data, mimeType, fileSize) {
         const dataClient = new DataClient(__classPrivateFieldGet$4(this, _BotClient_agent, "f"), __classPrivateFieldGet$4(this, _BotClient_env, "f"));
         const canisterId = __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_extractCanisterFromChat).call(this);
         const uploadContentPromise = dataClient.uploadData([canisterId], mimeType, data);
-        return uploadContentPromise.then((blobRef) => {
-            return {
-                id: this.messageId ?? 0n,
-                content: {
-                    File: {
-                        name,
-                        file_size: fileSize,
-                        mime_type: mimeType,
-                        blob_reference: [
-                            {
-                                blob_id: blobRef.blobId,
-                                canister_id: Principal$1.fromText(blobRef.canisterId),
-                            },
-                        ],
-                        caption: caption ? [caption] : [],
-                    },
-                },
-                finalised,
-            };
+        return uploadContentPromise.then((blobReference) => {
+            return new FileMessage(name, mimeType, fileSize, blobReference).setContextMessageId(this.messageId);
         });
-    }
-    sendFileMessage(finalised, name, data, mimeType, fileSize, caption) {
-        return this.createFileMessage(finalised, name, data, mimeType, fileSize, caption).then((msg) => this.sendMessage(msg));
     }
 }
 _BotClient_botService = new WeakMap(), _BotClient_auth = new WeakMap(), _BotClient_decoded = new WeakMap(), _BotClient_env = new WeakMap(), _BotClient_agent = new WeakMap(), _BotClient_instances = new WeakSet(), _BotClient_botApiGateway_get = function _BotClient_botApiGateway_get() {
@@ -37315,5 +37520,5 @@ BigInt.prototype.toJSON = function () {
     return this.toString();
 };
 
-export { BadRequestError, BotClient, BotClientFactory, accessTokenExpired, accessTokenInvalid, accessTokenNotFound, argumentsInvalid, commandNotFound, defaultChannelOptions, tooManyRequests };
+export { BadRequestError, BotClient, BotClientFactory, Channel, FileMessage, ImageMessage, Message, TextMessage, accessTokenExpired, accessTokenInvalid, accessTokenNotFound, argumentsInvalid, commandNotFound, tooManyRequests };
 //# sourceMappingURL=index.mjs.map

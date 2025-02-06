@@ -1,12 +1,5 @@
 import { Principal } from "@dfinity/principal";
-import type {
-    GroupPermissions,
-    MessagePermissions,
-    PermissionRole,
-    AccessGate,
-    AccessGateConfig,
-    LeafGate,
-} from "../domain/index";
+import type { BlobReference, AuthToken } from "../domain";
 import type {
     PermissionRole as ApiPermissionRole,
     GroupPermissions as ApiGroupPermissions,
@@ -14,83 +7,30 @@ import type {
     AccessGateConfig as ApiAccessGateConfig,
     AccessGateNonComposite as ApiAccessGateNonComposite,
     AccessGate as ApiAccessGate,
+    BlobReference as ApiBlobReference,
+    AuthToken as ApiAuthToken,
 } from "../services/bot_gateway/candid/types";
+import type { AccessGate, AccessGateConfig } from "../domain/access";
+import type { GroupPermissions, MessagePermissions, PermissionRole } from "../domain/permissions";
 
-export function accessGateConfig(api: ApiAccessGateConfig): AccessGateConfig {
+export function apiAuthToken(auth: AuthToken): ApiAuthToken {
+    switch (auth.kind) {
+        case "api_key":
+            return {
+                ApiKey: auth.token,
+            };
+        case "jwt":
+            return {
+                Jwt: auth.token,
+            };
+    }
+}
+
+export function apiBlobReference(domain: BlobReference): ApiBlobReference {
     return {
-        gate: accessGate(api.gate),
-        expiry: optional(api.expiry, identity),
+        blob_id: domain.blobId,
+        canister_id: Principal.fromText(domain.canisterId),
     };
-}
-
-export function accessGate(api: ApiAccessGate): AccessGate {
-    if ("Composite" in api) {
-        return {
-            kind: "composite_gate",
-            gates: api.Composite.inner.map(leafAccessGate),
-            operator: api.Composite.and ? "and" : "or",
-        };
-    }
-    return leafAccessGate(api);
-}
-
-export function leafAccessGate(api: ApiAccessGateNonComposite): LeafGate {
-    if ("DiamondMember" in api) {
-        return { kind: "diamond_gate" };
-    }
-    if ("SnsNeuron" in api) {
-        return {
-            kind: "neuron_gate",
-            governanceCanister: api.SnsNeuron.governance_canister_id.toString(),
-            minStakeE8s: optional(api.SnsNeuron.min_stake_e8s, identity),
-            minDissolveDelay: optional(api.SnsNeuron.min_dissolve_delay, identity),
-        };
-    }
-    if ("Payment" in api) {
-        return {
-            kind: "payment_gate",
-            ledgerCanister: api.Payment.ledger_canister_id.toString(),
-            amount: api.Payment.amount,
-            fee: api.Payment.fee,
-        };
-    }
-    if ("LifetimeDiamondMember" in api) {
-        return { kind: "lifetime_diamond_gate" };
-    }
-    if ("UniquePerson" in api) {
-        return { kind: "unique_person_gate" };
-    }
-    if ("VerifiedCredential" in api) {
-        return {
-            kind: "credential_gate",
-            credential: {
-                credentialName: api.VerifiedCredential.credential_name,
-                issuerCanisterId: api.VerifiedCredential.issuer_canister_id.toString(),
-                issuerOrigin: api.VerifiedCredential.issuer_origin,
-                credentialType: api.VerifiedCredential.credential_type,
-                credentialArguments: Object.fromEntries(
-                    api.VerifiedCredential.credential_arguments.map(([key, value]) => [
-                        key,
-                        "Int" in value ? value.Int : value.String,
-                    ]),
-                ),
-            },
-        };
-    }
-    if ("TokenBalance" in api) {
-        return {
-            kind: "token_balance_gate",
-            ledgerCanister: api.TokenBalance.ledger_canister_id.toString(),
-            minBalance: api.TokenBalance.min_balance,
-        };
-    }
-    if ("Locked" in api) {
-        return { kind: "locked_gate" };
-    }
-    if ("ReferredByMember" in api) {
-        return { kind: "referred_by_member_gate" };
-    }
-    return { kind: "no_gate" };
 }
 
 export function apiAccessGateConfig(domain: AccessGateConfig): ApiAccessGateConfig {
@@ -114,8 +54,6 @@ export function apiAccessGate(domain: AccessGate): ApiAccessGate {
 
 export function apiLeafAccessGate(domain: AccessGate): ApiAccessGateNonComposite {
     switch (domain.kind) {
-        case "no_gate":
-            return { DiamondMember: null };
         case "neuron_gate":
             return {
                 SnsNeuron: {
@@ -184,46 +122,6 @@ export function apiPermissionRole(domain: PermissionRole): ApiPermissionRole {
     }
 }
 
-export function permissionRole(api: ApiPermissionRole): PermissionRole {
-    if ("Admins" in api) {
-        return "admins";
-    }
-    if ("Members" in api) {
-        return "members";
-    }
-    if ("Moderators" in api) {
-        return "moderators";
-    }
-    if ("None" in api) {
-        return "none";
-    }
-    if ("Owner" in api) {
-        return "owners";
-    }
-    throw new Error("Unknown permission role");
-}
-
-export function messagePermissions(api: ApiMessagePermissions): MessagePermissions {
-    return {
-        audio: optional(api.audio, permissionRole),
-        video: optional(api.video, permissionRole),
-        videoCall: optional(api.video_call, permissionRole),
-        custom: api.custom.map((p) => ({
-            subtype: p.subtype,
-            role: permissionRole(p.role),
-        })),
-        file: optional(api.file, permissionRole),
-        poll: optional(api.poll, permissionRole),
-        text: optional(api.text, permissionRole),
-        crypto: optional(api.crypto, permissionRole),
-        giphy: optional(api.giphy, permissionRole),
-        default: permissionRole(api.default),
-        image: optional(api.image, permissionRole),
-        prize: optional(api.prize, permissionRole),
-        p2pSwap: optional(api.p2p_swap, permissionRole),
-    };
-}
-
 export function apiMessagePermissions(domain: MessagePermissions): ApiMessagePermissions {
     return {
         audio: apiOptional(domain.audio, apiPermissionRole),
@@ -242,23 +140,6 @@ export function apiMessagePermissions(domain: MessagePermissions): ApiMessagePer
         image: apiOptional(domain.image, apiPermissionRole),
         prize: apiOptional(domain.prize, apiPermissionRole),
         p2p_swap: apiOptional(domain.p2pSwap, apiPermissionRole),
-    };
-}
-
-export function groupPermissions(api: ApiGroupPermissions): GroupPermissions {
-    return {
-        mentionAllMembers: permissionRole(api.mention_all_members),
-        deleteMessages: permissionRole(api.delete_messages),
-        removeMembers: permissionRole(api.remove_members),
-        updateGroup: permissionRole(api.update_group),
-        messagePermissions: messagePermissions(api.message_permissions),
-        inviteUsers: permissionRole(api.invite_users),
-        threadPermissions: optional(api.thread_permissions, messagePermissions),
-        changeRoles: permissionRole(api.change_roles),
-        startVideoCall: permissionRole(api.start_video_call),
-        addMembers: permissionRole(api.add_members),
-        pinMessages: permissionRole(api.pin_messages),
-        reactToMessages: permissionRole(api.react_to_messages),
     };
 }
 

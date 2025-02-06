@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import sharp from "sharp";
 import { WithBotClient } from "../types";
 import path from "path";
+import { Channel } from "@open-ic/openchat-botclient-ts";
 
 function hasBotClient(req: Request): req is WithBotClient {
   return (req as WithBotClient).botClient !== undefined;
@@ -44,10 +45,12 @@ export default async function createChannel(req: Request, res: Response) {
   const imageData = await processImage(imagePath);
 
   const resp = await client.createChannel(
-    req.body,
-    "This is a test channel created by a bot",
-    { avatar: imageData }
+    new Channel(req.body, "This is a test channel created by a bot")
+      .setAvatar(imageData)
+      .setGroupPermission("changeRoles", "members")
+      .setHistoryVisibleToNewJoiners(false)
   );
+
   if ("Success" in resp) {
     console.log("Successfully created channel");
     res.sendStatus(200);

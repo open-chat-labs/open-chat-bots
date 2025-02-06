@@ -1,7 +1,7 @@
 import { HttpAgent } from "@dfinity/agent";
 import { Secp256k1KeyIdentity } from "@dfinity/identity-secp256k1";
-import type { BotClientConfig } from "../types";
 import { BotClient } from "./bot_client";
+import type { BotClientConfig } from "../domain";
 
 function createAgent(env: BotClientConfig): HttpAgent {
     const identity = createIdentity(env.identityPrivateKey);

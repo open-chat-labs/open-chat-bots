@@ -23,10 +23,9 @@ async function processFile(filePath: string) {
 
 export default async function file(req: WithBotClient, res: Response) {
   const client = req.botClient;
-  const placeholder = await client.createTextMessage(
-    false,
-    "Uploading file ..."
-  );
+  const placeholder = (
+    await client.createTextMessage("Uploading file ...")
+  ).setFinalised(false);
 
   client.sendMessage(placeholder);
 
@@ -35,12 +34,8 @@ export default async function file(req: WithBotClient, res: Response) {
   const filePath = "./dummy.pdf";
   const { uint8Array, fileSize, mimeType } = await processFile(filePath);
 
-  client.sendFileMessage(
-    true,
-    filePath,
-    uint8Array,
-    mimeType,
-    fileSize,
-    "This is a test file"
-  );
+  const fileMsg = (
+    await client.createFileMessage(filePath, uint8Array, mimeType, fileSize)
+  ).setCaption("This is a test file");
+  client.sendMessage(fileMsg);
 }

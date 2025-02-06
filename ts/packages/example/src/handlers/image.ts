@@ -38,10 +38,9 @@ async function processImage(filePath: string) {
 
 export default async function image(req: WithBotClient, res: Response) {
   const client = req.botClient;
-  const placeholder = await client.createTextMessage(
-    false,
-    "Uploading image ..."
-  );
+  const placeholder = (
+    await client.createTextMessage("Uploading image ...")
+  ).setFinalised(false);
 
   client.sendMessage(placeholder);
 
@@ -50,12 +49,13 @@ export default async function image(req: WithBotClient, res: Response) {
   const filePath = path.join(__dirname, "..", "..", "picture.png");
   const { uint8Array, width, height, format } = await processImage(filePath);
 
-  client.sendImageMessage(
-    true,
-    uint8Array,
-    `image/${format}`,
-    width,
-    height,
-    "This is a test image"
-  );
+  const imgMsg = (
+    await client.createImageMessage(
+      uint8Array,
+      `image/${format}`,
+      width,
+      height
+    )
+  ).setCaption("This is a test image");
+  client.sendMessage(imgMsg);
 }

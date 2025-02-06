@@ -1,14 +1,15 @@
 import { HttpAgent } from "@dfinity/agent";
 import { CandidService } from "../utils/candidService";
-import { type AuthToken, type BotActionChatScope, type BotActionCommunityScope, type BotActionScope, type BotClientConfig, type BotCommand, type BotCommandArg, type ChannelOptions, type Message } from "../types";
 import type { BotCreateChannelResponse, BotSendMessageResponse } from "../services/bot_gateway/candid/types";
 import type { Chat } from "../services/storageIndex/candid/types";
+import { FileMessage, ImageMessage, TextMessage, type AuthToken, type BotActionChatScope, type BotActionCommunityScope, type BotActionScope, type BotClientConfig, type BotCommand, type BotCommandArg, type Message } from "../domain";
+import type { Channel } from "../domain/channel";
 export declare class BotClient extends CandidService {
     #private;
     constructor(agent: HttpAgent, env: BotClientConfig, auth: AuthToken);
     get command(): BotCommand | undefined;
-    sendMessage(message: Message): Promise<BotSendMessageResponse>;
-    createChannel(name: string, description: string, options?: Partial<ChannelOptions>): Promise<BotCreateChannelResponse>;
+    sendMessage<M>(message: Message<M>): Promise<BotSendMessageResponse>;
+    createChannel(channel: Channel): Promise<BotCreateChannelResponse>;
     get scope(): BotActionScope;
     get chatScope(): BotActionChatScope | undefined;
     get communityScope(): BotActionCommunityScope | undefined;
@@ -23,12 +24,9 @@ export declare class BotClient extends CandidService {
     get commandArgs(): BotCommandArg[];
     get commandName(): string | undefined;
     get initiator(): string | undefined;
-    sendTextMessage(finalised: boolean, text: string, blockLevelMarkdown?: boolean): Promise<BotSendMessageResponse>;
-    createTextMessage(finalised: boolean, text: string, blockLevelMarkdown?: boolean): Promise<Message>;
-    createImageMessage(finalised: boolean, imageData: Uint8Array, mimeType: string, width: number, height: number, caption?: string): Promise<Message>;
-    sendImageMessage(finalised: boolean, imageData: Uint8Array, mimeType: string, width: number, height: number, caption?: string): Promise<BotSendMessageResponse>;
-    createFileMessage(finalised: boolean, name: string, data: Uint8Array, mimeType: string, fileSize: number, caption?: string): Promise<Message>;
-    sendFileMessage(finalised: boolean, name: string, data: Uint8Array, mimeType: string, fileSize: number, caption?: string): Promise<BotSendMessageResponse>;
+    createTextMessage(text: string): Promise<TextMessage>;
+    createImageMessage(imageData: Uint8Array, mimeType: string, width: number, height: number): Promise<ImageMessage>;
+    createFileMessage(name: string, data: Uint8Array, mimeType: string, fileSize: number): Promise<FileMessage>;
 }
 export declare function isChatScope(scope: BotActionScope): scope is BotActionChatScope;
 export declare function isCommunityScope(scope: BotActionScope): scope is BotActionCommunityScope;

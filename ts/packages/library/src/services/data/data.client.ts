@@ -5,12 +5,7 @@ import { random128 } from "../../utils/rng";
 import type { ProjectedAllowance } from "../storageIndex/candid/types";
 import { StorageIndexClient } from "../storageIndex/storageIndex.client";
 import { StorageBucketClient } from "../storageBucket/storageBucket.client";
-import type { BotClientConfig } from "../../types";
-
-export type BlobReference = {
-    blobId: bigint;
-    canisterId: string;
-};
+import type { BlobReference, BotClientConfig } from "../../domain";
 
 export type UploadFileResponse = {
     canisterId: string;

@@ -30,7 +30,7 @@
     "AutonomousConfig": {
       "type": "object",
       "description": "Configuration for the bot's autonomous behaviour",
-      "properies": {
+      "properties": {
         "permissions": {
           "$ref": "#/definitions/BotPermissions",
           "description": "The permissions required to execute in this context. These are broken down into Community level, Chat level and Message level permissions."

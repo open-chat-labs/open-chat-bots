@@ -52,7 +52,9 @@ function toMarkdown(news: NewsSummary[]): string {
 export default async function news(req: WithBotClient, res: Response) {
   const client = req.botClient;
   const news = await scrapeBBCNews();
-  const msg = await client.createTextMessage(true, toMarkdown(news), true);
+  const msg = (
+    await client.createTextMessage(toMarkdown(news))
+  ).setBlockLevelMarkdown(true);
 
   res.status(200).json(success(msg));
   client

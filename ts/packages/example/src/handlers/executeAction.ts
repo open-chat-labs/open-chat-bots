@@ -14,7 +14,7 @@ export default async function executeAction(req: Request, res: Response) {
 
   const client = req.botClient;
 
-  const msg = await client.createTextMessage(true, req.body);
+  const msg = await client.createTextMessage(req.body);
 
   res.status(200).json(success(msg));
   client

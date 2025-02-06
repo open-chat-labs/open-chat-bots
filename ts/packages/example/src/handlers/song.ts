@@ -10,10 +10,9 @@ export default async function (req: WithBotClient, res: Response) {
   if (song === undefined) {
     res.status(400).send(argumentsInvalid());
   } else {
-    const placeholder = await client.createTextMessage(
-      false,
-      "Searching Spotify ..."
-    );
+    const placeholder = (
+      await client.createTextMessage("Searching Spotify ...")
+    ).setFinalised(false);
 
     client
       .sendMessage(placeholder)
@@ -27,8 +26,9 @@ export default async function (req: WithBotClient, res: Response) {
     const item = await searchSpotifySongs(token, song);
     const url = item.external_urls.spotify;
 
+    const final = await client.createTextMessage(url);
     client
-      .sendTextMessage(true, url)
+      .sendMessage(final)
       .catch((err: unknown) => console.error("sendMessage failed with: ", err));
   }
 }

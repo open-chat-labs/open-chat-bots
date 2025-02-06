@@ -5,7 +5,10 @@ import { WithBotClient } from "../types";
 
 export default async function (req: WithBotClient, res: Response) {
   const client = req.botClient;
-  const msg = await client.createTextMessage(true, "Stop pinging ...");
+
+  const msg = (await client.createTextMessage("Stop pinging ...")).setFinalised(
+    true
+  );
 
   client
     .sendMessage(msg)

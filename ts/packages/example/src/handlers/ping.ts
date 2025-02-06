@@ -13,8 +13,11 @@ export class Ping {
     clearInterval(this.#timer);
     this.#timer = setInterval(async () => {
       const client = await this.factory.createClientFromApiKey(this.apiKey);
+      const msg = await client.createTextMessage(
+        `Ping at ${new Date().toLocaleTimeString()}`
+      );
       client
-        .sendTextMessage(true, `Ping at ${new Date().toLocaleTimeString()}`)
+        .sendMessage(msg)
         .catch((err) => console.error("Couldn't call ping"));
     }, this.#interval);
   }

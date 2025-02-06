@@ -1,0 +1,15 @@
+import type { BlobReference, AuthToken } from "../domain";
+import type { PermissionRole as ApiPermissionRole, GroupPermissions as ApiGroupPermissions, MessagePermissions as ApiMessagePermissions, AccessGateConfig as ApiAccessGateConfig, AccessGateNonComposite as ApiAccessGateNonComposite, AccessGate as ApiAccessGate, BlobReference as ApiBlobReference, AuthToken as ApiAuthToken } from "../services/bot_gateway/candid/types";
+import type { AccessGate, AccessGateConfig } from "../domain/access";
+import type { GroupPermissions, MessagePermissions, PermissionRole } from "../domain/permissions";
+export declare function apiAuthToken(auth: AuthToken): ApiAuthToken;
+export declare function apiBlobReference(domain: BlobReference): ApiBlobReference;
+export declare function apiAccessGateConfig(domain: AccessGateConfig): ApiAccessGateConfig;
+export declare function apiAccessGate(domain: AccessGate): ApiAccessGate;
+export declare function apiLeafAccessGate(domain: AccessGate): ApiAccessGateNonComposite;
+export declare function apiPermissionRole(domain: PermissionRole): ApiPermissionRole;
+export declare function apiMessagePermissions(domain: MessagePermissions): ApiMessagePermissions;
+export declare function apiGroupPermissions(domain: GroupPermissions): ApiGroupPermissions;
+export declare function apiOptional<A, B>(domain: A | undefined, mapper: (a: A) => B): [] | [B];
+export declare function optional<A, B>(api: [] | [A], mapper: (a: A) => B): B | undefined;
+export declare function identity<A>(a: A): A;

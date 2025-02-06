@@ -17,10 +17,10 @@ export default async function (req: WithBotClient, res: Response) {
     res.status(400).send(argumentsInvalid());
   } else {
     // Send a placeholder message to OpenChat while we work ...
-    const placeholder = await client.createTextMessage(
-      false,
-      "Searching Spotify ..."
-    );
+    const placeholder = (
+      await client.createTextMessage("Searching Spotify ...")
+    ).setFinalised(false);
+
     client
       .sendMessage(placeholder)
       .catch((err) => console.error("sendTextMessage failed with: ", err));
@@ -36,8 +36,9 @@ export default async function (req: WithBotClient, res: Response) {
     const url = item.external_urls.spotify;
 
     // Send the final result to the OpenChat backend
+    const finalMsg = await client.createTextMessage(url);
     client
-      .sendTextMessage(true, url)
+      .sendMessage(finalMsg)
       .catch((err) => console.error("sendTextMessage failed with: ", err));
   }
 }
