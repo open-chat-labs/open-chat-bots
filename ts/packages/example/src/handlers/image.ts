@@ -57,5 +57,7 @@ export default async function image(req: WithBotClient, res: Response) {
       height
     )
   ).setCaption("This is a test image");
-  client.sendMessage(imgMsg);
+  client
+    .sendMessage(imgMsg)
+    .catch((err) => console.log("sendImageMessage failed with: ", err));
 }
