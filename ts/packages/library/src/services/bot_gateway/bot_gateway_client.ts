@@ -23,7 +23,7 @@ export class BotGatewayClient extends CandidService {
         );
     }
 
-    sendMessage<M>(message: Message<M>, auth: AuthToken): Promise<BotSendMessageResponse> {
+    sendMessage(message: Message, auth: AuthToken): Promise<BotSendMessageResponse> {
         return CandidService.handleResponse(
             this.#botService.bot_send_message(message.toInputArgs(auth)),
             (res) => {

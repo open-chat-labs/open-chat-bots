@@ -13,6 +13,7 @@ import { Principal } from "@dfinity/principal";
 import {
     FileMessage,
     ImageMessage,
+    PollMessage,
     TextMessage,
     type AuthToken,
     type BotActionChatScope,
@@ -112,7 +113,7 @@ export class BotClient extends CandidService {
         }
     }
 
-    public sendMessage<M>(message: Message<M>): Promise<BotSendMessageResponse> {
+    public sendMessage(message: Message): Promise<BotSendMessageResponse> {
         return this.#botService.sendMessage(message, this.#auth);
     }
 
@@ -195,6 +196,12 @@ export class BotClient extends CandidService {
 
     createTextMessage(text: string): Promise<TextMessage> {
         return Promise.resolve(new TextMessage(text).setContextMessageId(this.messageId));
+    }
+
+    createPollMessage(question: string, answers: string[]): Promise<PollMessage> {
+        return Promise.resolve(
+            new PollMessage(question, answers).setContextMessageId(this.messageId),
+        );
     }
 
     createImageMessage(

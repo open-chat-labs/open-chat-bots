@@ -37277,6 +37277,58 @@ class FileMessage extends Message {
         return this;
     }
 }
+const ONE_HOUR = 1000 * 60 * 60;
+const ONE_DAY = ONE_HOUR * 24;
+const ONE_WEEK = ONE_DAY * 7;
+function pollEndDate(duration) {
+    const now = Date.now();
+    switch (duration) {
+        case "oneHour":
+            return BigInt(now + ONE_HOUR);
+        case "oneDay":
+            return BigInt(now + ONE_DAY);
+        case "oneWeek":
+            return BigInt(now + ONE_WEEK);
+    }
+}
+class PollMessage extends Message {
+    constructor(question, answers, duration = "oneDay") {
+        super({
+            Poll: {
+                votes: {
+                    total: { Hidden: 0 },
+                    user: [],
+                },
+                ended: false,
+                config: {
+                    text: apiOptional(question, identity),
+                    allow_multiple_votes_per_user: false,
+                    show_votes_before_end_date: true,
+                    end_date: [pollEndDate(duration)],
+                    anonymous: false,
+                    allow_user_to_change_vote: true,
+                    options: answers,
+                },
+            },
+        });
+    }
+    setAllowMultipleVotesPerUser(val) {
+        this.content.Poll.config.allow_multiple_votes_per_user = val;
+        return this;
+    }
+    setShowVotesBeforeEndDate(val) {
+        this.content.Poll.config.show_votes_before_end_date = val;
+        return this;
+    }
+    setAnonymous(val) {
+        this.content.Poll.config.anonymous = val;
+        return this;
+    }
+    setAllowUsersToChangeVote(val) {
+        this.content.Poll.config.allow_user_to_change_vote = val;
+        return this;
+    }
+}
 
 var _BotClient_instances, _BotClient_botService, _BotClient_auth, _BotClient_decoded, _BotClient_env, _BotClient_agent, _BotClient_botApiGateway_get, _BotClient_decodeApiKey, _BotClient_decodeJwt, _BotClient_extractCanisterFromChat, _BotClient_principalBytesToString, _BotClient_hasCommand, _BotClient_namedArg;
 class BotClient extends CandidService {
@@ -37373,6 +37425,9 @@ class BotClient extends CandidService {
     }
     createTextMessage(text) {
         return Promise.resolve(new TextMessage(text).setContextMessageId(this.messageId));
+    }
+    createPollMessage(question, answers) {
+        return Promise.resolve(new PollMessage(question, answers).setContextMessageId(this.messageId));
     }
     createImageMessage(imageData, mimeType, width, height) {
         const dataClient = new DataClient(__classPrivateFieldGet$4(this, _BotClient_agent, "f"), __classPrivateFieldGet$4(this, _BotClient_env, "f"));
@@ -37529,6 +37584,7 @@ exports.Channel = Channel;
 exports.FileMessage = FileMessage;
 exports.ImageMessage = ImageMessage;
 exports.Message = Message;
+exports.PollMessage = PollMessage;
 exports.TextMessage = TextMessage;
 exports.accessTokenExpired = accessTokenExpired;
 exports.accessTokenInvalid = accessTokenInvalid;

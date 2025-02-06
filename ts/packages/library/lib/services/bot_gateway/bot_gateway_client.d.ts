@@ -7,6 +7,6 @@ export declare class BotGatewayClient extends CandidService {
     #private;
     protected env: BotClientConfig;
     constructor(canisterId: string, agent: HttpAgent, env: BotClientConfig);
-    sendMessage<M>(message: Message<M>, auth: AuthToken): Promise<BotSendMessageResponse>;
+    sendMessage(message: Message, auth: AuthToken): Promise<BotSendMessageResponse>;
     createChannel(channel: Channel, auth: AuthToken): Promise<BotCreateChannelResponse>;
 }

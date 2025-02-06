@@ -17,6 +17,7 @@ import news from "./news";
 import start_ping from "./start_ping";
 import stop_ping from "./stop_ping";
 import { WithBotClient } from "../types";
+import poll from "./poll";
 
 function hasBotClient(req: Request): req is WithBotClient {
   return (req as WithBotClient).botClient !== undefined;
@@ -31,6 +32,8 @@ export default function executeCommand(req: Request, res: Response) {
   console.log("Command: ", client.commandName, client.commandArgs);
 
   switch (client.commandName) {
+    case "/poll":
+      return poll(req, res);
     case "start_ping":
       return start_ping(req, res);
     case "stop_ping":

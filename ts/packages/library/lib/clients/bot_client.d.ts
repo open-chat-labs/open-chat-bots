@@ -2,13 +2,13 @@ import { HttpAgent } from "@dfinity/agent";
 import { CandidService } from "../utils/candidService";
 import type { BotCreateChannelResponse, BotSendMessageResponse } from "../services/bot_gateway/candid/types";
 import type { Chat } from "../services/storageIndex/candid/types";
-import { FileMessage, ImageMessage, TextMessage, type AuthToken, type BotActionChatScope, type BotActionCommunityScope, type BotActionScope, type BotClientConfig, type BotCommand, type BotCommandArg, type Message } from "../domain";
+import { FileMessage, ImageMessage, PollMessage, TextMessage, type AuthToken, type BotActionChatScope, type BotActionCommunityScope, type BotActionScope, type BotClientConfig, type BotCommand, type BotCommandArg, type Message } from "../domain";
 import type { Channel } from "../domain/channel";
 export declare class BotClient extends CandidService {
     #private;
     constructor(agent: HttpAgent, env: BotClientConfig, auth: AuthToken);
     get command(): BotCommand | undefined;
-    sendMessage<M>(message: Message<M>): Promise<BotSendMessageResponse>;
+    sendMessage(message: Message): Promise<BotSendMessageResponse>;
     createChannel(channel: Channel): Promise<BotCreateChannelResponse>;
     get scope(): BotActionScope;
     get chatScope(): BotActionChatScope | undefined;
@@ -25,6 +25,7 @@ export declare class BotClient extends CandidService {
     get commandName(): string | undefined;
     get initiator(): string | undefined;
     createTextMessage(text: string): Promise<TextMessage>;
+    createPollMessage(question: string, answers: string[]): Promise<PollMessage>;
     createImageMessage(imageData: Uint8Array, mimeType: string, width: number, height: number): Promise<ImageMessage>;
     createFileMessage(name: string, data: Uint8Array, mimeType: string, fileSize: number): Promise<FileMessage>;
 }
