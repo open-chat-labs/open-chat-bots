@@ -39,10 +39,12 @@ impl<R: Runtime + Send + Sync + 'static> SendMessageBuilder<R> {
         let runtime = self.client.runtime.clone();
         let runtime_clone = self.client.runtime.clone();
         let bot_api_gateway = self.client.context.bot_api_gateway();
+        let message_id = self.client.context.chat_scope().unwrap().message_id;
+
         let args = self.into_args();
 
         let message = Message {
-            id: args.message_id.unwrap(),
+            id: message_id,
             content: args.content.clone(),
             finalised: args.finalised,
         };

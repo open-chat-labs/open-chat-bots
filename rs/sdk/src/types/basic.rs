@@ -7,7 +7,6 @@ pub type ChannelId = u32;
 pub type EventIndex = u32;
 pub type Hash = [u8; 32];
 pub type MessageIndex = u32;
-pub type MessageId = u64;
 pub type Milliseconds = u64;
 pub type Nanoseconds = u64;
 pub type TimestampMillis = u64;
