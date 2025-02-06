@@ -16,8 +16,8 @@ async function processImage(filePath: string) {
 
     while (buffer.length > MAX_SIZE_BYTES) {
       const scaleFactor = Math.sqrt(MAX_SIZE_BYTES / buffer.length);
-      width = Math.round(width ?? 0 * scaleFactor);
-      height = Math.round(height ?? 0 * scaleFactor);
+      width = Math.round((width ?? 0) * scaleFactor);
+      height = Math.round((height ?? 0) * scaleFactor);
       buffer = await image.resize({ width, height }).toBuffer();
     }
 
