@@ -1,20 +1,18 @@
 #!/bin/bash
 
-# Pass in the dfx identity name
-# eg './upload_jokes.sh openchat "/Users/mattgrogan/Downloads/shortjokes.csv"'
+# eg './upload_jokes.sh "/Users/myusername/.config/dfx/identity/myidentity/identity.pem" "/Users/myusername/Downloads/shortjokes.csv" "g6z42-4eaaa-aaaaa-qaata-cai"'
 
-IDENTITY=${1}
+PEM_FILE=${1}
 FILE_PATH=${2}
+CANISTER_ID=${3}
 
 SCRIPT=$(readlink -f "$0")
 SCRIPT_DIR=$(dirname "$SCRIPT")
 cd $SCRIPT_DIR/..
 
-GREET_BOT_CANISTER_ID=$(dfx canister --network ic id greet_bot)
-
 cargo run \
   --manifest-path examples/greet/loader/Cargo.toml -- \
-  --greet-bot-canister-id $GREET_BOT_CANISTER_ID \
-  --url https://ic0.app/ \
-  --controller $IDENTITY \
+  --greet-bot-canister-id $CANISTER_ID \
+  --url http://127.0.0.1:8080/ \
+  --pem-file $PEM_FILE \
   --file-path $FILE_PATH

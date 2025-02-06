@@ -1603,6 +1603,7 @@ dependencies = [
  "candid",
  "ct-codecs",
  "p256",
+ "rand",
  "serde",
  "serde_json",
 ]

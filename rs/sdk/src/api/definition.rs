@@ -6,6 +6,7 @@ use std::collections::HashSet;
 pub struct BotDefinition {
     pub description: String,
     pub commands: Vec<SlashCommandSchema>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub autonomous_config: Option<AutonomousConfig>,
 }
 

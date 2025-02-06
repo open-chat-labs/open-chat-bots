@@ -1,8 +1,11 @@
-use crate::api_key::OpenChatClientForApiKey;
-use crate::command::OpenChatClientForCommand;
 use crate::runtime::Runtime;
 use crate::types::{BotApiKeyContext, BotCommandContext};
+use api_key::OpenChatClientForApiKey;
+use command::OpenChatClientForCommand;
 use std::sync::Arc;
+
+mod api_key;
+mod command;
 
 pub struct OpenChatClient<R> {
     runtime: Arc<R>,

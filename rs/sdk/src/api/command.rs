@@ -1,3 +1,4 @@
+use crate::types::serialize_message_id;
 use crate::types::{MessageContent, MessageId, UserId};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
@@ -81,6 +82,7 @@ pub struct SuccessResult {
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Message {
+    #[serde(serialize_with = "serialize_message_id")]
     pub id: MessageId,
     pub content: MessageContent,
     pub finalised: bool,
