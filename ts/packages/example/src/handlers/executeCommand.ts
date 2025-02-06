@@ -32,7 +32,7 @@ export default function executeCommand(req: Request, res: Response) {
   console.log("Command: ", client.commandName, client.commandArgs);
 
   switch (client.commandName) {
-    case "/poll":
+    case "poll":
       return poll(req, res);
     case "start_ping":
       return start_ping(req, res);
