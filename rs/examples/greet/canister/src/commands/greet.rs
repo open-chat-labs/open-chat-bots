@@ -1,6 +1,7 @@
 use crate::state;
 use oc_bots_sdk::api::{
-    BotPermissions, InternalError, MessagePermission, SlashCommandSchema, SuccessResult,
+    BotPermissions, InternalError, MessagePermission, SendMessageResponse, SlashCommandSchema,
+    SuccessResult,
 };
 use oc_bots_sdk::types::BotCommandContext;
 use oc_bots_sdk_canister::OPENCHAT_CLIENT;
@@ -13,8 +14,9 @@ pub fn execute(context: BotCommandContext) -> Result<SuccessResult, InternalErro
     // Send the message to OpenChat but don't wait for the response
     let message = OPENCHAT_CLIENT
         .with_command_context(context)
-        .send_text_message(text, true, |args, response| match response {
-            Ok(result) if result.0.is_ok() => {
+        .send_text_message(text)
+        .execute(|args, response| match response {
+            Ok(result) if matches!(result.0, SendMessageResponse::Success(_)) => {
                 state::mutate(|state| state.increment_jokes_sent());
             }
             error => {

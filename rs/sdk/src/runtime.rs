@@ -1,6 +1,5 @@
-use crate::types::{
-    ActionArgs, ActionResponse, BotAction, CallResult, CanisterId, TimestampMillis,
-};
+use crate::api::{SendMessageArgs, SendMessageResponse};
+use crate::types::{CallResult, CanisterId, TimestampMillis};
 use candid::utils::{ArgumentDecoder, ArgumentEncoder};
 use std::future::Future;
 
@@ -16,14 +15,11 @@ pub trait Runtime {
 
     fn now(&self) -> TimestampMillis;
 
-    fn execute_bot_action(
+    fn send_message(
         &self,
         bot_api_gateway: CanisterId,
-        jwt: String,
-        action: BotAction,
-    ) -> impl Future<Output = CallResult<(ActionResponse,)>> + Send {
-        let args = ActionArgs { action, jwt };
-
-        self.call_canister(bot_api_gateway, "execute_bot_action", (args.clone(),))
+        args: SendMessageArgs,
+    ) -> impl Future<Output = CallResult<(SendMessageResponse,)>> + Send {
+        self.call_canister(bot_api_gateway, "bot_send_message", (args,))
     }
 }
