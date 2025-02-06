@@ -34,10 +34,10 @@ export default async function file(req: WithBotClient, res: Response) {
   const filePath = "./dummy.pdf";
   const { uint8Array, fileSize, mimeType } = await processFile(filePath);
 
-  const fileMsg = (
-    await client.createFileMessage(filePath, uint8Array, mimeType, fileSize)
-  ).setCaption("This is a test file");
   client
-    .sendMessage(fileMsg)
+    .createFileMessage(filePath, uint8Array, mimeType, fileSize)
+    .then((fileMsg) =>
+      client.sendMessage(fileMsg.setCaption("This is a test file message"))
+    )
     .catch((err) => console.log("sendFileMessage failed with: ", err));
 }

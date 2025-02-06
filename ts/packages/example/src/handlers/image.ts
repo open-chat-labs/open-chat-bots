@@ -49,15 +49,10 @@ export default async function image(req: WithBotClient, res: Response) {
   const filePath = path.join(__dirname, "..", "..", "picture.png");
   const { uint8Array, width, height, format } = await processImage(filePath);
 
-  const imgMsg = (
-    await client.createImageMessage(
-      uint8Array,
-      `image/${format}`,
-      width,
-      height
-    )
-  ).setCaption("This is a test image");
   client
-    .sendMessage(imgMsg)
+    .createImageMessage(uint8Array, `image/${format}`, width, height)
+    .then((imgMsg) =>
+      client.sendMessage(imgMsg.setCaption("This is a test image message"))
+    )
     .catch((err) => console.log("sendImageMessage failed with: ", err));
 }
