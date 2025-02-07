@@ -8,14 +8,9 @@ export default async function (req: WithBotClient, res: Response) {
   const intOne = client.integerArg("int_one");
   const decOne = client.decimalArg("dec_one");
 
-  if (
-    intOne !== undefined &&
-    decOne !== undefined &&
-  ) {
+  if (intOne !== undefined && decOne !== undefined) {
     const msg = await client.createTextMessage(
-      `${intOne} * ${decOne} = ${
-        Number(intOne) * decOne  
-      }`
+      `${intOne} * ${decOne} = ${Number(intOne) * decOne}`
     );
     msg.setFinalised(true);
 
