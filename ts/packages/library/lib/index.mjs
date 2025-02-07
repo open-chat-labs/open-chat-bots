@@ -21,13 +21,13 @@ PERFORMANCE OF THIS SOFTWARE.
 /* global Reflect, Promise, SuppressedError, Symbol, Iterator */
 
 
-function __classPrivateFieldGet$4(receiver, state, kind, f) {
+function __classPrivateFieldGet$5(receiver, state, kind, f) {
     if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 }
 
-function __classPrivateFieldSet$4(receiver, state, value, kind, f) {
+function __classPrivateFieldSet$5(receiver, state, value, kind, f) {
     if (kind === "m") throw new TypeError("Private method is not writable");
     if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
@@ -2657,12 +2657,12 @@ function toBytes(data) {
     return data;
 }
 // For runtime check if class implements interface
-class Hash {
+let Hash$1 = class Hash {
     // Safe version that clones internal state
     clone() {
         return this._cloneInto();
     }
-}
+};
 function wrapConstructor(hashCons) {
     const hashC = (msg) => hashCons().update(toBytes(msg)).digest();
     const tmp = hashCons();
@@ -2716,7 +2716,7 @@ const Maj = (a, b, c) => (a & b) ^ (a & c) ^ (b & c);
  * Merkle-Damgard hash construction base class.
  * Could be used to create MD5, RIPEMD, SHA1, SHA2.
  */
-class HashMD extends Hash {
+class HashMD extends Hash$1 {
     constructor(blockLen, outputLen, padOffset, isLE) {
         super();
         this.blockLen = blockLen;
@@ -3691,7 +3691,7 @@ class Visitor {
 /**
  * Represents an IDL type.
  */
-class Type {
+let Type$1 = class Type {
     /* Display type name */
     display() {
         return this.name;
@@ -3705,8 +3705,8 @@ class Type {
             this._buildTypeTableImpl(typeTable);
         }
     }
-}
-class PrimitiveType extends Type {
+};
+class PrimitiveType extends Type$1 {
     checkType(t) {
         if (this.name !== t.name) {
             throw new Error(`type mismatch: type on the wire ${t.name}, expect type ${this.name}`);
@@ -3719,7 +3719,7 @@ class PrimitiveType extends Type {
         return;
     }
 }
-class ConstructType extends Type {
+class ConstructType extends Type$1 {
     checkType(t) {
         if (t instanceof RecClass) {
             const ty = t.getType();
@@ -3769,7 +3769,7 @@ class EmptyClass extends PrimitiveType {
  * A deserialized unknown will offer it's actual type by calling the `type()` function.
  * Unknown cannot be serialized and attempting to do so will throw an error.
  */
-class UnknownClass extends Type {
+class UnknownClass extends Type$1 {
     checkType(t) {
         throw new Error('Method not implemented for unknown.');
     }
@@ -5011,7 +5011,7 @@ function decode$2(retTypes, bytes) {
         if (t < 0) {
             switch (t) {
                 case -1:
-                    return Null$1;
+                    return Null$2;
                 case -2:
                     return Bool;
                 case -3:
@@ -5071,10 +5071,10 @@ function decode$2(retTypes, bytes) {
                     const name = `_${hash}_`;
                     fields[name] = getType(ty);
                 }
-                const record = Record(fields);
+                const record = Record$1(fields);
                 const tuple = record.tryAsTuple();
                 if (Array.isArray(tuple)) {
-                    return Tuple(...tuple);
+                    return Tuple$1(...tuple);
                 }
                 else {
                     return record;
@@ -5144,9 +5144,9 @@ const Reserved = new ReservedClass();
 /**
  * Client-only type for deserializing unknown data. Not supported by Candid, and its use is discouraged.
  */
-const Unknown = new UnknownClass();
+const Unknown$1 = new UnknownClass();
 const Bool = new BoolClass();
-const Null$1 = new NullClass();
+const Null$2 = new NullClass();
 const Text = new TextClass();
 const Int = new IntClass();
 const Nat = new NatClass();
@@ -5166,7 +5166,7 @@ const Principal = new PrincipalClass();
  * @param types array of any types
  * @returns TupleClass from those types
  */
-function Tuple(...types) {
+function Tuple$1(...types) {
     return new TupleClass(types);
 }
 /**
@@ -5190,7 +5190,7 @@ function Opt(t) {
  * @param t Record of string and IDL Type
  * @returns RecordClass of string and Type
  */
-function Record(t) {
+function Record$1(t) {
     return new RecordClass(t);
 }
 /**
@@ -5253,7 +5253,7 @@ var IDL = /*#__PURE__*/Object.freeze({
     Nat64: Nat64,
     Nat8: Nat8,
     NatClass: NatClass,
-    Null: Null$1,
+    Null: Null$2,
     NullClass: NullClass,
     Opt: Opt,
     OptClass: OptClass,
@@ -5262,7 +5262,7 @@ var IDL = /*#__PURE__*/Object.freeze({
     PrincipalClass: PrincipalClass,
     Rec: Rec,
     RecClass: RecClass,
-    Record: Record,
+    Record: Record$1,
     RecordClass: RecordClass,
     Reserved: Reserved,
     ReservedClass: ReservedClass,
@@ -5270,10 +5270,10 @@ var IDL = /*#__PURE__*/Object.freeze({
     ServiceClass: ServiceClass,
     Text: Text,
     TextClass: TextClass,
-    Tuple: Tuple,
+    Tuple: Tuple$1,
     TupleClass: TupleClass,
-    Type: Type,
-    Unknown: Unknown,
+    Type: Type$1,
+    Unknown: Unknown$1,
     UnknownClass: UnknownClass,
     Variant: Variant,
     VariantClass: VariantClass,
@@ -5284,7 +5284,7 @@ var IDL = /*#__PURE__*/Object.freeze({
     encode: encode$1
 });
 
-var src$1 = {};
+var src$2 = {};
 
 var bignumber$1 = {exports: {}};
 
@@ -10130,11 +10130,11 @@ function requireIsoUrl () {
 	return isoUrl;
 }
 
-var decoder;
+var decoder$1;
 var hasRequiredDecoder;
 
 function requireDecoder () {
-	if (hasRequiredDecoder) return decoder;
+	if (hasRequiredDecoder) return decoder$1;
 	hasRequiredDecoder = 1;
 
 	const { Buffer } = require$$0$2;
@@ -10755,8 +10755,8 @@ function requireDecoder () {
 
 	Decoder.decodeFirst = Decoder.decode;
 
-	decoder = Decoder;
-	return decoder;
+	decoder$1 = Decoder;
+	return decoder$1;
 }
 
 var diagnose;
@@ -11479,7 +11479,7 @@ function requireEncoder () {
 var hasRequiredSrc$1;
 
 function requireSrc$1 () {
-	if (hasRequiredSrc$1) return src$1;
+	if (hasRequiredSrc$1) return src$2;
 	hasRequiredSrc$1 = 1;
 	(function (exports) {
 
@@ -11503,8 +11503,8 @@ function requireSrc$1 () {
 		  buffer: true,
 		  name: 'cbor'
 		}; 
-	} (src$1));
-	return src$1;
+	} (src$2));
+	return src$2;
 }
 
 var srcExports$1 = requireSrc$1();
@@ -11664,7 +11664,7 @@ function createIdentityDescriptor(identity) {
     return identityIndicator;
 }
 
-var src = {};
+var src$1 = {};
 
 var serializer$1 = {};
 
@@ -12224,13 +12224,13 @@ function requireSerializer () {
 var hasRequiredSrc;
 
 function requireSrc () {
-	if (hasRequiredSrc) return src;
+	if (hasRequiredSrc) return src$1;
 	hasRequiredSrc = 1;
 	(function (exports) {
 		function __export(m) {
 		    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 		}
-		var __importStar = (src.__importStar) || function (mod) {
+		var __importStar = (src$1.__importStar) || function (mod) {
 		    if (mod && mod.__esModule) return mod;
 		    var result = {};
 		    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
@@ -12242,8 +12242,8 @@ function requireSrc () {
 		const value = __importStar(requireValue());
 		exports.value = value;
 		
-	} (src));
-	return src;
+	} (src$1));
+	return src$1;
 }
 
 var srcExports = requireSrc();
@@ -17285,13 +17285,13 @@ const ed25519Defaults = /* @__PURE__ */ (() => ({
  */
 const ed25519 = /* @__PURE__ */ (() => twistedEdwards(ed25519Defaults))();
 
-var __classPrivateFieldSet$3 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+var __classPrivateFieldSet$4 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
     if (kind === "m") throw new TypeError("Private method is not writable");
     if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
     return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
 };
-var __classPrivateFieldGet$3 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+var __classPrivateFieldGet$4 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
     if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
@@ -17316,17 +17316,17 @@ class ExpirableMap {
         this[_b] = 'ExpirableMap';
         const { source = [], expirationTime = 10 * 60 * 1000 } = options;
         const currentTime = Date.now();
-        __classPrivateFieldSet$3(this, _ExpirableMap_inner, new Map([...source].map(([key, value]) => [key, { value, timestamp: currentTime }])), "f");
-        __classPrivateFieldSet$3(this, _ExpirableMap_expirationTime, expirationTime, "f");
+        __classPrivateFieldSet$4(this, _ExpirableMap_inner, new Map([...source].map(([key, value]) => [key, { value, timestamp: currentTime }])), "f");
+        __classPrivateFieldSet$4(this, _ExpirableMap_expirationTime, expirationTime, "f");
     }
     /**
      * Prune removes all expired entries.
      */
     prune() {
         const currentTime = Date.now();
-        for (const [key, entry] of __classPrivateFieldGet$3(this, _ExpirableMap_inner, "f").entries()) {
-            if (currentTime - entry.timestamp > __classPrivateFieldGet$3(this, _ExpirableMap_expirationTime, "f")) {
-                __classPrivateFieldGet$3(this, _ExpirableMap_inner, "f").delete(key);
+        for (const [key, entry] of __classPrivateFieldGet$4(this, _ExpirableMap_inner, "f").entries()) {
+            if (currentTime - entry.timestamp > __classPrivateFieldGet$4(this, _ExpirableMap_expirationTime, "f")) {
+                __classPrivateFieldGet$4(this, _ExpirableMap_inner, "f").delete(key);
             }
         }
         return this;
@@ -17344,7 +17344,7 @@ class ExpirableMap {
             value,
             timestamp: Date.now(),
         };
-        __classPrivateFieldGet$3(this, _ExpirableMap_inner, "f").set(key, entry);
+        __classPrivateFieldGet$4(this, _ExpirableMap_inner, "f").set(key, entry);
         return this;
     }
     /**
@@ -17353,12 +17353,12 @@ class ExpirableMap {
      * @returns the value associated with the key, or undefined if the key is not present or has expired.
      */
     get(key) {
-        const entry = __classPrivateFieldGet$3(this, _ExpirableMap_inner, "f").get(key);
+        const entry = __classPrivateFieldGet$4(this, _ExpirableMap_inner, "f").get(key);
         if (entry === undefined) {
             return undefined;
         }
-        if (Date.now() - entry.timestamp > __classPrivateFieldGet$3(this, _ExpirableMap_expirationTime, "f")) {
-            __classPrivateFieldGet$3(this, _ExpirableMap_inner, "f").delete(key);
+        if (Date.now() - entry.timestamp > __classPrivateFieldGet$4(this, _ExpirableMap_expirationTime, "f")) {
+            __classPrivateFieldGet$4(this, _ExpirableMap_inner, "f").delete(key);
             return undefined;
         }
         return entry.value;
@@ -17367,14 +17367,14 @@ class ExpirableMap {
      * Clear all entries.
      */
     clear() {
-        __classPrivateFieldGet$3(this, _ExpirableMap_inner, "f").clear();
+        __classPrivateFieldGet$4(this, _ExpirableMap_inner, "f").clear();
     }
     /**
      * Entries returns the entries of the map, without the expiration time.
      * @returns an iterator over the entries of the map.
      */
     entries() {
-        const iterator = __classPrivateFieldGet$3(this, _ExpirableMap_inner, "f").entries();
+        const iterator = __classPrivateFieldGet$4(this, _ExpirableMap_inner, "f").entries();
         const generator = function* () {
             for (const [key, value] of iterator) {
                 yield [key, value.value];
@@ -17387,7 +17387,7 @@ class ExpirableMap {
      * @returns an iterator over the values of the map.
      */
     values() {
-        const iterator = __classPrivateFieldGet$3(this, _ExpirableMap_inner, "f").values();
+        const iterator = __classPrivateFieldGet$4(this, _ExpirableMap_inner, "f").values();
         const generator = function* () {
             for (const value of iterator) {
                 yield value.value;
@@ -17400,7 +17400,7 @@ class ExpirableMap {
      * @returns an iterator over the keys of the map.
      */
     keys() {
-        return __classPrivateFieldGet$3(this, _ExpirableMap_inner, "f").keys();
+        return __classPrivateFieldGet$4(this, _ExpirableMap_inner, "f").keys();
     }
     /**
      * forEach calls the callbackfn on each entry of the map.
@@ -17408,7 +17408,7 @@ class ExpirableMap {
      * @param thisArg to use as this when calling the callbackfn
      */
     forEach(callbackfn, thisArg) {
-        for (const [key, value] of __classPrivateFieldGet$3(this, _ExpirableMap_inner, "f").entries()) {
+        for (const [key, value] of __classPrivateFieldGet$4(this, _ExpirableMap_inner, "f").entries()) {
             callbackfn.call(thisArg, value.value, key, this);
         }
     }
@@ -17418,7 +17418,7 @@ class ExpirableMap {
      * @returns true if the key exists and has not expired.
      */
     has(key) {
-        return __classPrivateFieldGet$3(this, _ExpirableMap_inner, "f").has(key);
+        return __classPrivateFieldGet$4(this, _ExpirableMap_inner, "f").has(key);
     }
     /**
      * delete the entry for the given key.
@@ -17426,14 +17426,14 @@ class ExpirableMap {
      * @returns true if the key existed and has been deleted.
      */
     delete(key) {
-        return __classPrivateFieldGet$3(this, _ExpirableMap_inner, "f").delete(key);
+        return __classPrivateFieldGet$4(this, _ExpirableMap_inner, "f").delete(key);
     }
     /**
      * get size of the map.
      * @returns the size of the map.
      */
     get size() {
-        return __classPrivateFieldGet$3(this, _ExpirableMap_inner, "f").size;
+        return __classPrivateFieldGet$4(this, _ExpirableMap_inner, "f").size;
     }
 }
 _ExpirableMap_inner = new WeakMap(), _ExpirableMap_expirationTime = new WeakMap(), _a$x = Symbol.iterator, _b = Symbol.toStringTag;
@@ -17595,13 +17595,13 @@ const unwrapDER = (derEncoded, oid) => {
     return result;
 };
 
-var __classPrivateFieldSet$2 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+var __classPrivateFieldSet$3 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
     if (kind === "m") throw new TypeError("Private method is not writable");
     if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
     return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
 };
-var __classPrivateFieldGet$2 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+var __classPrivateFieldGet$3 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
     if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
@@ -17615,8 +17615,8 @@ class Ed25519PublicKey {
         if (key.byteLength !== Ed25519PublicKey.RAW_KEY_LENGTH) {
             throw new Error('An Ed25519 public key must be exactly 32bytes long');
         }
-        __classPrivateFieldSet$2(this, _Ed25519PublicKey_rawKey, key, "f");
-        __classPrivateFieldSet$2(this, _Ed25519PublicKey_derKey, Ed25519PublicKey.derEncode(key), "f");
+        __classPrivateFieldSet$3(this, _Ed25519PublicKey_rawKey, key, "f");
+        __classPrivateFieldSet$3(this, _Ed25519PublicKey_derKey, Ed25519PublicKey.derEncode(key), "f");
     }
     static from(key) {
         return this.fromDer(key.toDer());
@@ -17638,10 +17638,10 @@ class Ed25519PublicKey {
         return unwrapped;
     }
     get rawKey() {
-        return __classPrivateFieldGet$2(this, _Ed25519PublicKey_rawKey, "f");
+        return __classPrivateFieldGet$3(this, _Ed25519PublicKey_rawKey, "f");
     }
     get derKey() {
-        return __classPrivateFieldGet$2(this, _Ed25519PublicKey_derKey, "f");
+        return __classPrivateFieldGet$3(this, _Ed25519PublicKey_derKey, "f");
     }
     toDer() {
         return this.derKey;
@@ -17683,13 +17683,13 @@ class ObservableLog extends Observable {
     }
 }
 
-var __classPrivateFieldSet$1 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+var __classPrivateFieldSet$2 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
     if (kind === "m") throw new TypeError("Private method is not writable");
     if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
     return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
 };
-var __classPrivateFieldGet$1 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+var __classPrivateFieldGet$2 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
     if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
@@ -17716,38 +17716,38 @@ class ExponentialBackoff {
         _ExponentialBackoff_date.set(this, undefined);
         _ExponentialBackoff_count.set(this, 0);
         const { initialInterval = INITIAL_INTERVAL_MSEC, randomizationFactor = RANDOMIZATION_FACTOR, multiplier = MULTIPLIER, maxInterval = MAX_INTERVAL_MSEC, maxElapsedTime = MAX_ELAPSED_TIME_MSEC, maxIterations = MAX_ITERATIONS, date = Date, } = options;
-        __classPrivateFieldSet$1(this, _ExponentialBackoff_currentInterval, initialInterval, "f");
-        __classPrivateFieldSet$1(this, _ExponentialBackoff_randomizationFactor, randomizationFactor, "f");
-        __classPrivateFieldSet$1(this, _ExponentialBackoff_multiplier, multiplier, "f");
-        __classPrivateFieldSet$1(this, _ExponentialBackoff_maxInterval, maxInterval, "f");
-        __classPrivateFieldSet$1(this, _ExponentialBackoff_date, date, "f");
-        __classPrivateFieldSet$1(this, _ExponentialBackoff_startTime, date.now(), "f");
-        __classPrivateFieldSet$1(this, _ExponentialBackoff_maxElapsedTime, maxElapsedTime, "f");
-        __classPrivateFieldSet$1(this, _ExponentialBackoff_maxIterations, maxIterations, "f");
+        __classPrivateFieldSet$2(this, _ExponentialBackoff_currentInterval, initialInterval, "f");
+        __classPrivateFieldSet$2(this, _ExponentialBackoff_randomizationFactor, randomizationFactor, "f");
+        __classPrivateFieldSet$2(this, _ExponentialBackoff_multiplier, multiplier, "f");
+        __classPrivateFieldSet$2(this, _ExponentialBackoff_maxInterval, maxInterval, "f");
+        __classPrivateFieldSet$2(this, _ExponentialBackoff_date, date, "f");
+        __classPrivateFieldSet$2(this, _ExponentialBackoff_startTime, date.now(), "f");
+        __classPrivateFieldSet$2(this, _ExponentialBackoff_maxElapsedTime, maxElapsedTime, "f");
+        __classPrivateFieldSet$2(this, _ExponentialBackoff_maxIterations, maxIterations, "f");
     }
     get ellapsedTimeInMsec() {
-        return __classPrivateFieldGet$1(this, _ExponentialBackoff_date, "f").now() - __classPrivateFieldGet$1(this, _ExponentialBackoff_startTime, "f");
+        return __classPrivateFieldGet$2(this, _ExponentialBackoff_date, "f").now() - __classPrivateFieldGet$2(this, _ExponentialBackoff_startTime, "f");
     }
     get currentInterval() {
-        return __classPrivateFieldGet$1(this, _ExponentialBackoff_currentInterval, "f");
+        return __classPrivateFieldGet$2(this, _ExponentialBackoff_currentInterval, "f");
     }
     get count() {
-        return __classPrivateFieldGet$1(this, _ExponentialBackoff_count, "f");
+        return __classPrivateFieldGet$2(this, _ExponentialBackoff_count, "f");
     }
     get randomValueFromInterval() {
-        const delta = __classPrivateFieldGet$1(this, _ExponentialBackoff_randomizationFactor, "f") * __classPrivateFieldGet$1(this, _ExponentialBackoff_currentInterval, "f");
-        const min = __classPrivateFieldGet$1(this, _ExponentialBackoff_currentInterval, "f") - delta;
-        const max = __classPrivateFieldGet$1(this, _ExponentialBackoff_currentInterval, "f") + delta;
+        const delta = __classPrivateFieldGet$2(this, _ExponentialBackoff_randomizationFactor, "f") * __classPrivateFieldGet$2(this, _ExponentialBackoff_currentInterval, "f");
+        const min = __classPrivateFieldGet$2(this, _ExponentialBackoff_currentInterval, "f") - delta;
+        const max = __classPrivateFieldGet$2(this, _ExponentialBackoff_currentInterval, "f") + delta;
         return Math.random() * (max - min) + min;
     }
     incrementCurrentInterval() {
         var _a;
-        __classPrivateFieldSet$1(this, _ExponentialBackoff_currentInterval, Math.min(__classPrivateFieldGet$1(this, _ExponentialBackoff_currentInterval, "f") * __classPrivateFieldGet$1(this, _ExponentialBackoff_multiplier, "f"), __classPrivateFieldGet$1(this, _ExponentialBackoff_maxInterval, "f")), "f");
-        __classPrivateFieldSet$1(this, _ExponentialBackoff_count, (_a = __classPrivateFieldGet$1(this, _ExponentialBackoff_count, "f"), _a++, _a), "f");
-        return __classPrivateFieldGet$1(this, _ExponentialBackoff_currentInterval, "f");
+        __classPrivateFieldSet$2(this, _ExponentialBackoff_currentInterval, Math.min(__classPrivateFieldGet$2(this, _ExponentialBackoff_currentInterval, "f") * __classPrivateFieldGet$2(this, _ExponentialBackoff_multiplier, "f"), __classPrivateFieldGet$2(this, _ExponentialBackoff_maxInterval, "f")), "f");
+        __classPrivateFieldSet$2(this, _ExponentialBackoff_count, (_a = __classPrivateFieldGet$2(this, _ExponentialBackoff_count, "f"), _a++, _a), "f");
+        return __classPrivateFieldGet$2(this, _ExponentialBackoff_currentInterval, "f");
     }
     next() {
-        if (this.ellapsedTimeInMsec >= __classPrivateFieldGet$1(this, _ExponentialBackoff_maxElapsedTime, "f") || __classPrivateFieldGet$1(this, _ExponentialBackoff_count, "f") >= __classPrivateFieldGet$1(this, _ExponentialBackoff_maxIterations, "f")) {
+        if (this.ellapsedTimeInMsec >= __classPrivateFieldGet$2(this, _ExponentialBackoff_maxElapsedTime, "f") || __classPrivateFieldGet$2(this, _ExponentialBackoff_count, "f") >= __classPrivateFieldGet$2(this, _ExponentialBackoff_maxIterations, "f")) {
             return null;
         }
         else {
@@ -17771,13 +17771,13 @@ ExponentialBackoff.default = {
 // Default delta for ingress expiry is 5 minutes.
 const DEFAULT_INGRESS_EXPIRY_DELTA_IN_MSECS = 5 * 60 * 1000;
 
-var __classPrivateFieldSet = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+var __classPrivateFieldSet$1 = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
     if (kind === "m") throw new TypeError("Private method is not writable");
     if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
     return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
 };
-var __classPrivateFieldGet = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+var __classPrivateFieldGet$1 = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
     if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
@@ -17930,7 +17930,7 @@ class HttpAgent {
          * @returns ApiQueryResponse
          */
         _HttpAgent_verifyQueryResponse.set(this, (queryResponse, subnetStatus) => {
-            if (__classPrivateFieldGet(this, _HttpAgent_verifyQuerySignatures, "f") === false) {
+            if (__classPrivateFieldGet$1(this, _HttpAgent_verifyQuerySignatures, "f") === false) {
                 // This should not be called if the user has disabled verification
                 return queryResponse;
             }
@@ -17982,22 +17982,22 @@ class HttpAgent {
             return queryResponse;
         });
         this.config = options;
-        __classPrivateFieldSet(this, _HttpAgent_fetch, options.fetch || getDefaultFetch() || fetch.bind(global), "f");
-        __classPrivateFieldSet(this, _HttpAgent_fetchOptions, options.fetchOptions, "f");
-        __classPrivateFieldSet(this, _HttpAgent_callOptions, options.callOptions, "f");
+        __classPrivateFieldSet$1(this, _HttpAgent_fetch, options.fetch || getDefaultFetch() || fetch.bind(global), "f");
+        __classPrivateFieldSet$1(this, _HttpAgent_fetchOptions, options.fetchOptions, "f");
+        __classPrivateFieldSet$1(this, _HttpAgent_callOptions, options.callOptions, "f");
         this.rootKey = options.rootKey ? options.rootKey : fromHex(IC_ROOT_KEY);
         const host = determineHost(options.host);
         this.host = new URL(host);
         if (options.verifyQuerySignatures !== undefined) {
-            __classPrivateFieldSet(this, _HttpAgent_verifyQuerySignatures, options.verifyQuerySignatures, "f");
+            __classPrivateFieldSet$1(this, _HttpAgent_verifyQuerySignatures, options.verifyQuerySignatures, "f");
         }
         // Default is 3
-        __classPrivateFieldSet(this, _HttpAgent_retryTimes, (_a = options.retryTimes) !== null && _a !== undefined ? _a : 3, "f");
+        __classPrivateFieldSet$1(this, _HttpAgent_retryTimes, (_a = options.retryTimes) !== null && _a !== undefined ? _a : 3, "f");
         // Delay strategy for retries. Default is exponential backoff
         const defaultBackoffFactory = () => new ExponentialBackoff({
-            maxIterations: __classPrivateFieldGet(this, _HttpAgent_retryTimes, "f"),
+            maxIterations: __classPrivateFieldGet$1(this, _HttpAgent_retryTimes, "f"),
         });
-        __classPrivateFieldSet(this, _HttpAgent_backoffStrategy, options.backoffStrategy || defaultBackoffFactory, "f");
+        __classPrivateFieldSet$1(this, _HttpAgent_backoffStrategy, options.backoffStrategy || defaultBackoffFactory, "f");
         // Rewrite to avoid redirects
         if (this.host.hostname.endsWith(IC0_SUB_DOMAIN)) {
             this.host.hostname = IC0_DOMAIN;
@@ -18010,16 +18010,16 @@ class HttpAgent {
         }
         if (options.credentials) {
             const { name, password } = options.credentials;
-            __classPrivateFieldSet(this, _HttpAgent_credentials, `${name}${password ? ':' + password : ''}`, "f");
+            __classPrivateFieldSet$1(this, _HttpAgent_credentials, `${name}${password ? ':' + password : ''}`, "f");
         }
-        __classPrivateFieldSet(this, _HttpAgent_identity, Promise.resolve(options.identity || new AnonymousIdentity()), "f");
+        __classPrivateFieldSet$1(this, _HttpAgent_identity, Promise.resolve(options.identity || new AnonymousIdentity()), "f");
         if (options.ingressExpiryInMinutes && options.ingressExpiryInMinutes > 5) {
             throw new AgentError(`The maximum ingress expiry time is 5 minutes. Provided ingress expiry time is ${options.ingressExpiryInMinutes} minutes.`);
         }
         if (options.ingressExpiryInMinutes && options.ingressExpiryInMinutes <= 0) {
             throw new AgentError(`Ingress expiry time must be greater than 0. Provided ingress expiry time is ${options.ingressExpiryInMinutes} minutes.`);
         }
-        __classPrivateFieldSet(this, _HttpAgent_maxIngressExpiryInMinutes, options.ingressExpiryInMinutes || 5, "f");
+        __classPrivateFieldSet$1(this, _HttpAgent_maxIngressExpiryInMinutes, options.ingressExpiryInMinutes || 5, "f");
         // Add a nonce transform to ensure calls are unique
         this.addTransform('update', makeNonceTransform(makeNonce));
         if (options.useQueryNonces) {
@@ -18040,7 +18040,7 @@ class HttpAgent {
         }
     }
     get waterMark() {
-        return __classPrivateFieldGet(this, _HttpAgent_waterMark, "f");
+        return __classPrivateFieldGet$1(this, _HttpAgent_waterMark, "f");
     }
     static createSync(options = {}) {
         return new this(Object.assign({}, options));
@@ -18081,26 +18081,26 @@ class HttpAgent {
     addTransform(type, fn, priority = fn.priority || 0) {
         if (type === 'update') {
             // Keep the pipeline sorted at all time, by priority.
-            const i = __classPrivateFieldGet(this, _HttpAgent_updatePipeline, "f").findIndex(x => (x.priority || 0) < priority);
-            __classPrivateFieldGet(this, _HttpAgent_updatePipeline, "f").splice(i >= 0 ? i : __classPrivateFieldGet(this, _HttpAgent_updatePipeline, "f").length, 0, Object.assign(fn, { priority }));
+            const i = __classPrivateFieldGet$1(this, _HttpAgent_updatePipeline, "f").findIndex(x => (x.priority || 0) < priority);
+            __classPrivateFieldGet$1(this, _HttpAgent_updatePipeline, "f").splice(i >= 0 ? i : __classPrivateFieldGet$1(this, _HttpAgent_updatePipeline, "f").length, 0, Object.assign(fn, { priority }));
         }
         else if (type === 'query') {
             // Keep the pipeline sorted at all time, by priority.
-            const i = __classPrivateFieldGet(this, _HttpAgent_queryPipeline, "f").findIndex(x => (x.priority || 0) < priority);
-            __classPrivateFieldGet(this, _HttpAgent_queryPipeline, "f").splice(i >= 0 ? i : __classPrivateFieldGet(this, _HttpAgent_queryPipeline, "f").length, 0, Object.assign(fn, { priority }));
+            const i = __classPrivateFieldGet$1(this, _HttpAgent_queryPipeline, "f").findIndex(x => (x.priority || 0) < priority);
+            __classPrivateFieldGet$1(this, _HttpAgent_queryPipeline, "f").splice(i >= 0 ? i : __classPrivateFieldGet$1(this, _HttpAgent_queryPipeline, "f").length, 0, Object.assign(fn, { priority }));
         }
     }
     async getPrincipal() {
-        if (!__classPrivateFieldGet(this, _HttpAgent_identity, "f")) {
+        if (!__classPrivateFieldGet$1(this, _HttpAgent_identity, "f")) {
             throw new IdentityInvalidError("This identity has expired due this application's security policy. Please refresh your authentication.");
         }
-        return (await __classPrivateFieldGet(this, _HttpAgent_identity, "f")).getPrincipal();
+        return (await __classPrivateFieldGet$1(this, _HttpAgent_identity, "f")).getPrincipal();
     }
     async call(canisterId, options, identity) {
         var _a;
         // TODO - restore this value
         const callSync = (_a = options.callSync) !== null && _a !== undefined ? _a : true;
-        const id = await (identity !== undefined ? await identity : await __classPrivateFieldGet(this, _HttpAgent_identity, "f"));
+        const id = await (identity !== undefined ? await identity : await __classPrivateFieldGet$1(this, _HttpAgent_identity, "f"));
         if (!id) {
             throw new IdentityInvalidError("This identity has expired due this application's security policy. Please refresh your authentication.");
         }
@@ -18109,10 +18109,10 @@ class HttpAgent {
             ? Principal$1.from(options.effectiveCanisterId)
             : canister;
         const sender = id.getPrincipal() || Principal$1.anonymous();
-        let ingress_expiry = new Expiry(__classPrivateFieldGet(this, _HttpAgent_maxIngressExpiryInMinutes, "f") * MINUTE_TO_MSECS);
+        let ingress_expiry = new Expiry(__classPrivateFieldGet$1(this, _HttpAgent_maxIngressExpiryInMinutes, "f") * MINUTE_TO_MSECS);
         // If the value is off by more than 30 seconds, reconcile system time with the network
-        if (Math.abs(__classPrivateFieldGet(this, _HttpAgent_timeDiffMsecs, "f")) > 1000 * 30) {
-            ingress_expiry = new Expiry(__classPrivateFieldGet(this, _HttpAgent_maxIngressExpiryInMinutes, "f") * MINUTE_TO_MSECS + __classPrivateFieldGet(this, _HttpAgent_timeDiffMsecs, "f"));
+        if (Math.abs(__classPrivateFieldGet$1(this, _HttpAgent_timeDiffMsecs, "f")) > 1000 * 30) {
+            ingress_expiry = new Expiry(__classPrivateFieldGet$1(this, _HttpAgent_maxIngressExpiryInMinutes, "f") * MINUTE_TO_MSECS + __classPrivateFieldGet$1(this, _HttpAgent_timeDiffMsecs, "f"));
         }
         const submit = {
             request_type: SubmitRequestType.Call,
@@ -18126,7 +18126,7 @@ class HttpAgent {
             request: {
                 body: null,
                 method: 'POST',
-                headers: Object.assign({ 'Content-Type': 'application/cbor' }, (__classPrivateFieldGet(this, _HttpAgent_credentials, "f") ? { Authorization: 'Basic ' + btoa(__classPrivateFieldGet(this, _HttpAgent_credentials, "f")) } : {})),
+                headers: Object.assign({ 'Content-Type': 'application/cbor' }, (__classPrivateFieldGet$1(this, _HttpAgent_credentials, "f") ? { Authorization: 'Basic ' + btoa(__classPrivateFieldGet$1(this, _HttpAgent_credentials, "f")) } : {})),
             },
             endpoint: "call" /* Endpoint.Call */,
             body: submit,
@@ -18141,18 +18141,18 @@ class HttpAgent {
         // Apply transform for identity.
         transformedRequest = (await id.transformRequest(transformedRequest));
         const body = encode(transformedRequest.body);
-        const backoff = __classPrivateFieldGet(this, _HttpAgent_backoffStrategy, "f").call(this);
+        const backoff = __classPrivateFieldGet$1(this, _HttpAgent_backoffStrategy, "f").call(this);
         try {
             // Attempt v3 sync call
             const requestSync = () => {
                 this.log.print(`fetching "/api/v3/canister/${ecid.toText()}/call" with request:`, transformedRequest);
-                return __classPrivateFieldGet(this, _HttpAgent_fetch, "f").call(this, '' + new URL(`/api/v3/canister/${ecid.toText()}/call`, this.host), Object.assign(Object.assign(Object.assign({}, __classPrivateFieldGet(this, _HttpAgent_callOptions, "f")), transformedRequest.request), { body }));
+                return __classPrivateFieldGet$1(this, _HttpAgent_fetch, "f").call(this, '' + new URL(`/api/v3/canister/${ecid.toText()}/call`, this.host), Object.assign(Object.assign(Object.assign({}, __classPrivateFieldGet$1(this, _HttpAgent_callOptions, "f")), transformedRequest.request), { body }));
             };
             const requestAsync = () => {
                 this.log.print(`fetching "/api/v2/canister/${ecid.toText()}/call" with request:`, transformedRequest);
-                return __classPrivateFieldGet(this, _HttpAgent_fetch, "f").call(this, '' + new URL(`/api/v2/canister/${ecid.toText()}/call`, this.host), Object.assign(Object.assign(Object.assign({}, __classPrivateFieldGet(this, _HttpAgent_callOptions, "f")), transformedRequest.request), { body }));
+                return __classPrivateFieldGet$1(this, _HttpAgent_fetch, "f").call(this, '' + new URL(`/api/v2/canister/${ecid.toText()}/call`, this.host), Object.assign(Object.assign(Object.assign({}, __classPrivateFieldGet$1(this, _HttpAgent_callOptions, "f")), transformedRequest.request), { body }));
             };
-            const request = __classPrivateFieldGet(this, _HttpAgent_instances, "m", _HttpAgent_requestAndRetry).call(this, {
+            const request = __classPrivateFieldGet$1(this, _HttpAgent_instances, "m", _HttpAgent_requestAndRetry).call(this, {
                 request: callSync ? requestSync : requestAsync,
                 backoff,
                 tries: 0,
@@ -18168,7 +18168,7 @@ class HttpAgent {
                 const time = await this.parseTimeFromResponse({
                     certificate: responseBody.certificate,
                 });
-                __classPrivateFieldSet(this, _HttpAgent_waterMark, time, "f");
+                __classPrivateFieldSet$1(this, _HttpAgent_waterMark, time, "f");
             }
             return {
                 requestId,
@@ -18195,14 +18195,14 @@ class HttpAgent {
         }
     }
     async query(canisterId, fields, identity) {
-        const backoff = __classPrivateFieldGet(this, _HttpAgent_backoffStrategy, "f").call(this);
+        const backoff = __classPrivateFieldGet$1(this, _HttpAgent_backoffStrategy, "f").call(this);
         const ecid = fields.effectiveCanisterId
             ? Principal$1.from(fields.effectiveCanisterId)
             : Principal$1.from(canisterId);
         this.log.print(`ecid ${ecid.toString()}`);
         this.log.print(`canisterId ${canisterId.toString()}`);
         const makeQuery = async () => {
-            const id = await (identity !== undefined ? identity : __classPrivateFieldGet(this, _HttpAgent_identity, "f"));
+            const id = await (identity !== undefined ? identity : __classPrivateFieldGet$1(this, _HttpAgent_identity, "f"));
             if (!id) {
                 throw new IdentityInvalidError("This identity has expired due this application's security policy. Please refresh your authentication.");
             }
@@ -18214,14 +18214,14 @@ class HttpAgent {
                 method_name: fields.methodName,
                 arg: fields.arg,
                 sender,
-                ingress_expiry: new Expiry(__classPrivateFieldGet(this, _HttpAgent_maxIngressExpiryInMinutes, "f") * MINUTE_TO_MSECS),
+                ingress_expiry: new Expiry(__classPrivateFieldGet$1(this, _HttpAgent_maxIngressExpiryInMinutes, "f") * MINUTE_TO_MSECS),
             };
             const requestId = requestIdOf(request);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let transformedRequest = await this._transform({
                 request: {
                     method: 'POST',
-                    headers: Object.assign({ 'Content-Type': 'application/cbor' }, (__classPrivateFieldGet(this, _HttpAgent_credentials, "f") ? { Authorization: 'Basic ' + btoa(__classPrivateFieldGet(this, _HttpAgent_credentials, "f")) } : {})),
+                    headers: Object.assign({ 'Content-Type': 'application/cbor' }, (__classPrivateFieldGet$1(this, _HttpAgent_credentials, "f") ? { Authorization: 'Basic ' + btoa(__classPrivateFieldGet$1(this, _HttpAgent_credentials, "f")) } : {})),
                 },
                 endpoint: "read" /* Endpoint.Query */,
                 body: request,
@@ -18240,19 +18240,19 @@ class HttpAgent {
             };
             return {
                 requestDetails: request,
-                query: await __classPrivateFieldGet(this, _HttpAgent_instances, "m", _HttpAgent_requestAndRetryQuery).call(this, args),
+                query: await __classPrivateFieldGet$1(this, _HttpAgent_instances, "m", _HttpAgent_requestAndRetryQuery).call(this, args),
             };
         };
         const getSubnetStatus = async () => {
-            if (!__classPrivateFieldGet(this, _HttpAgent_verifyQuerySignatures, "f")) {
+            if (!__classPrivateFieldGet$1(this, _HttpAgent_verifyQuerySignatures, "f")) {
                 return undefined;
             }
-            const subnetStatus = __classPrivateFieldGet(this, _HttpAgent_subnetKeys, "f").get(ecid.toString());
+            const subnetStatus = __classPrivateFieldGet$1(this, _HttpAgent_subnetKeys, "f").get(ecid.toString());
             if (subnetStatus) {
                 return subnetStatus;
             }
             await this.fetchSubnetKeys(ecid.toString());
-            return __classPrivateFieldGet(this, _HttpAgent_subnetKeys, "f").get(ecid.toString());
+            return __classPrivateFieldGet$1(this, _HttpAgent_subnetKeys, "f").get(ecid.toString());
         };
         // Attempt to make the query i=retryTimes times
         // Make query and fetch subnet keys in parallel
@@ -18261,26 +18261,26 @@ class HttpAgent {
         const queryWithDetails = Object.assign(Object.assign({}, query), { requestDetails });
         this.log.print('Query response:', queryWithDetails);
         // Skip verification if the user has disabled it
-        if (!__classPrivateFieldGet(this, _HttpAgent_verifyQuerySignatures, "f")) {
+        if (!__classPrivateFieldGet$1(this, _HttpAgent_verifyQuerySignatures, "f")) {
             return queryWithDetails;
         }
         try {
-            return __classPrivateFieldGet(this, _HttpAgent_verifyQueryResponse, "f").call(this, queryWithDetails, subnetStatus);
+            return __classPrivateFieldGet$1(this, _HttpAgent_verifyQueryResponse, "f").call(this, queryWithDetails, subnetStatus);
         }
         catch (_a) {
             // In case the node signatures have changed, refresh the subnet keys and try again
             this.log.warn('Query response verification failed. Retrying with fresh subnet keys.');
-            __classPrivateFieldGet(this, _HttpAgent_subnetKeys, "f").delete(canisterId.toString());
+            __classPrivateFieldGet$1(this, _HttpAgent_subnetKeys, "f").delete(canisterId.toString());
             await this.fetchSubnetKeys(ecid.toString());
-            const updatedSubnetStatus = __classPrivateFieldGet(this, _HttpAgent_subnetKeys, "f").get(canisterId.toString());
+            const updatedSubnetStatus = __classPrivateFieldGet$1(this, _HttpAgent_subnetKeys, "f").get(canisterId.toString());
             if (!updatedSubnetStatus) {
                 throw new CertificateVerificationError('Invalid signature from replica signed query: no matching node key found.');
             }
-            return __classPrivateFieldGet(this, _HttpAgent_verifyQueryResponse, "f").call(this, queryWithDetails, updatedSubnetStatus);
+            return __classPrivateFieldGet$1(this, _HttpAgent_verifyQueryResponse, "f").call(this, queryWithDetails, updatedSubnetStatus);
         }
     }
     async createReadStateRequest(fields, identity) {
-        const id = await (identity !== undefined ? await identity : await __classPrivateFieldGet(this, _HttpAgent_identity, "f"));
+        const id = await (identity !== undefined ? await identity : await __classPrivateFieldGet$1(this, _HttpAgent_identity, "f"));
         if (!id) {
             throw new IdentityInvalidError("This identity has expired due this application's security policy. Please refresh your authentication.");
         }
@@ -18289,14 +18289,14 @@ class HttpAgent {
         const transformedRequest = await this._transform({
             request: {
                 method: 'POST',
-                headers: Object.assign({ 'Content-Type': 'application/cbor' }, (__classPrivateFieldGet(this, _HttpAgent_credentials, "f") ? { Authorization: 'Basic ' + btoa(__classPrivateFieldGet(this, _HttpAgent_credentials, "f")) } : {})),
+                headers: Object.assign({ 'Content-Type': 'application/cbor' }, (__classPrivateFieldGet$1(this, _HttpAgent_credentials, "f") ? { Authorization: 'Basic ' + btoa(__classPrivateFieldGet$1(this, _HttpAgent_credentials, "f")) } : {})),
             },
             endpoint: "read_state" /* Endpoint.ReadState */,
             body: {
                 request_type: "read_state" /* ReadRequestType.ReadState */,
                 paths: fields.paths,
                 sender,
-                ingress_expiry: new Expiry(__classPrivateFieldGet(this, _HttpAgent_maxIngressExpiryInMinutes, "f") * MINUTE_TO_MSECS),
+                ingress_expiry: new Expiry(__classPrivateFieldGet$1(this, _HttpAgent_maxIngressExpiryInMinutes, "f") * MINUTE_TO_MSECS),
             },
         });
         // Apply transform for identity.
@@ -18312,10 +18312,10 @@ class HttpAgent {
         const body = encode(bodyWithAdjustedExpiry);
         this.log.print(`fetching "/api/v2/canister/${canister}/read_state" with request:`, transformedRequest);
         // TODO - https://dfinity.atlassian.net/browse/SDK-1092
-        const backoff = __classPrivateFieldGet(this, _HttpAgent_backoffStrategy, "f").call(this);
+        const backoff = __classPrivateFieldGet$1(this, _HttpAgent_backoffStrategy, "f").call(this);
         try {
-            const response = await __classPrivateFieldGet(this, _HttpAgent_instances, "m", _HttpAgent_requestAndRetry).call(this, {
-                request: () => __classPrivateFieldGet(this, _HttpAgent_fetch, "f").call(this, '' + new URL(`/api/v2/canister/${canister.toString()}/read_state`, this.host), Object.assign(Object.assign(Object.assign({}, __classPrivateFieldGet(this, _HttpAgent_fetchOptions, "f")), transformedRequest.request), { body })),
+            const response = await __classPrivateFieldGet$1(this, _HttpAgent_instances, "m", _HttpAgent_requestAndRetry).call(this, {
+                request: () => __classPrivateFieldGet$1(this, _HttpAgent_fetch, "f").call(this, '' + new URL(`/api/v2/canister/${canister.toString()}/read_state`, this.host), Object.assign(Object.assign(Object.assign({}, __classPrivateFieldGet$1(this, _HttpAgent_fetchOptions, "f")), transformedRequest.request), { body })),
                 backoff,
                 tries: 0,
             });
@@ -18329,7 +18329,7 @@ class HttpAgent {
             const parsedTime = await this.parseTimeFromResponse(decodedResponse);
             if (parsedTime > 0) {
                 this.log.print('Read state response time:', parsedTime);
-                __classPrivateFieldSet(this, _HttpAgent_waterMark, parsedTime, "f");
+                __classPrivateFieldSet$1(this, _HttpAgent_waterMark, parsedTime, "f");
             }
             return decodedResponse;
         }
@@ -18384,7 +18384,7 @@ class HttpAgent {
             });
             const replicaTime = status.get('time');
             if (replicaTime) {
-                __classPrivateFieldSet(this, _HttpAgent_timeDiffMsecs, Number(replicaTime) - Number(callTime), "f");
+                __classPrivateFieldSet$1(this, _HttpAgent_timeDiffMsecs, Number(replicaTime) - Number(callTime), "f");
             }
         }
         catch (error) {
@@ -18392,34 +18392,34 @@ class HttpAgent {
         }
     }
     async status() {
-        const headers = __classPrivateFieldGet(this, _HttpAgent_credentials, "f")
+        const headers = __classPrivateFieldGet$1(this, _HttpAgent_credentials, "f")
             ? {
-                Authorization: 'Basic ' + btoa(__classPrivateFieldGet(this, _HttpAgent_credentials, "f")),
+                Authorization: 'Basic ' + btoa(__classPrivateFieldGet$1(this, _HttpAgent_credentials, "f")),
             }
             : {};
         this.log.print(`fetching "/api/v2/status"`);
-        const backoff = __classPrivateFieldGet(this, _HttpAgent_backoffStrategy, "f").call(this);
-        const response = await __classPrivateFieldGet(this, _HttpAgent_instances, "m", _HttpAgent_requestAndRetry).call(this, {
+        const backoff = __classPrivateFieldGet$1(this, _HttpAgent_backoffStrategy, "f").call(this);
+        const response = await __classPrivateFieldGet$1(this, _HttpAgent_instances, "m", _HttpAgent_requestAndRetry).call(this, {
             backoff,
-            request: () => __classPrivateFieldGet(this, _HttpAgent_fetch, "f").call(this, '' + new URL(`/api/v2/status`, this.host), Object.assign({ headers }, __classPrivateFieldGet(this, _HttpAgent_fetchOptions, "f"))),
+            request: () => __classPrivateFieldGet$1(this, _HttpAgent_fetch, "f").call(this, '' + new URL(`/api/v2/status`, this.host), Object.assign({ headers }, __classPrivateFieldGet$1(this, _HttpAgent_fetchOptions, "f"))),
             tries: 0,
         });
         return decode$1(await response.arrayBuffer());
     }
     async fetchRootKey() {
-        if (!__classPrivateFieldGet(this, _HttpAgent_rootKeyFetched, "f")) {
+        if (!__classPrivateFieldGet$1(this, _HttpAgent_rootKeyFetched, "f")) {
             const status = await this.status();
             // Hex-encoded version of the replica root key
             this.rootKey = status.root_key;
-            __classPrivateFieldSet(this, _HttpAgent_rootKeyFetched, true, "f");
+            __classPrivateFieldSet$1(this, _HttpAgent_rootKeyFetched, true, "f");
         }
         return this.rootKey;
     }
     invalidateIdentity() {
-        __classPrivateFieldSet(this, _HttpAgent_identity, null, "f");
+        __classPrivateFieldSet$1(this, _HttpAgent_identity, null, "f");
     }
     replaceIdentity(identity) {
-        __classPrivateFieldSet(this, _HttpAgent_identity, Promise.resolve(identity), "f");
+        __classPrivateFieldSet$1(this, _HttpAgent_identity, Promise.resolve(identity), "f");
     }
     async fetchSubnetKeys(canisterId) {
         const effectiveCanisterId = Principal$1.from(canisterId);
@@ -18430,7 +18430,7 @@ class HttpAgent {
         });
         const subnetResponse = response.get('subnet');
         if (subnetResponse && typeof subnetResponse === 'object' && 'nodeKeys' in subnetResponse) {
-            __classPrivateFieldGet(this, _HttpAgent_subnetKeys, "f").set(effectiveCanisterId.toText(), subnetResponse);
+            __classPrivateFieldGet$1(this, _HttpAgent_subnetKeys, "f").set(effectiveCanisterId.toText(), subnetResponse);
             return subnetResponse;
         }
         // If the subnet status is not returned, return undefined
@@ -18439,12 +18439,12 @@ class HttpAgent {
     _transform(request) {
         let p = Promise.resolve(request);
         if (request.endpoint === "call" /* Endpoint.Call */) {
-            for (const fn of __classPrivateFieldGet(this, _HttpAgent_updatePipeline, "f")) {
+            for (const fn of __classPrivateFieldGet$1(this, _HttpAgent_updatePipeline, "f")) {
                 p = p.then(r => fn(r).then(r2 => r2 || r));
             }
         }
         else {
-            for (const fn of __classPrivateFieldGet(this, _HttpAgent_queryPipeline, "f")) {
+            for (const fn of __classPrivateFieldGet$1(this, _HttpAgent_queryPipeline, "f")) {
                 p = p.then(r => fn(r).then(r2 => r2 || r));
             }
         }
@@ -18462,7 +18462,7 @@ _HttpAgent_identity = new WeakMap(), _HttpAgent_fetch = new WeakMap(), _HttpAgen
     });
     // If delay is null, the backoff strategy is exhausted due to a maximum number of retries, duration, or other reason
     if (delay === null) {
-        throw new AgentError(`Timestamp failed to pass the watermark after retrying the configured ${__classPrivateFieldGet(this, _HttpAgent_retryTimes, "f")} times. We cannot guarantee the integrity of the response since it could be a replay attack.`);
+        throw new AgentError(`Timestamp failed to pass the watermark after retrying the configured ${__classPrivateFieldGet$1(this, _HttpAgent_retryTimes, "f")} times. We cannot guarantee the integrity of the response since it could be a replay attack.`);
     }
     if (delay > 0) {
         await new Promise(resolve => setTimeout(resolve, delay));
@@ -18471,7 +18471,7 @@ _HttpAgent_identity = new WeakMap(), _HttpAgent_fetch = new WeakMap(), _HttpAgen
     // Make the request and retry if it throws an error
     try {
         this.log.print(`fetching "/api/v2/canister/${ecid.toString()}/query" with request:`, transformedRequest);
-        const fetchResponse = await __classPrivateFieldGet(this, _HttpAgent_fetch, "f").call(this, '' + new URL(`/api/v2/canister/${ecid.toString()}/query`, this.host), Object.assign(Object.assign(Object.assign({}, __classPrivateFieldGet(this, _HttpAgent_fetchOptions, "f")), transformedRequest.request), { body }));
+        const fetchResponse = await __classPrivateFieldGet$1(this, _HttpAgent_fetch, "f").call(this, '' + new URL(`/api/v2/canister/${ecid.toString()}/query`, this.host), Object.assign(Object.assign(Object.assign({}, __classPrivateFieldGet$1(this, _HttpAgent_fetchOptions, "f")), transformedRequest.request), { body }));
         if (fetchResponse.status === 200) {
             const queryResponse = decode$1(await fetchResponse.arrayBuffer());
             response = Object.assign(Object.assign({}, queryResponse), { httpDetails: {
@@ -18493,17 +18493,17 @@ _HttpAgent_identity = new WeakMap(), _HttpAgent_fetch = new WeakMap(), _HttpAgen
         }
     }
     catch (error) {
-        if (tries < __classPrivateFieldGet(this, _HttpAgent_retryTimes, "f")) {
+        if (tries < __classPrivateFieldGet$1(this, _HttpAgent_retryTimes, "f")) {
             this.log.warn(`Caught exception while attempting to make query:\n` +
                 `  ${error}\n` +
                 `  Retrying query.`);
-            return await __classPrivateFieldGet(this, _HttpAgent_instances, "m", _HttpAgent_requestAndRetryQuery).call(this, Object.assign(Object.assign({}, args), { tries: tries + 1 }));
+            return await __classPrivateFieldGet$1(this, _HttpAgent_instances, "m", _HttpAgent_requestAndRetryQuery).call(this, Object.assign(Object.assign({}, args), { tries: tries + 1 }));
         }
         throw error;
     }
     const timestamp = (_b = (_a = response.signatures) === null || _a === undefined ? undefined : _a[0]) === null || _b === undefined ? undefined : _b.timestamp;
     // Skip watermark verification if the user has set verifyQuerySignatures to false
-    if (!__classPrivateFieldGet(this, _HttpAgent_verifyQuerySignatures, "f")) {
+    if (!__classPrivateFieldGet$1(this, _HttpAgent_verifyQuerySignatures, "f")) {
         return response;
     }
     if (!timestamp) {
@@ -18522,11 +18522,11 @@ _HttpAgent_identity = new WeakMap(), _HttpAgent_fetch = new WeakMap(), _HttpAgen
             timestamp,
             waterMark: this.waterMark,
         });
-        if (tries < __classPrivateFieldGet(this, _HttpAgent_retryTimes, "f")) {
-            return await __classPrivateFieldGet(this, _HttpAgent_instances, "m", _HttpAgent_requestAndRetryQuery).call(this, Object.assign(Object.assign({}, args), { tries: tries + 1 }));
+        if (tries < __classPrivateFieldGet$1(this, _HttpAgent_retryTimes, "f")) {
+            return await __classPrivateFieldGet$1(this, _HttpAgent_instances, "m", _HttpAgent_requestAndRetryQuery).call(this, Object.assign(Object.assign({}, args), { tries: tries + 1 }));
         }
         {
-            throw new AgentError(`Timestamp failed to pass the watermark after retrying the configured ${__classPrivateFieldGet(this, _HttpAgent_retryTimes, "f")} times. We cannot guarantee the integrity of the response since it could be a replay attack.`);
+            throw new AgentError(`Timestamp failed to pass the watermark after retrying the configured ${__classPrivateFieldGet$1(this, _HttpAgent_retryTimes, "f")} times. We cannot guarantee the integrity of the response since it could be a replay attack.`);
         }
     }
     return response;
@@ -18535,7 +18535,7 @@ _HttpAgent_identity = new WeakMap(), _HttpAgent_fetch = new WeakMap(), _HttpAgen
     const delay = tries === 0 ? 0 : backoff.next();
     // If delay is null, the backoff strategy is exhausted due to a maximum number of retries, duration, or other reason
     if (delay === null) {
-        throw new AgentError(`Timestamp failed to pass the watermark after retrying the configured ${__classPrivateFieldGet(this, _HttpAgent_retryTimes, "f")} times. We cannot guarantee the integrity of the response since it could be a replay attack.`);
+        throw new AgentError(`Timestamp failed to pass the watermark after retrying the configured ${__classPrivateFieldGet$1(this, _HttpAgent_retryTimes, "f")} times. We cannot guarantee the integrity of the response since it could be a replay attack.`);
     }
     if (delay > 0) {
         await new Promise(resolve => setTimeout(resolve, delay));
@@ -18545,12 +18545,12 @@ _HttpAgent_identity = new WeakMap(), _HttpAgent_fetch = new WeakMap(), _HttpAgen
         response = await request();
     }
     catch (error) {
-        if (__classPrivateFieldGet(this, _HttpAgent_retryTimes, "f") > tries) {
+        if (__classPrivateFieldGet$1(this, _HttpAgent_retryTimes, "f") > tries) {
             this.log.warn(`Caught exception while attempting to make request:\n` +
                 `  ${error}\n` +
                 `  Retrying request.`);
             // Delay the request by the configured backoff strategy
-            return await __classPrivateFieldGet(this, _HttpAgent_instances, "m", _HttpAgent_requestAndRetry).call(this, { request, backoff, tries: tries + 1 });
+            return await __classPrivateFieldGet$1(this, _HttpAgent_instances, "m", _HttpAgent_requestAndRetry).call(this, { request, backoff, tries: tries + 1 });
         }
         throw error;
     }
@@ -18569,8 +18569,8 @@ _HttpAgent_identity = new WeakMap(), _HttpAgent_fetch = new WeakMap(), _HttpAgen
             headers: httpHeadersTransform(response.headers),
         });
     }
-    if (tries < __classPrivateFieldGet(this, _HttpAgent_retryTimes, "f")) {
-        return await __classPrivateFieldGet(this, _HttpAgent_instances, "m", _HttpAgent_requestAndRetry).call(this, { request, backoff, tries: tries + 1 });
+    if (tries < __classPrivateFieldGet$1(this, _HttpAgent_retryTimes, "f")) {
+        return await __classPrivateFieldGet$1(this, _HttpAgent_instances, "m", _HttpAgent_requestAndRetry).call(this, { request, backoff, tries: tries + 1 });
     }
     throw new AgentHTTPResponseError(errorMessage, {
         ok: response.ok,
@@ -25419,7 +25419,7 @@ class Utf16Converter {
         return res;
     }
 }
-class Convert {
+let Convert$1 = class Convert {
     static isHex(data) {
         return typeof data === STRING_TYPE
             && HEX_REGEX.test(data);
@@ -25613,8 +25613,8 @@ class Convert {
     static formatString(data) {
         return (data === null || data === undefined ? undefined : data.replace(/[\n\r\t ]/g, "")) || "";
     }
-}
-Convert.DEFAULT_UTF8_ENCODING = "utf8";
+};
+Convert$1.DEFAULT_UTF8_ENCODING = "utf8";
 
 /*!
  Copyright (c) Peculiar Ventures, LLC
@@ -25913,7 +25913,7 @@ function HexBlock(BaseClass) {
                 return {
                     ...super.toJSON(),
                     isHexOnly: this.isHexOnly,
-                    valueHex: Convert.ToHex(this.valueHexView),
+                    valueHex: Convert$1.ToHex(this.valueHexView),
                 };
             }
         },
@@ -25943,7 +25943,7 @@ class LocalBaseBlock {
             blockLength: this.blockLength,
             error: this.error,
             warnings: this.warnings,
-            valueBeforeDecode: Convert.ToHex(this.valueBeforeDecodeView),
+            valueBeforeDecode: Convert$1.ToHex(this.valueBeforeDecodeView),
         };
     }
 }
@@ -26299,10 +26299,10 @@ class BaseBlock extends LocalBaseBlock {
         if (encoding === "ascii") {
             return this.onAsciiEncoding();
         }
-        return Convert.ToHex(this.toBER());
+        return Convert$1.ToHex(this.toBER());
     }
     onAsciiEncoding() {
-        return `${this.constructor.NAME} : ${Convert.ToHex(this.valueBlock.valueBeforeDecodeView)}`;
+        return `${this.constructor.NAME} : ${Convert$1.ToHex(this.valueBlock.valueBeforeDecodeView)}`;
     }
     isEqual(other) {
         if (this === other) {
@@ -26740,7 +26740,7 @@ _a$u = EndOfContent;
 EndOfContent.NAME = END_OF_CONTENT_NAME;
 
 var _a$t;
-class Null extends BaseBlock {
+let Null$1 = class Null extends BaseBlock {
     constructor(parameters = {}) {
         super(parameters, ValueBlock);
         this.idBlock.tagClass = 1;
@@ -26775,12 +26775,12 @@ class Null extends BaseBlock {
     onAsciiEncoding() {
         return `${this.constructor.NAME}`;
     }
-}
-_a$t = Null;
+};
+_a$t = Null$1;
 (() => {
     typeStore.Null = _a$t;
 })();
-Null.NAME = "NULL";
+Null$1.NAME = "NULL";
 
 class LocalBooleanValueBlock extends HexBlock(ValueBlock) {
     constructor({ value, ...parameters } = {}) {
@@ -26832,7 +26832,7 @@ class LocalBooleanValueBlock extends HexBlock(ValueBlock) {
 LocalBooleanValueBlock.NAME = "BooleanValueBlock";
 
 var _a$s;
-let Boolean$1 = class Boolean extends BaseBlock {
+let Boolean$2 = class Boolean extends BaseBlock {
     constructor(parameters = {}) {
         super(parameters, LocalBooleanValueBlock);
         this.idBlock.tagClass = 1;
@@ -26848,11 +26848,11 @@ let Boolean$1 = class Boolean extends BaseBlock {
         return `${this.constructor.NAME} : ${this.getValue}`;
     }
 };
-_a$s = Boolean$1;
+_a$s = Boolean$2;
 (() => {
     typeStore.Boolean = _a$s;
 })();
-Boolean$1.NAME = "BOOLEAN";
+Boolean$2.NAME = "BOOLEAN";
 
 class LocalOctetStringValueBlock extends HexBlock(LocalConstructedValueBlock) {
     constructor({ isConstructed = false, ...parameters } = {}) {
@@ -26954,7 +26954,7 @@ class OctetString extends BaseBlock {
         if (this.valueBlock.isConstructed || (this.valueBlock.value && this.valueBlock.value.length)) {
             return Constructed.prototype.onAsciiEncoding.call(this);
         }
-        return `${this.constructor.NAME} : ${Convert.ToHex(this.valueBlock.valueHexView)}`;
+        return `${this.constructor.NAME} : ${Convert$1.ToHex(this.valueBlock.valueHexView)}`;
     }
     getValue() {
         if (!this.idBlock.isConstructed) {
@@ -27339,7 +27339,7 @@ LocalIntegerValueBlock.NAME = "IntegerValueBlock";
 })();
 
 var _a$o;
-class Integer extends BaseBlock {
+let Integer$1 = class Integer extends BaseBlock {
     constructor(parameters = {}) {
         super(parameters, LocalIntegerValueBlock);
         this.idBlock.tagClass = 1;
@@ -27354,13 +27354,13 @@ class Integer extends BaseBlock {
         const bigIntValue = BigInt(value);
         const writer = new ViewWriter();
         const hex = bigIntValue.toString(16).replace(/^-/, "");
-        const view = new Uint8Array(Convert.FromHex(hex));
+        const view = new Uint8Array(Convert$1.FromHex(hex));
         if (bigIntValue < 0) {
             const first = new Uint8Array(view.length + (view[0] & 0x80 ? 1 : 0));
             first[0] |= 0x80;
-            const firstInt = BigInt(`0x${Convert.ToHex(first)}`);
+            const firstInt = BigInt(`0x${Convert$1.ToHex(first)}`);
             const secondInt = firstInt + bigIntValue;
-            const second = BufferSourceConverter.toUint8Array(Convert.FromHex(secondInt.toString(16)));
+            const second = BufferSourceConverter.toUint8Array(Convert$1.FromHex(secondInt.toString(16)));
             second[0] |= 0x80;
             writer.write(second);
         }
@@ -27390,15 +27390,15 @@ class Integer extends BaseBlock {
     onAsciiEncoding() {
         return `${this.constructor.NAME} : ${this.valueBlock.toString()}`;
     }
-}
-_a$o = Integer;
+};
+_a$o = Integer$1;
 (() => {
     typeStore.Integer = _a$o;
 })();
-Integer.NAME = "INTEGER";
+Integer$1.NAME = "INTEGER";
 
 var _a$n;
-class Enumerated extends Integer {
+class Enumerated extends Integer$1 {
     constructor(parameters = {}) {
         super(parameters);
         this.idBlock.tagClass = 1;
@@ -27493,7 +27493,7 @@ class LocalSidValueBlock extends HexBlock(ValueBlock) {
     toString() {
         let result = "";
         if (this.isHexOnly)
-            result = Convert.ToHex(this.valueHexView);
+            result = Convert$1.ToHex(this.valueHexView);
         else {
             if (this.isFirstSid) {
                 let sidValue = this.valueDec;
@@ -27748,7 +27748,7 @@ class LocalRelativeSidValueBlock extends HexBlock(LocalBaseBlock) {
     toString() {
         let result = "";
         if (this.isHexOnly)
-            result = Convert.ToHex(this.valueHexView);
+            result = Convert$1.ToHex(this.valueHexView);
         else {
             result = this.valueDec.toString();
         }
@@ -27946,15 +27946,15 @@ class LocalUtf8StringValueBlock extends LocalSimpleStringBlock {
     fromBuffer(inputBuffer) {
         this.valueBlock.valueHexView = BufferSourceConverter.toUint8Array(inputBuffer);
         try {
-            this.valueBlock.value = Convert.ToUtf8String(inputBuffer);
+            this.valueBlock.value = Convert$1.ToUtf8String(inputBuffer);
         }
         catch (ex) {
             this.warnings.push(`Error during "decodeURIComponent": ${ex}, using raw string`);
-            this.valueBlock.value = Convert.ToBinary(inputBuffer);
+            this.valueBlock.value = Convert$1.ToBinary(inputBuffer);
         }
     }
     fromString(inputString) {
-        this.valueBlock.valueHexView = new Uint8Array(Convert.FromUtf8String(inputString));
+        this.valueBlock.valueHexView = new Uint8Array(Convert$1.FromUtf8String(inputString));
         this.valueBlock.value = inputString;
     }
 }
@@ -27976,12 +27976,12 @@ Utf8String.NAME = "UTF8String";
 
 class LocalBmpStringValueBlock extends LocalSimpleStringBlock {
     fromBuffer(inputBuffer) {
-        this.valueBlock.value = Convert.ToUtf16String(inputBuffer);
+        this.valueBlock.value = Convert$1.ToUtf16String(inputBuffer);
         this.valueBlock.valueHexView = BufferSourceConverter.toUint8Array(inputBuffer);
     }
     fromString(inputString) {
         this.valueBlock.value = inputString;
-        this.valueBlock.valueHexView = new Uint8Array(Convert.FromUtf16String(inputString));
+        this.valueBlock.valueHexView = new Uint8Array(Convert$1.FromUtf16String(inputString));
     }
 }
 LocalBmpStringValueBlock.NAME = "BmpStringValueBlock";
@@ -28519,22 +28519,22 @@ _a = TIME;
 })();
 TIME.NAME = "TIME";
 
-class Any {
+let Any$1 = class Any {
     constructor({ name = EMPTY_STRING, optional = false, } = {}) {
         this.name = name;
         this.optional = optional;
     }
-}
+};
 
-class Choice extends Any {
+class Choice extends Any$1 {
     constructor({ value = [], ...parameters } = {}) {
         super(parameters);
         this.value = value;
     }
 }
 
-class Repeated extends Any {
-    constructor({ value = new Any(), local = false, ...parameters } = {}) {
+class Repeated extends Any$1 {
+    constructor({ value = new Any$1(), local = false, ...parameters } = {}) {
         super(parameters);
         this.value = value;
         this.local = local;
@@ -28584,7 +28584,7 @@ function compareSchema(root, inputData, inputSchema) {
             return _result;
         }
     }
-    if (inputSchema instanceof Any) {
+    if (inputSchema instanceof Any$1) {
         if (inputSchema.hasOwnProperty(NAME))
             root[inputSchema.name] = inputData;
         return {
@@ -28884,12 +28884,12 @@ function verifySchema(inputBuffer, inputSchema) {
 
 var index_es = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    Any: Any,
+    Any: Any$1,
     BaseBlock: BaseBlock,
     BaseStringBlock: BaseStringBlock,
     BitString: BitString,
     BmpString: BmpString,
-    Boolean: Boolean$1,
+    Boolean: Boolean$2,
     CharacterString: CharacterString,
     Choice: Choice,
     Constructed: Constructed,
@@ -28903,8 +28903,8 @@ var index_es = /*#__PURE__*/Object.freeze({
     GraphicString: GraphicString,
     HexBlock: HexBlock,
     IA5String: IA5String,
-    Integer: Integer,
-    Null: Null,
+    Integer: Integer$1,
+    Null: Null$1,
     NumericString: NumericString,
     ObjectIdentifier: ObjectIdentifier,
     OctetString: OctetString,
@@ -35643,6 +35643,20 @@ class AuthError extends HttpError {
         this.name = "AuthError";
     }
 }
+class ResponseTooLargeError extends HttpError {
+    constructor(error, size, maxSize) {
+        super(500, error);
+        this.size = size;
+        this.maxSize = maxSize;
+        this.name = "ResponseTooLargeError";
+    }
+}
+class InvalidDelegationError extends HttpError {
+    constructor(error) {
+        super(403, error);
+        this.name = "InvalidDelegationError";
+    }
+}
 class ReplicaNotUpToDateError extends Error {
     static byTimestamp(replicaTimestamp, clientTimestamp, failedPostCheck) {
         const message = `Replica not up to date (timestamp). Client: ${clientTimestamp}. Replica: ${replicaTimestamp}. FailedPostCheck: ${failedPostCheck}`;
@@ -35660,6 +35674,10 @@ function toCanisterResponseError(error) {
     if (error.message.includes("DestinationInvalid")) {
         // this will allow us to short-circuit the retry mechanism in this circumstance
         return new DestinationInvalidError(error);
+    }
+    const tooLarge = responseTooLarge(error);
+    if (tooLarge) {
+        return tooLarge;
     }
     const statusLine = error.message
         .split("\n")
@@ -35679,15 +35697,24 @@ function toCanisterResponseError(error) {
             }
         }
     }
+    if (code === 403 && error.message.includes("Invalid delegation")) {
+        return new InvalidDelegationError(error);
+    }
     return code === 401 || code === 403 ? new AuthError(code, error) : new HttpError(code, error);
+}
+function responseTooLarge(error) {
+    const regex = /application payload size \((\d+)\) cannot be larger than (\d+)/;
+    const match = error.message.match(regex);
+    if (match) {
+        const size = parseInt(match[1]);
+        const maxSize = parseInt(match[2]);
+        return new ResponseTooLargeError(error, size, maxSize);
+    }
+    return undefined;
 }
 
 class CandidService {
-    static createServiceClient(factory, canisterId, host, agent) {
-        const isMainnet = host.includes("icp-api.io");
-        if (!isMainnet) {
-            agent.fetchRootKey();
-        }
+    static createServiceClient(factory, canisterId, agent) {
         return Actor.createActor(factory, {
             agent,
             canisterId,
@@ -35702,286 +35729,16391 @@ class CandidService {
     constructor() { }
 }
 
-const idlFactory$2 = ({ IDL }) => {
-  const PermissionRole = IDL.Variant({
-    'None' : IDL.Null,
-    'Moderators' : IDL.Null,
-    'Owner' : IDL.Null,
-    'Admins' : IDL.Null,
-    'Members' : IDL.Null,
-  });
-  const CustomPermission = IDL.Record({
-    'subtype' : IDL.Text,
-    'role' : PermissionRole,
-  });
-  const MessagePermissions = IDL.Record({
-    'audio' : IDL.Opt(PermissionRole),
-    'video' : IDL.Opt(PermissionRole),
-    'video_call' : IDL.Opt(PermissionRole),
-    'custom' : IDL.Vec(CustomPermission),
-    'file' : IDL.Opt(PermissionRole),
-    'poll' : IDL.Opt(PermissionRole),
-    'text' : IDL.Opt(PermissionRole),
-    'crypto' : IDL.Opt(PermissionRole),
-    'giphy' : IDL.Opt(PermissionRole),
-    'default' : PermissionRole,
-    'image' : IDL.Opt(PermissionRole),
-    'prize' : IDL.Opt(PermissionRole),
-    'p2p_swap' : IDL.Opt(PermissionRole),
-  });
-  const GroupPermissions = IDL.Record({
-    'mention_all_members' : PermissionRole,
-    'delete_messages' : PermissionRole,
-    'remove_members' : PermissionRole,
-    'update_group' : PermissionRole,
-    'message_permissions' : MessagePermissions,
-    'invite_users' : PermissionRole,
-    'thread_permissions' : IDL.Opt(MessagePermissions),
-    'change_roles' : PermissionRole,
-    'start_video_call' : PermissionRole,
-    'add_members' : PermissionRole,
-    'pin_messages' : PermissionRole,
-    'react_to_messages' : PermissionRole,
-  });
-  const CanisterId = IDL.Principal;
-  const VerifiedCredentialGate = IDL.Record({
-    'credential_arguments' : IDL.Vec(
-      IDL.Tuple(
-        IDL.Text,
-        IDL.Variant({ 'Int' : IDL.Int32, 'String' : IDL.Text }),
-      )
-    ),
-    'issuer_origin' : IDL.Text,
-    'issuer_canister_id' : CanisterId,
-    'credential_name' : IDL.Text,
-    'credential_type' : IDL.Text,
-  });
-  const Milliseconds = IDL.Nat64;
-  const SnsNeuronGate = IDL.Record({
-    'min_stake_e8s' : IDL.Opt(IDL.Nat64),
-    'min_dissolve_delay' : IDL.Opt(Milliseconds),
-    'governance_canister_id' : CanisterId,
-  });
-  const TokenBalanceGate = IDL.Record({
-    'min_balance' : IDL.Nat,
-    'ledger_canister_id' : CanisterId,
-  });
-  const PaymentGate = IDL.Record({
-    'fee' : IDL.Nat,
-    'ledger_canister_id' : CanisterId,
-    'amount' : IDL.Nat,
-  });
-  const AccessGateNonComposite = IDL.Variant({
-    'UniquePerson' : IDL.Null,
-    'VerifiedCredential' : VerifiedCredentialGate,
-    'ReferredByMember' : IDL.Null,
-    'SnsNeuron' : SnsNeuronGate,
-    'Locked' : IDL.Null,
-    'TokenBalance' : TokenBalanceGate,
-    'DiamondMember' : IDL.Null,
-    'Payment' : PaymentGate,
-    'LifetimeDiamondMember' : IDL.Null,
-  });
-  const AccessGate = IDL.Variant({
-    'UniquePerson' : IDL.Null,
-    'VerifiedCredential' : VerifiedCredentialGate,
-    'ReferredByMember' : IDL.Null,
-    'SnsNeuron' : SnsNeuronGate,
-    'Locked' : IDL.Null,
-    'TokenBalance' : TokenBalanceGate,
-    'Composite' : IDL.Record({
-      'and' : IDL.Bool,
-      'inner' : IDL.Vec(AccessGateNonComposite),
-    }),
-    'DiamondMember' : IDL.Null,
-    'Payment' : PaymentGate,
-    'LifetimeDiamondMember' : IDL.Null,
-  });
-  const AccessGateConfig = IDL.Record({
-    'gate' : AccessGate,
-    'expiry' : IDL.Opt(Milliseconds),
-  });
-  const AuthToken = IDL.Variant({ 'Jwt' : IDL.Text, 'ApiKey' : IDL.Text });
-  const Rules = IDL.Record({ 'text' : IDL.Text, 'enabled' : IDL.Bool });
-  const Document = IDL.Record({
-    'id' : IDL.Nat,
-    'data' : IDL.Vec(IDL.Nat8),
-    'mime_type' : IDL.Text,
-  });
-  const BotCreateChannelArgs = IDL.Record({
-    'is_public' : IDL.Bool,
-    'permissions' : IDL.Opt(GroupPermissions),
-    'gate_config' : IDL.Opt(AccessGateConfig),
-    'auth_token' : AuthToken,
-    'external_url' : IDL.Opt(IDL.Text),
-    'name' : IDL.Text,
-    'description' : IDL.Text,
-    'events_ttl' : IDL.Opt(Milliseconds),
-    'messages_visible_to_non_members' : IDL.Bool,
-    'history_visible_to_new_joiners' : IDL.Bool,
-    'rules' : Rules,
-    'avatar' : IDL.Opt(Document),
-  });
-  const ChannelId = IDL.Nat32;
-  const BotCreateChannelResponse = IDL.Variant({
-    'NotAuthorized' : IDL.Null,
-    'Success' : IDL.Record({ 'channel_id' : ChannelId }),
-    'InvalidRequest' : IDL.Text,
-    'C2CError' : IDL.Tuple(IDL.Int32, IDL.Text),
-    'Frozen' : IDL.Null,
-  });
-  const GiphyImageVariant = IDL.Record({
-    'url' : IDL.Text,
-    'height' : IDL.Nat32,
-    'mime_type' : IDL.Text,
-    'width' : IDL.Nat32,
-  });
-  const GiphyContent = IDL.Record({
-    'title' : IDL.Text,
-    'desktop' : GiphyImageVariant,
-    'caption' : IDL.Opt(IDL.Text),
-    'mobile' : GiphyImageVariant,
-  });
-  const BlobReference = IDL.Record({
-    'blob_id' : IDL.Nat,
-    'canister_id' : CanisterId,
-  });
-  const FileContent = IDL.Record({
-    'name' : IDL.Text,
-    'mime_type' : IDL.Text,
-    'file_size' : IDL.Nat32,
-    'blob_reference' : IDL.Opt(BlobReference),
-    'caption' : IDL.Opt(IDL.Text),
-  });
-  const UserId = CanisterId;
-  const TotalPollVotes = IDL.Variant({
-    'Anonymous' : IDL.Vec(IDL.Tuple(IDL.Nat32, IDL.Nat32)),
-    'Visible' : IDL.Vec(IDL.Tuple(IDL.Nat32, IDL.Vec(UserId))),
-    'Hidden' : IDL.Nat32,
-  });
-  const PollVotes = IDL.Record({
-    'total' : TotalPollVotes,
-    'user' : IDL.Vec(IDL.Nat32),
-  });
-  const TimestampMillis = IDL.Nat64;
-  const PollConfig = IDL.Record({
-    'allow_multiple_votes_per_user' : IDL.Bool,
-    'text' : IDL.Opt(IDL.Text),
-    'show_votes_before_end_date' : IDL.Bool,
-    'end_date' : IDL.Opt(TimestampMillis),
-    'anonymous' : IDL.Bool,
-    'allow_user_to_change_vote' : IDL.Bool,
-    'options' : IDL.Vec(IDL.Text),
-  });
-  const PollContent = IDL.Record({
-    'votes' : PollVotes,
-    'ended' : IDL.Bool,
-    'config' : PollConfig,
-  });
-  const TextContent = IDL.Record({ 'text' : IDL.Text });
-  const ImageContent = IDL.Record({
-    'height' : IDL.Nat32,
-    'mime_type' : IDL.Text,
-    'blob_reference' : IDL.Opt(BlobReference),
-    'thumbnail_data' : IDL.Text,
-    'caption' : IDL.Opt(IDL.Text),
-    'width' : IDL.Nat32,
-  });
-  const AudioContent = IDL.Record({
-    'mime_type' : IDL.Text,
-    'blob_reference' : IDL.Opt(BlobReference),
-    'caption' : IDL.Opt(IDL.Text),
-  });
-  const VideoContent = IDL.Record({
-    'height' : IDL.Nat32,
-    'image_blob_reference' : IDL.Opt(BlobReference),
-    'video_blob_reference' : IDL.Opt(BlobReference),
-    'mime_type' : IDL.Text,
-    'thumbnail_data' : IDL.Text,
-    'caption' : IDL.Opt(IDL.Text),
-    'width' : IDL.Nat32,
-  });
-  const MessageContent = IDL.Variant({
-    'Giphy' : GiphyContent,
-    'File' : FileContent,
-    'Poll' : PollContent,
-    'Text' : TextContent,
-    'Image' : ImageContent,
-    'Audio' : AudioContent,
-    'Video' : VideoContent,
-  });
-  const MessageId = IDL.Nat64;
-  const BotSendMessageArgs = IDL.Record({
-    'channel_id' : IDL.Opt(ChannelId),
-    'content' : MessageContent,
-    'auth_token' : AuthToken,
-    'block_level_markdown' : IDL.Bool,
-    'finalised' : IDL.Bool,
-    'message_id' : IDL.Opt(MessageId),
-  });
-  const EventIndex = IDL.Nat32;
-  const MessageIndex = IDL.Nat32;
-  const BotSendMessageResponse = IDL.Variant({
-    'ThreadNotFound' : IDL.Null,
-    'NotAuthorized' : IDL.Null,
-    'Success' : IDL.Record({
-      'timestamp' : TimestampMillis,
-      'message_id' : MessageId,
-      'event_index' : EventIndex,
-      'expires_at' : IDL.Opt(TimestampMillis),
-      'message_index' : MessageIndex,
-    }),
-    'InvalidRequest' : IDL.Text,
-    'MessageAlreadyFinalised' : IDL.Null,
-    'C2CError' : IDL.Tuple(IDL.Int32, IDL.Text),
-    'Frozen' : IDL.Null,
-  });
-  return IDL.Service({
-    'bot_create_channel' : IDL.Func(
-        [BotCreateChannelArgs],
-        [BotCreateChannelResponse],
-        [],
-      ),
-    'bot_send_message' : IDL.Func(
-        [BotSendMessageArgs],
-        [BotSendMessageResponse],
-        [],
-      ),
-  });
+var decoder;
+try {
+	decoder = new TextDecoder();
+} catch(error) {}
+var src;
+var srcEnd;
+var position$1 = 0;
+var currentUnpackr = {};
+var currentStructures;
+var srcString;
+var srcStringStart = 0;
+var srcStringEnd = 0;
+var bundledStrings$1;
+var referenceMap;
+var currentExtensions = [];
+var dataView;
+var defaultOptions = {
+	useRecords: false,
+	mapsAsObjects: true
+};
+class C1Type {}
+const C1 = new C1Type();
+C1.name = 'MessagePack 0xC1';
+var sequentialMode = false;
+var inlineObjectReadThreshold = 2;
+var readStruct;
+// no-eval build
+try {
+	new Function('');
+} catch(error) {
+	// if eval variants are not supported, do not create inline object readers ever
+	inlineObjectReadThreshold = Infinity;
+}
+
+class Unpackr {
+	constructor(options) {
+		if (options) {
+			if (options.useRecords === false && options.mapsAsObjects === undefined)
+				options.mapsAsObjects = true;
+			if (options.sequential && options.trusted !== false) {
+				options.trusted = true;
+				if (!options.structures && options.useRecords != false) {
+					options.structures = [];
+					if (!options.maxSharedStructures)
+						options.maxSharedStructures = 0;
+				}
+			}
+			if (options.structures)
+				options.structures.sharedLength = options.structures.length;
+			else if (options.getStructures) {
+				(options.structures = []).uninitialized = true; // this is what we use to denote an uninitialized structures
+				options.structures.sharedLength = 0;
+			}
+			if (options.int64AsNumber) {
+				options.int64AsType = 'number';
+			}
+		}
+		Object.assign(this, options);
+	}
+	unpack(source, options) {
+		if (src) {
+			// re-entrant execution, save the state and restore it after we do this unpack
+			return saveState(() => {
+				clearSource();
+				return this ? this.unpack(source, options) : Unpackr.prototype.unpack.call(defaultOptions, source, options)
+			})
+		}
+		if (!source.buffer && source.constructor === ArrayBuffer)
+			source = typeof Buffer !== 'undefined' ? Buffer.from(source) : new Uint8Array(source);
+		if (typeof options === 'object') {
+			srcEnd = options.end || source.length;
+			position$1 = options.start || 0;
+		} else {
+			position$1 = 0;
+			srcEnd = options > -1 ? options : source.length;
+		}
+		srcStringEnd = 0;
+		srcString = null;
+		bundledStrings$1 = null;
+		src = source;
+		// this provides cached access to the data view for a buffer if it is getting reused, which is a recommend
+		// technique for getting data from a database where it can be copied into an existing buffer instead of creating
+		// new ones
+		try {
+			dataView = source.dataView || (source.dataView = new DataView(source.buffer, source.byteOffset, source.byteLength));
+		} catch(error) {
+			// if it doesn't have a buffer, maybe it is the wrong type of object
+			src = null;
+			if (source instanceof Uint8Array)
+				throw error
+			throw new Error('Source must be a Uint8Array or Buffer but was a ' + ((source && typeof source == 'object') ? source.constructor.name : typeof source))
+		}
+		if (this instanceof Unpackr) {
+			currentUnpackr = this;
+			if (this.structures) {
+				currentStructures = this.structures;
+				return checkedRead(options)
+			} else if (!currentStructures || currentStructures.length > 0) {
+				currentStructures = [];
+			}
+		} else {
+			currentUnpackr = defaultOptions;
+			if (!currentStructures || currentStructures.length > 0)
+				currentStructures = [];
+		}
+		return checkedRead(options)
+	}
+	unpackMultiple(source, forEach) {
+		let values, lastPosition = 0;
+		try {
+			sequentialMode = true;
+			let size = source.length;
+			let value = this ? this.unpack(source, size) : defaultUnpackr.unpack(source, size);
+			if (forEach) {
+				if (forEach(value, lastPosition, position$1) === false) return;
+				while(position$1 < size) {
+					lastPosition = position$1;
+					if (forEach(checkedRead(), lastPosition, position$1) === false) {
+						return
+					}
+				}
+			}
+			else {
+				values = [ value ];
+				while(position$1 < size) {
+					lastPosition = position$1;
+					values.push(checkedRead());
+				}
+				return values
+			}
+		} catch(error) {
+			error.lastPosition = lastPosition;
+			error.values = values;
+			throw error
+		} finally {
+			sequentialMode = false;
+			clearSource();
+		}
+	}
+	_mergeStructures(loadedStructures, existingStructures) {
+		loadedStructures = loadedStructures || [];
+		if (Object.isFrozen(loadedStructures))
+			loadedStructures = loadedStructures.map(structure => structure.slice(0));
+		for (let i = 0, l = loadedStructures.length; i < l; i++) {
+			let structure = loadedStructures[i];
+			if (structure) {
+				structure.isShared = true;
+				if (i >= 32)
+					structure.highByte = (i - 32) >> 5;
+			}
+		}
+		loadedStructures.sharedLength = loadedStructures.length;
+		for (let id in existingStructures || []) {
+			if (id >= 0) {
+				let structure = loadedStructures[id];
+				let existing = existingStructures[id];
+				if (existing) {
+					if (structure)
+						(loadedStructures.restoreStructures || (loadedStructures.restoreStructures = []))[id] = structure;
+					loadedStructures[id] = existing;
+				}
+			}
+		}
+		return this.structures = loadedStructures
+	}
+	decode(source, options) {
+		return this.unpack(source, options)
+	}
+}
+function checkedRead(options) {
+	try {
+		if (!currentUnpackr.trusted && !sequentialMode) {
+			let sharedLength = currentStructures.sharedLength || 0;
+			if (sharedLength < currentStructures.length)
+				currentStructures.length = sharedLength;
+		}
+		let result;
+		if (currentUnpackr.randomAccessStructure && src[position$1] < 0x40 && src[position$1] >= 0x20 && readStruct) ; else
+			result = read();
+		if (bundledStrings$1) { // bundled strings to skip past
+			position$1 = bundledStrings$1.postBundlePosition;
+			bundledStrings$1 = null;
+		}
+		if (sequentialMode)
+			// we only need to restore the structures if there was an error, but if we completed a read,
+			// we can clear this out and keep the structures we read
+			currentStructures.restoreStructures = null;
+
+		if (position$1 == srcEnd) {
+			// finished reading this source, cleanup references
+			if (currentStructures && currentStructures.restoreStructures)
+				restoreStructures();
+			currentStructures = null;
+			src = null;
+			if (referenceMap)
+				referenceMap = null;
+		} else if (position$1 > srcEnd) {
+			// over read
+			throw new Error('Unexpected end of MessagePack data')
+		} else if (!sequentialMode) {
+			let jsonView;
+			try {
+				jsonView = JSON.stringify(result, (_, value) => typeof value === "bigint" ? `${value}n` : value).slice(0, 100);
+			} catch(error) {
+				jsonView = '(JSON view not available ' + error + ')';
+			}
+			throw new Error('Data read, but end of buffer not reached ' + jsonView)
+		}
+		// else more to read, but we are reading sequentially, so don't clear source yet
+		return result
+	} catch(error) {
+		if (currentStructures && currentStructures.restoreStructures)
+			restoreStructures();
+		clearSource();
+		if (error instanceof RangeError || error.message.startsWith('Unexpected end of buffer') || position$1 > srcEnd) {
+			error.incomplete = true;
+		}
+		throw error
+	}
+}
+
+function restoreStructures() {
+	for (let id in currentStructures.restoreStructures) {
+		currentStructures[id] = currentStructures.restoreStructures[id];
+	}
+	currentStructures.restoreStructures = null;
+}
+
+function read() {
+	let token = src[position$1++];
+	if (token < 0xa0) {
+		if (token < 0x80) {
+			if (token < 0x40)
+				return token
+			else {
+				let structure = currentStructures[token & 0x3f] ||
+					currentUnpackr.getStructures && loadStructures()[token & 0x3f];
+				if (structure) {
+					if (!structure.read) {
+						structure.read = createStructureReader(structure, token & 0x3f);
+					}
+					return structure.read()
+				} else
+					return token
+			}
+		} else if (token < 0x90) {
+			// map
+			token -= 0x80;
+			if (currentUnpackr.mapsAsObjects) {
+				let object = {};
+				for (let i = 0; i < token; i++) {
+					let key = readKey();
+					if (key === '__proto__')
+						key = '__proto_';
+					object[key] = read();
+				}
+				return object
+			} else {
+				let map = new Map();
+				for (let i = 0; i < token; i++) {
+					map.set(read(), read());
+				}
+				return map
+			}
+		} else {
+			token -= 0x90;
+			let array = new Array(token);
+			for (let i = 0; i < token; i++) {
+				array[i] = read();
+			}
+			if (currentUnpackr.freezeData)
+				return Object.freeze(array)
+			return array
+		}
+	} else if (token < 0xc0) {
+		// fixstr
+		let length = token - 0xa0;
+		if (srcStringEnd >= position$1) {
+			return srcString.slice(position$1 - srcStringStart, (position$1 += length) - srcStringStart)
+		}
+		if (srcStringEnd == 0 && srcEnd < 140) {
+			// for small blocks, avoiding the overhead of the extract call is helpful
+			let string = length < 16 ? shortStringInJS(length) : longStringInJS(length);
+			if (string != null)
+				return string
+		}
+		return readFixedString(length)
+	} else {
+		let value;
+		switch (token) {
+			case 0xc0: return null
+			case 0xc1:
+				if (bundledStrings$1) {
+					value = read(); // followed by the length of the string in characters (not bytes!)
+					if (value > 0)
+						return bundledStrings$1[1].slice(bundledStrings$1.position1, bundledStrings$1.position1 += value)
+					else
+						return bundledStrings$1[0].slice(bundledStrings$1.position0, bundledStrings$1.position0 -= value)
+				}
+				return C1; // "never-used", return special object to denote that
+			case 0xc2: return false
+			case 0xc3: return true
+			case 0xc4:
+				// bin 8
+				value = src[position$1++];
+				if (value === undefined)
+					throw new Error('Unexpected end of buffer')
+				return readBin(value)
+			case 0xc5:
+				// bin 16
+				value = dataView.getUint16(position$1);
+				position$1 += 2;
+				return readBin(value)
+			case 0xc6:
+				// bin 32
+				value = dataView.getUint32(position$1);
+				position$1 += 4;
+				return readBin(value)
+			case 0xc7:
+				// ext 8
+				return readExt(src[position$1++])
+			case 0xc8:
+				// ext 16
+				value = dataView.getUint16(position$1);
+				position$1 += 2;
+				return readExt(value)
+			case 0xc9:
+				// ext 32
+				value = dataView.getUint32(position$1);
+				position$1 += 4;
+				return readExt(value)
+			case 0xca:
+				value = dataView.getFloat32(position$1);
+				if (currentUnpackr.useFloat32 > 2) {
+					// this does rounding of numbers that were encoded in 32-bit float to nearest significant decimal digit that could be preserved
+					let multiplier = mult10[((src[position$1] & 0x7f) << 1) | (src[position$1 + 1] >> 7)];
+					position$1 += 4;
+					return ((multiplier * value + (value > 0 ? 0.5 : -0.5)) >> 0) / multiplier
+				}
+				position$1 += 4;
+				return value
+			case 0xcb:
+				value = dataView.getFloat64(position$1);
+				position$1 += 8;
+				return value
+			// uint handlers
+			case 0xcc:
+				return src[position$1++]
+			case 0xcd:
+				value = dataView.getUint16(position$1);
+				position$1 += 2;
+				return value
+			case 0xce:
+				value = dataView.getUint32(position$1);
+				position$1 += 4;
+				return value
+			case 0xcf:
+				if (currentUnpackr.int64AsType === 'number') {
+					value = dataView.getUint32(position$1) * 0x100000000;
+					value += dataView.getUint32(position$1 + 4);
+				} else if (currentUnpackr.int64AsType === 'string') {
+					value = dataView.getBigUint64(position$1).toString();
+				} else if (currentUnpackr.int64AsType === 'auto') {
+					value = dataView.getBigUint64(position$1);
+					if (value<=BigInt(2)<<BigInt(52)) value=Number(value);
+				} else
+					value = dataView.getBigUint64(position$1);
+				position$1 += 8;
+				return value
+
+			// int handlers
+			case 0xd0:
+				return dataView.getInt8(position$1++)
+			case 0xd1:
+				value = dataView.getInt16(position$1);
+				position$1 += 2;
+				return value
+			case 0xd2:
+				value = dataView.getInt32(position$1);
+				position$1 += 4;
+				return value
+			case 0xd3:
+				if (currentUnpackr.int64AsType === 'number') {
+					value = dataView.getInt32(position$1) * 0x100000000;
+					value += dataView.getUint32(position$1 + 4);
+				} else if (currentUnpackr.int64AsType === 'string') {
+					value = dataView.getBigInt64(position$1).toString();
+				} else if (currentUnpackr.int64AsType === 'auto') {
+					value = dataView.getBigInt64(position$1);
+					if (value>=BigInt(-2)<<BigInt(52)&&value<=BigInt(2)<<BigInt(52)) value=Number(value);
+				} else
+					value = dataView.getBigInt64(position$1);
+				position$1 += 8;
+				return value
+
+			case 0xd4:
+				// fixext 1
+				value = src[position$1++];
+				if (value == 0x72) {
+					return recordDefinition(src[position$1++] & 0x3f)
+				} else {
+					let extension = currentExtensions[value];
+					if (extension) {
+						if (extension.read) {
+							position$1++; // skip filler byte
+							return extension.read(read())
+						} else if (extension.noBuffer) {
+							position$1++; // skip filler byte
+							return extension()
+						} else
+							return extension(src.subarray(position$1, ++position$1))
+					} else
+						throw new Error('Unknown extension ' + value)
+				}
+			case 0xd5:
+				// fixext 2
+				value = src[position$1];
+				if (value == 0x72) {
+					position$1++;
+					return recordDefinition(src[position$1++] & 0x3f, src[position$1++])
+				} else
+					return readExt(2)
+			case 0xd6:
+				// fixext 4
+				return readExt(4)
+			case 0xd7:
+				// fixext 8
+				return readExt(8)
+			case 0xd8:
+				// fixext 16
+				return readExt(16)
+			case 0xd9:
+			// str 8
+				value = src[position$1++];
+				if (srcStringEnd >= position$1) {
+					return srcString.slice(position$1 - srcStringStart, (position$1 += value) - srcStringStart)
+				}
+				return readString8(value)
+			case 0xda:
+			// str 16
+				value = dataView.getUint16(position$1);
+				position$1 += 2;
+				if (srcStringEnd >= position$1) {
+					return srcString.slice(position$1 - srcStringStart, (position$1 += value) - srcStringStart)
+				}
+				return readString16(value)
+			case 0xdb:
+			// str 32
+				value = dataView.getUint32(position$1);
+				position$1 += 4;
+				if (srcStringEnd >= position$1) {
+					return srcString.slice(position$1 - srcStringStart, (position$1 += value) - srcStringStart)
+				}
+				return readString32(value)
+			case 0xdc:
+			// array 16
+				value = dataView.getUint16(position$1);
+				position$1 += 2;
+				return readArray(value)
+			case 0xdd:
+			// array 32
+				value = dataView.getUint32(position$1);
+				position$1 += 4;
+				return readArray(value)
+			case 0xde:
+			// map 16
+				value = dataView.getUint16(position$1);
+				position$1 += 2;
+				return readMap(value)
+			case 0xdf:
+			// map 32
+				value = dataView.getUint32(position$1);
+				position$1 += 4;
+				return readMap(value)
+			default: // negative int
+				if (token >= 0xe0)
+					return token - 0x100
+				if (token === undefined) {
+					let error = new Error('Unexpected end of MessagePack data');
+					error.incomplete = true;
+					throw error
+				}
+				throw new Error('Unknown MessagePack token ' + token)
+
+		}
+	}
+}
+const validName = /^[a-zA-Z_$][a-zA-Z\d_$]*$/;
+function createStructureReader(structure, firstId) {
+	function readObject() {
+		// This initial function is quick to instantiate, but runs slower. After several iterations pay the cost to build the faster function
+		if (readObject.count++ > inlineObjectReadThreshold) {
+			let readObject = structure.read = (new Function('r', 'return function(){return ' + (currentUnpackr.freezeData ? 'Object.freeze' : '') +
+				'({' + structure.map(key => key === '__proto__' ? '__proto_:r()' : validName.test(key) ? key + ':r()' : ('[' + JSON.stringify(key) + ']:r()')).join(',') + '})}'))(read);
+			if (structure.highByte === 0)
+				structure.read = createSecondByteReader(firstId, structure.read);
+			return readObject() // second byte is already read, if there is one so immediately read object
+		}
+		let object = {};
+		for (let i = 0, l = structure.length; i < l; i++) {
+			let key = structure[i];
+			if (key === '__proto__')
+				key = '__proto_';
+			object[key] = read();
+		}
+		if (currentUnpackr.freezeData)
+			return Object.freeze(object);
+		return object
+	}
+	readObject.count = 0;
+	if (structure.highByte === 0) {
+		return createSecondByteReader(firstId, readObject)
+	}
+	return readObject
+}
+
+const createSecondByteReader = (firstId, read0) => {
+	return function() {
+		let highByte = src[position$1++];
+		if (highByte === 0)
+			return read0()
+		let id = firstId < 32 ? -(firstId + (highByte << 5)) : firstId + (highByte << 5);
+		let structure = currentStructures[id] || loadStructures()[id];
+		if (!structure) {
+			throw new Error('Record id is not defined for ' + id)
+		}
+		if (!structure.read)
+			structure.read = createStructureReader(structure, firstId);
+		return structure.read()
+	}
 };
 
-var _BotGatewayClient_botService;
-class BotGatewayClient extends CandidService {
+function loadStructures() {
+	let loadedStructures = saveState(() => {
+		// save the state in case getStructures modifies our buffer
+		src = null;
+		return currentUnpackr.getStructures()
+	});
+	return currentStructures = currentUnpackr._mergeStructures(loadedStructures, currentStructures)
+}
+
+var readFixedString = readStringJS;
+var readString8 = readStringJS;
+var readString16 = readStringJS;
+var readString32 = readStringJS;
+function readStringJS(length) {
+	let result;
+	if (length < 16) {
+		if (result = shortStringInJS(length))
+			return result
+	}
+	if (length > 64 && decoder)
+		return decoder.decode(src.subarray(position$1, position$1 += length))
+	const end = position$1 + length;
+	const units = [];
+	result = '';
+	while (position$1 < end) {
+		const byte1 = src[position$1++];
+		if ((byte1 & 0x80) === 0) {
+			// 1 byte
+			units.push(byte1);
+		} else if ((byte1 & 0xe0) === 0xc0) {
+			// 2 bytes
+			const byte2 = src[position$1++] & 0x3f;
+			units.push(((byte1 & 0x1f) << 6) | byte2);
+		} else if ((byte1 & 0xf0) === 0xe0) {
+			// 3 bytes
+			const byte2 = src[position$1++] & 0x3f;
+			const byte3 = src[position$1++] & 0x3f;
+			units.push(((byte1 & 0x1f) << 12) | (byte2 << 6) | byte3);
+		} else if ((byte1 & 0xf8) === 0xf0) {
+			// 4 bytes
+			const byte2 = src[position$1++] & 0x3f;
+			const byte3 = src[position$1++] & 0x3f;
+			const byte4 = src[position$1++] & 0x3f;
+			let unit = ((byte1 & 0x07) << 0x12) | (byte2 << 0x0c) | (byte3 << 0x06) | byte4;
+			if (unit > 0xffff) {
+				unit -= 0x10000;
+				units.push(((unit >>> 10) & 0x3ff) | 0xd800);
+				unit = 0xdc00 | (unit & 0x3ff);
+			}
+			units.push(unit);
+		} else {
+			units.push(byte1);
+		}
+
+		if (units.length >= 0x1000) {
+			result += fromCharCode.apply(String, units);
+			units.length = 0;
+		}
+	}
+
+	if (units.length > 0) {
+		result += fromCharCode.apply(String, units);
+	}
+
+	return result
+}
+
+function readArray(length) {
+	let array = new Array(length);
+	for (let i = 0; i < length; i++) {
+		array[i] = read();
+	}
+	if (currentUnpackr.freezeData)
+		return Object.freeze(array)
+	return array
+}
+
+function readMap(length) {
+	if (currentUnpackr.mapsAsObjects) {
+		let object = {};
+		for (let i = 0; i < length; i++) {
+			let key = readKey();
+			if (key === '__proto__')
+				key = '__proto_';
+			object[key] = read();
+		}
+		return object
+	} else {
+		let map = new Map();
+		for (let i = 0; i < length; i++) {
+			map.set(read(), read());
+		}
+		return map
+	}
+}
+
+var fromCharCode = String.fromCharCode;
+function longStringInJS(length) {
+	let start = position$1;
+	let bytes = new Array(length);
+	for (let i = 0; i < length; i++) {
+		const byte = src[position$1++];
+		if ((byte & 0x80) > 0) {
+				position$1 = start;
+				return
+			}
+			bytes[i] = byte;
+		}
+		return fromCharCode.apply(String, bytes)
+}
+function shortStringInJS(length) {
+	if (length < 4) {
+		if (length < 2) {
+			if (length === 0)
+				return ''
+			else {
+				let a = src[position$1++];
+				if ((a & 0x80) > 1) {
+					position$1 -= 1;
+					return
+				}
+				return fromCharCode(a)
+			}
+		} else {
+			let a = src[position$1++];
+			let b = src[position$1++];
+			if ((a & 0x80) > 0 || (b & 0x80) > 0) {
+				position$1 -= 2;
+				return
+			}
+			if (length < 3)
+				return fromCharCode(a, b)
+			let c = src[position$1++];
+			if ((c & 0x80) > 0) {
+				position$1 -= 3;
+				return
+			}
+			return fromCharCode(a, b, c)
+		}
+	} else {
+		let a = src[position$1++];
+		let b = src[position$1++];
+		let c = src[position$1++];
+		let d = src[position$1++];
+		if ((a & 0x80) > 0 || (b & 0x80) > 0 || (c & 0x80) > 0 || (d & 0x80) > 0) {
+			position$1 -= 4;
+			return
+		}
+		if (length < 6) {
+			if (length === 4)
+				return fromCharCode(a, b, c, d)
+			else {
+				let e = src[position$1++];
+				if ((e & 0x80) > 0) {
+					position$1 -= 5;
+					return
+				}
+				return fromCharCode(a, b, c, d, e)
+			}
+		} else if (length < 8) {
+			let e = src[position$1++];
+			let f = src[position$1++];
+			if ((e & 0x80) > 0 || (f & 0x80) > 0) {
+				position$1 -= 6;
+				return
+			}
+			if (length < 7)
+				return fromCharCode(a, b, c, d, e, f)
+			let g = src[position$1++];
+			if ((g & 0x80) > 0) {
+				position$1 -= 7;
+				return
+			}
+			return fromCharCode(a, b, c, d, e, f, g)
+		} else {
+			let e = src[position$1++];
+			let f = src[position$1++];
+			let g = src[position$1++];
+			let h = src[position$1++];
+			if ((e & 0x80) > 0 || (f & 0x80) > 0 || (g & 0x80) > 0 || (h & 0x80) > 0) {
+				position$1 -= 8;
+				return
+			}
+			if (length < 10) {
+				if (length === 8)
+					return fromCharCode(a, b, c, d, e, f, g, h)
+				else {
+					let i = src[position$1++];
+					if ((i & 0x80) > 0) {
+						position$1 -= 9;
+						return
+					}
+					return fromCharCode(a, b, c, d, e, f, g, h, i)
+				}
+			} else if (length < 12) {
+				let i = src[position$1++];
+				let j = src[position$1++];
+				if ((i & 0x80) > 0 || (j & 0x80) > 0) {
+					position$1 -= 10;
+					return
+				}
+				if (length < 11)
+					return fromCharCode(a, b, c, d, e, f, g, h, i, j)
+				let k = src[position$1++];
+				if ((k & 0x80) > 0) {
+					position$1 -= 11;
+					return
+				}
+				return fromCharCode(a, b, c, d, e, f, g, h, i, j, k)
+			} else {
+				let i = src[position$1++];
+				let j = src[position$1++];
+				let k = src[position$1++];
+				let l = src[position$1++];
+				if ((i & 0x80) > 0 || (j & 0x80) > 0 || (k & 0x80) > 0 || (l & 0x80) > 0) {
+					position$1 -= 12;
+					return
+				}
+				if (length < 14) {
+					if (length === 12)
+						return fromCharCode(a, b, c, d, e, f, g, h, i, j, k, l)
+					else {
+						let m = src[position$1++];
+						if ((m & 0x80) > 0) {
+							position$1 -= 13;
+							return
+						}
+						return fromCharCode(a, b, c, d, e, f, g, h, i, j, k, l, m)
+					}
+				} else {
+					let m = src[position$1++];
+					let n = src[position$1++];
+					if ((m & 0x80) > 0 || (n & 0x80) > 0) {
+						position$1 -= 14;
+						return
+					}
+					if (length < 15)
+						return fromCharCode(a, b, c, d, e, f, g, h, i, j, k, l, m, n)
+					let o = src[position$1++];
+					if ((o & 0x80) > 0) {
+						position$1 -= 15;
+						return
+					}
+					return fromCharCode(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)
+				}
+			}
+		}
+	}
+}
+
+function readOnlyJSString() {
+	let token = src[position$1++];
+	let length;
+	if (token < 0xc0) {
+		// fixstr
+		length = token - 0xa0;
+	} else {
+		switch(token) {
+			case 0xd9:
+			// str 8
+				length = src[position$1++];
+				break
+			case 0xda:
+			// str 16
+				length = dataView.getUint16(position$1);
+				position$1 += 2;
+				break
+			case 0xdb:
+			// str 32
+				length = dataView.getUint32(position$1);
+				position$1 += 4;
+				break
+			default:
+				throw new Error('Expected string')
+		}
+	}
+	return readStringJS(length)
+}
+
+
+function readBin(length) {
+	return currentUnpackr.copyBuffers ?
+		// specifically use the copying slice (not the node one)
+		Uint8Array.prototype.slice.call(src, position$1, position$1 += length) :
+		src.subarray(position$1, position$1 += length)
+}
+function readExt(length) {
+	let type = src[position$1++];
+	if (currentExtensions[type]) {
+		let end;
+		return currentExtensions[type](src.subarray(position$1, end = (position$1 += length)), (readPosition) => {
+			position$1 = readPosition;
+			try {
+				return read();
+			} finally {
+				position$1 = end;
+			}
+		})
+	}
+	else
+		throw new Error('Unknown extension type ' + type)
+}
+
+var keyCache = new Array(4096);
+function readKey() {
+	let length = src[position$1++];
+	if (length >= 0xa0 && length < 0xc0) {
+		// fixstr, potentially use key cache
+		length = length - 0xa0;
+		if (srcStringEnd >= position$1) // if it has been extracted, must use it (and faster anyway)
+			return srcString.slice(position$1 - srcStringStart, (position$1 += length) - srcStringStart)
+		else if (!(srcStringEnd == 0 && srcEnd < 180))
+			return readFixedString(length)
+	} else { // not cacheable, go back and do a standard read
+		position$1--;
+		return asSafeString(read())
+	}
+	let key = ((length << 5) ^ (length > 1 ? dataView.getUint16(position$1) : length > 0 ? src[position$1] : 0)) & 0xfff;
+	let entry = keyCache[key];
+	let checkPosition = position$1;
+	let end = position$1 + length - 3;
+	let chunk;
+	let i = 0;
+	if (entry && entry.bytes == length) {
+		while (checkPosition < end) {
+			chunk = dataView.getUint32(checkPosition);
+			if (chunk != entry[i++]) {
+				checkPosition = 0x70000000;
+				break
+			}
+			checkPosition += 4;
+		}
+		end += 3;
+		while (checkPosition < end) {
+			chunk = src[checkPosition++];
+			if (chunk != entry[i++]) {
+				checkPosition = 0x70000000;
+				break
+			}
+		}
+		if (checkPosition === end) {
+			position$1 = checkPosition;
+			return entry.string
+		}
+		end -= 3;
+		checkPosition = position$1;
+	}
+	entry = [];
+	keyCache[key] = entry;
+	entry.bytes = length;
+	while (checkPosition < end) {
+		chunk = dataView.getUint32(checkPosition);
+		entry.push(chunk);
+		checkPosition += 4;
+	}
+	end += 3;
+	while (checkPosition < end) {
+		chunk = src[checkPosition++];
+		entry.push(chunk);
+	}
+	// for small blocks, avoiding the overhead of the extract call is helpful
+	let string = length < 16 ? shortStringInJS(length) : longStringInJS(length);
+	if (string != null)
+		return entry.string = string
+	return entry.string = readFixedString(length)
+}
+
+function asSafeString(property) {
+	// protect against expensive (DoS) string conversions
+	if (typeof property === 'string') return property;
+	if (typeof property === 'number' || typeof property === 'boolean' || typeof property === 'bigint') return property.toString();
+	if (property == null) return property + '';
+	throw new Error('Invalid property type for record', typeof property);
+}
+// the registration of the record definition extension (as "r")
+const recordDefinition = (id, highByte) => {
+	let structure = read().map(asSafeString); // ensure that all keys are strings and
+	// that the array is mutable
+	let firstByte = id;
+	if (highByte !== undefined) {
+		id = id < 32 ? -((highByte << 5) + id) : ((highByte << 5) + id);
+		structure.highByte = highByte;
+	}
+	let existingStructure = currentStructures[id];
+	// If it is a shared structure, we need to restore any changes after reading.
+	// Also in sequential mode, we may get incomplete reads and thus errors, and we need to restore
+	// to the state prior to an incomplete read in order to properly resume.
+	if (existingStructure && (existingStructure.isShared || sequentialMode)) {
+		(currentStructures.restoreStructures || (currentStructures.restoreStructures = []))[id] = existingStructure;
+	}
+	currentStructures[id] = structure;
+	structure.read = createStructureReader(structure, firstByte);
+	return structure.read()
+};
+currentExtensions[0] = () => {}; // notepack defines extension 0 to mean undefined, so use that as the default here
+currentExtensions[0].noBuffer = true;
+
+currentExtensions[0x42] = (data) => {
+	// decode bigint
+	let length = data.length;
+	let value = BigInt(data[0] & 0x80 ? data[0] - 0x100 : data[0]);
+	for (let i = 1; i < length; i++) {
+		value <<= BigInt(8);
+		value += BigInt(data[i]);
+	}
+	return value;
+};
+
+let errors = { Error, TypeError, ReferenceError };
+currentExtensions[0x65] = () => {
+	let data = read();
+	return (errors[data[0]] || Error)(data[1], { cause: data[2] })
+};
+
+currentExtensions[0x69] = (data) => {
+	// id extension (for structured clones)
+	if (currentUnpackr.structuredClone === false) throw new Error('Structured clone extension is disabled')
+	let id = dataView.getUint32(position$1 - 4);
+	if (!referenceMap)
+		referenceMap = new Map();
+	let token = src[position$1];
+	let target;
+	// TODO: handle Maps, Sets, and other types that can cycle; this is complicated, because you potentially need to read
+	// ahead past references to record structure definitions
+	if (token >= 0x90 && token < 0xa0 || token == 0xdc || token == 0xdd)
+		target = [];
+	else
+		target = {};
+
+	let refEntry = { target }; // a placeholder object
+	referenceMap.set(id, refEntry);
+	let targetProperties = read(); // read the next value as the target object to id
+	if (refEntry.used) // there is a cycle, so we have to assign properties to original target
+		return Object.assign(target, targetProperties)
+	refEntry.target = targetProperties; // the placeholder wasn't used, replace with the deserialized one
+	return targetProperties // no cycle, can just use the returned read object
+};
+
+currentExtensions[0x70] = (data) => {
+	// pointer extension (for structured clones)
+	if (currentUnpackr.structuredClone === false) throw new Error('Structured clone extension is disabled')
+	let id = dataView.getUint32(position$1 - 4);
+	let refEntry = referenceMap.get(id);
+	refEntry.used = true;
+	return refEntry.target
+};
+
+currentExtensions[0x73] = () => new Set(read());
+
+const typedArrays = ['Int8','Uint8','Uint8Clamped','Int16','Uint16','Int32','Uint32','Float32','Float64','BigInt64','BigUint64'].map(type => type + 'Array');
+
+let glbl = typeof globalThis === 'object' ? globalThis : window;
+currentExtensions[0x74] = (data) => {
+	let typeCode = data[0];
+	let typedArrayName = typedArrays[typeCode];
+	if (!typedArrayName) {
+		if (typeCode === 16) {
+			let ab = new ArrayBuffer(data.length - 1);
+			let u8 = new Uint8Array(ab);
+			u8.set(data.subarray(1));
+			return ab;
+		}
+		throw new Error('Could not find typed array for code ' + typeCode)
+	}
+	// we have to always slice/copy here to get a new ArrayBuffer that is word/byte aligned
+	return new glbl[typedArrayName](Uint8Array.prototype.slice.call(data, 1).buffer)
+};
+currentExtensions[0x78] = () => {
+	let data = read();
+	return new RegExp(data[0], data[1])
+};
+const TEMP_BUNDLE = [];
+currentExtensions[0x62] = (data) => {
+	let dataSize = (data[0] << 24) + (data[1] << 16) + (data[2] << 8) + data[3];
+	let dataPosition = position$1;
+	position$1 += dataSize - data.length;
+	bundledStrings$1 = TEMP_BUNDLE;
+	bundledStrings$1 = [readOnlyJSString(), readOnlyJSString()];
+	bundledStrings$1.position0 = 0;
+	bundledStrings$1.position1 = 0;
+	bundledStrings$1.postBundlePosition = position$1;
+	position$1 = dataPosition;
+	return read()
+};
+
+currentExtensions[0xff] = (data) => {
+	// 32-bit date extension
+	if (data.length == 4)
+		return new Date((data[0] * 0x1000000 + (data[1] << 16) + (data[2] << 8) + data[3]) * 1000)
+	else if (data.length == 8)
+		return new Date(
+			((data[0] << 22) + (data[1] << 14) + (data[2] << 6) + (data[3] >> 2)) / 1000000 +
+			((data[3] & 0x3) * 0x100000000 + data[4] * 0x1000000 + (data[5] << 16) + (data[6] << 8) + data[7]) * 1000)
+	else if (data.length == 12)// TODO: Implement support for negative
+		return new Date(
+			((data[0] << 24) + (data[1] << 16) + (data[2] << 8) + data[3]) / 1000000 +
+			(((data[4] & 0x80) ? -281474976710656 : 0) + data[6] * 0x10000000000 + data[7] * 0x100000000 + data[8] * 0x1000000 + (data[9] << 16) + (data[10] << 8) + data[11]) * 1000)
+	else
+		return new Date('invalid')
+}; // notepack defines extension 0 to mean undefined, so use that as the default here
+// registration of bulk record definition?
+// currentExtensions[0x52] = () =>
+
+function saveState(callback) {
+	let savedSrcEnd = srcEnd;
+	let savedPosition = position$1;
+	let savedSrcStringStart = srcStringStart;
+	let savedSrcStringEnd = srcStringEnd;
+	let savedSrcString = srcString;
+	let savedReferenceMap = referenceMap;
+	let savedBundledStrings = bundledStrings$1;
+
+	// TODO: We may need to revisit this if we do more external calls to user code (since it could be slow)
+	let savedSrc = new Uint8Array(src.slice(0, srcEnd)); // we copy the data in case it changes while external data is processed
+	let savedStructures = currentStructures;
+	let savedStructuresContents = currentStructures.slice(0, currentStructures.length);
+	let savedPackr = currentUnpackr;
+	let savedSequentialMode = sequentialMode;
+	let value = callback();
+	srcEnd = savedSrcEnd;
+	position$1 = savedPosition;
+	srcStringStart = savedSrcStringStart;
+	srcStringEnd = savedSrcStringEnd;
+	srcString = savedSrcString;
+	referenceMap = savedReferenceMap;
+	bundledStrings$1 = savedBundledStrings;
+	src = savedSrc;
+	sequentialMode = savedSequentialMode;
+	currentStructures = savedStructures;
+	currentStructures.splice(0, currentStructures.length, ...savedStructuresContents);
+	currentUnpackr = savedPackr;
+	dataView = new DataView(src.buffer, src.byteOffset, src.byteLength);
+	return value
+}
+function clearSource() {
+	src = null;
+	referenceMap = null;
+	currentStructures = null;
+}
+
+const mult10 = new Array(147); // this is a table matching binary exponents to the multiplier to determine significant digit rounding
+for (let i = 0; i < 256; i++) {
+	mult10[i] = +('1e' + Math.floor(45.15 - i * 0.30103));
+}
+var defaultUnpackr = new Unpackr({ useRecords: false });
+defaultUnpackr.unpack;
+defaultUnpackr.unpackMultiple;
+defaultUnpackr.unpack;
+let f32Array = new Float32Array(1);
+new Uint8Array(f32Array.buffer, 0, 4);
+
+let textEncoder;
+try {
+	textEncoder = new TextEncoder();
+} catch (error) {}
+let extensions, extensionClasses;
+const hasNodeBuffer = typeof Buffer !== 'undefined';
+const ByteArrayAllocate = hasNodeBuffer ?
+	function(length) { return Buffer.allocUnsafeSlow(length) } : Uint8Array;
+const ByteArray = hasNodeBuffer ? Buffer : Uint8Array;
+const MAX_BUFFER_SIZE = hasNodeBuffer ? 0x100000000 : 0x7fd00000;
+let target, keysTarget;
+let targetView;
+let position = 0;
+let safeEnd;
+let bundledStrings = null;
+let writeStructSlots;
+const MAX_BUNDLE_SIZE = 0x5500; // maximum characters such that the encoded bytes fits in 16 bits.
+const hasNonLatin = /[\u0080-\uFFFF]/;
+const RECORD_SYMBOL = Symbol('record-id');
+class Packr extends Unpackr {
+	constructor(options) {
+		super(options);
+		this.offset = 0;
+		let start;
+		let hasSharedUpdate;
+		let structures;
+		let referenceMap;
+		let encodeUtf8 = ByteArray.prototype.utf8Write ? function(string, position) {
+			return target.utf8Write(string, position, target.byteLength - position)
+		} : (textEncoder && textEncoder.encodeInto) ?
+			function(string, position) {
+				return textEncoder.encodeInto(string, target.subarray(position)).written
+			} : false;
+
+		let packr = this;
+		if (!options)
+			options = {};
+		let isSequential = options && options.sequential;
+		let hasSharedStructures = options.structures || options.saveStructures;
+		let maxSharedStructures = options.maxSharedStructures;
+		if (maxSharedStructures == null)
+			maxSharedStructures = hasSharedStructures ? 32 : 0;
+		if (maxSharedStructures > 8160)
+			throw new Error('Maximum maxSharedStructure is 8160')
+		if (options.structuredClone && options.moreTypes == undefined) {
+			this.moreTypes = true;
+		}
+		let maxOwnStructures = options.maxOwnStructures;
+		if (maxOwnStructures == null)
+			maxOwnStructures = hasSharedStructures ? 32 : 64;
+		if (!this.structures && options.useRecords != false)
+			this.structures = [];
+		// two byte record ids for shared structures
+		let useTwoByteRecords = maxSharedStructures > 32 || (maxOwnStructures + maxSharedStructures > 64);
+		let sharedLimitId = maxSharedStructures + 0x40;
+		let maxStructureId = maxSharedStructures + maxOwnStructures + 0x40;
+		if (maxStructureId > 8256) {
+			throw new Error('Maximum maxSharedStructure + maxOwnStructure is 8192')
+		}
+		let recordIdsToRemove = [];
+		let transitionsCount = 0;
+		let serializationsSinceTransitionRebuild = 0;
+
+		this.pack = this.encode = function(value, encodeOptions) {
+			if (!target) {
+				target = new ByteArrayAllocate(8192);
+				targetView = target.dataView || (target.dataView = new DataView(target.buffer, 0, 8192));
+				position = 0;
+			}
+			safeEnd = target.length - 10;
+			if (safeEnd - position < 0x800) {
+				// don't start too close to the end,
+				target = new ByteArrayAllocate(target.length);
+				targetView = target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length));
+				safeEnd = target.length - 10;
+				position = 0;
+			} else
+				position = (position + 7) & 0x7ffffff8; // Word align to make any future copying of this buffer faster
+			start = position;
+			if (encodeOptions & RESERVE_START_SPACE) position += (encodeOptions & 0xff);
+			referenceMap = packr.structuredClone ? new Map() : null;
+			if (packr.bundleStrings && typeof value !== 'string') {
+				bundledStrings = [];
+				bundledStrings.size = Infinity; // force a new bundle start on first string
+			} else
+				bundledStrings = null;
+			structures = packr.structures;
+			if (structures) {
+				if (structures.uninitialized)
+					structures = packr._mergeStructures(packr.getStructures());
+				let sharedLength = structures.sharedLength || 0;
+				if (sharedLength > maxSharedStructures) {
+					//if (maxSharedStructures <= 32 && structures.sharedLength > 32) // TODO: could support this, but would need to update the limit ids
+					throw new Error('Shared structures is larger than maximum shared structures, try increasing maxSharedStructures to ' + structures.sharedLength)
+				}
+				if (!structures.transitions) {
+					// rebuild our structure transitions
+					structures.transitions = Object.create(null);
+					for (let i = 0; i < sharedLength; i++) {
+						let keys = structures[i];
+						if (!keys)
+							continue
+						let nextTransition, transition = structures.transitions;
+						for (let j = 0, l = keys.length; j < l; j++) {
+							let key = keys[j];
+							nextTransition = transition[key];
+							if (!nextTransition) {
+								nextTransition = transition[key] = Object.create(null);
+							}
+							transition = nextTransition;
+						}
+						transition[RECORD_SYMBOL] = i + 0x40;
+					}
+					this.lastNamedStructuresLength = sharedLength;
+				}
+				if (!isSequential) {
+					structures.nextId = sharedLength + 0x40;
+				}
+			}
+			if (hasSharedUpdate)
+				hasSharedUpdate = false;
+			let encodingError;
+			try {
+				if (packr.randomAccessStructure && value && value.constructor && value.constructor === Object)
+					writeStruct(value);
+				else
+					pack(value);
+				let lastBundle = bundledStrings;
+				if (bundledStrings)
+					writeBundles(start, pack, 0);
+				if (referenceMap && referenceMap.idsToInsert) {
+					let idsToInsert = referenceMap.idsToInsert.sort((a, b) => a.offset > b.offset ? 1 : -1);
+					let i = idsToInsert.length;
+					let incrementPosition = -1;
+					while (lastBundle && i > 0) {
+						let insertionPoint = idsToInsert[--i].offset + start;
+						if (insertionPoint < (lastBundle.stringsPosition + start) && incrementPosition === -1)
+							incrementPosition = 0;
+						if (insertionPoint > (lastBundle.position + start)) {
+							if (incrementPosition >= 0)
+								incrementPosition += 6;
+						} else {
+							if (incrementPosition >= 0) {
+								// update the bundle reference now
+								targetView.setUint32(lastBundle.position + start,
+									targetView.getUint32(lastBundle.position + start) + incrementPosition);
+								incrementPosition = -1; // reset
+							}
+							lastBundle = lastBundle.previous;
+							i++;
+						}
+					}
+					if (incrementPosition >= 0 && lastBundle) {
+						// update the bundle reference now
+						targetView.setUint32(lastBundle.position + start,
+							targetView.getUint32(lastBundle.position + start) + incrementPosition);
+					}
+					position += idsToInsert.length * 6;
+					if (position > safeEnd)
+						makeRoom(position);
+					packr.offset = position;
+					let serialized = insertIds(target.subarray(start, position), idsToInsert);
+					referenceMap = null;
+					return serialized
+				}
+				packr.offset = position; // update the offset so next serialization doesn't write over our buffer, but can continue writing to same buffer sequentially
+				if (encodeOptions & REUSE_BUFFER_MODE) {
+					target.start = start;
+					target.end = position;
+					return target
+				}
+				return target.subarray(start, position) // position can change if we call pack again in saveStructures, so we get the buffer now
+			} catch(error) {
+				encodingError = error;
+				throw error;
+			} finally {
+				if (structures) {
+					resetStructures();
+					if (hasSharedUpdate && packr.saveStructures) {
+						let sharedLength = structures.sharedLength || 0;
+						// we can't rely on start/end with REUSE_BUFFER_MODE since they will (probably) change when we save
+						let returnBuffer = target.subarray(start, position);
+						let newSharedData = prepareStructures(structures, packr);
+						if (!encodingError) { // TODO: If there is an encoding error, should make the structures as uninitialized so they get rebuilt next time
+							if (packr.saveStructures(newSharedData, newSharedData.isCompatible) === false) {
+								// get updated structures and try again if the update failed
+								return packr.pack(value, encodeOptions)
+							}
+							packr.lastNamedStructuresLength = sharedLength;
+							// don't keep large buffers around
+							if (target.length > 0x40000000) target = null;
+							return returnBuffer
+						}
+					}
+				}
+				// don't keep large buffers around, they take too much memory and cause problems (limit at 1GB)
+				if (target.length > 0x40000000) target = null;
+				if (encodeOptions & RESET_BUFFER_MODE)
+					position = start;
+			}
+		};
+		const resetStructures = () => {
+			if (serializationsSinceTransitionRebuild < 10)
+				serializationsSinceTransitionRebuild++;
+			let sharedLength = structures.sharedLength || 0;
+			if (structures.length > sharedLength && !isSequential)
+				structures.length = sharedLength;
+			if (transitionsCount > 10000) {
+				// force a rebuild occasionally after a lot of transitions so it can get cleaned up
+				structures.transitions = null;
+				serializationsSinceTransitionRebuild = 0;
+				transitionsCount = 0;
+				if (recordIdsToRemove.length > 0)
+					recordIdsToRemove = [];
+			} else if (recordIdsToRemove.length > 0 && !isSequential) {
+				for (let i = 0, l = recordIdsToRemove.length; i < l; i++) {
+					recordIdsToRemove[i][RECORD_SYMBOL] = 0;
+				}
+				recordIdsToRemove = [];
+			}
+		};
+		const packArray = (value) => {
+			var length = value.length;
+			if (length < 0x10) {
+				target[position++] = 0x90 | length;
+			} else if (length < 0x10000) {
+				target[position++] = 0xdc;
+				target[position++] = length >> 8;
+				target[position++] = length & 0xff;
+			} else {
+				target[position++] = 0xdd;
+				targetView.setUint32(position, length);
+				position += 4;
+			}
+			for (let i = 0; i < length; i++) {
+				pack(value[i]);
+			}
+		};
+		const pack = (value) => {
+			if (position > safeEnd)
+				target = makeRoom(position);
+
+			var type = typeof value;
+			var length;
+			if (type === 'string') {
+				let strLength = value.length;
+				if (bundledStrings && strLength >= 4 && strLength < 0x1000) {
+					if ((bundledStrings.size += strLength) > MAX_BUNDLE_SIZE) {
+						let extStart;
+						let maxBytes = (bundledStrings[0] ? bundledStrings[0].length * 3 + bundledStrings[1].length : 0) + 10;
+						if (position + maxBytes > safeEnd)
+							target = makeRoom(position + maxBytes);
+						let lastBundle;
+						if (bundledStrings.position) { // here we use the 0x62 extension to write the last bundle and reserve space for the reference pointer to the next/current bundle
+							lastBundle = bundledStrings;
+							target[position] = 0xc8; // ext 16
+							position += 3; // reserve for the writing bundle size
+							target[position++] = 0x62; // 'b'
+							extStart = position - start;
+							position += 4; // reserve for writing bundle reference
+							writeBundles(start, pack, 0); // write the last bundles
+							targetView.setUint16(extStart + start - 3, position - start - extStart);
+						} else { // here we use the 0x62 extension just to reserve the space for the reference pointer to the bundle (will be updated once the bundle is written)
+							target[position++] = 0xd6; // fixext 4
+							target[position++] = 0x62; // 'b'
+							extStart = position - start;
+							position += 4; // reserve for writing bundle reference
+						}
+						bundledStrings = ['', '']; // create new ones
+						bundledStrings.previous = lastBundle;
+						bundledStrings.size = 0;
+						bundledStrings.position = extStart;
+					}
+					let twoByte = hasNonLatin.test(value);
+					bundledStrings[twoByte ? 0 : 1] += value;
+					target[position++] = 0xc1;
+					pack(twoByte ? -strLength : strLength);
+					return
+				}
+				let headerSize;
+				// first we estimate the header size, so we can write to the correct location
+				if (strLength < 0x20) {
+					headerSize = 1;
+				} else if (strLength < 0x100) {
+					headerSize = 2;
+				} else if (strLength < 0x10000) {
+					headerSize = 3;
+				} else {
+					headerSize = 5;
+				}
+				let maxBytes = strLength * 3;
+				if (position + maxBytes > safeEnd)
+					target = makeRoom(position + maxBytes);
+
+				if (strLength < 0x40 || !encodeUtf8) {
+					let i, c1, c2, strPosition = position + headerSize;
+					for (i = 0; i < strLength; i++) {
+						c1 = value.charCodeAt(i);
+						if (c1 < 0x80) {
+							target[strPosition++] = c1;
+						} else if (c1 < 0x800) {
+							target[strPosition++] = c1 >> 6 | 0xc0;
+							target[strPosition++] = c1 & 0x3f | 0x80;
+						} else if (
+							(c1 & 0xfc00) === 0xd800 &&
+							((c2 = value.charCodeAt(i + 1)) & 0xfc00) === 0xdc00
+						) {
+							c1 = 0x10000 + ((c1 & 0x03ff) << 10) + (c2 & 0x03ff);
+							i++;
+							target[strPosition++] = c1 >> 18 | 0xf0;
+							target[strPosition++] = c1 >> 12 & 0x3f | 0x80;
+							target[strPosition++] = c1 >> 6 & 0x3f | 0x80;
+							target[strPosition++] = c1 & 0x3f | 0x80;
+						} else {
+							target[strPosition++] = c1 >> 12 | 0xe0;
+							target[strPosition++] = c1 >> 6 & 0x3f | 0x80;
+							target[strPosition++] = c1 & 0x3f | 0x80;
+						}
+					}
+					length = strPosition - position - headerSize;
+				} else {
+					length = encodeUtf8(value, position + headerSize);
+				}
+
+				if (length < 0x20) {
+					target[position++] = 0xa0 | length;
+				} else if (length < 0x100) {
+					if (headerSize < 2) {
+						target.copyWithin(position + 2, position + 1, position + 1 + length);
+					}
+					target[position++] = 0xd9;
+					target[position++] = length;
+				} else if (length < 0x10000) {
+					if (headerSize < 3) {
+						target.copyWithin(position + 3, position + 2, position + 2 + length);
+					}
+					target[position++] = 0xda;
+					target[position++] = length >> 8;
+					target[position++] = length & 0xff;
+				} else {
+					if (headerSize < 5) {
+						target.copyWithin(position + 5, position + 3, position + 3 + length);
+					}
+					target[position++] = 0xdb;
+					targetView.setUint32(position, length);
+					position += 4;
+				}
+				position += length;
+			} else if (type === 'number') {
+				if (value >>> 0 === value) {// positive integer, 32-bit or less
+					// positive uint
+					if (value < 0x20 || (value < 0x80 && this.useRecords === false) || (value < 0x40 && !this.randomAccessStructure)) {
+						target[position++] = value;
+					} else if (value < 0x100) {
+						target[position++] = 0xcc;
+						target[position++] = value;
+					} else if (value < 0x10000) {
+						target[position++] = 0xcd;
+						target[position++] = value >> 8;
+						target[position++] = value & 0xff;
+					} else {
+						target[position++] = 0xce;
+						targetView.setUint32(position, value);
+						position += 4;
+					}
+				} else if (value >> 0 === value) { // negative integer
+					if (value >= -32) {
+						target[position++] = 0x100 + value;
+					} else if (value >= -128) {
+						target[position++] = 0xd0;
+						target[position++] = value + 0x100;
+					} else if (value >= -32768) {
+						target[position++] = 0xd1;
+						targetView.setInt16(position, value);
+						position += 2;
+					} else {
+						target[position++] = 0xd2;
+						targetView.setInt32(position, value);
+						position += 4;
+					}
+				} else {
+					let useFloat32;
+					if ((useFloat32 = this.useFloat32) > 0 && value < 0x100000000 && value >= -2147483648) {
+						target[position++] = 0xca;
+						targetView.setFloat32(position, value);
+						let xShifted;
+						if (useFloat32 < 4 ||
+								// this checks for rounding of numbers that were encoded in 32-bit float to nearest significant decimal digit that could be preserved
+								((xShifted = value * mult10[((target[position] & 0x7f) << 1) | (target[position + 1] >> 7)]) >> 0) === xShifted) {
+							position += 4;
+							return
+						} else
+							position--; // move back into position for writing a double
+					}
+					target[position++] = 0xcb;
+					targetView.setFloat64(position, value);
+					position += 8;
+				}
+			} else if (type === 'object' || type === 'function') {
+				if (!value)
+					target[position++] = 0xc0;
+				else {
+					if (referenceMap) {
+						let referee = referenceMap.get(value);
+						if (referee) {
+							if (!referee.id) {
+								let idsToInsert = referenceMap.idsToInsert || (referenceMap.idsToInsert = []);
+								referee.id = idsToInsert.push(referee);
+							}
+							target[position++] = 0xd6; // fixext 4
+							target[position++] = 0x70; // "p" for pointer
+							targetView.setUint32(position, referee.id);
+							position += 4;
+							return
+						} else
+							referenceMap.set(value, { offset: position - start });
+					}
+					let constructor = value.constructor;
+					if (constructor === Object) {
+						writeObject(value);
+					} else if (constructor === Array) {
+						packArray(value);
+					} else if (constructor === Map) {
+						if (this.mapAsEmptyObject) target[position++] = 0x80;
+						else {
+							length = value.size;
+							if (length < 0x10) {
+								target[position++] = 0x80 | length;
+							} else if (length < 0x10000) {
+								target[position++] = 0xde;
+								target[position++] = length >> 8;
+								target[position++] = length & 0xff;
+							} else {
+								target[position++] = 0xdf;
+								targetView.setUint32(position, length);
+								position += 4;
+							}
+							for (let [key, entryValue] of value) {
+								pack(key);
+								pack(entryValue);
+							}
+						}
+					} else {
+						for (let i = 0, l = extensions.length; i < l; i++) {
+							let extensionClass = extensionClasses[i];
+							if (value instanceof extensionClass) {
+								let extension = extensions[i];
+								if (extension.write) {
+									if (extension.type) {
+										target[position++] = 0xd4; // one byte "tag" extension
+										target[position++] = extension.type;
+										target[position++] = 0;
+									}
+									let writeResult = extension.write.call(this, value);
+									if (writeResult === value) { // avoid infinite recursion
+										if (Array.isArray(value)) {
+											packArray(value);
+										} else {
+											writeObject(value);
+										}
+									} else {
+										pack(writeResult);
+									}
+									return
+								}
+								let currentTarget = target;
+								let currentTargetView = targetView;
+								let currentPosition = position;
+								target = null;
+								let result;
+								try {
+									result = extension.pack.call(this, value, (size) => {
+										// restore target and use it
+										target = currentTarget;
+										currentTarget = null;
+										position += size;
+										if (position > safeEnd)
+											makeRoom(position);
+										return {
+											target, targetView, position: position - size
+										}
+									}, pack);
+								} finally {
+									// restore current target information (unless already restored)
+									if (currentTarget) {
+										target = currentTarget;
+										targetView = currentTargetView;
+										position = currentPosition;
+										safeEnd = target.length - 10;
+									}
+								}
+								if (result) {
+									if (result.length + position > safeEnd)
+										makeRoom(result.length + position);
+									position = writeExtensionData(result, target, position, extension.type);
+								}
+								return
+							}
+						}
+						// check isArray after extensions, because extensions can extend Array
+						if (Array.isArray(value)) {
+							packArray(value);
+						} else {
+							// use this as an alternate mechanism for expressing how to serialize
+							if (value.toJSON) {
+								const json = value.toJSON();
+								// if for some reason value.toJSON returns itself it'll loop forever
+								if (json !== value)
+									return pack(json)
+							}
+
+							// if there is a writeFunction, use it, otherwise just encode as undefined
+							if (type === 'function')
+								return pack(this.writeFunction && this.writeFunction(value));
+
+							// no extension found, write as plain object
+							writeObject(value);
+						}
+					}
+				}
+			} else if (type === 'boolean') {
+				target[position++] = value ? 0xc3 : 0xc2;
+			} else if (type === 'bigint') {
+				if (value < (BigInt(1)<<BigInt(63)) && value >= -(BigInt(1)<<BigInt(63))) {
+					// use a signed int as long as it fits
+					target[position++] = 0xd3;
+					targetView.setBigInt64(position, value);
+				} else if (value < (BigInt(1)<<BigInt(64)) && value > 0) {
+					// if we can fit an unsigned int, use that
+					target[position++] = 0xcf;
+					targetView.setBigUint64(position, value);
+				} else {
+					// overflow
+					if (this.largeBigIntToFloat) {
+						target[position++] = 0xcb;
+						targetView.setFloat64(position, Number(value));
+					} else if (this.largeBigIntToString) {
+						return pack(value.toString());
+					} else if (this.useBigIntExtension && value < BigInt(2)**BigInt(1023) && value > -(BigInt(2)**BigInt(1023))) {
+						target[position++] = 0xc7;
+						position++;
+						target[position++] = 0x42; // "B" for BigInt
+						let bytes = [];
+						let alignedSign;
+						do {
+							let byte = value & BigInt(0xff);
+							alignedSign = (byte & BigInt(0x80)) === (value < BigInt(0) ? BigInt(0x80) : BigInt(0));
+							bytes.push(byte);
+							value >>= BigInt(8);
+						} while (!((value === BigInt(0) || value === BigInt(-1)) && alignedSign));
+						target[position-2] = bytes.length;
+						for (let i = bytes.length; i > 0;) {
+							target[position++] = Number(bytes[--i]);
+						}
+						return
+					} else {
+						throw new RangeError(value + ' was too large to fit in MessagePack 64-bit integer format, use' +
+							' useBigIntExtension, or set largeBigIntToFloat to convert to float-64, or set' +
+							' largeBigIntToString to convert to string')
+					}
+				}
+				position += 8;
+			} else if (type === 'undefined') {
+				if (this.encodeUndefinedAsNil)
+					target[position++] = 0xc0;
+				else {
+					target[position++] = 0xd4; // a number of implementations use fixext1 with type 0, data 0 to denote undefined, so we follow suite
+					target[position++] = 0;
+					target[position++] = 0;
+				}
+			} else {
+				throw new Error('Unknown type: ' + type)
+			}
+		};
+
+		const writePlainObject = (this.variableMapSize || this.coercibleKeyAsNumber || this.skipValues) ? (object) => {
+			// this method is slightly slower, but generates "preferred serialization" (optimally small for smaller objects)
+			let keys;
+			if (this.skipValues) {
+				keys = [];
+				for (let key in object) {
+					if ((typeof object.hasOwnProperty !== 'function' || object.hasOwnProperty(key)) &&
+						!this.skipValues.includes(object[key]))
+						keys.push(key);
+				}
+			} else {
+				keys = Object.keys(object);
+			}
+			let length = keys.length;
+			if (length < 0x10) {
+				target[position++] = 0x80 | length;
+			} else if (length < 0x10000) {
+				target[position++] = 0xde;
+				target[position++] = length >> 8;
+				target[position++] = length & 0xff;
+			} else {
+				target[position++] = 0xdf;
+				targetView.setUint32(position, length);
+				position += 4;
+			}
+			let key;
+			if (this.coercibleKeyAsNumber) {
+				for (let i = 0; i < length; i++) {
+					key = keys[i];
+					let num = Number(key);
+					pack(isNaN(num) ? key : num);
+					pack(object[key]);
+				}
+
+			} else {
+				for (let i = 0; i < length; i++) {
+					pack(key = keys[i]);
+					pack(object[key]);
+				}
+			}
+		} :
+		(object) => {
+			target[position++] = 0xde; // always using map 16, so we can preallocate and set the length afterwards
+			let objectOffset = position - start;
+			position += 2;
+			let size = 0;
+			for (let key in object) {
+				if (typeof object.hasOwnProperty !== 'function' || object.hasOwnProperty(key)) {
+					pack(key);
+					pack(object[key]);
+					size++;
+				}
+			}
+			if (size > 0xffff) {
+				throw new Error('Object is too large to serialize with fast 16-bit map size,' +
+				' use the "variableMapSize" option to serialize this object');
+			}
+			target[objectOffset++ + start] = size >> 8;
+			target[objectOffset + start] = size & 0xff;
+		};
+
+		const writeRecord = this.useRecords === false ? writePlainObject :
+		(options.progressiveRecords && !useTwoByteRecords) ?  // this is about 2% faster for highly stable structures, since it only requires one for-in loop (but much more expensive when new structure needs to be written)
+		(object) => {
+			let nextTransition, transition = structures.transitions || (structures.transitions = Object.create(null));
+			let objectOffset = position++ - start;
+			let wroteKeys;
+			for (let key in object) {
+				if (typeof object.hasOwnProperty !== 'function' || object.hasOwnProperty(key)) {
+					nextTransition = transition[key];
+					if (nextTransition)
+						transition = nextTransition;
+					else {
+						// record doesn't exist, create full new record and insert it
+						let keys = Object.keys(object);
+						let lastTransition = transition;
+						transition = structures.transitions;
+						let newTransitions = 0;
+						for (let i = 0, l = keys.length; i < l; i++) {
+							let key = keys[i];
+							nextTransition = transition[key];
+							if (!nextTransition) {
+								nextTransition = transition[key] = Object.create(null);
+								newTransitions++;
+							}
+							transition = nextTransition;
+						}
+						if (objectOffset + start + 1 == position) {
+							// first key, so we don't need to insert, we can just write record directly
+							position--;
+							newRecord(transition, keys, newTransitions);
+						} else // otherwise we need to insert the record, moving existing data after the record
+							insertNewRecord(transition, keys, objectOffset, newTransitions);
+						wroteKeys = true;
+						transition = lastTransition[key];
+					}
+					pack(object[key]);
+				}
+			}
+			if (!wroteKeys) {
+				let recordId = transition[RECORD_SYMBOL];
+				if (recordId)
+					target[objectOffset + start] = recordId;
+				else
+					insertNewRecord(transition, Object.keys(object), objectOffset, 0);
+			}
+		} :
+		(object) => {
+			let nextTransition, transition = structures.transitions || (structures.transitions = Object.create(null));
+			let newTransitions = 0;
+			for (let key in object) if (typeof object.hasOwnProperty !== 'function' || object.hasOwnProperty(key)) {
+				nextTransition = transition[key];
+				if (!nextTransition) {
+					nextTransition = transition[key] = Object.create(null);
+					newTransitions++;
+				}
+				transition = nextTransition;
+			}
+			let recordId = transition[RECORD_SYMBOL];
+			if (recordId) {
+				if (recordId >= 0x60 && useTwoByteRecords) {
+					target[position++] = ((recordId -= 0x60) & 0x1f) + 0x60;
+					target[position++] = recordId >> 5;
+				} else
+					target[position++] = recordId;
+			} else {
+				newRecord(transition, transition.__keys__ || Object.keys(object), newTransitions);
+			}
+			// now write the values
+			for (let key in object)
+				if (typeof object.hasOwnProperty !== 'function' || object.hasOwnProperty(key)) {
+					pack(object[key]);
+				}
+		};
+
+		// create reference to useRecords if useRecords is a function
+		const checkUseRecords = typeof this.useRecords == 'function' && this.useRecords;
+
+		const writeObject = checkUseRecords ? (object) => {
+			checkUseRecords(object) ? writeRecord(object) : writePlainObject(object);
+		} : writeRecord;
+
+		const makeRoom = (end) => {
+			let newSize;
+			if (end > 0x1000000) {
+				// special handling for really large buffers
+				if ((end - start) > MAX_BUFFER_SIZE)
+					throw new Error('Packed buffer would be larger than maximum buffer size')
+				newSize = Math.min(MAX_BUFFER_SIZE,
+					Math.round(Math.max((end - start) * (end > 0x4000000 ? 1.25 : 2), 0x400000) / 0x1000) * 0x1000);
+			} else // faster handling for smaller buffers
+				newSize = ((Math.max((end - start) << 2, target.length - 1) >> 12) + 1) << 12;
+			let newBuffer = new ByteArrayAllocate(newSize);
+			targetView = newBuffer.dataView || (newBuffer.dataView = new DataView(newBuffer.buffer, 0, newSize));
+			end = Math.min(end, target.length);
+			if (target.copy)
+				target.copy(newBuffer, 0, start, end);
+			else
+				newBuffer.set(target.slice(start, end));
+			position -= start;
+			start = 0;
+			safeEnd = newBuffer.length - 10;
+			return target = newBuffer
+		};
+		const newRecord = (transition, keys, newTransitions) => {
+			let recordId = structures.nextId;
+			if (!recordId)
+				recordId = 0x40;
+			if (recordId < sharedLimitId && this.shouldShareStructure && !this.shouldShareStructure(keys)) {
+				recordId = structures.nextOwnId;
+				if (!(recordId < maxStructureId))
+					recordId = sharedLimitId;
+				structures.nextOwnId = recordId + 1;
+			} else {
+				if (recordId >= maxStructureId)// cycle back around
+					recordId = sharedLimitId;
+				structures.nextId = recordId + 1;
+			}
+			let highByte = keys.highByte = recordId >= 0x60 && useTwoByteRecords ? (recordId - 0x60) >> 5 : -1;
+			transition[RECORD_SYMBOL] = recordId;
+			transition.__keys__ = keys;
+			structures[recordId - 0x40] = keys;
+
+			if (recordId < sharedLimitId) {
+				keys.isShared = true;
+				structures.sharedLength = recordId - 0x3f;
+				hasSharedUpdate = true;
+				if (highByte >= 0) {
+					target[position++] = (recordId & 0x1f) + 0x60;
+					target[position++] = highByte;
+				} else {
+					target[position++] = recordId;
+				}
+			} else {
+				if (highByte >= 0) {
+					target[position++] = 0xd5; // fixext 2
+					target[position++] = 0x72; // "r" record defintion extension type
+					target[position++] = (recordId & 0x1f) + 0x60;
+					target[position++] = highByte;
+				} else {
+					target[position++] = 0xd4; // fixext 1
+					target[position++] = 0x72; // "r" record defintion extension type
+					target[position++] = recordId;
+				}
+
+				if (newTransitions)
+					transitionsCount += serializationsSinceTransitionRebuild * newTransitions;
+				// record the removal of the id, we can maintain our shared structure
+				if (recordIdsToRemove.length >= maxOwnStructures)
+					recordIdsToRemove.shift()[RECORD_SYMBOL] = 0; // we are cycling back through, and have to remove old ones
+				recordIdsToRemove.push(transition);
+				pack(keys);
+			}
+		};
+		const insertNewRecord = (transition, keys, insertionOffset, newTransitions) => {
+			let mainTarget = target;
+			let mainPosition = position;
+			let mainSafeEnd = safeEnd;
+			let mainStart = start;
+			target = keysTarget;
+			position = 0;
+			start = 0;
+			if (!target)
+				keysTarget = target = new ByteArrayAllocate(8192);
+			safeEnd = target.length - 10;
+			newRecord(transition, keys, newTransitions);
+			keysTarget = target;
+			let keysPosition = position;
+			target = mainTarget;
+			position = mainPosition;
+			safeEnd = mainSafeEnd;
+			start = mainStart;
+			if (keysPosition > 1) {
+				let newEnd = position + keysPosition - 1;
+				if (newEnd > safeEnd)
+					makeRoom(newEnd);
+				let insertionPosition = insertionOffset + start;
+				target.copyWithin(insertionPosition + keysPosition, insertionPosition + 1, position);
+				target.set(keysTarget.slice(0, keysPosition), insertionPosition);
+				position = newEnd;
+			} else {
+				target[insertionOffset + start] = keysTarget[0];
+			}
+		};
+		const writeStruct = (object) => {
+			let newPosition = writeStructSlots(object, target, start, position, structures, makeRoom, (value, newPosition, notifySharedUpdate) => {
+				if (notifySharedUpdate)
+					return hasSharedUpdate = true;
+				position = newPosition;
+				let startTarget = target;
+				pack(value);
+				resetStructures();
+				if (startTarget !== target) {
+					return { position, targetView, target }; // indicate the buffer was re-allocated
+				}
+				return position;
+			}, this);
+			if (newPosition === 0) // bail and go to a msgpack object
+				return writeObject(object);
+			position = newPosition;
+		};
+	}
+	useBuffer(buffer) {
+		// this means we are finished using our own buffer and we can write over it safely
+		target = buffer;
+		target.dataView || (target.dataView = new DataView(target.buffer, target.byteOffset, target.byteLength));
+		position = 0;
+	}
+	set position (value) {
+		position = value;
+	}
+	get position() {
+		return position;
+	}
+	clearSharedData() {
+		if (this.structures)
+			this.structures = [];
+		if (this.typedStructs)
+			this.typedStructs = [];
+	}
+}
+
+extensionClasses = [ Date, Set, Error, RegExp, ArrayBuffer, Object.getPrototypeOf(Uint8Array.prototype).constructor /*TypedArray*/, C1Type ];
+extensions = [{
+	pack(date, allocateForWrite, pack) {
+		let seconds = date.getTime() / 1000;
+		if ((this.useTimestamp32 || date.getMilliseconds() === 0) && seconds >= 0 && seconds < 0x100000000) {
+			// Timestamp 32
+			let { target, targetView, position} = allocateForWrite(6);
+			target[position++] = 0xd6;
+			target[position++] = 0xff;
+			targetView.setUint32(position, seconds);
+		} else if (seconds > 0 && seconds < 0x100000000) {
+			// Timestamp 64
+			let { target, targetView, position} = allocateForWrite(10);
+			target[position++] = 0xd7;
+			target[position++] = 0xff;
+			targetView.setUint32(position, date.getMilliseconds() * 4000000 + ((seconds / 1000 / 0x100000000) >> 0));
+			targetView.setUint32(position + 4, seconds);
+		} else if (isNaN(seconds)) {
+			if (this.onInvalidDate) {
+				allocateForWrite(0);
+				return pack(this.onInvalidDate())
+			}
+			// Intentionally invalid timestamp
+			let { target, targetView, position} = allocateForWrite(3);
+			target[position++] = 0xd4;
+			target[position++] = 0xff;
+			target[position++] = 0xff;
+		} else {
+			// Timestamp 96
+			let { target, targetView, position} = allocateForWrite(15);
+			target[position++] = 0xc7;
+			target[position++] = 12;
+			target[position++] = 0xff;
+			targetView.setUint32(position, date.getMilliseconds() * 1000000);
+			targetView.setBigInt64(position + 4, BigInt(Math.floor(seconds)));
+		}
+	}
+}, {
+	pack(set, allocateForWrite, pack) {
+		if (this.setAsEmptyObject) {
+			allocateForWrite(0);
+			return pack({})
+		}
+		let array = Array.from(set);
+		let { target, position} = allocateForWrite(this.moreTypes ? 3 : 0);
+		if (this.moreTypes) {
+			target[position++] = 0xd4;
+			target[position++] = 0x73; // 's' for Set
+			target[position++] = 0;
+		}
+		pack(array);
+	}
+}, {
+	pack(error, allocateForWrite, pack) {
+		let { target, position} = allocateForWrite(this.moreTypes ? 3 : 0);
+		if (this.moreTypes) {
+			target[position++] = 0xd4;
+			target[position++] = 0x65; // 'e' for error
+			target[position++] = 0;
+		}
+		pack([ error.name, error.message, error.cause ]);
+	}
+}, {
+	pack(regex, allocateForWrite, pack) {
+		let { target, position} = allocateForWrite(this.moreTypes ? 3 : 0);
+		if (this.moreTypes) {
+			target[position++] = 0xd4;
+			target[position++] = 0x78; // 'x' for regeXp
+			target[position++] = 0;
+		}
+		pack([ regex.source, regex.flags ]);
+	}
+}, {
+	pack(arrayBuffer, allocateForWrite) {
+		if (this.moreTypes)
+			writeExtBuffer(arrayBuffer, 0x10, allocateForWrite);
+		else
+			writeBuffer(hasNodeBuffer ? Buffer.from(arrayBuffer) : new Uint8Array(arrayBuffer), allocateForWrite);
+	}
+}, {
+	pack(typedArray, allocateForWrite) {
+		let constructor = typedArray.constructor;
+		if (constructor !== ByteArray && this.moreTypes)
+			writeExtBuffer(typedArray, typedArrays.indexOf(constructor.name), allocateForWrite);
+		else
+			writeBuffer(typedArray, allocateForWrite);
+	}
+}, {
+	pack(c1, allocateForWrite) { // specific 0xC1 object
+		let { target, position} = allocateForWrite(1);
+		target[position] = 0xc1;
+	}
+}];
+
+function writeExtBuffer(typedArray, type, allocateForWrite, encode) {
+	let length = typedArray.byteLength;
+	if (length + 1 < 0x100) {
+		var { target, position } = allocateForWrite(4 + length);
+		target[position++] = 0xc7;
+		target[position++] = length + 1;
+	} else if (length + 1 < 0x10000) {
+		var { target, position } = allocateForWrite(5 + length);
+		target[position++] = 0xc8;
+		target[position++] = (length + 1) >> 8;
+		target[position++] = (length + 1) & 0xff;
+	} else {
+		var { target, position, targetView } = allocateForWrite(7 + length);
+		target[position++] = 0xc9;
+		targetView.setUint32(position, length + 1); // plus one for the type byte
+		position += 4;
+	}
+	target[position++] = 0x74; // "t" for typed array
+	target[position++] = type;
+	if (!typedArray.buffer) typedArray = new Uint8Array(typedArray);
+	target.set(new Uint8Array(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength), position);
+}
+function writeBuffer(buffer, allocateForWrite) {
+	let length = buffer.byteLength;
+	var target, position;
+	if (length < 0x100) {
+		var { target, position } = allocateForWrite(length + 2);
+		target[position++] = 0xc4;
+		target[position++] = length;
+	} else if (length < 0x10000) {
+		var { target, position } = allocateForWrite(length + 3);
+		target[position++] = 0xc5;
+		target[position++] = length >> 8;
+		target[position++] = length & 0xff;
+	} else {
+		var { target, position, targetView } = allocateForWrite(length + 5);
+		target[position++] = 0xc6;
+		targetView.setUint32(position, length);
+		position += 4;
+	}
+	target.set(buffer, position);
+}
+
+function writeExtensionData(result, target, position, type) {
+	let length = result.length;
+	switch (length) {
+		case 1:
+			target[position++] = 0xd4;
+			break
+		case 2:
+			target[position++] = 0xd5;
+			break
+		case 4:
+			target[position++] = 0xd6;
+			break
+		case 8:
+			target[position++] = 0xd7;
+			break
+		case 16:
+			target[position++] = 0xd8;
+			break
+		default:
+			if (length < 0x100) {
+				target[position++] = 0xc7;
+				target[position++] = length;
+			} else if (length < 0x10000) {
+				target[position++] = 0xc8;
+				target[position++] = length >> 8;
+				target[position++] = length & 0xff;
+			} else {
+				target[position++] = 0xc9;
+				target[position++] = length >> 24;
+				target[position++] = (length >> 16) & 0xff;
+				target[position++] = (length >> 8) & 0xff;
+				target[position++] = length & 0xff;
+			}
+	}
+	target[position++] = type;
+	target.set(result, position);
+	position += length;
+	return position
+}
+
+function insertIds(serialized, idsToInsert) {
+	// insert the ids that need to be referenced for structured clones
+	let nextId;
+	let distanceToMove = idsToInsert.length * 6;
+	let lastEnd = serialized.length - distanceToMove;
+	while (nextId = idsToInsert.pop()) {
+		let offset = nextId.offset;
+		let id = nextId.id;
+		serialized.copyWithin(offset + distanceToMove, offset, lastEnd);
+		distanceToMove -= 6;
+		let position = offset + distanceToMove;
+		serialized[position++] = 0xd6;
+		serialized[position++] = 0x69; // 'i'
+		serialized[position++] = id >> 24;
+		serialized[position++] = (id >> 16) & 0xff;
+		serialized[position++] = (id >> 8) & 0xff;
+		serialized[position++] = id & 0xff;
+		lastEnd = offset;
+	}
+	return serialized
+}
+
+function writeBundles(start, pack, incrementPosition) {
+	if (bundledStrings.length > 0) {
+		targetView.setUint32(bundledStrings.position + start, position + incrementPosition - bundledStrings.position - start);
+		bundledStrings.stringsPosition = position - start;
+		let writeStrings = bundledStrings;
+		bundledStrings = null;
+		pack(writeStrings[0]);
+		pack(writeStrings[1]);
+	}
+}
+function prepareStructures(structures, packr) {
+	structures.isCompatible = (existingStructures) => {
+		let compatible = !existingStructures || ((packr.lastNamedStructuresLength || 0) === existingStructures.length);
+		if (!compatible) // we want to merge these existing structures immediately since we already have it and we are in the right transaction
+			packr._mergeStructures(existingStructures);
+		return compatible;
+	};
+	return structures
+}
+
+let defaultPackr = new Packr({ useRecords: false });
+defaultPackr.pack;
+defaultPackr.pack;
+const REUSE_BUFFER_MODE = 512;
+const RESET_BUFFER_MODE = 1024;
+const RESERVE_START_SPACE = 2048;
+
+// --------------------------------------------------------------------------
+// Iterators
+// --------------------------------------------------------------------------
+/** Returns true if this value is an async iterator */
+function IsAsyncIterator$3(value) {
+    return IsObject$3(value) && globalThis.Symbol.asyncIterator in value;
+}
+/** Returns true if this value is an iterator */
+function IsIterator$3(value) {
+    return IsObject$3(value) && globalThis.Symbol.iterator in value;
+}
+// --------------------------------------------------------------------------
+// JavaScript
+// --------------------------------------------------------------------------
+/** Returns true if this value is a Promise */
+function IsPromise$2(value) {
+    return value instanceof globalThis.Promise;
+}
+/** Returns true if this value is a Date */
+function IsDate$3(value) {
+    return value instanceof Date && globalThis.Number.isFinite(value.getTime());
+}
+/** Returns true if this value is an instance of Map<K, T> */
+function IsMap(value) {
+    return value instanceof globalThis.Map;
+}
+/** Returns true if this value is an instance of Set<T> */
+function IsSet(value) {
+    return value instanceof globalThis.Set;
+}
+/** Returns true if this value is a typed array */
+function IsTypedArray(value) {
+    return globalThis.ArrayBuffer.isView(value);
+}
+/** Returns true if the value is a Uint8Array */
+function IsUint8Array$3(value) {
+    return value instanceof globalThis.Uint8Array;
+}
+// --------------------------------------------------------------------------
+// PropertyKey
+// --------------------------------------------------------------------------
+/** Returns true if this value has this property key */
+function HasPropertyKey(value, key) {
+    return key in value;
+}
+// --------------------------------------------------------------------------
+// Standard
+// --------------------------------------------------------------------------
+/** Returns true of this value is an object type */
+function IsObject$3(value) {
+    return value !== null && typeof value === 'object';
+}
+/** Returns true if this value is an array, but not a typed array */
+function IsArray$3(value) {
+    return globalThis.Array.isArray(value) && !globalThis.ArrayBuffer.isView(value);
+}
+/** Returns true if this value is an undefined */
+function IsUndefined$3(value) {
+    return value === undefined;
+}
+/** Returns true if this value is an null */
+function IsNull$3(value) {
+    return value === null;
+}
+/** Returns true if this value is an boolean */
+function IsBoolean$3(value) {
+    return typeof value === 'boolean';
+}
+/** Returns true if this value is an number */
+function IsNumber$3(value) {
+    return typeof value === 'number';
+}
+/** Returns true if this value is an integer */
+function IsInteger$2(value) {
+    return globalThis.Number.isInteger(value);
+}
+/** Returns true if this value is bigint */
+function IsBigInt$3(value) {
+    return typeof value === 'bigint';
+}
+/** Returns true if this value is string */
+function IsString$3(value) {
+    return typeof value === 'string';
+}
+/** Returns true if this value is a function */
+function IsFunction$3(value) {
+    return typeof value === 'function';
+}
+/** Returns true if this value is a symbol */
+function IsSymbol$3(value) {
+    return typeof value === 'symbol';
+}
+/** Returns true if this value is a value type such as number, string, boolean */
+function IsValueType(value) {
+    // prettier-ignore
+    return (IsBigInt$3(value) ||
+        IsBoolean$3(value) ||
+        IsNull$3(value) ||
+        IsNumber$3(value) ||
+        IsString$3(value) ||
+        IsSymbol$3(value) ||
+        IsUndefined$3(value));
+}
+
+var TypeSystemPolicy;
+(function (TypeSystemPolicy) {
+    // ------------------------------------------------------------------
+    // TypeSystemPolicy: Instancing
+    // ------------------------------------------------------------------
+    /**
+     * Configures the instantiation behavior of TypeBox types. The `default` option assigns raw JavaScript
+     * references for embedded types, which may cause side effects if type properties are explicitly updated
+     * outside the TypeBox type builder. The `clone` option creates copies of any shared types upon creation,
+     * preventing unintended side effects. The `freeze` option applies `Object.freeze()` to the type, making
+     * it fully readonly and immutable. Implementations should use `default` whenever possible, as it is the
+     * fastest way to instantiate types. The default setting is `default`.
+     */
+    TypeSystemPolicy.InstanceMode = 'default';
+    // ------------------------------------------------------------------
+    // TypeSystemPolicy: Checking
+    // ------------------------------------------------------------------
+    /** Sets whether TypeBox should assert optional properties using the TypeScript `exactOptionalPropertyTypes` assertion policy. The default is `false` */
+    TypeSystemPolicy.ExactOptionalPropertyTypes = false;
+    /** Sets whether arrays should be treated as a kind of objects. The default is `false` */
+    TypeSystemPolicy.AllowArrayObject = false;
+    /** Sets whether `NaN` or `Infinity` should be treated as valid numeric values. The default is `false` */
+    TypeSystemPolicy.AllowNaN = false;
+    /** Sets whether `null` should validate for void types. The default is `false` */
+    TypeSystemPolicy.AllowNullVoid = false;
+    /** Checks this value using the ExactOptionalPropertyTypes policy */
+    function IsExactOptionalProperty(value, key) {
+        return TypeSystemPolicy.ExactOptionalPropertyTypes ? key in value : value[key] !== undefined;
+    }
+    TypeSystemPolicy.IsExactOptionalProperty = IsExactOptionalProperty;
+    /** Checks this value using the AllowArrayObjects policy */
+    function IsObjectLike(value) {
+        const isObject = IsObject$3(value);
+        return TypeSystemPolicy.AllowArrayObject ? isObject : isObject && !IsArray$3(value);
+    }
+    TypeSystemPolicy.IsObjectLike = IsObjectLike;
+    /** Checks this value as a record using the AllowArrayObjects policy */
+    function IsRecordLike(value) {
+        return IsObjectLike(value) && !(value instanceof Date) && !(value instanceof Uint8Array);
+    }
+    TypeSystemPolicy.IsRecordLike = IsRecordLike;
+    /** Checks this value using the AllowNaN policy */
+    function IsNumberLike(value) {
+        return TypeSystemPolicy.AllowNaN ? IsNumber$3(value) : Number.isFinite(value);
+    }
+    TypeSystemPolicy.IsNumberLike = IsNumberLike;
+    /** Checks this value using the AllowVoidNull policy */
+    function IsVoidLike(value) {
+        const isUndefined = IsUndefined$3(value);
+        return TypeSystemPolicy.AllowNullVoid ? isUndefined || value === null : isUndefined;
+    }
+    TypeSystemPolicy.IsVoidLike = IsVoidLike;
+})(TypeSystemPolicy || (TypeSystemPolicy = {}));
+
+/** A registry for user defined string formats */
+const map$1 = new Map();
+/** Returns true if the user defined string format exists */
+function Has$1(format) {
+    return map$1.has(format);
+}
+/** Gets a validation function for a user defined string format */
+function Get$1(format) {
+    return map$1.get(format);
+}
+
+/** A registry for user defined types */
+const map = new Map();
+/** Returns true if this registry contains this kind */
+function Has(kind) {
+    return map.has(kind);
+}
+/** Gets a custom validation function for a user defined type */
+function Get(kind) {
+    return map.get(kind);
+}
+
+// --------------------------------------------------------------------------
+// PropertyKey
+// --------------------------------------------------------------------------
+/** Returns true if this value has this property key */
+// --------------------------------------------------------------------------
+// Object Instances
+// --------------------------------------------------------------------------
+/** Returns true if this value is an async iterator */
+function IsAsyncIterator$2(value) {
+    return IsObject$2(value) && !IsArray$2(value) && !IsUint8Array$2(value) && Symbol.asyncIterator in value;
+}
+/** Returns true if this value is an array */
+function IsArray$2(value) {
+    return Array.isArray(value);
+}
+/** Returns true if this value is bigint */
+function IsBigInt$2(value) {
+    return typeof value === 'bigint';
+}
+/** Returns true if this value is a boolean */
+function IsBoolean$2(value) {
+    return typeof value === 'boolean';
+}
+/** Returns true if this value is a Date object */
+function IsDate$2(value) {
+    return value instanceof globalThis.Date;
+}
+/** Returns true if this value is a function */
+function IsFunction$2(value) {
+    return typeof value === 'function';
+}
+/** Returns true if this value is an iterator */
+function IsIterator$2(value) {
+    return IsObject$2(value) && !IsArray$2(value) && !IsUint8Array$2(value) && Symbol.iterator in value;
+}
+/** Returns true if this value is null */
+function IsNull$2(value) {
+    return value === null;
+}
+/** Returns true if this value is number */
+function IsNumber$2(value) {
+    return typeof value === 'number';
+}
+/** Returns true if this value is an object */
+function IsObject$2(value) {
+    return typeof value === 'object' && value !== null;
+}
+/** Returns true if this value is RegExp */
+function IsRegExp$2(value) {
+    return value instanceof globalThis.RegExp;
+}
+/** Returns true if this value is string */
+function IsString$2(value) {
+    return typeof value === 'string';
+}
+/** Returns true if this value is symbol */
+function IsSymbol$2(value) {
+    return typeof value === 'symbol';
+}
+/** Returns true if this value is a Uint8Array */
+function IsUint8Array$2(value) {
+    return value instanceof globalThis.Uint8Array;
+}
+/** Returns true if this value is undefined */
+function IsUndefined$2(value) {
+    return value === undefined;
+}
+
+function ImmutableArray(value) {
+    return globalThis.Object.freeze(value).map((value) => Immutable(value));
+}
+function ImmutableDate(value) {
+    return value;
+}
+function ImmutableUint8Array(value) {
+    return value;
+}
+function ImmutableRegExp(value) {
+    return value;
+}
+function ImmutableObject(value) {
+    const result = {};
+    for (const key of Object.getOwnPropertyNames(value)) {
+        result[key] = Immutable(value[key]);
+    }
+    for (const key of Object.getOwnPropertySymbols(value)) {
+        result[key] = Immutable(value[key]);
+    }
+    return globalThis.Object.freeze(result);
+}
+/** Specialized deep immutable value. Applies freeze recursively to the given value */
+// prettier-ignore
+function Immutable(value) {
+    return (IsArray$2(value) ? ImmutableArray(value) :
+        IsDate$2(value) ? ImmutableDate(value) :
+            IsUint8Array$2(value) ? ImmutableUint8Array(value) :
+                IsRegExp$2(value) ? ImmutableRegExp(value) :
+                    IsObject$2(value) ? ImmutableObject(value) :
+                        value);
+}
+
+function ArrayType$1(value) {
+    return value.map((value) => Visit$b(value));
+}
+function DateType$1(value) {
+    return new Date(value.getTime());
+}
+function Uint8ArrayType$1(value) {
+    return new Uint8Array(value);
+}
+function RegExpType(value) {
+    return new RegExp(value.source, value.flags);
+}
+function ObjectType$1(value) {
+    const result = {};
+    for (const key of Object.getOwnPropertyNames(value)) {
+        result[key] = Visit$b(value[key]);
+    }
+    for (const key of Object.getOwnPropertySymbols(value)) {
+        result[key] = Visit$b(value[key]);
+    }
+    return result;
+}
+// prettier-ignore
+function Visit$b(value) {
+    return (IsArray$2(value) ? ArrayType$1(value) :
+        IsDate$2(value) ? DateType$1(value) :
+            IsUint8Array$2(value) ? Uint8ArrayType$1(value) :
+                IsRegExp$2(value) ? RegExpType(value) :
+                    IsObject$2(value) ? ObjectType$1(value) :
+                        value);
+}
+/** Clones a value */
+function Clone$1(value) {
+    return Visit$b(value);
+}
+
+/** Creates TypeBox schematics using the configured InstanceMode */
+function CreateType(schema, options) {
+    const result = options !== undefined ? { ...options, ...schema } : schema;
+    switch (TypeSystemPolicy.InstanceMode) {
+        case 'freeze':
+            return Immutable(result);
+        case 'clone':
+            return Clone$1(result);
+        default:
+            return result;
+    }
+}
+
+/** Symbol key applied to transform types */
+const TransformKind = Symbol.for('TypeBox.Transform');
+/** Symbol key applied to readonly types */
+const ReadonlyKind = Symbol.for('TypeBox.Readonly');
+/** Symbol key applied to optional types */
+const OptionalKind = Symbol.for('TypeBox.Optional');
+/** Symbol key applied to types */
+const Hint = Symbol.for('TypeBox.Hint');
+/** Symbol key applied to types */
+const Kind = Symbol.for('TypeBox.Kind');
+
+/** `[Json]` Creates a Unsafe type that will infers as the generic argument T */
+function Unsafe(options = {}) {
+    return CreateType({ [Kind]: options[Kind] ?? 'Unsafe' }, options);
+}
+
+/** The base Error type thrown for all TypeBox exceptions  */
+class TypeBoxError extends Error {
+    constructor(message) {
+        super(message);
+    }
+}
+
+// prettier-ignore
+function MappedResult(properties) {
+    return CreateType({
+        [Kind]: 'MappedResult',
+        properties
+    });
+}
+
+function DiscardKey(value, key) {
+    const { [key]: _, ...rest } = value;
+    return rest;
+}
+/** Discards property keys from the given value. This function returns a shallow Clone. */
+function Discard(value, keys) {
+    return keys.reduce((acc, key) => DiscardKey(acc, key), value);
+}
+
+/** `[Json]` Creates an Array type */
+function Array$1(items, options) {
+    return CreateType({ [Kind]: 'Array', type: 'array', items }, options);
+}
+
+/** `[JavaScript]` Creates a AsyncIterator type */
+function AsyncIterator(items, options) {
+    return CreateType({ [Kind]: 'AsyncIterator', type: 'AsyncIterator', items }, options);
+}
+
+/** `[JavaScript]` Creates a Constructor type */
+function Constructor(parameters, returns, options) {
+    return CreateType({ [Kind]: 'Constructor', type: 'Constructor', parameters, returns }, options);
+}
+
+/** `[JavaScript]` Creates a Function type */
+function Function$1(parameters, returns, options) {
+    return CreateType({ [Kind]: 'Function', type: 'Function', parameters, returns }, options);
+}
+
+/** `[Internal]` Creates a deferred computed type. This type is used exclusively in modules to defer resolution of computable types that contain interior references  */
+function Computed(target, parameters, options) {
+    return CreateType({ [Kind]: 'Computed', target, parameters }, options);
+}
+
+/** `[Json]` Creates a Never type */
+function Never(options) {
+    return CreateType({ [Kind]: 'Never', not: {} }, options);
+}
+
+/** `[Kind-Only]` Returns true if this value has a Readonly symbol */
+function IsReadonly(value) {
+    return IsObject$2(value) && value[ReadonlyKind] === 'Readonly';
+}
+/** `[Kind-Only]` Returns true if this value has a Optional symbol */
+function IsOptional$1(value) {
+    return IsObject$2(value) && value[OptionalKind] === 'Optional';
+}
+/** `[Kind-Only]` Returns true if the given value is TAny */
+function IsAny$1(value) {
+    return IsKindOf$1(value, 'Any');
+}
+/** `[Kind-Only]` Returns true if the given value is TArray */
+function IsArray$1(value) {
+    return IsKindOf$1(value, 'Array');
+}
+/** `[Kind-Only]` Returns true if the given value is TAsyncIterator */
+function IsAsyncIterator$1(value) {
+    return IsKindOf$1(value, 'AsyncIterator');
+}
+/** `[Kind-Only]` Returns true if the given value is TBigInt */
+function IsBigInt$1(value) {
+    return IsKindOf$1(value, 'BigInt');
+}
+/** `[Kind-Only]` Returns true if the given value is TBoolean */
+function IsBoolean$1(value) {
+    return IsKindOf$1(value, 'Boolean');
+}
+/** `[Kind-Only]` Returns true if the given value is TComputed */
+function IsComputed$1(value) {
+    return IsKindOf$1(value, 'Computed');
+}
+/** `[Kind-Only]` Returns true if the given value is TConstructor */
+function IsConstructor$1(value) {
+    return IsKindOf$1(value, 'Constructor');
+}
+/** `[Kind-Only]` Returns true if the given value is TDate */
+function IsDate$1(value) {
+    return IsKindOf$1(value, 'Date');
+}
+/** `[Kind-Only]` Returns true if the given value is TFunction */
+function IsFunction$1(value) {
+    return IsKindOf$1(value, 'Function');
+}
+/** `[Kind-Only]` Returns true if the given value is TInteger */
+function IsInteger$1(value) {
+    return IsKindOf$1(value, 'Integer');
+}
+/** `[Kind-Only]` Returns true if the given value is TIntersect */
+function IsIntersect$1(value) {
+    return IsKindOf$1(value, 'Intersect');
+}
+/** `[Kind-Only]` Returns true if the given value is TIterator */
+function IsIterator$1(value) {
+    return IsKindOf$1(value, 'Iterator');
+}
+/** `[Kind-Only]` Returns true if the given value is a TKind with the given name. */
+function IsKindOf$1(value, kind) {
+    return IsObject$2(value) && Kind in value && value[Kind] === kind;
+}
+/** `[Kind-Only]` Returns true if the given value is TLiteralValue */
+function IsLiteralValue$1(value) {
+    return IsBoolean$2(value) || IsNumber$2(value) || IsString$2(value);
+}
+/** `[Kind-Only]` Returns true if the given value is TLiteral */
+function IsLiteral$1(value) {
+    return IsKindOf$1(value, 'Literal');
+}
+/** `[Kind-Only]` Returns true if the given value is a TMappedKey */
+function IsMappedKey$1(value) {
+    return IsKindOf$1(value, 'MappedKey');
+}
+/** `[Kind-Only]` Returns true if the given value is TMappedResult */
+function IsMappedResult$1(value) {
+    return IsKindOf$1(value, 'MappedResult');
+}
+/** `[Kind-Only]` Returns true if the given value is TNever */
+function IsNever$1(value) {
+    return IsKindOf$1(value, 'Never');
+}
+/** `[Kind-Only]` Returns true if the given value is TNot */
+function IsNot$1(value) {
+    return IsKindOf$1(value, 'Not');
+}
+/** `[Kind-Only]` Returns true if the given value is TNull */
+function IsNull$1(value) {
+    return IsKindOf$1(value, 'Null');
+}
+/** `[Kind-Only]` Returns true if the given value is TNumber */
+function IsNumber$1(value) {
+    return IsKindOf$1(value, 'Number');
+}
+/** `[Kind-Only]` Returns true if the given value is TObject */
+function IsObject$1(value) {
+    return IsKindOf$1(value, 'Object');
+}
+/** `[Kind-Only]` Returns true if the given value is TPromise */
+function IsPromise$1(value) {
+    return IsKindOf$1(value, 'Promise');
+}
+/** `[Kind-Only]` Returns true if the given value is TRecord */
+function IsRecord$1(value) {
+    return IsKindOf$1(value, 'Record');
+}
+/** `[Kind-Only]` Returns true if the given value is TRef */
+function IsRef$1(value) {
+    return IsKindOf$1(value, 'Ref');
+}
+/** `[Kind-Only]` Returns true if the given value is TRegExp */
+function IsRegExp$1(value) {
+    return IsKindOf$1(value, 'RegExp');
+}
+/** `[Kind-Only]` Returns true if the given value is TString */
+function IsString$1(value) {
+    return IsKindOf$1(value, 'String');
+}
+/** `[Kind-Only]` Returns true if the given value is TSymbol */
+function IsSymbol$1(value) {
+    return IsKindOf$1(value, 'Symbol');
+}
+/** `[Kind-Only]` Returns true if the given value is TTemplateLiteral */
+function IsTemplateLiteral$1(value) {
+    return IsKindOf$1(value, 'TemplateLiteral');
+}
+/** `[Kind-Only]` Returns true if the given value is TThis */
+function IsThis$1(value) {
+    return IsKindOf$1(value, 'This');
+}
+/** `[Kind-Only]` Returns true of this value is TTransform */
+function IsTransform$1(value) {
+    return IsObject$2(value) && TransformKind in value;
+}
+/** `[Kind-Only]` Returns true if the given value is TTuple */
+function IsTuple$1(value) {
+    return IsKindOf$1(value, 'Tuple');
+}
+/** `[Kind-Only]` Returns true if the given value is TUndefined */
+function IsUndefined$1(value) {
+    return IsKindOf$1(value, 'Undefined');
+}
+/** `[Kind-Only]` Returns true if the given value is TUnion */
+function IsUnion$1(value) {
+    return IsKindOf$1(value, 'Union');
+}
+/** `[Kind-Only]` Returns true if the given value is TUint8Array */
+function IsUint8Array$1(value) {
+    return IsKindOf$1(value, 'Uint8Array');
+}
+/** `[Kind-Only]` Returns true if the given value is TUnknown */
+function IsUnknown$1(value) {
+    return IsKindOf$1(value, 'Unknown');
+}
+/** `[Kind-Only]` Returns true if the given value is a raw TUnsafe */
+function IsUnsafe$1(value) {
+    return IsKindOf$1(value, 'Unsafe');
+}
+/** `[Kind-Only]` Returns true if the given value is TVoid */
+function IsVoid$1(value) {
+    return IsKindOf$1(value, 'Void');
+}
+/** `[Kind-Only]` Returns true if the given value is TKind */
+function IsKind$1(value) {
+    return IsObject$2(value) && Kind in value && IsString$2(value[Kind]);
+}
+/** `[Kind-Only]` Returns true if the given value is TSchema */
+function IsSchema$1(value) {
+    // prettier-ignore
+    return (IsAny$1(value) ||
+        IsArray$1(value) ||
+        IsBoolean$1(value) ||
+        IsBigInt$1(value) ||
+        IsAsyncIterator$1(value) ||
+        IsComputed$1(value) ||
+        IsConstructor$1(value) ||
+        IsDate$1(value) ||
+        IsFunction$1(value) ||
+        IsInteger$1(value) ||
+        IsIntersect$1(value) ||
+        IsIterator$1(value) ||
+        IsLiteral$1(value) ||
+        IsMappedKey$1(value) ||
+        IsMappedResult$1(value) ||
+        IsNever$1(value) ||
+        IsNot$1(value) ||
+        IsNull$1(value) ||
+        IsNumber$1(value) ||
+        IsObject$1(value) ||
+        IsPromise$1(value) ||
+        IsRecord$1(value) ||
+        IsRef$1(value) ||
+        IsRegExp$1(value) ||
+        IsString$1(value) ||
+        IsSymbol$1(value) ||
+        IsTemplateLiteral$1(value) ||
+        IsThis$1(value) ||
+        IsTuple$1(value) ||
+        IsUndefined$1(value) ||
+        IsUnion$1(value) ||
+        IsUint8Array$1(value) ||
+        IsUnknown$1(value) ||
+        IsUnsafe$1(value) ||
+        IsVoid$1(value) ||
+        IsKind$1(value));
+}
+
+function RemoveOptional(schema) {
+    return CreateType(Discard(schema, [OptionalKind]));
+}
+function AddOptional(schema) {
+    return CreateType({ ...schema, [OptionalKind]: 'Optional' });
+}
+// prettier-ignore
+function OptionalWithFlag(schema, F) {
+    return (F === false
+        ? RemoveOptional(schema)
+        : AddOptional(schema));
+}
+/** `[Json]` Creates a Optional property */
+function Optional(schema, enable) {
+    const F = enable ?? true;
+    return IsMappedResult$1(schema) ? OptionalFromMappedResult(schema, F) : OptionalWithFlag(schema, F);
+}
+
+// prettier-ignore
+function FromProperties$h(P, F) {
+    const Acc = {};
+    for (const K2 of globalThis.Object.getOwnPropertyNames(P))
+        Acc[K2] = Optional(P[K2], F);
+    return Acc;
+}
+// prettier-ignore
+function FromMappedResult$b(R, F) {
+    return FromProperties$h(R.properties, F);
+}
+// prettier-ignore
+function OptionalFromMappedResult(R, F) {
+    const P = FromMappedResult$b(R, F);
+    return MappedResult(P);
+}
+
+// ------------------------------------------------------------------
+// IntersectCreate
+// ------------------------------------------------------------------
+// prettier-ignore
+function IntersectCreate(T, options = {}) {
+    const allObjects = T.every((schema) => IsObject$1(schema));
+    const clonedUnevaluatedProperties = IsSchema$1(options.unevaluatedProperties)
+        ? { unevaluatedProperties: options.unevaluatedProperties }
+        : {};
+    return CreateType((options.unevaluatedProperties === false || IsSchema$1(options.unevaluatedProperties) || allObjects
+        ? { ...clonedUnevaluatedProperties, [Kind]: 'Intersect', type: 'object', allOf: T }
+        : { ...clonedUnevaluatedProperties, [Kind]: 'Intersect', allOf: T }), options);
+}
+
+// prettier-ignore
+function IsIntersectOptional(types) {
+    return types.every(left => IsOptional$1(left));
+}
+// prettier-ignore
+function RemoveOptionalFromType$1(type) {
+    return (Discard(type, [OptionalKind]));
+}
+// prettier-ignore
+function RemoveOptionalFromRest$1(types) {
+    return types.map(left => IsOptional$1(left) ? RemoveOptionalFromType$1(left) : left);
+}
+// prettier-ignore
+function ResolveIntersect(types, options) {
+    return (IsIntersectOptional(types)
+        ? Optional(IntersectCreate(RemoveOptionalFromRest$1(types), options))
+        : IntersectCreate(RemoveOptionalFromRest$1(types), options));
+}
+/** `[Json]` Creates an evaluated Intersect type */
+function IntersectEvaluated(types, options = {}) {
+    if (types.length === 1)
+        return CreateType(types[0], options);
+    if (types.length === 0)
+        return Never(options);
+    if (types.some((schema) => IsTransform$1(schema)))
+        throw new Error('Cannot intersect transform types');
+    return ResolveIntersect(types, options);
+}
+
+/** `[Json]` Creates an evaluated Intersect type */
+function Intersect$1(types, options) {
+    if (types.length === 1)
+        return CreateType(types[0], options);
+    if (types.length === 0)
+        return Never(options);
+    if (types.some((schema) => IsTransform$1(schema)))
+        throw new Error('Cannot intersect transform types');
+    return IntersectCreate(types, options);
+}
+
+function UnionCreate(T, options) {
+    return CreateType({ [Kind]: 'Union', anyOf: T }, options);
+}
+
+// prettier-ignore
+function IsUnionOptional(types) {
+    return types.some(type => IsOptional$1(type));
+}
+// prettier-ignore
+function RemoveOptionalFromRest(types) {
+    return types.map(left => IsOptional$1(left) ? RemoveOptionalFromType(left) : left);
+}
+// prettier-ignore
+function RemoveOptionalFromType(T) {
+    return (Discard(T, [OptionalKind]));
+}
+// prettier-ignore
+function ResolveUnion(types, options) {
+    const isOptional = IsUnionOptional(types);
+    return (isOptional
+        ? Optional(UnionCreate(RemoveOptionalFromRest(types), options))
+        : UnionCreate(RemoveOptionalFromRest(types), options));
+}
+/** `[Json]` Creates an evaluated Union type */
+function UnionEvaluated(T, options) {
+    // prettier-ignore
+    return (T.length === 1 ? CreateType(T[0], options) :
+        T.length === 0 ? Never(options) :
+            ResolveUnion(T, options));
+}
+
+/** `[Json]` Creates a Union type */
+function Union$1(types, options) {
+    // prettier-ignore
+    return (types.length === 0 ? Never(options) :
+        types.length === 1 ? CreateType(types[0], options) :
+            UnionCreate(types, options));
+}
+
+// ------------------------------------------------------------------
+// TemplateLiteralParserError
+// ------------------------------------------------------------------
+class TemplateLiteralParserError extends TypeBoxError {
+}
+// -------------------------------------------------------------------
+// Unescape
+//
+// Unescape for these control characters specifically. Note that this
+// function is only called on non union group content, and where we
+// still want to allow the user to embed control characters in that
+// content. For review.
+// -------------------------------------------------------------------
+// prettier-ignore
+function Unescape(pattern) {
+    return pattern
+        .replace(/\\\$/g, '$')
+        .replace(/\\\*/g, '*')
+        .replace(/\\\^/g, '^')
+        .replace(/\\\|/g, '|')
+        .replace(/\\\(/g, '(')
+        .replace(/\\\)/g, ')');
+}
+// -------------------------------------------------------------------
+// Control Characters
+// -------------------------------------------------------------------
+function IsNonEscaped(pattern, index, char) {
+    return pattern[index] === char && pattern.charCodeAt(index - 1) !== 92;
+}
+function IsOpenParen(pattern, index) {
+    return IsNonEscaped(pattern, index, '(');
+}
+function IsCloseParen(pattern, index) {
+    return IsNonEscaped(pattern, index, ')');
+}
+function IsSeparator(pattern, index) {
+    return IsNonEscaped(pattern, index, '|');
+}
+// -------------------------------------------------------------------
+// Control Groups
+// -------------------------------------------------------------------
+function IsGroup(pattern) {
+    if (!(IsOpenParen(pattern, 0) && IsCloseParen(pattern, pattern.length - 1)))
+        return false;
+    let count = 0;
+    for (let index = 0; index < pattern.length; index++) {
+        if (IsOpenParen(pattern, index))
+            count += 1;
+        if (IsCloseParen(pattern, index))
+            count -= 1;
+        if (count === 0 && index !== pattern.length - 1)
+            return false;
+    }
+    return true;
+}
+// prettier-ignore
+function InGroup(pattern) {
+    return pattern.slice(1, pattern.length - 1);
+}
+// prettier-ignore
+function IsPrecedenceOr(pattern) {
+    let count = 0;
+    for (let index = 0; index < pattern.length; index++) {
+        if (IsOpenParen(pattern, index))
+            count += 1;
+        if (IsCloseParen(pattern, index))
+            count -= 1;
+        if (IsSeparator(pattern, index) && count === 0)
+            return true;
+    }
+    return false;
+}
+// prettier-ignore
+function IsPrecedenceAnd(pattern) {
+    for (let index = 0; index < pattern.length; index++) {
+        if (IsOpenParen(pattern, index))
+            return true;
+    }
+    return false;
+}
+// prettier-ignore
+function Or(pattern) {
+    let [count, start] = [0, 0];
+    const expressions = [];
+    for (let index = 0; index < pattern.length; index++) {
+        if (IsOpenParen(pattern, index))
+            count += 1;
+        if (IsCloseParen(pattern, index))
+            count -= 1;
+        if (IsSeparator(pattern, index) && count === 0) {
+            const range = pattern.slice(start, index);
+            if (range.length > 0)
+                expressions.push(TemplateLiteralParse(range));
+            start = index + 1;
+        }
+    }
+    const range = pattern.slice(start);
+    if (range.length > 0)
+        expressions.push(TemplateLiteralParse(range));
+    if (expressions.length === 0)
+        return { type: 'const', const: '' };
+    if (expressions.length === 1)
+        return expressions[0];
+    return { type: 'or', expr: expressions };
+}
+// prettier-ignore
+function And(pattern) {
+    function Group(value, index) {
+        if (!IsOpenParen(value, index))
+            throw new TemplateLiteralParserError(`TemplateLiteralParser: Index must point to open parens`);
+        let count = 0;
+        for (let scan = index; scan < value.length; scan++) {
+            if (IsOpenParen(value, scan))
+                count += 1;
+            if (IsCloseParen(value, scan))
+                count -= 1;
+            if (count === 0)
+                return [index, scan];
+        }
+        throw new TemplateLiteralParserError(`TemplateLiteralParser: Unclosed group parens in expression`);
+    }
+    function Range(pattern, index) {
+        for (let scan = index; scan < pattern.length; scan++) {
+            if (IsOpenParen(pattern, scan))
+                return [index, scan];
+        }
+        return [index, pattern.length];
+    }
+    const expressions = [];
+    for (let index = 0; index < pattern.length; index++) {
+        if (IsOpenParen(pattern, index)) {
+            const [start, end] = Group(pattern, index);
+            const range = pattern.slice(start, end + 1);
+            expressions.push(TemplateLiteralParse(range));
+            index = end;
+        }
+        else {
+            const [start, end] = Range(pattern, index);
+            const range = pattern.slice(start, end);
+            if (range.length > 0)
+                expressions.push(TemplateLiteralParse(range));
+            index = end - 1;
+        }
+    }
+    return ((expressions.length === 0) ? { type: 'const', const: '' } :
+        (expressions.length === 1) ? expressions[0] :
+            { type: 'and', expr: expressions });
+}
+// ------------------------------------------------------------------
+// TemplateLiteralParse
+// ------------------------------------------------------------------
+/** Parses a pattern and returns an expression tree */
+function TemplateLiteralParse(pattern) {
+    // prettier-ignore
+    return (IsGroup(pattern) ? TemplateLiteralParse(InGroup(pattern)) :
+        IsPrecedenceOr(pattern) ? Or(pattern) :
+            IsPrecedenceAnd(pattern) ? And(pattern) :
+                { type: 'const', const: Unescape(pattern) });
+}
+// ------------------------------------------------------------------
+// TemplateLiteralParseExact
+// ------------------------------------------------------------------
+/** Parses a pattern and strips forward and trailing ^ and $ */
+function TemplateLiteralParseExact(pattern) {
+    return TemplateLiteralParse(pattern.slice(1, pattern.length - 1));
+}
+
+// ------------------------------------------------------------------
+// TemplateLiteralFiniteError
+// ------------------------------------------------------------------
+class TemplateLiteralFiniteError extends TypeBoxError {
+}
+// ------------------------------------------------------------------
+// IsTemplateLiteralFiniteCheck
+// ------------------------------------------------------------------
+// prettier-ignore
+function IsNumberExpression(expression) {
+    return (expression.type === 'or' &&
+        expression.expr.length === 2 &&
+        expression.expr[0].type === 'const' &&
+        expression.expr[0].const === '0' &&
+        expression.expr[1].type === 'const' &&
+        expression.expr[1].const === '[1-9][0-9]*');
+}
+// prettier-ignore
+function IsBooleanExpression(expression) {
+    return (expression.type === 'or' &&
+        expression.expr.length === 2 &&
+        expression.expr[0].type === 'const' &&
+        expression.expr[0].const === 'true' &&
+        expression.expr[1].type === 'const' &&
+        expression.expr[1].const === 'false');
+}
+// prettier-ignore
+function IsStringExpression(expression) {
+    return expression.type === 'const' && expression.const === '.*';
+}
+// ------------------------------------------------------------------
+// IsTemplateLiteralExpressionFinite
+// ------------------------------------------------------------------
+// prettier-ignore
+function IsTemplateLiteralExpressionFinite(expression) {
+    return (IsNumberExpression(expression) || IsStringExpression(expression) ? false :
+        IsBooleanExpression(expression) ? true :
+            (expression.type === 'and') ? expression.expr.every((expr) => IsTemplateLiteralExpressionFinite(expr)) :
+                (expression.type === 'or') ? expression.expr.every((expr) => IsTemplateLiteralExpressionFinite(expr)) :
+                    (expression.type === 'const') ? true :
+                        (() => { throw new TemplateLiteralFiniteError(`Unknown expression type`); })());
+}
+/** Returns true if this TemplateLiteral resolves to a finite set of values */
+function IsTemplateLiteralFinite(schema) {
+    const expression = TemplateLiteralParseExact(schema.pattern);
+    return IsTemplateLiteralExpressionFinite(expression);
+}
+
+// ------------------------------------------------------------------
+// TemplateLiteralGenerateError
+// ------------------------------------------------------------------
+class TemplateLiteralGenerateError extends TypeBoxError {
+}
+// ------------------------------------------------------------------
+// TemplateLiteralExpressionGenerate
+// ------------------------------------------------------------------
+// prettier-ignore
+function* GenerateReduce(buffer) {
+    if (buffer.length === 1)
+        return yield* buffer[0];
+    for (const left of buffer[0]) {
+        for (const right of GenerateReduce(buffer.slice(1))) {
+            yield `${left}${right}`;
+        }
+    }
+}
+// prettier-ignore
+function* GenerateAnd(expression) {
+    return yield* GenerateReduce(expression.expr.map((expr) => [...TemplateLiteralExpressionGenerate(expr)]));
+}
+// prettier-ignore
+function* GenerateOr(expression) {
+    for (const expr of expression.expr)
+        yield* TemplateLiteralExpressionGenerate(expr);
+}
+// prettier-ignore
+function* GenerateConst(expression) {
+    return yield expression.const;
+}
+function* TemplateLiteralExpressionGenerate(expression) {
+    return expression.type === 'and'
+        ? yield* GenerateAnd(expression)
+        : expression.type === 'or'
+            ? yield* GenerateOr(expression)
+            : expression.type === 'const'
+                ? yield* GenerateConst(expression)
+                : (() => {
+                    throw new TemplateLiteralGenerateError('Unknown expression');
+                })();
+}
+/** Generates a tuple of strings from the given TemplateLiteral. Returns an empty tuple if infinite. */
+function TemplateLiteralGenerate(schema) {
+    const expression = TemplateLiteralParseExact(schema.pattern);
+    // prettier-ignore
+    return (IsTemplateLiteralExpressionFinite(expression)
+        ? [...TemplateLiteralExpressionGenerate(expression)]
+        : []);
+}
+
+/** `[Json]` Creates a Literal type */
+function Literal(value, options) {
+    return CreateType({
+        [Kind]: 'Literal',
+        const: value,
+        type: typeof value,
+    }, options);
+}
+
+/** `[Json]` Creates a Boolean type */
+function Boolean$1(options) {
+    return CreateType({ [Kind]: 'Boolean', type: 'boolean' }, options);
+}
+
+/** `[JavaScript]` Creates a BigInt type */
+function BigInt$1(options) {
+    return CreateType({ [Kind]: 'BigInt', type: 'bigint' }, options);
+}
+
+/** `[Json]` Creates a Number type */
+function Number$1(options) {
+    return CreateType({ [Kind]: 'Number', type: 'number' }, options);
+}
+
+/** `[Json]` Creates a String type */
+function String$1(options) {
+    return CreateType({ [Kind]: 'String', type: 'string' }, options);
+}
+
+// ------------------------------------------------------------------
+// SyntaxParsers
+// ------------------------------------------------------------------
+// prettier-ignore
+function* FromUnion$g(syntax) {
+    const trim = syntax.trim().replace(/"|'/g, '');
+    return (trim === 'boolean' ? yield Boolean$1() :
+        trim === 'number' ? yield Number$1() :
+            trim === 'bigint' ? yield BigInt$1() :
+                trim === 'string' ? yield String$1() :
+                    yield (() => {
+                        const literals = trim.split('|').map((literal) => Literal(literal.trim()));
+                        return (literals.length === 0 ? Never() :
+                            literals.length === 1 ? literals[0] :
+                                UnionEvaluated(literals));
+                    })());
+}
+// prettier-ignore
+function* FromTerminal(syntax) {
+    if (syntax[1] !== '{') {
+        const L = Literal('$');
+        const R = FromSyntax(syntax.slice(1));
+        return yield* [L, ...R];
+    }
+    for (let i = 2; i < syntax.length; i++) {
+        if (syntax[i] === '}') {
+            const L = FromUnion$g(syntax.slice(2, i));
+            const R = FromSyntax(syntax.slice(i + 1));
+            return yield* [...L, ...R];
+        }
+    }
+    yield Literal(syntax);
+}
+// prettier-ignore
+function* FromSyntax(syntax) {
+    for (let i = 0; i < syntax.length; i++) {
+        if (syntax[i] === '$') {
+            const L = Literal(syntax.slice(0, i));
+            const R = FromTerminal(syntax.slice(i));
+            return yield* [L, ...R];
+        }
+    }
+    yield Literal(syntax);
+}
+/** Parses TemplateLiteralSyntax and returns a tuple of TemplateLiteralKinds */
+function TemplateLiteralSyntax(syntax) {
+    return [...FromSyntax(syntax)];
+}
+
+const PatternBoolean = '(true|false)';
+const PatternNumber = '(0|[1-9][0-9]*)';
+const PatternString = '(.*)';
+const PatternNever = '(?!.*)';
+const PatternNumberExact = `^${PatternNumber}$`;
+const PatternStringExact = `^${PatternString}$`;
+const PatternNeverExact = `^${PatternNever}$`;
+
+// ------------------------------------------------------------------
+// TemplateLiteralPatternError
+// ------------------------------------------------------------------
+class TemplateLiteralPatternError extends TypeBoxError {
+}
+// ------------------------------------------------------------------
+// TemplateLiteralPattern
+// ------------------------------------------------------------------
+function Escape(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+// prettier-ignore
+function Visit$a(schema, acc) {
+    return (IsTemplateLiteral$1(schema) ? schema.pattern.slice(1, schema.pattern.length - 1) :
+        IsUnion$1(schema) ? `(${schema.anyOf.map((schema) => Visit$a(schema, acc)).join('|')})` :
+            IsNumber$1(schema) ? `${acc}${PatternNumber}` :
+                IsInteger$1(schema) ? `${acc}${PatternNumber}` :
+                    IsBigInt$1(schema) ? `${acc}${PatternNumber}` :
+                        IsString$1(schema) ? `${acc}${PatternString}` :
+                            IsLiteral$1(schema) ? `${acc}${Escape(schema.const.toString())}` :
+                                IsBoolean$1(schema) ? `${acc}${PatternBoolean}` :
+                                    (() => { throw new TemplateLiteralPatternError(`Unexpected Kind '${schema[Kind]}'`); })());
+}
+function TemplateLiteralPattern(kinds) {
+    return `^${kinds.map((schema) => Visit$a(schema, '')).join('')}\$`;
+}
+
+/** Returns a Union from the given TemplateLiteral */
+function TemplateLiteralToUnion(schema) {
+    const R = TemplateLiteralGenerate(schema);
+    const L = R.map((S) => Literal(S));
+    return UnionEvaluated(L);
+}
+
+/** `[Json]` Creates a TemplateLiteral type */
+// prettier-ignore
+function TemplateLiteral(unresolved, options) {
+    const pattern = IsString$2(unresolved)
+        ? TemplateLiteralPattern(TemplateLiteralSyntax(unresolved))
+        : TemplateLiteralPattern(unresolved);
+    return CreateType({ [Kind]: 'TemplateLiteral', type: 'string', pattern }, options);
+}
+
+// prettier-ignore
+function FromTemplateLiteral$4(templateLiteral) {
+    const keys = TemplateLiteralGenerate(templateLiteral);
+    return keys.map(key => key.toString());
+}
+// prettier-ignore
+function FromUnion$f(types) {
+    const result = [];
+    for (const type of types)
+        result.push(...IndexPropertyKeys(type));
+    return result;
+}
+// prettier-ignore
+function FromLiteral$4(literalValue) {
+    return ([literalValue.toString()] // TS 5.4 observes TLiteralValue as not having a toString()
+    );
+}
+/** Returns a tuple of PropertyKeys derived from the given TSchema */
+// prettier-ignore
+function IndexPropertyKeys(type) {
+    return [...new Set((IsTemplateLiteral$1(type) ? FromTemplateLiteral$4(type) :
+            IsUnion$1(type) ? FromUnion$f(type.anyOf) :
+                IsLiteral$1(type) ? FromLiteral$4(type.const) :
+                    IsNumber$1(type) ? ['[number]'] :
+                        IsInteger$1(type) ? ['[number]'] :
+                            []))];
+}
+
+// prettier-ignore
+function FromProperties$g(type, properties, options) {
+    const result = {};
+    for (const K2 of Object.getOwnPropertyNames(properties)) {
+        result[K2] = Index(type, IndexPropertyKeys(properties[K2]), options);
+    }
+    return result;
+}
+// prettier-ignore
+function FromMappedResult$a(type, mappedResult, options) {
+    return FromProperties$g(type, mappedResult.properties, options);
+}
+// prettier-ignore
+function IndexFromMappedResult(type, mappedResult, options) {
+    const properties = FromMappedResult$a(type, mappedResult, options);
+    return MappedResult(properties);
+}
+
+// prettier-ignore
+function FromRest$7(types, key) {
+    return types.map(type => IndexFromPropertyKey(type, key));
+}
+// prettier-ignore
+function FromIntersectRest(types) {
+    return types.filter(type => !IsNever$1(type));
+}
+// prettier-ignore
+function FromIntersect$e(types, key) {
+    return (IntersectEvaluated(FromIntersectRest(FromRest$7(types, key))));
+}
+// prettier-ignore
+function FromUnionRest(types) {
+    return (types.some(L => IsNever$1(L))
+        ? []
+        : types);
+}
+// prettier-ignore
+function FromUnion$e(types, key) {
+    return (UnionEvaluated(FromUnionRest(FromRest$7(types, key))));
+}
+// prettier-ignore
+function FromTuple$b(types, key) {
+    return (key in types ? types[key] :
+        key === '[number]' ? UnionEvaluated(types) :
+            Never());
+}
+// prettier-ignore
+function FromArray$d(type, key) {
+    return (key === '[number]'
+        ? type
+        : Never());
+}
+// prettier-ignore
+function FromProperty$1(properties, propertyKey) {
+    return (propertyKey in properties ? properties[propertyKey] : Never());
+}
+// prettier-ignore
+function IndexFromPropertyKey(type, propertyKey) {
+    return (IsIntersect$1(type) ? FromIntersect$e(type.allOf, propertyKey) :
+        IsUnion$1(type) ? FromUnion$e(type.anyOf, propertyKey) :
+            IsTuple$1(type) ? FromTuple$b(type.items ?? [], propertyKey) :
+                IsArray$1(type) ? FromArray$d(type.items, propertyKey) :
+                    IsObject$1(type) ? FromProperty$1(type.properties, propertyKey) :
+                        Never());
+}
+// prettier-ignore
+function IndexFromPropertyKeys(type, propertyKeys) {
+    return propertyKeys.map(propertyKey => IndexFromPropertyKey(type, propertyKey));
+}
+// prettier-ignore
+function FromSchema(type, propertyKeys) {
+    return (UnionEvaluated(IndexFromPropertyKeys(type, propertyKeys)));
+}
+/** `[Json]` Returns an Indexed property type for the given keys */
+function Index(type, key, options) {
+    // computed-type
+    if (IsRef$1(type) || IsRef$1(key)) {
+        const error = `Index types using Ref parameters require both Type and Key to be of TSchema`;
+        if (!IsSchema$1(type) || !IsSchema$1(key))
+            throw new TypeBoxError(error);
+        return Computed('Index', [type, key]);
+    }
+    // mapped-types
+    if (IsMappedResult$1(key))
+        return IndexFromMappedResult(type, key, options);
+    if (IsMappedKey$1(key))
+        return IndexFromMappedKey(type, key, options);
+    // prettier-ignore
+    return CreateType(IsSchema$1(key)
+        ? FromSchema(type, IndexPropertyKeys(key))
+        : FromSchema(type, key), options);
+}
+
+// prettier-ignore
+function MappedIndexPropertyKey(type, key, options) {
+    return { [key]: Index(type, [key], Clone$1(options)) };
+}
+// prettier-ignore
+function MappedIndexPropertyKeys(type, propertyKeys, options) {
+    return propertyKeys.reduce((result, left) => {
+        return { ...result, ...MappedIndexPropertyKey(type, left, options) };
+    }, {});
+}
+// prettier-ignore
+function MappedIndexProperties(type, mappedKey, options) {
+    return MappedIndexPropertyKeys(type, mappedKey.keys, options);
+}
+// prettier-ignore
+function IndexFromMappedKey(type, mappedKey, options) {
+    const properties = MappedIndexProperties(type, mappedKey, options);
+    return MappedResult(properties);
+}
+
+/** `[JavaScript]` Creates an Iterator type */
+function Iterator(items, options) {
+    return CreateType({ [Kind]: 'Iterator', type: 'Iterator', items }, options);
+}
+
+function RequiredKeys(properties) {
+    const keys = [];
+    for (let key in properties) {
+        if (!IsOptional$1(properties[key]))
+            keys.push(key);
+    }
+    return keys;
+}
+/** `[Json]` Creates an Object type */
+function _Object(properties, options) {
+    const required = RequiredKeys(properties);
+    const schematic = required.length > 0 ? { [Kind]: 'Object', type: 'object', properties, required } : { [Kind]: 'Object', type: 'object', properties };
+    return CreateType(schematic, options);
+}
+/** `[Json]` Creates an Object type */
+var Object$1 = _Object;
+
+/** `[JavaScript]` Creates a Promise type */
+function Promise$1(item, options) {
+    return CreateType({ [Kind]: 'Promise', type: 'Promise', item }, options);
+}
+
+function RemoveReadonly(schema) {
+    return CreateType(Discard(schema, [ReadonlyKind]));
+}
+function AddReadonly(schema) {
+    return CreateType({ ...schema, [ReadonlyKind]: 'Readonly' });
+}
+// prettier-ignore
+function ReadonlyWithFlag(schema, F) {
+    return (F === false
+        ? RemoveReadonly(schema)
+        : AddReadonly(schema));
+}
+/** `[Json]` Creates a Readonly property */
+function Readonly(schema, enable) {
+    const F = enable ?? true;
+    return IsMappedResult$1(schema) ? ReadonlyFromMappedResult(schema, F) : ReadonlyWithFlag(schema, F);
+}
+
+// prettier-ignore
+function FromProperties$f(K, F) {
+    const Acc = {};
+    for (const K2 of globalThis.Object.getOwnPropertyNames(K))
+        Acc[K2] = Readonly(K[K2], F);
+    return Acc;
+}
+// prettier-ignore
+function FromMappedResult$9(R, F) {
+    return FromProperties$f(R.properties, F);
+}
+// prettier-ignore
+function ReadonlyFromMappedResult(R, F) {
+    const P = FromMappedResult$9(R, F);
+    return MappedResult(P);
+}
+
+/** `[Json]` Creates a Tuple type */
+function Tuple(types, options) {
+    // prettier-ignore
+    return CreateType(types.length > 0 ?
+        { [Kind]: 'Tuple', type: 'array', items: types, additionalItems: false, minItems: types.length, maxItems: types.length } :
+        { [Kind]: 'Tuple', type: 'array', minItems: types.length, maxItems: types.length }, options);
+}
+
+/** Returns true if element right is in the set of left */
+// prettier-ignore
+function SetIncludes(T, S) {
+    return T.includes(S);
+}
+/** Returns a distinct set of elements */
+function SetDistinct(T) {
+    return [...new Set(T)];
+}
+/** Returns the Intersect of the given sets */
+function SetIntersect(T, S) {
+    return T.filter((L) => S.includes(L));
+}
+// prettier-ignore
+function SetIntersectManyResolve(T, Init) {
+    return T.reduce((Acc, L) => {
+        return SetIntersect(Acc, L);
+    }, Init);
+}
+// prettier-ignore
+function SetIntersectMany(T) {
+    return (T.length === 1
+        ? T[0]
+        // Use left to initialize the accumulator for resolve
+        : T.length > 1
+            ? SetIntersectManyResolve(T.slice(1), T[0])
+            : []);
+}
+/** Returns the Union of multiple sets */
+function SetUnionMany(T) {
+    const Acc = [];
+    for (const L of T)
+        Acc.push(...L);
+    return Acc;
+}
+
+// prettier-ignore
+function FromMappedResult$8(K, P) {
+    return (K in P
+        ? FromSchemaType(K, P[K])
+        : MappedResult(P));
+}
+// prettier-ignore
+function MappedKeyToKnownMappedResultProperties(K) {
+    return { [K]: Literal(K) };
+}
+// prettier-ignore
+function MappedKeyToUnknownMappedResultProperties(P) {
+    const Acc = {};
+    for (const L of P)
+        Acc[L] = Literal(L);
+    return Acc;
+}
+// prettier-ignore
+function MappedKeyToMappedResultProperties(K, P) {
+    return (SetIncludes(P, K)
+        ? MappedKeyToKnownMappedResultProperties(K)
+        : MappedKeyToUnknownMappedResultProperties(P));
+}
+// prettier-ignore
+function FromMappedKey$3(K, P) {
+    const R = MappedKeyToMappedResultProperties(K, P);
+    return FromMappedResult$8(K, R);
+}
+// prettier-ignore
+function FromRest$6(K, T) {
+    return T.map(L => FromSchemaType(K, L));
+}
+// prettier-ignore
+function FromProperties$e(K, T) {
+    const Acc = {};
+    for (const K2 of globalThis.Object.getOwnPropertyNames(T))
+        Acc[K2] = FromSchemaType(K, T[K2]);
+    return Acc;
+}
+// prettier-ignore
+function FromSchemaType(K, T) {
+    // required to retain user defined options for mapped type
+    const options = { ...T };
+    return (
+    // unevaluated modifier types
+    IsOptional$1(T) ? Optional(FromSchemaType(K, Discard(T, [OptionalKind]))) :
+        IsReadonly(T) ? Readonly(FromSchemaType(K, Discard(T, [ReadonlyKind]))) :
+            // unevaluated mapped types
+            IsMappedResult$1(T) ? FromMappedResult$8(K, T.properties) :
+                IsMappedKey$1(T) ? FromMappedKey$3(K, T.keys) :
+                    // unevaluated types
+                    IsConstructor$1(T) ? Constructor(FromRest$6(K, T.parameters), FromSchemaType(K, T.returns), options) :
+                        IsFunction$1(T) ? Function$1(FromRest$6(K, T.parameters), FromSchemaType(K, T.returns), options) :
+                            IsAsyncIterator$1(T) ? AsyncIterator(FromSchemaType(K, T.items), options) :
+                                IsIterator$1(T) ? Iterator(FromSchemaType(K, T.items), options) :
+                                    IsIntersect$1(T) ? Intersect$1(FromRest$6(K, T.allOf), options) :
+                                        IsUnion$1(T) ? Union$1(FromRest$6(K, T.anyOf), options) :
+                                            IsTuple$1(T) ? Tuple(FromRest$6(K, T.items ?? []), options) :
+                                                IsObject$1(T) ? Object$1(FromProperties$e(K, T.properties), options) :
+                                                    IsArray$1(T) ? Array$1(FromSchemaType(K, T.items), options) :
+                                                        IsPromise$1(T) ? Promise$1(FromSchemaType(K, T.item), options) :
+                                                            T);
+}
+// prettier-ignore
+function MappedFunctionReturnType(K, T) {
+    const Acc = {};
+    for (const L of K)
+        Acc[L] = FromSchemaType(L, T);
+    return Acc;
+}
+/** `[Json]` Creates a Mapped object type */
+function Mapped(key, map, options) {
+    const K = IsSchema$1(key) ? IndexPropertyKeys(key) : key;
+    const RT = map({ [Kind]: 'MappedKey', keys: K });
+    const R = MappedFunctionReturnType(K, RT);
+    return Object$1(R, options);
+}
+
+/** `[Json]` Creates a Ref type. The referenced type must contain a $id */
+function Ref(...args) {
+    const [$ref, options] = typeof args[0] === 'string' ? [args[0], args[1]] : [args[0].$id, args[1]];
+    if (typeof $ref !== 'string')
+        throw new TypeBoxError('Ref: $ref must be a string');
+    return CreateType({ [Kind]: 'Ref', $ref }, options);
+}
+
+// prettier-ignore
+function FromRest$5(types) {
+    const result = [];
+    for (const L of types)
+        result.push(KeyOfPropertyKeys(L));
+    return result;
+}
+// prettier-ignore
+function FromIntersect$d(types) {
+    const propertyKeysArray = FromRest$5(types);
+    const propertyKeys = SetUnionMany(propertyKeysArray);
+    return propertyKeys;
+}
+// prettier-ignore
+function FromUnion$d(types) {
+    const propertyKeysArray = FromRest$5(types);
+    const propertyKeys = SetIntersectMany(propertyKeysArray);
+    return propertyKeys;
+}
+// prettier-ignore
+function FromTuple$a(types) {
+    return types.map((_, indexer) => indexer.toString());
+}
+// prettier-ignore
+function FromArray$c(_) {
+    return (['[number]']);
+}
+// prettier-ignore
+function FromProperties$d(T) {
+    return (globalThis.Object.getOwnPropertyNames(T));
+}
+// ------------------------------------------------------------------
+// FromPatternProperties
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromPatternProperties(patternProperties) {
+    if (!includePatternProperties)
+        return [];
+    const patternPropertyKeys = globalThis.Object.getOwnPropertyNames(patternProperties);
+    return patternPropertyKeys.map(key => {
+        return (key[0] === '^' && key[key.length - 1] === '$')
+            ? key.slice(1, key.length - 1)
+            : key;
+    });
+}
+/** Returns a tuple of PropertyKeys derived from the given TSchema. */
+// prettier-ignore
+function KeyOfPropertyKeys(type) {
+    return (IsIntersect$1(type) ? FromIntersect$d(type.allOf) :
+        IsUnion$1(type) ? FromUnion$d(type.anyOf) :
+            IsTuple$1(type) ? FromTuple$a(type.items ?? []) :
+                IsArray$1(type) ? FromArray$c(type.items) :
+                    IsObject$1(type) ? FromProperties$d(type.properties) :
+                        IsRecord$1(type) ? FromPatternProperties(type.patternProperties) :
+                            []);
+}
+// ----------------------------------------------------------------
+// KeyOfPattern
+// ----------------------------------------------------------------
+let includePatternProperties = false;
+/** Returns a regular expression pattern derived from the given TSchema */
+function KeyOfPattern(schema) {
+    includePatternProperties = true;
+    const keys = KeyOfPropertyKeys(schema);
+    includePatternProperties = false;
+    const pattern = keys.map((key) => `(${key})`);
+    return `^(${pattern.join('|')})$`;
+}
+
+// prettier-ignore
+function FromComputed$4(target, parameters) {
+    return Computed('KeyOf', [Computed(target, parameters)]);
+}
+// prettier-ignore
+function FromRef$b($ref) {
+    return Computed('KeyOf', [Ref($ref)]);
+}
+// prettier-ignore
+function KeyOfFromType(type, options) {
+    const propertyKeys = KeyOfPropertyKeys(type);
+    const propertyKeyTypes = KeyOfPropertyKeysToRest(propertyKeys);
+    const result = UnionEvaluated(propertyKeyTypes);
+    return CreateType(result, options);
+}
+// prettier-ignore
+function KeyOfPropertyKeysToRest(propertyKeys) {
+    return propertyKeys.map(L => L === '[number]' ? Number$1() : Literal(L));
+}
+/** `[Json]` Creates a KeyOf type */
+function KeyOf(type, options) {
+    return (IsComputed$1(type) ? FromComputed$4(type.target, type.parameters) : IsRef$1(type) ? FromRef$b(type.$ref) : IsMappedResult$1(type) ? KeyOfFromMappedResult(type, options) : KeyOfFromType(type, options));
+}
+
+// prettier-ignore
+function FromProperties$c(properties, options) {
+    const result = {};
+    for (const K2 of globalThis.Object.getOwnPropertyNames(properties))
+        result[K2] = KeyOf(properties[K2], Clone$1(options));
+    return result;
+}
+// prettier-ignore
+function FromMappedResult$7(mappedResult, options) {
+    return FromProperties$c(mappedResult.properties, options);
+}
+// prettier-ignore
+function KeyOfFromMappedResult(mappedResult, options) {
+    const properties = FromMappedResult$7(mappedResult, options);
+    return MappedResult(properties);
+}
+
+/**
+ * `[Utility]` Resolves an array of keys and schemas from the given schema. This method is faster
+ * than obtaining the keys and resolving each individually via indexing. This method was written
+ * accellerate Intersect and Union encoding.
+ */
+function KeyOfPropertyEntries(schema) {
+    const keys = KeyOfPropertyKeys(schema);
+    const schemas = IndexFromPropertyKeys(schema, keys);
+    return keys.map((_, index) => [keys[index], schemas[index]]);
+}
+
+/** Fast undefined check used for properties of type undefined */
+function Intersect(schema) {
+    return schema.allOf.every((schema) => ExtendsUndefinedCheck(schema));
+}
+function Union(schema) {
+    return schema.anyOf.some((schema) => ExtendsUndefinedCheck(schema));
+}
+function Not$1(schema) {
+    return !ExtendsUndefinedCheck(schema.not);
+}
+/** Fast undefined check used for properties of type undefined */
+// prettier-ignore
+function ExtendsUndefinedCheck(schema) {
+    return (schema[Kind] === 'Intersect' ? Intersect(schema) :
+        schema[Kind] === 'Union' ? Union(schema) :
+            schema[Kind] === 'Not' ? Not$1(schema) :
+                schema[Kind] === 'Undefined' ? true :
+                    false);
+}
+
+/** Creates an error message using en-US as the default locale */
+function DefaultErrorFunction(error) {
+    switch (error.errorType) {
+        case ValueErrorType.ArrayContains:
+            return 'Expected array to contain at least one matching value';
+        case ValueErrorType.ArrayMaxContains:
+            return `Expected array to contain no more than ${error.schema.maxContains} matching values`;
+        case ValueErrorType.ArrayMinContains:
+            return `Expected array to contain at least ${error.schema.minContains} matching values`;
+        case ValueErrorType.ArrayMaxItems:
+            return `Expected array length to be less or equal to ${error.schema.maxItems}`;
+        case ValueErrorType.ArrayMinItems:
+            return `Expected array length to be greater or equal to ${error.schema.minItems}`;
+        case ValueErrorType.ArrayUniqueItems:
+            return 'Expected array elements to be unique';
+        case ValueErrorType.Array:
+            return 'Expected array';
+        case ValueErrorType.AsyncIterator:
+            return 'Expected AsyncIterator';
+        case ValueErrorType.BigIntExclusiveMaximum:
+            return `Expected bigint to be less than ${error.schema.exclusiveMaximum}`;
+        case ValueErrorType.BigIntExclusiveMinimum:
+            return `Expected bigint to be greater than ${error.schema.exclusiveMinimum}`;
+        case ValueErrorType.BigIntMaximum:
+            return `Expected bigint to be less or equal to ${error.schema.maximum}`;
+        case ValueErrorType.BigIntMinimum:
+            return `Expected bigint to be greater or equal to ${error.schema.minimum}`;
+        case ValueErrorType.BigIntMultipleOf:
+            return `Expected bigint to be a multiple of ${error.schema.multipleOf}`;
+        case ValueErrorType.BigInt:
+            return 'Expected bigint';
+        case ValueErrorType.Boolean:
+            return 'Expected boolean';
+        case ValueErrorType.DateExclusiveMinimumTimestamp:
+            return `Expected Date timestamp to be greater than ${error.schema.exclusiveMinimumTimestamp}`;
+        case ValueErrorType.DateExclusiveMaximumTimestamp:
+            return `Expected Date timestamp to be less than ${error.schema.exclusiveMaximumTimestamp}`;
+        case ValueErrorType.DateMinimumTimestamp:
+            return `Expected Date timestamp to be greater or equal to ${error.schema.minimumTimestamp}`;
+        case ValueErrorType.DateMaximumTimestamp:
+            return `Expected Date timestamp to be less or equal to ${error.schema.maximumTimestamp}`;
+        case ValueErrorType.DateMultipleOfTimestamp:
+            return `Expected Date timestamp to be a multiple of ${error.schema.multipleOfTimestamp}`;
+        case ValueErrorType.Date:
+            return 'Expected Date';
+        case ValueErrorType.Function:
+            return 'Expected function';
+        case ValueErrorType.IntegerExclusiveMaximum:
+            return `Expected integer to be less than ${error.schema.exclusiveMaximum}`;
+        case ValueErrorType.IntegerExclusiveMinimum:
+            return `Expected integer to be greater than ${error.schema.exclusiveMinimum}`;
+        case ValueErrorType.IntegerMaximum:
+            return `Expected integer to be less or equal to ${error.schema.maximum}`;
+        case ValueErrorType.IntegerMinimum:
+            return `Expected integer to be greater or equal to ${error.schema.minimum}`;
+        case ValueErrorType.IntegerMultipleOf:
+            return `Expected integer to be a multiple of ${error.schema.multipleOf}`;
+        case ValueErrorType.Integer:
+            return 'Expected integer';
+        case ValueErrorType.IntersectUnevaluatedProperties:
+            return 'Unexpected property';
+        case ValueErrorType.Intersect:
+            return 'Expected all values to match';
+        case ValueErrorType.Iterator:
+            return 'Expected Iterator';
+        case ValueErrorType.Literal:
+            return `Expected ${typeof error.schema.const === 'string' ? `'${error.schema.const}'` : error.schema.const}`;
+        case ValueErrorType.Never:
+            return 'Never';
+        case ValueErrorType.Not:
+            return 'Value should not match';
+        case ValueErrorType.Null:
+            return 'Expected null';
+        case ValueErrorType.NumberExclusiveMaximum:
+            return `Expected number to be less than ${error.schema.exclusiveMaximum}`;
+        case ValueErrorType.NumberExclusiveMinimum:
+            return `Expected number to be greater than ${error.schema.exclusiveMinimum}`;
+        case ValueErrorType.NumberMaximum:
+            return `Expected number to be less or equal to ${error.schema.maximum}`;
+        case ValueErrorType.NumberMinimum:
+            return `Expected number to be greater or equal to ${error.schema.minimum}`;
+        case ValueErrorType.NumberMultipleOf:
+            return `Expected number to be a multiple of ${error.schema.multipleOf}`;
+        case ValueErrorType.Number:
+            return 'Expected number';
+        case ValueErrorType.Object:
+            return 'Expected object';
+        case ValueErrorType.ObjectAdditionalProperties:
+            return 'Unexpected property';
+        case ValueErrorType.ObjectMaxProperties:
+            return `Expected object to have no more than ${error.schema.maxProperties} properties`;
+        case ValueErrorType.ObjectMinProperties:
+            return `Expected object to have at least ${error.schema.minProperties} properties`;
+        case ValueErrorType.ObjectRequiredProperty:
+            return 'Expected required property';
+        case ValueErrorType.Promise:
+            return 'Expected Promise';
+        case ValueErrorType.RegExp:
+            return 'Expected string to match regular expression';
+        case ValueErrorType.StringFormatUnknown:
+            return `Unknown format '${error.schema.format}'`;
+        case ValueErrorType.StringFormat:
+            return `Expected string to match '${error.schema.format}' format`;
+        case ValueErrorType.StringMaxLength:
+            return `Expected string length less or equal to ${error.schema.maxLength}`;
+        case ValueErrorType.StringMinLength:
+            return `Expected string length greater or equal to ${error.schema.minLength}`;
+        case ValueErrorType.StringPattern:
+            return `Expected string to match '${error.schema.pattern}'`;
+        case ValueErrorType.String:
+            return 'Expected string';
+        case ValueErrorType.Symbol:
+            return 'Expected symbol';
+        case ValueErrorType.TupleLength:
+            return `Expected tuple to have ${error.schema.maxItems || 0} elements`;
+        case ValueErrorType.Tuple:
+            return 'Expected tuple';
+        case ValueErrorType.Uint8ArrayMaxByteLength:
+            return `Expected byte length less or equal to ${error.schema.maxByteLength}`;
+        case ValueErrorType.Uint8ArrayMinByteLength:
+            return `Expected byte length greater or equal to ${error.schema.minByteLength}`;
+        case ValueErrorType.Uint8Array:
+            return 'Expected Uint8Array';
+        case ValueErrorType.Undefined:
+            return 'Expected undefined';
+        case ValueErrorType.Union:
+            return 'Expected union value';
+        case ValueErrorType.Void:
+            return 'Expected void';
+        case ValueErrorType.Kind:
+            return `Expected kind '${error.schema[Kind]}'`;
+        default:
+            return 'Unknown error type';
+    }
+}
+/** Manages error message providers */
+let errorFunction = DefaultErrorFunction;
+/** Gets the error function used to generate error messages */
+function GetErrorFunction() {
+    return errorFunction;
+}
+
+class TypeDereferenceError extends TypeBoxError {
+    constructor(schema) {
+        super(`Unable to dereference schema with $id '${schema.$ref}'`);
+        this.schema = schema;
+    }
+}
+function Resolve(schema, references) {
+    const target = references.find((target) => target.$id === schema.$ref);
+    if (target === undefined)
+        throw new TypeDereferenceError(schema);
+    return Deref$1(target, references);
+}
+/** `[Internal]` Pushes a schema onto references if the schema has an $id and does not exist on references */
+function Pushref(schema, references) {
+    if (!IsString$3(schema.$id) || references.some((target) => target.$id === schema.$id))
+        return references;
+    references.push(schema);
+    return references;
+}
+/** `[Internal]` Dereferences a schema from the references array or throws if not found */
+function Deref$1(schema, references) {
+    // prettier-ignore
+    return (schema[Kind] === 'This' || schema[Kind] === 'Ref')
+        ? Resolve(schema, references)
+        : schema;
+}
+
+// ------------------------------------------------------------------
+// Errors
+// ------------------------------------------------------------------
+class ValueHashError extends TypeBoxError {
+    constructor(value) {
+        super(`Unable to hash value`);
+        this.value = value;
+    }
+}
+// ------------------------------------------------------------------
+// ByteMarker
+// ------------------------------------------------------------------
+var ByteMarker;
+(function (ByteMarker) {
+    ByteMarker[ByteMarker["Undefined"] = 0] = "Undefined";
+    ByteMarker[ByteMarker["Null"] = 1] = "Null";
+    ByteMarker[ByteMarker["Boolean"] = 2] = "Boolean";
+    ByteMarker[ByteMarker["Number"] = 3] = "Number";
+    ByteMarker[ByteMarker["String"] = 4] = "String";
+    ByteMarker[ByteMarker["Object"] = 5] = "Object";
+    ByteMarker[ByteMarker["Array"] = 6] = "Array";
+    ByteMarker[ByteMarker["Date"] = 7] = "Date";
+    ByteMarker[ByteMarker["Uint8Array"] = 8] = "Uint8Array";
+    ByteMarker[ByteMarker["Symbol"] = 9] = "Symbol";
+    ByteMarker[ByteMarker["BigInt"] = 10] = "BigInt";
+})(ByteMarker || (ByteMarker = {}));
+// ------------------------------------------------------------------
+// State
+// ------------------------------------------------------------------
+let Accumulator = BigInt('14695981039346656037');
+const [Prime, Size] = [BigInt('1099511628211'), BigInt('18446744073709551616' /* 2 ^ 64 */)];
+const Bytes = Array.from({ length: 256 }).map((_, i) => BigInt(i));
+const F64 = new Float64Array(1);
+const F64In = new DataView(F64.buffer);
+const F64Out = new Uint8Array(F64.buffer);
+// ------------------------------------------------------------------
+// NumberToBytes
+// ------------------------------------------------------------------
+function* NumberToBytes(value) {
+    const byteCount = value === 0 ? 1 : Math.ceil(Math.floor(Math.log2(value) + 1) / 8);
+    for (let i = 0; i < byteCount; i++) {
+        yield (value >> (8 * (byteCount - 1 - i))) & 0xff;
+    }
+}
+// ------------------------------------------------------------------
+// Hashing Functions
+// ------------------------------------------------------------------
+function ArrayType(value) {
+    FNV1A64(ByteMarker.Array);
+    for (const item of value) {
+        Visit$9(item);
+    }
+}
+function BooleanType(value) {
+    FNV1A64(ByteMarker.Boolean);
+    FNV1A64(value ? 1 : 0);
+}
+function BigIntType(value) {
+    FNV1A64(ByteMarker.BigInt);
+    F64In.setBigInt64(0, value);
+    for (const byte of F64Out) {
+        FNV1A64(byte);
+    }
+}
+function DateType(value) {
+    FNV1A64(ByteMarker.Date);
+    Visit$9(value.getTime());
+}
+function NullType(value) {
+    FNV1A64(ByteMarker.Null);
+}
+function NumberType(value) {
+    FNV1A64(ByteMarker.Number);
+    F64In.setFloat64(0, value);
+    for (const byte of F64Out) {
+        FNV1A64(byte);
+    }
+}
+function ObjectType(value) {
+    FNV1A64(ByteMarker.Object);
+    for (const key of globalThis.Object.getOwnPropertyNames(value).sort()) {
+        Visit$9(key);
+        Visit$9(value[key]);
+    }
+}
+function StringType(value) {
+    FNV1A64(ByteMarker.String);
+    for (let i = 0; i < value.length; i++) {
+        for (const byte of NumberToBytes(value.charCodeAt(i))) {
+            FNV1A64(byte);
+        }
+    }
+}
+function SymbolType(value) {
+    FNV1A64(ByteMarker.Symbol);
+    Visit$9(value.description);
+}
+function Uint8ArrayType(value) {
+    FNV1A64(ByteMarker.Uint8Array);
+    for (let i = 0; i < value.length; i++) {
+        FNV1A64(value[i]);
+    }
+}
+function UndefinedType(value) {
+    return FNV1A64(ByteMarker.Undefined);
+}
+function Visit$9(value) {
+    if (IsArray$3(value))
+        return ArrayType(value);
+    if (IsBoolean$3(value))
+        return BooleanType(value);
+    if (IsBigInt$3(value))
+        return BigIntType(value);
+    if (IsDate$3(value))
+        return DateType(value);
+    if (IsNull$3(value))
+        return NullType();
+    if (IsNumber$3(value))
+        return NumberType(value);
+    if (IsObject$3(value))
+        return ObjectType(value);
+    if (IsString$3(value))
+        return StringType(value);
+    if (IsSymbol$3(value))
+        return SymbolType(value);
+    if (IsUint8Array$3(value))
+        return Uint8ArrayType(value);
+    if (IsUndefined$3(value))
+        return UndefinedType();
+    throw new ValueHashError(value);
+}
+function FNV1A64(byte) {
+    Accumulator = Accumulator ^ Bytes[byte];
+    Accumulator = (Accumulator * Prime) % Size;
+}
+// ------------------------------------------------------------------
+// Hash
+// ------------------------------------------------------------------
+/** Creates a FNV1A-64 non cryptographic hash of the given value */
+function Hash(value) {
+    Accumulator = BigInt('14695981039346656037');
+    Visit$9(value);
+    return Accumulator;
+}
+
+/** `[Json]` Creates an Any type */
+function Any(options) {
+    return CreateType({ [Kind]: 'Any' }, options);
+}
+
+/** `[Json]` Creates an Unknown type */
+function Unknown(options) {
+    return CreateType({ [Kind]: 'Unknown' }, options);
+}
+
+const KnownTypes = [
+    'Any',
+    'Array',
+    'AsyncIterator',
+    'BigInt',
+    'Boolean',
+    'Computed',
+    'Constructor',
+    'Date',
+    'Enum',
+    'Function',
+    'Integer',
+    'Intersect',
+    'Iterator',
+    'Literal',
+    'MappedKey',
+    'MappedResult',
+    'Not',
+    'Null',
+    'Number',
+    'Object',
+    'Promise',
+    'Record',
+    'Ref',
+    'RegExp',
+    'String',
+    'Symbol',
+    'TemplateLiteral',
+    'This',
+    'Tuple',
+    'Undefined',
+    'Union',
+    'Uint8Array',
+    'Unknown',
+    'Void',
+];
+function IsPattern(value) {
+    try {
+        new RegExp(value);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+function IsControlCharacterFree(value) {
+    if (!IsString$2(value))
+        return false;
+    for (let i = 0; i < value.length; i++) {
+        const code = value.charCodeAt(i);
+        if ((code >= 7 && code <= 13) || code === 27 || code === 127) {
+            return false;
+        }
+    }
+    return true;
+}
+function IsAdditionalProperties(value) {
+    return IsOptionalBoolean(value) || IsSchema(value);
+}
+function IsOptionalBigInt(value) {
+    return IsUndefined$2(value) || IsBigInt$2(value);
+}
+function IsOptionalNumber(value) {
+    return IsUndefined$2(value) || IsNumber$2(value);
+}
+function IsOptionalBoolean(value) {
+    return IsUndefined$2(value) || IsBoolean$2(value);
+}
+function IsOptionalString(value) {
+    return IsUndefined$2(value) || IsString$2(value);
+}
+function IsOptionalPattern(value) {
+    return IsUndefined$2(value) || (IsString$2(value) && IsControlCharacterFree(value) && IsPattern(value));
+}
+function IsOptionalFormat(value) {
+    return IsUndefined$2(value) || (IsString$2(value) && IsControlCharacterFree(value));
+}
+function IsOptionalSchema(value) {
+    return IsUndefined$2(value) || IsSchema(value);
+}
+/** Returns true if this value has a Optional symbol */
+function IsOptional(value) {
+    return IsObject$2(value) && value[OptionalKind] === 'Optional';
+}
+// ------------------------------------------------------------------
+// Types
+// ------------------------------------------------------------------
+/** Returns true if the given value is TAny */
+function IsAny(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Any') &&
+        IsOptionalString(value.$id));
+}
+/** Returns true if the given value is TArray */
+function IsArray(value) {
+    return (IsKindOf(value, 'Array') &&
+        value.type === 'array' &&
+        IsOptionalString(value.$id) &&
+        IsSchema(value.items) &&
+        IsOptionalNumber(value.minItems) &&
+        IsOptionalNumber(value.maxItems) &&
+        IsOptionalBoolean(value.uniqueItems) &&
+        IsOptionalSchema(value.contains) &&
+        IsOptionalNumber(value.minContains) &&
+        IsOptionalNumber(value.maxContains));
+}
+/** Returns true if the given value is TAsyncIterator */
+function IsAsyncIterator(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'AsyncIterator') &&
+        value.type === 'AsyncIterator' &&
+        IsOptionalString(value.$id) &&
+        IsSchema(value.items));
+}
+/** Returns true if the given value is TBigInt */
+function IsBigInt(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'BigInt') &&
+        value.type === 'bigint' &&
+        IsOptionalString(value.$id) &&
+        IsOptionalBigInt(value.exclusiveMaximum) &&
+        IsOptionalBigInt(value.exclusiveMinimum) &&
+        IsOptionalBigInt(value.maximum) &&
+        IsOptionalBigInt(value.minimum) &&
+        IsOptionalBigInt(value.multipleOf));
+}
+/** Returns true if the given value is TBoolean */
+function IsBoolean(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Boolean') &&
+        value.type === 'boolean' &&
+        IsOptionalString(value.$id));
+}
+/** Returns true if the given value is TComputed */
+function IsComputed(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Computed') &&
+        IsString$2(value.target) &&
+        IsArray$2(value.parameters) &&
+        value.parameters.every((schema) => IsSchema(schema)));
+}
+/** Returns true if the given value is TConstructor */
+function IsConstructor(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Constructor') &&
+        value.type === 'Constructor' &&
+        IsOptionalString(value.$id) &&
+        IsArray$2(value.parameters) &&
+        value.parameters.every(schema => IsSchema(schema)) &&
+        IsSchema(value.returns));
+}
+/** Returns true if the given value is TDate */
+function IsDate(value) {
+    return (IsKindOf(value, 'Date') &&
+        value.type === 'Date' &&
+        IsOptionalString(value.$id) &&
+        IsOptionalNumber(value.exclusiveMaximumTimestamp) &&
+        IsOptionalNumber(value.exclusiveMinimumTimestamp) &&
+        IsOptionalNumber(value.maximumTimestamp) &&
+        IsOptionalNumber(value.minimumTimestamp) &&
+        IsOptionalNumber(value.multipleOfTimestamp));
+}
+/** Returns true if the given value is TFunction */
+function IsFunction(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Function') &&
+        value.type === 'Function' &&
+        IsOptionalString(value.$id) &&
+        IsArray$2(value.parameters) &&
+        value.parameters.every(schema => IsSchema(schema)) &&
+        IsSchema(value.returns));
+}
+/** Returns true if the given value is TInteger */
+function IsInteger(value) {
+    return (IsKindOf(value, 'Integer') &&
+        value.type === 'integer' &&
+        IsOptionalString(value.$id) &&
+        IsOptionalNumber(value.exclusiveMaximum) &&
+        IsOptionalNumber(value.exclusiveMinimum) &&
+        IsOptionalNumber(value.maximum) &&
+        IsOptionalNumber(value.minimum) &&
+        IsOptionalNumber(value.multipleOf));
+}
+/** Returns true if the given schema is TProperties */
+function IsProperties(value) {
+    // prettier-ignore
+    return (IsObject$2(value) &&
+        Object.entries(value).every(([key, schema]) => IsControlCharacterFree(key) && IsSchema(schema)));
+}
+/** Returns true if the given value is TIntersect */
+function IsIntersect(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Intersect') &&
+        (IsString$2(value.type) && value.type !== 'object' ? false : true) &&
+        IsArray$2(value.allOf) &&
+        value.allOf.every(schema => IsSchema(schema) && !IsTransform(schema)) &&
+        IsOptionalString(value.type) &&
+        (IsOptionalBoolean(value.unevaluatedProperties) || IsOptionalSchema(value.unevaluatedProperties)) &&
+        IsOptionalString(value.$id));
+}
+/** Returns true if the given value is TIterator */
+function IsIterator(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Iterator') &&
+        value.type === 'Iterator' &&
+        IsOptionalString(value.$id) &&
+        IsSchema(value.items));
+}
+/** Returns true if the given value is a TKind with the given name. */
+function IsKindOf(value, kind) {
+    return IsObject$2(value) && Kind in value && value[Kind] === kind;
+}
+/** Returns true if the given value is TLiteral<string> */
+function IsLiteralString(value) {
+    return IsLiteral(value) && IsString$2(value.const);
+}
+/** Returns true if the given value is TLiteral<number> */
+function IsLiteralNumber(value) {
+    return IsLiteral(value) && IsNumber$2(value.const);
+}
+/** Returns true if the given value is TLiteral<boolean> */
+function IsLiteralBoolean(value) {
+    return IsLiteral(value) && IsBoolean$2(value.const);
+}
+/** Returns true if the given value is TLiteral */
+function IsLiteral(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Literal') &&
+        IsOptionalString(value.$id) && IsLiteralValue(value.const));
+}
+/** Returns true if the given value is a TLiteralValue */
+function IsLiteralValue(value) {
+    return IsBoolean$2(value) || IsNumber$2(value) || IsString$2(value);
+}
+/** Returns true if the given value is a TMappedKey */
+function IsMappedKey(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'MappedKey') &&
+        IsArray$2(value.keys) &&
+        value.keys.every(key => IsNumber$2(key) || IsString$2(key)));
+}
+/** Returns true if the given value is TMappedResult */
+function IsMappedResult(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'MappedResult') &&
+        IsProperties(value.properties));
+}
+/** Returns true if the given value is TNever */
+function IsNever(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Never') &&
+        IsObject$2(value.not) &&
+        Object.getOwnPropertyNames(value.not).length === 0);
+}
+/** Returns true if the given value is TNot */
+function IsNot(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Not') &&
+        IsSchema(value.not));
+}
+/** Returns true if the given value is TNull */
+function IsNull(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Null') &&
+        value.type === 'null' &&
+        IsOptionalString(value.$id));
+}
+/** Returns true if the given value is TNumber */
+function IsNumber(value) {
+    return (IsKindOf(value, 'Number') &&
+        value.type === 'number' &&
+        IsOptionalString(value.$id) &&
+        IsOptionalNumber(value.exclusiveMaximum) &&
+        IsOptionalNumber(value.exclusiveMinimum) &&
+        IsOptionalNumber(value.maximum) &&
+        IsOptionalNumber(value.minimum) &&
+        IsOptionalNumber(value.multipleOf));
+}
+/** Returns true if the given value is TObject */
+function IsObject(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Object') &&
+        value.type === 'object' &&
+        IsOptionalString(value.$id) &&
+        IsProperties(value.properties) &&
+        IsAdditionalProperties(value.additionalProperties) &&
+        IsOptionalNumber(value.minProperties) &&
+        IsOptionalNumber(value.maxProperties));
+}
+/** Returns true if the given value is TPromise */
+function IsPromise(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Promise') &&
+        value.type === 'Promise' &&
+        IsOptionalString(value.$id) &&
+        IsSchema(value.item));
+}
+/** Returns true if the given value is TRecord */
+function IsRecord(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Record') &&
+        value.type === 'object' &&
+        IsOptionalString(value.$id) &&
+        IsAdditionalProperties(value.additionalProperties) &&
+        IsObject$2(value.patternProperties) &&
+        ((schema) => {
+            const keys = Object.getOwnPropertyNames(schema.patternProperties);
+            return (keys.length === 1 &&
+                IsPattern(keys[0]) &&
+                IsObject$2(schema.patternProperties) &&
+                IsSchema(schema.patternProperties[keys[0]]));
+        })(value));
+}
+/** Returns true if the given value is TRef */
+function IsRef(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Ref') &&
+        IsOptionalString(value.$id) &&
+        IsString$2(value.$ref));
+}
+/** Returns true if the given value is TRegExp */
+function IsRegExp(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'RegExp') &&
+        IsOptionalString(value.$id) &&
+        IsString$2(value.source) &&
+        IsString$2(value.flags) &&
+        IsOptionalNumber(value.maxLength) &&
+        IsOptionalNumber(value.minLength));
+}
+/** Returns true if the given value is TString */
+function IsString(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'String') &&
+        value.type === 'string' &&
+        IsOptionalString(value.$id) &&
+        IsOptionalNumber(value.minLength) &&
+        IsOptionalNumber(value.maxLength) &&
+        IsOptionalPattern(value.pattern) &&
+        IsOptionalFormat(value.format));
+}
+/** Returns true if the given value is TSymbol */
+function IsSymbol(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Symbol') &&
+        value.type === 'symbol' &&
+        IsOptionalString(value.$id));
+}
+/** Returns true if the given value is TTemplateLiteral */
+function IsTemplateLiteral(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'TemplateLiteral') &&
+        value.type === 'string' &&
+        IsString$2(value.pattern) &&
+        value.pattern[0] === '^' &&
+        value.pattern[value.pattern.length - 1] === '$');
+}
+/** Returns true if the given value is TThis */
+function IsThis(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'This') &&
+        IsOptionalString(value.$id) &&
+        IsString$2(value.$ref));
+}
+/** Returns true of this value is TTransform */
+function IsTransform(value) {
+    return IsObject$2(value) && TransformKind in value;
+}
+/** Returns true if the given value is TTuple */
+function IsTuple(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Tuple') &&
+        value.type === 'array' &&
+        IsOptionalString(value.$id) &&
+        IsNumber$2(value.minItems) &&
+        IsNumber$2(value.maxItems) &&
+        value.minItems === value.maxItems &&
+        (( // empty
+        IsUndefined$2(value.items) &&
+            IsUndefined$2(value.additionalItems) &&
+            value.minItems === 0) || (IsArray$2(value.items) &&
+            value.items.every(schema => IsSchema(schema)))));
+}
+/** Returns true if the given value is TUndefined */
+function IsUndefined(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Undefined') &&
+        value.type === 'undefined' &&
+        IsOptionalString(value.$id));
+}
+/** Returns true if the given value is TUnion */
+function IsUnion(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Union') &&
+        IsOptionalString(value.$id) &&
+        IsObject$2(value) &&
+        IsArray$2(value.anyOf) &&
+        value.anyOf.every(schema => IsSchema(schema)));
+}
+/** Returns true if the given value is TUint8Array */
+function IsUint8Array(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Uint8Array') &&
+        value.type === 'Uint8Array' &&
+        IsOptionalString(value.$id) &&
+        IsOptionalNumber(value.minByteLength) &&
+        IsOptionalNumber(value.maxByteLength));
+}
+/** Returns true if the given value is TUnknown */
+function IsUnknown(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Unknown') &&
+        IsOptionalString(value.$id));
+}
+/** Returns true if the given value is a raw TUnsafe */
+function IsUnsafe(value) {
+    return IsKindOf(value, 'Unsafe');
+}
+/** Returns true if the given value is TVoid */
+function IsVoid(value) {
+    // prettier-ignore
+    return (IsKindOf(value, 'Void') &&
+        value.type === 'void' &&
+        IsOptionalString(value.$id));
+}
+/** Returns true if the given value is TKind */
+function IsKind(value) {
+    return IsObject$2(value) && Kind in value && IsString$2(value[Kind]) && !KnownTypes.includes(value[Kind]);
+}
+/** Returns true if the given value is TSchema */
+function IsSchema(value) {
+    // prettier-ignore
+    return (IsObject$2(value)) && (IsAny(value) ||
+        IsArray(value) ||
+        IsBoolean(value) ||
+        IsBigInt(value) ||
+        IsAsyncIterator(value) ||
+        IsComputed(value) ||
+        IsConstructor(value) ||
+        IsDate(value) ||
+        IsFunction(value) ||
+        IsInteger(value) ||
+        IsIntersect(value) ||
+        IsIterator(value) ||
+        IsLiteral(value) ||
+        IsMappedKey(value) ||
+        IsMappedResult(value) ||
+        IsNever(value) ||
+        IsNot(value) ||
+        IsNull(value) ||
+        IsNumber(value) ||
+        IsObject(value) ||
+        IsPromise(value) ||
+        IsRecord(value) ||
+        IsRef(value) ||
+        IsRegExp(value) ||
+        IsString(value) ||
+        IsSymbol(value) ||
+        IsTemplateLiteral(value) ||
+        IsThis(value) ||
+        IsTuple(value) ||
+        IsUndefined(value) ||
+        IsUnion(value) ||
+        IsUint8Array(value) ||
+        IsUnknown(value) ||
+        IsUnsafe(value) ||
+        IsVoid(value) ||
+        IsKind(value));
+}
+
+class ExtendsResolverError extends TypeBoxError {
+}
+var ExtendsResult;
+(function (ExtendsResult) {
+    ExtendsResult[ExtendsResult["Union"] = 0] = "Union";
+    ExtendsResult[ExtendsResult["True"] = 1] = "True";
+    ExtendsResult[ExtendsResult["False"] = 2] = "False";
+})(ExtendsResult || (ExtendsResult = {}));
+// ------------------------------------------------------------------
+// IntoBooleanResult
+// ------------------------------------------------------------------
+// prettier-ignore
+function IntoBooleanResult(result) {
+    return result === ExtendsResult.False ? result : ExtendsResult.True;
+}
+// ------------------------------------------------------------------
+// Throw
+// ------------------------------------------------------------------
+// prettier-ignore
+function Throw(message) {
+    throw new ExtendsResolverError(message);
+}
+// ------------------------------------------------------------------
+// StructuralRight
+// ------------------------------------------------------------------
+// prettier-ignore
+function IsStructuralRight(right) {
+    return (IsNever(right) ||
+        IsIntersect(right) ||
+        IsUnion(right) ||
+        IsUnknown(right) ||
+        IsAny(right));
+}
+// prettier-ignore
+function StructuralRight(left, right) {
+    return (IsNever(right) ? FromNeverRight() :
+        IsIntersect(right) ? FromIntersectRight(left, right) :
+            IsUnion(right) ? FromUnionRight(left, right) :
+                IsUnknown(right) ? FromUnknownRight() :
+                    IsAny(right) ? FromAnyRight() :
+                        Throw('StructuralRight'));
+}
+// ------------------------------------------------------------------
+// Any
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromAnyRight(left, right) {
+    return ExtendsResult.True;
+}
+// prettier-ignore
+function FromAny$2(left, right) {
+    return (IsIntersect(right) ? FromIntersectRight(left, right) :
+        (IsUnion(right) && right.anyOf.some((schema) => IsAny(schema) || IsUnknown(schema))) ? ExtendsResult.True :
+            IsUnion(right) ? ExtendsResult.Union :
+                IsUnknown(right) ? ExtendsResult.True :
+                    IsAny(right) ? ExtendsResult.True :
+                        ExtendsResult.Union);
+}
+// ------------------------------------------------------------------
+// Array
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromArrayRight(left, right) {
+    return (IsUnknown(left) ? ExtendsResult.False :
+        IsAny(left) ? ExtendsResult.Union :
+            IsNever(left) ? ExtendsResult.True :
+                ExtendsResult.False);
+}
+// prettier-ignore
+function FromArray$b(left, right) {
+    return (IsObject(right) && IsObjectArrayLike(right) ? ExtendsResult.True :
+        IsStructuralRight(right) ? StructuralRight(left, right) :
+            !IsArray(right) ? ExtendsResult.False :
+                IntoBooleanResult(Visit$8(left.items, right.items)));
+}
+// ------------------------------------------------------------------
+// AsyncIterator
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromAsyncIterator$4(left, right) {
+    return (IsStructuralRight(right) ? StructuralRight(left, right) :
+        !IsAsyncIterator(right) ? ExtendsResult.False :
+            IntoBooleanResult(Visit$8(left.items, right.items)));
+}
+// ------------------------------------------------------------------
+// BigInt
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromBigInt$3(left, right) {
+    return (IsStructuralRight(right) ? StructuralRight(left, right) :
+        IsObject(right) ? FromObjectRight(left, right) :
+            IsRecord(right) ? FromRecordRight(left, right) :
+                IsBigInt(right) ? ExtendsResult.True :
+                    ExtendsResult.False);
+}
+// ------------------------------------------------------------------
+// Boolean
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromBooleanRight(left, right) {
+    return (IsLiteralBoolean(left) ? ExtendsResult.True :
+        IsBoolean(left) ? ExtendsResult.True :
+            ExtendsResult.False);
+}
+// prettier-ignore
+function FromBoolean$3(left, right) {
+    return (IsStructuralRight(right) ? StructuralRight(left, right) :
+        IsObject(right) ? FromObjectRight(left, right) :
+            IsRecord(right) ? FromRecordRight(left, right) :
+                IsBoolean(right) ? ExtendsResult.True :
+                    ExtendsResult.False);
+}
+// ------------------------------------------------------------------
+// Constructor
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromConstructor$4(left, right) {
+    return (IsStructuralRight(right) ? StructuralRight(left, right) :
+        IsObject(right) ? FromObjectRight(left, right) :
+            !IsConstructor(right) ? ExtendsResult.False :
+                left.parameters.length > right.parameters.length ? ExtendsResult.False :
+                    (!left.parameters.every((schema, index) => IntoBooleanResult(Visit$8(right.parameters[index], schema)) === ExtendsResult.True)) ? ExtendsResult.False :
+                        IntoBooleanResult(Visit$8(left.returns, right.returns)));
+}
+// ------------------------------------------------------------------
+// Date
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromDate$5(left, right) {
+    return (IsStructuralRight(right) ? StructuralRight(left, right) :
+        IsObject(right) ? FromObjectRight(left, right) :
+            IsRecord(right) ? FromRecordRight(left, right) :
+                IsDate(right) ? ExtendsResult.True :
+                    ExtendsResult.False);
+}
+// ------------------------------------------------------------------
+// Function
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromFunction$4(left, right) {
+    return (IsStructuralRight(right) ? StructuralRight(left, right) :
+        IsObject(right) ? FromObjectRight(left, right) :
+            !IsFunction(right) ? ExtendsResult.False :
+                left.parameters.length > right.parameters.length ? ExtendsResult.False :
+                    (!left.parameters.every((schema, index) => IntoBooleanResult(Visit$8(right.parameters[index], schema)) === ExtendsResult.True)) ? ExtendsResult.False :
+                        IntoBooleanResult(Visit$8(left.returns, right.returns)));
+}
+// ------------------------------------------------------------------
+// Integer
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromIntegerRight(left, right) {
+    return (IsLiteral(left) && IsNumber$2(left.const) ? ExtendsResult.True :
+        IsNumber(left) || IsInteger(left) ? ExtendsResult.True :
+            ExtendsResult.False);
+}
+// prettier-ignore
+function FromInteger$3(left, right) {
+    return (IsInteger(right) || IsNumber(right) ? ExtendsResult.True :
+        IsStructuralRight(right) ? StructuralRight(left, right) :
+            IsObject(right) ? FromObjectRight(left, right) :
+                IsRecord(right) ? FromRecordRight(left, right) :
+                    ExtendsResult.False);
+}
+// ------------------------------------------------------------------
+// Intersect
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromIntersectRight(left, right) {
+    return right.allOf.every((schema) => Visit$8(left, schema) === ExtendsResult.True)
+        ? ExtendsResult.True
+        : ExtendsResult.False;
+}
+// prettier-ignore
+function FromIntersect$c(left, right) {
+    return left.allOf.some((schema) => Visit$8(schema, right) === ExtendsResult.True)
+        ? ExtendsResult.True
+        : ExtendsResult.False;
+}
+// ------------------------------------------------------------------
+// Iterator
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromIterator$4(left, right) {
+    return (IsStructuralRight(right) ? StructuralRight(left, right) :
+        !IsIterator(right) ? ExtendsResult.False :
+            IntoBooleanResult(Visit$8(left.items, right.items)));
+}
+// ------------------------------------------------------------------
+// Literal
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromLiteral$3(left, right) {
+    return (IsLiteral(right) && right.const === left.const ? ExtendsResult.True :
+        IsStructuralRight(right) ? StructuralRight(left, right) :
+            IsObject(right) ? FromObjectRight(left, right) :
+                IsRecord(right) ? FromRecordRight(left, right) :
+                    IsString(right) ? FromStringRight(left) :
+                        IsNumber(right) ? FromNumberRight(left) :
+                            IsInteger(right) ? FromIntegerRight(left) :
+                                IsBoolean(right) ? FromBooleanRight(left) :
+                                    ExtendsResult.False);
+}
+// ------------------------------------------------------------------
+// Never
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromNeverRight(left, right) {
+    return ExtendsResult.False;
+}
+// prettier-ignore
+function FromNever$2(left, right) {
+    return ExtendsResult.True;
+}
+// ------------------------------------------------------------------
+// Not
+// ------------------------------------------------------------------
+// prettier-ignore
+function UnwrapTNot(schema) {
+    let [current, depth] = [schema, 0];
+    while (true) {
+        if (!IsNot(current))
+            break;
+        current = current.not;
+        depth += 1;
+    }
+    return depth % 2 === 0 ? current : Unknown();
+}
+// prettier-ignore
+function FromNot$5(left, right) {
+    // TypeScript has no concept of negated types, and attempts to correctly check the negated
+    // type at runtime would put TypeBox at odds with TypeScripts ability to statically infer
+    // the type. Instead we unwrap to either unknown or T and continue evaluating.
+    // prettier-ignore
+    return (IsNot(left) ? Visit$8(UnwrapTNot(left), right) :
+        IsNot(right) ? Visit$8(left, UnwrapTNot(right)) :
+            Throw('Invalid fallthrough for Not'));
+}
+// ------------------------------------------------------------------
+// Null
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromNull$3(left, right) {
+    return (IsStructuralRight(right) ? StructuralRight(left, right) :
+        IsObject(right) ? FromObjectRight(left, right) :
+            IsRecord(right) ? FromRecordRight(left, right) :
+                IsNull(right) ? ExtendsResult.True :
+                    ExtendsResult.False);
+}
+// ------------------------------------------------------------------
+// Number
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromNumberRight(left, right) {
+    return (IsLiteralNumber(left) ? ExtendsResult.True :
+        IsNumber(left) || IsInteger(left) ? ExtendsResult.True :
+            ExtendsResult.False);
+}
+// prettier-ignore
+function FromNumber$3(left, right) {
+    return (IsStructuralRight(right) ? StructuralRight(left, right) :
+        IsObject(right) ? FromObjectRight(left, right) :
+            IsRecord(right) ? FromRecordRight(left, right) :
+                IsInteger(right) || IsNumber(right) ? ExtendsResult.True :
+                    ExtendsResult.False);
+}
+// ------------------------------------------------------------------
+// Object
+// ------------------------------------------------------------------
+// prettier-ignore
+function IsObjectPropertyCount(schema, count) {
+    return Object.getOwnPropertyNames(schema.properties).length === count;
+}
+// prettier-ignore
+function IsObjectStringLike(schema) {
+    return IsObjectArrayLike(schema);
+}
+// prettier-ignore
+function IsObjectSymbolLike(schema) {
+    return IsObjectPropertyCount(schema, 0) || (IsObjectPropertyCount(schema, 1) && 'description' in schema.properties && IsUnion(schema.properties.description) && schema.properties.description.anyOf.length === 2 && ((IsString(schema.properties.description.anyOf[0]) &&
+        IsUndefined(schema.properties.description.anyOf[1])) || (IsString(schema.properties.description.anyOf[1]) &&
+        IsUndefined(schema.properties.description.anyOf[0]))));
+}
+// prettier-ignore
+function IsObjectNumberLike(schema) {
+    return IsObjectPropertyCount(schema, 0);
+}
+// prettier-ignore
+function IsObjectBooleanLike(schema) {
+    return IsObjectPropertyCount(schema, 0);
+}
+// prettier-ignore
+function IsObjectBigIntLike(schema) {
+    return IsObjectPropertyCount(schema, 0);
+}
+// prettier-ignore
+function IsObjectDateLike(schema) {
+    return IsObjectPropertyCount(schema, 0);
+}
+// prettier-ignore
+function IsObjectUint8ArrayLike(schema) {
+    return IsObjectArrayLike(schema);
+}
+// prettier-ignore
+function IsObjectFunctionLike(schema) {
+    const length = Number$1();
+    return IsObjectPropertyCount(schema, 0) || (IsObjectPropertyCount(schema, 1) && 'length' in schema.properties && IntoBooleanResult(Visit$8(schema.properties['length'], length)) === ExtendsResult.True);
+}
+// prettier-ignore
+function IsObjectConstructorLike(schema) {
+    return IsObjectPropertyCount(schema, 0);
+}
+// prettier-ignore
+function IsObjectArrayLike(schema) {
+    const length = Number$1();
+    return IsObjectPropertyCount(schema, 0) || (IsObjectPropertyCount(schema, 1) && 'length' in schema.properties && IntoBooleanResult(Visit$8(schema.properties['length'], length)) === ExtendsResult.True);
+}
+// prettier-ignore
+function IsObjectPromiseLike(schema) {
+    const then = Function$1([Any()], Any());
+    return IsObjectPropertyCount(schema, 0) || (IsObjectPropertyCount(schema, 1) && 'then' in schema.properties && IntoBooleanResult(Visit$8(schema.properties['then'], then)) === ExtendsResult.True);
+}
+// ------------------------------------------------------------------
+// Property
+// ------------------------------------------------------------------
+// prettier-ignore
+function Property(left, right) {
+    return (Visit$8(left, right) === ExtendsResult.False ? ExtendsResult.False :
+        IsOptional(left) && !IsOptional(right) ? ExtendsResult.False :
+            ExtendsResult.True);
+}
+// prettier-ignore
+function FromObjectRight(left, right) {
+    return (IsUnknown(left) ? ExtendsResult.False :
+        IsAny(left) ? ExtendsResult.Union : (IsNever(left) ||
+            (IsLiteralString(left) && IsObjectStringLike(right)) ||
+            (IsLiteralNumber(left) && IsObjectNumberLike(right)) ||
+            (IsLiteralBoolean(left) && IsObjectBooleanLike(right)) ||
+            (IsSymbol(left) && IsObjectSymbolLike(right)) ||
+            (IsBigInt(left) && IsObjectBigIntLike(right)) ||
+            (IsString(left) && IsObjectStringLike(right)) ||
+            (IsSymbol(left) && IsObjectSymbolLike(right)) ||
+            (IsNumber(left) && IsObjectNumberLike(right)) ||
+            (IsInteger(left) && IsObjectNumberLike(right)) ||
+            (IsBoolean(left) && IsObjectBooleanLike(right)) ||
+            (IsUint8Array(left) && IsObjectUint8ArrayLike(right)) ||
+            (IsDate(left) && IsObjectDateLike(right)) ||
+            (IsConstructor(left) && IsObjectConstructorLike(right)) ||
+            (IsFunction(left) && IsObjectFunctionLike(right))) ? ExtendsResult.True :
+            (IsRecord(left) && IsString(RecordKey(left))) ? (() => {
+                // When expressing a Record with literal key values, the Record is converted into a Object with
+                // the Hint assigned as `Record`. This is used to invert the extends logic.
+                return right[Hint] === 'Record' ? ExtendsResult.True : ExtendsResult.False;
+            })() :
+                (IsRecord(left) && IsNumber(RecordKey(left))) ? (() => {
+                    return IsObjectPropertyCount(right, 0) ? ExtendsResult.True : ExtendsResult.False;
+                })() :
+                    ExtendsResult.False);
+}
+// prettier-ignore
+function FromObject$e(left, right) {
+    return (IsStructuralRight(right) ? StructuralRight(left, right) :
+        IsRecord(right) ? FromRecordRight(left, right) :
+            !IsObject(right) ? ExtendsResult.False :
+                (() => {
+                    for (const key of Object.getOwnPropertyNames(right.properties)) {
+                        if (!(key in left.properties) && !IsOptional(right.properties[key])) {
+                            return ExtendsResult.False;
+                        }
+                        if (IsOptional(right.properties[key])) {
+                            return ExtendsResult.True;
+                        }
+                        if (Property(left.properties[key], right.properties[key]) === ExtendsResult.False) {
+                            return ExtendsResult.False;
+                        }
+                    }
+                    return ExtendsResult.True;
+                })());
+}
+// ------------------------------------------------------------------
+// Promise
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromPromise$4(left, right) {
+    return (IsStructuralRight(right) ? StructuralRight(left, right) :
+        IsObject(right) && IsObjectPromiseLike(right) ? ExtendsResult.True :
+            !IsPromise(right) ? ExtendsResult.False :
+                IntoBooleanResult(Visit$8(left.item, right.item)));
+}
+// ------------------------------------------------------------------
+// Record
+// ------------------------------------------------------------------
+// prettier-ignore
+function RecordKey(schema) {
+    return (PatternNumberExact in schema.patternProperties ? Number$1() :
+        PatternStringExact in schema.patternProperties ? String$1() :
+            Throw('Unknown record key pattern'));
+}
+// prettier-ignore
+function RecordValue(schema) {
+    return (PatternNumberExact in schema.patternProperties ? schema.patternProperties[PatternNumberExact] :
+        PatternStringExact in schema.patternProperties ? schema.patternProperties[PatternStringExact] :
+            Throw('Unable to get record value schema'));
+}
+// prettier-ignore
+function FromRecordRight(left, right) {
+    const [Key, Value] = [RecordKey(right), RecordValue(right)];
+    return ((IsLiteralString(left) && IsNumber(Key) && IntoBooleanResult(Visit$8(left, Value)) === ExtendsResult.True) ? ExtendsResult.True :
+        IsUint8Array(left) && IsNumber(Key) ? Visit$8(left, Value) :
+            IsString(left) && IsNumber(Key) ? Visit$8(left, Value) :
+                IsArray(left) && IsNumber(Key) ? Visit$8(left, Value) :
+                    IsObject(left) ? (() => {
+                        for (const key of Object.getOwnPropertyNames(left.properties)) {
+                            if (Property(Value, left.properties[key]) === ExtendsResult.False) {
+                                return ExtendsResult.False;
+                            }
+                        }
+                        return ExtendsResult.True;
+                    })() :
+                        ExtendsResult.False);
+}
+// prettier-ignore
+function FromRecord$9(left, right) {
+    return (IsStructuralRight(right) ? StructuralRight(left, right) :
+        IsObject(right) ? FromObjectRight(left, right) :
+            !IsRecord(right) ? ExtendsResult.False :
+                Visit$8(RecordValue(left), RecordValue(right)));
+}
+// ------------------------------------------------------------------
+// RegExp
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromRegExp$2(left, right) {
+    // Note: RegExp types evaluate as strings, not RegExp objects.
+    // Here we remap either into string and continue evaluating.
+    const L = IsRegExp(left) ? String$1() : left;
+    const R = IsRegExp(right) ? String$1() : right;
+    return Visit$8(L, R);
+}
+// ------------------------------------------------------------------
+// String
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromStringRight(left, right) {
+    return (IsLiteral(left) && IsString$2(left.const) ? ExtendsResult.True :
+        IsString(left) ? ExtendsResult.True :
+            ExtendsResult.False);
+}
+// prettier-ignore
+function FromString$3(left, right) {
+    return (IsStructuralRight(right) ? StructuralRight(left, right) :
+        IsObject(right) ? FromObjectRight(left, right) :
+            IsRecord(right) ? FromRecordRight(left, right) :
+                IsString(right) ? ExtendsResult.True :
+                    ExtendsResult.False);
+}
+// ------------------------------------------------------------------
+// Symbol
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromSymbol$3(left, right) {
+    return (IsStructuralRight(right) ? StructuralRight(left, right) :
+        IsObject(right) ? FromObjectRight(left, right) :
+            IsRecord(right) ? FromRecordRight(left, right) :
+                IsSymbol(right) ? ExtendsResult.True :
+                    ExtendsResult.False);
+}
+// ------------------------------------------------------------------
+// TemplateLiteral
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromTemplateLiteral$3(left, right) {
+    // TemplateLiteral types are resolved to either unions for finite expressions or string
+    // for infinite expressions. Here we call to TemplateLiteralResolver to resolve for
+    // either type and continue evaluating.
+    return (IsTemplateLiteral(left) ? Visit$8(TemplateLiteralToUnion(left), right) :
+        IsTemplateLiteral(right) ? Visit$8(left, TemplateLiteralToUnion(right)) :
+            Throw('Invalid fallthrough for TemplateLiteral'));
+}
+// ------------------------------------------------------------------
+// Tuple
+// ------------------------------------------------------------------
+// prettier-ignore
+function IsArrayOfTuple(left, right) {
+    return (IsArray(right) &&
+        left.items !== undefined &&
+        left.items.every((schema) => Visit$8(schema, right.items) === ExtendsResult.True));
+}
+// prettier-ignore
+function FromTupleRight(left, right) {
+    return (IsNever(left) ? ExtendsResult.True :
+        IsUnknown(left) ? ExtendsResult.False :
+            IsAny(left) ? ExtendsResult.Union :
+                ExtendsResult.False);
+}
+// prettier-ignore
+function FromTuple$9(left, right) {
+    return (IsStructuralRight(right) ? StructuralRight(left, right) :
+        IsObject(right) && IsObjectArrayLike(right) ? ExtendsResult.True :
+            IsArray(right) && IsArrayOfTuple(left, right) ? ExtendsResult.True :
+                !IsTuple(right) ? ExtendsResult.False :
+                    (IsUndefined$2(left.items) && !IsUndefined$2(right.items)) || (!IsUndefined$2(left.items) && IsUndefined$2(right.items)) ? ExtendsResult.False :
+                        (IsUndefined$2(left.items) && !IsUndefined$2(right.items)) ? ExtendsResult.True :
+                            left.items.every((schema, index) => Visit$8(schema, right.items[index]) === ExtendsResult.True) ? ExtendsResult.True :
+                                ExtendsResult.False);
+}
+// ------------------------------------------------------------------
+// Uint8Array
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromUint8Array$2(left, right) {
+    return (IsStructuralRight(right) ? StructuralRight(left, right) :
+        IsObject(right) ? FromObjectRight(left, right) :
+            IsRecord(right) ? FromRecordRight(left, right) :
+                IsUint8Array(right) ? ExtendsResult.True :
+                    ExtendsResult.False);
+}
+// ------------------------------------------------------------------
+// Undefined
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromUndefined$3(left, right) {
+    return (IsStructuralRight(right) ? StructuralRight(left, right) :
+        IsObject(right) ? FromObjectRight(left, right) :
+            IsRecord(right) ? FromRecordRight(left, right) :
+                IsVoid(right) ? FromVoidRight(left) :
+                    IsUndefined(right) ? ExtendsResult.True :
+                        ExtendsResult.False);
+}
+// ------------------------------------------------------------------
+// Union
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromUnionRight(left, right) {
+    return right.anyOf.some((schema) => Visit$8(left, schema) === ExtendsResult.True)
+        ? ExtendsResult.True
+        : ExtendsResult.False;
+}
+// prettier-ignore
+function FromUnion$c(left, right) {
+    return left.anyOf.every((schema) => Visit$8(schema, right) === ExtendsResult.True)
+        ? ExtendsResult.True
+        : ExtendsResult.False;
+}
+// ------------------------------------------------------------------
+// Unknown
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromUnknownRight(left, right) {
+    return ExtendsResult.True;
+}
+// prettier-ignore
+function FromUnknown$2(left, right) {
+    return (IsNever(right) ? FromNeverRight() :
+        IsIntersect(right) ? FromIntersectRight(left, right) :
+            IsUnion(right) ? FromUnionRight(left, right) :
+                IsAny(right) ? FromAnyRight() :
+                    IsString(right) ? FromStringRight(left) :
+                        IsNumber(right) ? FromNumberRight(left) :
+                            IsInteger(right) ? FromIntegerRight(left) :
+                                IsBoolean(right) ? FromBooleanRight(left) :
+                                    IsArray(right) ? FromArrayRight(left) :
+                                        IsTuple(right) ? FromTupleRight(left) :
+                                            IsObject(right) ? FromObjectRight(left, right) :
+                                                IsUnknown(right) ? ExtendsResult.True :
+                                                    ExtendsResult.False);
+}
+// ------------------------------------------------------------------
+// Void
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromVoidRight(left, right) {
+    return (IsUndefined(left) ? ExtendsResult.True :
+        IsUndefined(left) ? ExtendsResult.True :
+            ExtendsResult.False);
+}
+// prettier-ignore
+function FromVoid$2(left, right) {
+    return (IsIntersect(right) ? FromIntersectRight(left, right) :
+        IsUnion(right) ? FromUnionRight(left, right) :
+            IsUnknown(right) ? FromUnknownRight() :
+                IsAny(right) ? FromAnyRight() :
+                    IsObject(right) ? FromObjectRight(left, right) :
+                        IsVoid(right) ? ExtendsResult.True :
+                            ExtendsResult.False);
+}
+// prettier-ignore
+function Visit$8(left, right) {
+    return (
+    // resolvable
+    (IsTemplateLiteral(left) || IsTemplateLiteral(right)) ? FromTemplateLiteral$3(left, right) :
+        (IsRegExp(left) || IsRegExp(right)) ? FromRegExp$2(left, right) :
+            (IsNot(left) || IsNot(right)) ? FromNot$5(left, right) :
+                // standard
+                IsAny(left) ? FromAny$2(left, right) :
+                    IsArray(left) ? FromArray$b(left, right) :
+                        IsBigInt(left) ? FromBigInt$3(left, right) :
+                            IsBoolean(left) ? FromBoolean$3(left, right) :
+                                IsAsyncIterator(left) ? FromAsyncIterator$4(left, right) :
+                                    IsConstructor(left) ? FromConstructor$4(left, right) :
+                                        IsDate(left) ? FromDate$5(left, right) :
+                                            IsFunction(left) ? FromFunction$4(left, right) :
+                                                IsInteger(left) ? FromInteger$3(left, right) :
+                                                    IsIntersect(left) ? FromIntersect$c(left, right) :
+                                                        IsIterator(left) ? FromIterator$4(left, right) :
+                                                            IsLiteral(left) ? FromLiteral$3(left, right) :
+                                                                IsNever(left) ? FromNever$2() :
+                                                                    IsNull(left) ? FromNull$3(left, right) :
+                                                                        IsNumber(left) ? FromNumber$3(left, right) :
+                                                                            IsObject(left) ? FromObject$e(left, right) :
+                                                                                IsRecord(left) ? FromRecord$9(left, right) :
+                                                                                    IsString(left) ? FromString$3(left, right) :
+                                                                                        IsSymbol(left) ? FromSymbol$3(left, right) :
+                                                                                            IsTuple(left) ? FromTuple$9(left, right) :
+                                                                                                IsPromise(left) ? FromPromise$4(left, right) :
+                                                                                                    IsUint8Array(left) ? FromUint8Array$2(left, right) :
+                                                                                                        IsUndefined(left) ? FromUndefined$3(left, right) :
+                                                                                                            IsUnion(left) ? FromUnion$c(left, right) :
+                                                                                                                IsUnknown(left) ? FromUnknown$2(left, right) :
+                                                                                                                    IsVoid(left) ? FromVoid$2(left, right) :
+                                                                                                                        Throw(`Unknown left type operand '${left[Kind]}'`));
+}
+function ExtendsCheck(left, right) {
+    return Visit$8(left, right);
+}
+
+// prettier-ignore
+function FromProperties$b(P, Right, True, False, options) {
+    const Acc = {};
+    for (const K2 of globalThis.Object.getOwnPropertyNames(P))
+        Acc[K2] = Extends(P[K2], Right, True, False, Clone$1(options));
+    return Acc;
+}
+// prettier-ignore
+function FromMappedResult$6(Left, Right, True, False, options) {
+    return FromProperties$b(Left.properties, Right, True, False, options);
+}
+// prettier-ignore
+function ExtendsFromMappedResult(Left, Right, True, False, options) {
+    const P = FromMappedResult$6(Left, Right, True, False, options);
+    return MappedResult(P);
+}
+
+// prettier-ignore
+function ExtendsResolve(left, right, trueType, falseType) {
+    const R = ExtendsCheck(left, right);
+    return (R === ExtendsResult.Union ? Union$1([trueType, falseType]) :
+        R === ExtendsResult.True ? trueType :
+            falseType);
+}
+/** `[Json]` Creates a Conditional type */
+function Extends(L, R, T, F, options) {
+    // prettier-ignore
+    return (IsMappedResult$1(L) ? ExtendsFromMappedResult(L, R, T, F, options) :
+        IsMappedKey$1(L) ? CreateType(ExtendsFromMappedKey(L, R, T, F, options)) :
+            CreateType(ExtendsResolve(L, R, T, F), options));
+}
+
+// prettier-ignore
+function FromPropertyKey$2(K, U, L, R, options) {
+    return {
+        [K]: Extends(Literal(K), U, L, R, Clone$1(options))
+    };
+}
+// prettier-ignore
+function FromPropertyKeys$2(K, U, L, R, options) {
+    return K.reduce((Acc, LK) => {
+        return { ...Acc, ...FromPropertyKey$2(LK, U, L, R, options) };
+    }, {});
+}
+// prettier-ignore
+function FromMappedKey$2(K, U, L, R, options) {
+    return FromPropertyKeys$2(K.keys, U, L, R, options);
+}
+// prettier-ignore
+function ExtendsFromMappedKey(T, U, L, R, options) {
+    const P = FromMappedKey$2(T, U, L, R, options);
+    return MappedResult(P);
+}
+
+// ------------------------------------------------------------------
+// Errors
+// ------------------------------------------------------------------
+class ValueCheckUnknownTypeError extends TypeBoxError {
+    constructor(schema) {
+        super(`Unknown type`);
+        this.schema = schema;
+    }
+}
+// ------------------------------------------------------------------
+// TypeGuards
+// ------------------------------------------------------------------
+function IsAnyOrUnknown(schema) {
+    return schema[Kind] === 'Any' || schema[Kind] === 'Unknown';
+}
+// ------------------------------------------------------------------
+// Guards
+// ------------------------------------------------------------------
+function IsDefined$1(value) {
+    return value !== undefined;
+}
+// ------------------------------------------------------------------
+// Types
+// ------------------------------------------------------------------
+function FromAny$1(schema, references, value) {
+    return true;
+}
+function FromArray$a(schema, references, value) {
+    if (!IsArray$3(value))
+        return false;
+    if (IsDefined$1(schema.minItems) && !(value.length >= schema.minItems)) {
+        return false;
+    }
+    if (IsDefined$1(schema.maxItems) && !(value.length <= schema.maxItems)) {
+        return false;
+    }
+    if (!value.every((value) => Visit$7(schema.items, references, value))) {
+        return false;
+    }
+    // prettier-ignore
+    if (schema.uniqueItems === true && !((function () { const set = new Set(); for (const element of value) {
+        const hashed = Hash(element);
+        if (set.has(hashed)) {
+            return false;
+        }
+        else {
+            set.add(hashed);
+        }
+    } return true; })())) {
+        return false;
+    }
+    // contains
+    if (!(IsDefined$1(schema.contains) || IsNumber$3(schema.minContains) || IsNumber$3(schema.maxContains))) {
+        return true; // exit
+    }
+    const containsSchema = IsDefined$1(schema.contains) ? schema.contains : Never();
+    const containsCount = value.reduce((acc, value) => (Visit$7(containsSchema, references, value) ? acc + 1 : acc), 0);
+    if (containsCount === 0) {
+        return false;
+    }
+    if (IsNumber$3(schema.minContains) && containsCount < schema.minContains) {
+        return false;
+    }
+    if (IsNumber$3(schema.maxContains) && containsCount > schema.maxContains) {
+        return false;
+    }
+    return true;
+}
+function FromAsyncIterator$3(schema, references, value) {
+    return IsAsyncIterator$3(value);
+}
+function FromBigInt$2(schema, references, value) {
+    if (!IsBigInt$3(value))
+        return false;
+    if (IsDefined$1(schema.exclusiveMaximum) && !(value < schema.exclusiveMaximum)) {
+        return false;
+    }
+    if (IsDefined$1(schema.exclusiveMinimum) && !(value > schema.exclusiveMinimum)) {
+        return false;
+    }
+    if (IsDefined$1(schema.maximum) && !(value <= schema.maximum)) {
+        return false;
+    }
+    if (IsDefined$1(schema.minimum) && !(value >= schema.minimum)) {
+        return false;
+    }
+    if (IsDefined$1(schema.multipleOf) && !(value % schema.multipleOf === BigInt(0))) {
+        return false;
+    }
+    return true;
+}
+function FromBoolean$2(schema, references, value) {
+    return IsBoolean$3(value);
+}
+function FromConstructor$3(schema, references, value) {
+    return Visit$7(schema.returns, references, value.prototype);
+}
+function FromDate$4(schema, references, value) {
+    if (!IsDate$3(value))
+        return false;
+    if (IsDefined$1(schema.exclusiveMaximumTimestamp) && !(value.getTime() < schema.exclusiveMaximumTimestamp)) {
+        return false;
+    }
+    if (IsDefined$1(schema.exclusiveMinimumTimestamp) && !(value.getTime() > schema.exclusiveMinimumTimestamp)) {
+        return false;
+    }
+    if (IsDefined$1(schema.maximumTimestamp) && !(value.getTime() <= schema.maximumTimestamp)) {
+        return false;
+    }
+    if (IsDefined$1(schema.minimumTimestamp) && !(value.getTime() >= schema.minimumTimestamp)) {
+        return false;
+    }
+    if (IsDefined$1(schema.multipleOfTimestamp) && !(value.getTime() % schema.multipleOfTimestamp === 0)) {
+        return false;
+    }
+    return true;
+}
+function FromFunction$3(schema, references, value) {
+    return IsFunction$3(value);
+}
+function FromImport$6(schema, references, value) {
+    const definitions = globalThis.Object.values(schema.$defs);
+    const target = schema.$defs[schema.$ref];
+    return Visit$7(target, [...references, ...definitions], value);
+}
+function FromInteger$2(schema, references, value) {
+    if (!IsInteger$2(value)) {
+        return false;
+    }
+    if (IsDefined$1(schema.exclusiveMaximum) && !(value < schema.exclusiveMaximum)) {
+        return false;
+    }
+    if (IsDefined$1(schema.exclusiveMinimum) && !(value > schema.exclusiveMinimum)) {
+        return false;
+    }
+    if (IsDefined$1(schema.maximum) && !(value <= schema.maximum)) {
+        return false;
+    }
+    if (IsDefined$1(schema.minimum) && !(value >= schema.minimum)) {
+        return false;
+    }
+    if (IsDefined$1(schema.multipleOf) && !(value % schema.multipleOf === 0)) {
+        return false;
+    }
+    return true;
+}
+function FromIntersect$b(schema, references, value) {
+    const check1 = schema.allOf.every((schema) => Visit$7(schema, references, value));
+    if (schema.unevaluatedProperties === false) {
+        const keyPattern = new RegExp(KeyOfPattern(schema));
+        const check2 = Object.getOwnPropertyNames(value).every((key) => keyPattern.test(key));
+        return check1 && check2;
+    }
+    else if (IsSchema$1(schema.unevaluatedProperties)) {
+        const keyCheck = new RegExp(KeyOfPattern(schema));
+        const check2 = Object.getOwnPropertyNames(value).every((key) => keyCheck.test(key) || Visit$7(schema.unevaluatedProperties, references, value[key]));
+        return check1 && check2;
+    }
+    else {
+        return check1;
+    }
+}
+function FromIterator$3(schema, references, value) {
+    return IsIterator$3(value);
+}
+function FromLiteral$2(schema, references, value) {
+    return value === schema.const;
+}
+function FromNever$1(schema, references, value) {
+    return false;
+}
+function FromNot$4(schema, references, value) {
+    return !Visit$7(schema.not, references, value);
+}
+function FromNull$2(schema, references, value) {
+    return IsNull$3(value);
+}
+function FromNumber$2(schema, references, value) {
+    if (!TypeSystemPolicy.IsNumberLike(value))
+        return false;
+    if (IsDefined$1(schema.exclusiveMaximum) && !(value < schema.exclusiveMaximum)) {
+        return false;
+    }
+    if (IsDefined$1(schema.exclusiveMinimum) && !(value > schema.exclusiveMinimum)) {
+        return false;
+    }
+    if (IsDefined$1(schema.minimum) && !(value >= schema.minimum)) {
+        return false;
+    }
+    if (IsDefined$1(schema.maximum) && !(value <= schema.maximum)) {
+        return false;
+    }
+    if (IsDefined$1(schema.multipleOf) && !(value % schema.multipleOf === 0)) {
+        return false;
+    }
+    return true;
+}
+function FromObject$d(schema, references, value) {
+    if (!TypeSystemPolicy.IsObjectLike(value))
+        return false;
+    if (IsDefined$1(schema.minProperties) && !(Object.getOwnPropertyNames(value).length >= schema.minProperties)) {
+        return false;
+    }
+    if (IsDefined$1(schema.maxProperties) && !(Object.getOwnPropertyNames(value).length <= schema.maxProperties)) {
+        return false;
+    }
+    const knownKeys = Object.getOwnPropertyNames(schema.properties);
+    for (const knownKey of knownKeys) {
+        const property = schema.properties[knownKey];
+        if (schema.required && schema.required.includes(knownKey)) {
+            if (!Visit$7(property, references, value[knownKey])) {
+                return false;
+            }
+            if ((ExtendsUndefinedCheck(property) || IsAnyOrUnknown(property)) && !(knownKey in value)) {
+                return false;
+            }
+        }
+        else {
+            if (TypeSystemPolicy.IsExactOptionalProperty(value, knownKey) && !Visit$7(property, references, value[knownKey])) {
+                return false;
+            }
+        }
+    }
+    if (schema.additionalProperties === false) {
+        const valueKeys = Object.getOwnPropertyNames(value);
+        // optimization: value is valid if schemaKey length matches the valueKey length
+        if (schema.required && schema.required.length === knownKeys.length && valueKeys.length === knownKeys.length) {
+            return true;
+        }
+        else {
+            return valueKeys.every((valueKey) => knownKeys.includes(valueKey));
+        }
+    }
+    else if (typeof schema.additionalProperties === 'object') {
+        const valueKeys = Object.getOwnPropertyNames(value);
+        return valueKeys.every((key) => knownKeys.includes(key) || Visit$7(schema.additionalProperties, references, value[key]));
+    }
+    else {
+        return true;
+    }
+}
+function FromPromise$3(schema, references, value) {
+    return IsPromise$2(value);
+}
+function FromRecord$8(schema, references, value) {
+    if (!TypeSystemPolicy.IsRecordLike(value)) {
+        return false;
+    }
+    if (IsDefined$1(schema.minProperties) && !(Object.getOwnPropertyNames(value).length >= schema.minProperties)) {
+        return false;
+    }
+    if (IsDefined$1(schema.maxProperties) && !(Object.getOwnPropertyNames(value).length <= schema.maxProperties)) {
+        return false;
+    }
+    const [patternKey, patternSchema] = Object.entries(schema.patternProperties)[0];
+    const regex = new RegExp(patternKey);
+    // prettier-ignore
+    const check1 = Object.entries(value).every(([key, value]) => {
+        return (regex.test(key)) ? Visit$7(patternSchema, references, value) : true;
+    });
+    // prettier-ignore
+    const check2 = typeof schema.additionalProperties === 'object' ? Object.entries(value).every(([key, value]) => {
+        return (!regex.test(key)) ? Visit$7(schema.additionalProperties, references, value) : true;
+    }) : true;
+    const check3 = schema.additionalProperties === false
+        ? Object.getOwnPropertyNames(value).every((key) => {
+            return regex.test(key);
+        })
+        : true;
+    return check1 && check2 && check3;
+}
+function FromRef$a(schema, references, value) {
+    return Visit$7(Deref$1(schema, references), references, value);
+}
+function FromRegExp$1(schema, references, value) {
+    const regex = new RegExp(schema.source, schema.flags);
+    if (IsDefined$1(schema.minLength)) {
+        if (!(value.length >= schema.minLength))
+            return false;
+    }
+    if (IsDefined$1(schema.maxLength)) {
+        if (!(value.length <= schema.maxLength))
+            return false;
+    }
+    return regex.test(value);
+}
+function FromString$2(schema, references, value) {
+    if (!IsString$3(value)) {
+        return false;
+    }
+    if (IsDefined$1(schema.minLength)) {
+        if (!(value.length >= schema.minLength))
+            return false;
+    }
+    if (IsDefined$1(schema.maxLength)) {
+        if (!(value.length <= schema.maxLength))
+            return false;
+    }
+    if (IsDefined$1(schema.pattern)) {
+        const regex = new RegExp(schema.pattern);
+        if (!regex.test(value))
+            return false;
+    }
+    if (IsDefined$1(schema.format)) {
+        if (!Has$1(schema.format))
+            return false;
+        const func = Get$1(schema.format);
+        return func(value);
+    }
+    return true;
+}
+function FromSymbol$2(schema, references, value) {
+    return IsSymbol$3(value);
+}
+function FromTemplateLiteral$2(schema, references, value) {
+    return IsString$3(value) && new RegExp(schema.pattern).test(value);
+}
+function FromThis$7(schema, references, value) {
+    return Visit$7(Deref$1(schema, references), references, value);
+}
+function FromTuple$8(schema, references, value) {
+    if (!IsArray$3(value)) {
+        return false;
+    }
+    if (schema.items === undefined && !(value.length === 0)) {
+        return false;
+    }
+    if (!(value.length === schema.maxItems)) {
+        return false;
+    }
+    if (!schema.items) {
+        return true;
+    }
+    for (let i = 0; i < schema.items.length; i++) {
+        if (!Visit$7(schema.items[i], references, value[i]))
+            return false;
+    }
+    return true;
+}
+function FromUndefined$2(schema, references, value) {
+    return IsUndefined$3(value);
+}
+function FromUnion$b(schema, references, value) {
+    return schema.anyOf.some((inner) => Visit$7(inner, references, value));
+}
+function FromUint8Array$1(schema, references, value) {
+    if (!IsUint8Array$3(value)) {
+        return false;
+    }
+    if (IsDefined$1(schema.maxByteLength) && !(value.length <= schema.maxByteLength)) {
+        return false;
+    }
+    if (IsDefined$1(schema.minByteLength) && !(value.length >= schema.minByteLength)) {
+        return false;
+    }
+    return true;
+}
+function FromUnknown$1(schema, references, value) {
+    return true;
+}
+function FromVoid$1(schema, references, value) {
+    return TypeSystemPolicy.IsVoidLike(value);
+}
+function FromKind$1(schema, references, value) {
+    if (!Has(schema[Kind]))
+        return false;
+    const func = Get(schema[Kind]);
+    return func(schema, value);
+}
+function Visit$7(schema, references, value) {
+    const references_ = IsDefined$1(schema.$id) ? Pushref(schema, references) : references;
+    const schema_ = schema;
+    switch (schema_[Kind]) {
+        case 'Any':
+            return FromAny$1();
+        case 'Array':
+            return FromArray$a(schema_, references_, value);
+        case 'AsyncIterator':
+            return FromAsyncIterator$3(schema_, references_, value);
+        case 'BigInt':
+            return FromBigInt$2(schema_, references_, value);
+        case 'Boolean':
+            return FromBoolean$2(schema_, references_, value);
+        case 'Constructor':
+            return FromConstructor$3(schema_, references_, value);
+        case 'Date':
+            return FromDate$4(schema_, references_, value);
+        case 'Function':
+            return FromFunction$3(schema_, references_, value);
+        case 'Import':
+            return FromImport$6(schema_, references_, value);
+        case 'Integer':
+            return FromInteger$2(schema_, references_, value);
+        case 'Intersect':
+            return FromIntersect$b(schema_, references_, value);
+        case 'Iterator':
+            return FromIterator$3(schema_, references_, value);
+        case 'Literal':
+            return FromLiteral$2(schema_, references_, value);
+        case 'Never':
+            return FromNever$1();
+        case 'Not':
+            return FromNot$4(schema_, references_, value);
+        case 'Null':
+            return FromNull$2(schema_, references_, value);
+        case 'Number':
+            return FromNumber$2(schema_, references_, value);
+        case 'Object':
+            return FromObject$d(schema_, references_, value);
+        case 'Promise':
+            return FromPromise$3(schema_, references_, value);
+        case 'Record':
+            return FromRecord$8(schema_, references_, value);
+        case 'Ref':
+            return FromRef$a(schema_, references_, value);
+        case 'RegExp':
+            return FromRegExp$1(schema_, references_, value);
+        case 'String':
+            return FromString$2(schema_, references_, value);
+        case 'Symbol':
+            return FromSymbol$2(schema_, references_, value);
+        case 'TemplateLiteral':
+            return FromTemplateLiteral$2(schema_, references_, value);
+        case 'This':
+            return FromThis$7(schema_, references_, value);
+        case 'Tuple':
+            return FromTuple$8(schema_, references_, value);
+        case 'Undefined':
+            return FromUndefined$2(schema_, references_, value);
+        case 'Union':
+            return FromUnion$b(schema_, references_, value);
+        case 'Uint8Array':
+            return FromUint8Array$1(schema_, references_, value);
+        case 'Unknown':
+            return FromUnknown$1();
+        case 'Void':
+            return FromVoid$1(schema_, references_, value);
+        default:
+            if (!Has(schema_[Kind]))
+                throw new ValueCheckUnknownTypeError(schema_);
+            return FromKind$1(schema_, references_, value);
+    }
+}
+/** Returns true if the value matches the given type. */
+function Check(...args) {
+    return args.length === 3 ? Visit$7(args[0], args[1], args[2]) : Visit$7(args[0], [], args[1]);
+}
+
+// ------------------------------------------------------------------
+// ValueErrorType
+// ------------------------------------------------------------------
+var ValueErrorType;
+(function (ValueErrorType) {
+    ValueErrorType[ValueErrorType["ArrayContains"] = 0] = "ArrayContains";
+    ValueErrorType[ValueErrorType["ArrayMaxContains"] = 1] = "ArrayMaxContains";
+    ValueErrorType[ValueErrorType["ArrayMaxItems"] = 2] = "ArrayMaxItems";
+    ValueErrorType[ValueErrorType["ArrayMinContains"] = 3] = "ArrayMinContains";
+    ValueErrorType[ValueErrorType["ArrayMinItems"] = 4] = "ArrayMinItems";
+    ValueErrorType[ValueErrorType["ArrayUniqueItems"] = 5] = "ArrayUniqueItems";
+    ValueErrorType[ValueErrorType["Array"] = 6] = "Array";
+    ValueErrorType[ValueErrorType["AsyncIterator"] = 7] = "AsyncIterator";
+    ValueErrorType[ValueErrorType["BigIntExclusiveMaximum"] = 8] = "BigIntExclusiveMaximum";
+    ValueErrorType[ValueErrorType["BigIntExclusiveMinimum"] = 9] = "BigIntExclusiveMinimum";
+    ValueErrorType[ValueErrorType["BigIntMaximum"] = 10] = "BigIntMaximum";
+    ValueErrorType[ValueErrorType["BigIntMinimum"] = 11] = "BigIntMinimum";
+    ValueErrorType[ValueErrorType["BigIntMultipleOf"] = 12] = "BigIntMultipleOf";
+    ValueErrorType[ValueErrorType["BigInt"] = 13] = "BigInt";
+    ValueErrorType[ValueErrorType["Boolean"] = 14] = "Boolean";
+    ValueErrorType[ValueErrorType["DateExclusiveMaximumTimestamp"] = 15] = "DateExclusiveMaximumTimestamp";
+    ValueErrorType[ValueErrorType["DateExclusiveMinimumTimestamp"] = 16] = "DateExclusiveMinimumTimestamp";
+    ValueErrorType[ValueErrorType["DateMaximumTimestamp"] = 17] = "DateMaximumTimestamp";
+    ValueErrorType[ValueErrorType["DateMinimumTimestamp"] = 18] = "DateMinimumTimestamp";
+    ValueErrorType[ValueErrorType["DateMultipleOfTimestamp"] = 19] = "DateMultipleOfTimestamp";
+    ValueErrorType[ValueErrorType["Date"] = 20] = "Date";
+    ValueErrorType[ValueErrorType["Function"] = 21] = "Function";
+    ValueErrorType[ValueErrorType["IntegerExclusiveMaximum"] = 22] = "IntegerExclusiveMaximum";
+    ValueErrorType[ValueErrorType["IntegerExclusiveMinimum"] = 23] = "IntegerExclusiveMinimum";
+    ValueErrorType[ValueErrorType["IntegerMaximum"] = 24] = "IntegerMaximum";
+    ValueErrorType[ValueErrorType["IntegerMinimum"] = 25] = "IntegerMinimum";
+    ValueErrorType[ValueErrorType["IntegerMultipleOf"] = 26] = "IntegerMultipleOf";
+    ValueErrorType[ValueErrorType["Integer"] = 27] = "Integer";
+    ValueErrorType[ValueErrorType["IntersectUnevaluatedProperties"] = 28] = "IntersectUnevaluatedProperties";
+    ValueErrorType[ValueErrorType["Intersect"] = 29] = "Intersect";
+    ValueErrorType[ValueErrorType["Iterator"] = 30] = "Iterator";
+    ValueErrorType[ValueErrorType["Kind"] = 31] = "Kind";
+    ValueErrorType[ValueErrorType["Literal"] = 32] = "Literal";
+    ValueErrorType[ValueErrorType["Never"] = 33] = "Never";
+    ValueErrorType[ValueErrorType["Not"] = 34] = "Not";
+    ValueErrorType[ValueErrorType["Null"] = 35] = "Null";
+    ValueErrorType[ValueErrorType["NumberExclusiveMaximum"] = 36] = "NumberExclusiveMaximum";
+    ValueErrorType[ValueErrorType["NumberExclusiveMinimum"] = 37] = "NumberExclusiveMinimum";
+    ValueErrorType[ValueErrorType["NumberMaximum"] = 38] = "NumberMaximum";
+    ValueErrorType[ValueErrorType["NumberMinimum"] = 39] = "NumberMinimum";
+    ValueErrorType[ValueErrorType["NumberMultipleOf"] = 40] = "NumberMultipleOf";
+    ValueErrorType[ValueErrorType["Number"] = 41] = "Number";
+    ValueErrorType[ValueErrorType["ObjectAdditionalProperties"] = 42] = "ObjectAdditionalProperties";
+    ValueErrorType[ValueErrorType["ObjectMaxProperties"] = 43] = "ObjectMaxProperties";
+    ValueErrorType[ValueErrorType["ObjectMinProperties"] = 44] = "ObjectMinProperties";
+    ValueErrorType[ValueErrorType["ObjectRequiredProperty"] = 45] = "ObjectRequiredProperty";
+    ValueErrorType[ValueErrorType["Object"] = 46] = "Object";
+    ValueErrorType[ValueErrorType["Promise"] = 47] = "Promise";
+    ValueErrorType[ValueErrorType["RegExp"] = 48] = "RegExp";
+    ValueErrorType[ValueErrorType["StringFormatUnknown"] = 49] = "StringFormatUnknown";
+    ValueErrorType[ValueErrorType["StringFormat"] = 50] = "StringFormat";
+    ValueErrorType[ValueErrorType["StringMaxLength"] = 51] = "StringMaxLength";
+    ValueErrorType[ValueErrorType["StringMinLength"] = 52] = "StringMinLength";
+    ValueErrorType[ValueErrorType["StringPattern"] = 53] = "StringPattern";
+    ValueErrorType[ValueErrorType["String"] = 54] = "String";
+    ValueErrorType[ValueErrorType["Symbol"] = 55] = "Symbol";
+    ValueErrorType[ValueErrorType["TupleLength"] = 56] = "TupleLength";
+    ValueErrorType[ValueErrorType["Tuple"] = 57] = "Tuple";
+    ValueErrorType[ValueErrorType["Uint8ArrayMaxByteLength"] = 58] = "Uint8ArrayMaxByteLength";
+    ValueErrorType[ValueErrorType["Uint8ArrayMinByteLength"] = 59] = "Uint8ArrayMinByteLength";
+    ValueErrorType[ValueErrorType["Uint8Array"] = 60] = "Uint8Array";
+    ValueErrorType[ValueErrorType["Undefined"] = 61] = "Undefined";
+    ValueErrorType[ValueErrorType["Union"] = 62] = "Union";
+    ValueErrorType[ValueErrorType["Void"] = 63] = "Void";
+})(ValueErrorType || (ValueErrorType = {}));
+// ------------------------------------------------------------------
+// ValueErrors
+// ------------------------------------------------------------------
+class ValueErrorsUnknownTypeError extends TypeBoxError {
+    constructor(schema) {
+        super('Unknown type');
+        this.schema = schema;
+    }
+}
+// ------------------------------------------------------------------
+// EscapeKey
+// ------------------------------------------------------------------
+function EscapeKey(key) {
+    return key.replace(/~/g, '~0').replace(/\//g, '~1'); // RFC6901 Path
+}
+// ------------------------------------------------------------------
+// Guards
+// ------------------------------------------------------------------
+function IsDefined(value) {
+    return value !== undefined;
+}
+// ------------------------------------------------------------------
+// ValueErrorIterator
+// ------------------------------------------------------------------
+class ValueErrorIterator {
+    constructor(iterator) {
+        this.iterator = iterator;
+    }
+    [Symbol.iterator]() {
+        return this.iterator;
+    }
+    /** Returns the first value error or undefined if no errors */
+    First() {
+        const next = this.iterator.next();
+        return next.done ? undefined : next.value;
+    }
+}
+// --------------------------------------------------------------------------
+// Create
+// --------------------------------------------------------------------------
+function Create(errorType, schema, path, value, errors = []) {
+    return {
+        type: errorType,
+        schema,
+        path,
+        value,
+        message: GetErrorFunction()({ errorType, path, schema, value, errors }),
+        errors,
+    };
+}
+// --------------------------------------------------------------------------
+// Types
+// --------------------------------------------------------------------------
+function* FromAny(schema, references, path, value) { }
+function* FromArray$9(schema, references, path, value) {
+    if (!IsArray$3(value)) {
+        return yield Create(ValueErrorType.Array, schema, path, value);
+    }
+    if (IsDefined(schema.minItems) && !(value.length >= schema.minItems)) {
+        yield Create(ValueErrorType.ArrayMinItems, schema, path, value);
+    }
+    if (IsDefined(schema.maxItems) && !(value.length <= schema.maxItems)) {
+        yield Create(ValueErrorType.ArrayMaxItems, schema, path, value);
+    }
+    for (let i = 0; i < value.length; i++) {
+        yield* Visit$6(schema.items, references, `${path}/${i}`, value[i]);
+    }
+    // prettier-ignore
+    if (schema.uniqueItems === true && !((function () { const set = new Set(); for (const element of value) {
+        const hashed = Hash(element);
+        if (set.has(hashed)) {
+            return false;
+        }
+        else {
+            set.add(hashed);
+        }
+    } return true; })())) {
+        yield Create(ValueErrorType.ArrayUniqueItems, schema, path, value);
+    }
+    // contains
+    if (!(IsDefined(schema.contains) || IsDefined(schema.minContains) || IsDefined(schema.maxContains))) {
+        return;
+    }
+    const containsSchema = IsDefined(schema.contains) ? schema.contains : Never();
+    const containsCount = value.reduce((acc, value, index) => (Visit$6(containsSchema, references, `${path}${index}`, value).next().done === true ? acc + 1 : acc), 0);
+    if (containsCount === 0) {
+        yield Create(ValueErrorType.ArrayContains, schema, path, value);
+    }
+    if (IsNumber$3(schema.minContains) && containsCount < schema.minContains) {
+        yield Create(ValueErrorType.ArrayMinContains, schema, path, value);
+    }
+    if (IsNumber$3(schema.maxContains) && containsCount > schema.maxContains) {
+        yield Create(ValueErrorType.ArrayMaxContains, schema, path, value);
+    }
+}
+function* FromAsyncIterator$2(schema, references, path, value) {
+    if (!IsAsyncIterator$3(value))
+        yield Create(ValueErrorType.AsyncIterator, schema, path, value);
+}
+function* FromBigInt$1(schema, references, path, value) {
+    if (!IsBigInt$3(value))
+        return yield Create(ValueErrorType.BigInt, schema, path, value);
+    if (IsDefined(schema.exclusiveMaximum) && !(value < schema.exclusiveMaximum)) {
+        yield Create(ValueErrorType.BigIntExclusiveMaximum, schema, path, value);
+    }
+    if (IsDefined(schema.exclusiveMinimum) && !(value > schema.exclusiveMinimum)) {
+        yield Create(ValueErrorType.BigIntExclusiveMinimum, schema, path, value);
+    }
+    if (IsDefined(schema.maximum) && !(value <= schema.maximum)) {
+        yield Create(ValueErrorType.BigIntMaximum, schema, path, value);
+    }
+    if (IsDefined(schema.minimum) && !(value >= schema.minimum)) {
+        yield Create(ValueErrorType.BigIntMinimum, schema, path, value);
+    }
+    if (IsDefined(schema.multipleOf) && !(value % schema.multipleOf === BigInt(0))) {
+        yield Create(ValueErrorType.BigIntMultipleOf, schema, path, value);
+    }
+}
+function* FromBoolean$1(schema, references, path, value) {
+    if (!IsBoolean$3(value))
+        yield Create(ValueErrorType.Boolean, schema, path, value);
+}
+function* FromConstructor$2(schema, references, path, value) {
+    yield* Visit$6(schema.returns, references, path, value.prototype);
+}
+function* FromDate$3(schema, references, path, value) {
+    if (!IsDate$3(value))
+        return yield Create(ValueErrorType.Date, schema, path, value);
+    if (IsDefined(schema.exclusiveMaximumTimestamp) && !(value.getTime() < schema.exclusiveMaximumTimestamp)) {
+        yield Create(ValueErrorType.DateExclusiveMaximumTimestamp, schema, path, value);
+    }
+    if (IsDefined(schema.exclusiveMinimumTimestamp) && !(value.getTime() > schema.exclusiveMinimumTimestamp)) {
+        yield Create(ValueErrorType.DateExclusiveMinimumTimestamp, schema, path, value);
+    }
+    if (IsDefined(schema.maximumTimestamp) && !(value.getTime() <= schema.maximumTimestamp)) {
+        yield Create(ValueErrorType.DateMaximumTimestamp, schema, path, value);
+    }
+    if (IsDefined(schema.minimumTimestamp) && !(value.getTime() >= schema.minimumTimestamp)) {
+        yield Create(ValueErrorType.DateMinimumTimestamp, schema, path, value);
+    }
+    if (IsDefined(schema.multipleOfTimestamp) && !(value.getTime() % schema.multipleOfTimestamp === 0)) {
+        yield Create(ValueErrorType.DateMultipleOfTimestamp, schema, path, value);
+    }
+}
+function* FromFunction$2(schema, references, path, value) {
+    if (!IsFunction$3(value))
+        yield Create(ValueErrorType.Function, schema, path, value);
+}
+function* FromImport$5(schema, references, path, value) {
+    const definitions = globalThis.Object.values(schema.$defs);
+    const target = schema.$defs[schema.$ref];
+    yield* Visit$6(target, [...references, ...definitions], path, value);
+}
+function* FromInteger$1(schema, references, path, value) {
+    if (!IsInteger$2(value))
+        return yield Create(ValueErrorType.Integer, schema, path, value);
+    if (IsDefined(schema.exclusiveMaximum) && !(value < schema.exclusiveMaximum)) {
+        yield Create(ValueErrorType.IntegerExclusiveMaximum, schema, path, value);
+    }
+    if (IsDefined(schema.exclusiveMinimum) && !(value > schema.exclusiveMinimum)) {
+        yield Create(ValueErrorType.IntegerExclusiveMinimum, schema, path, value);
+    }
+    if (IsDefined(schema.maximum) && !(value <= schema.maximum)) {
+        yield Create(ValueErrorType.IntegerMaximum, schema, path, value);
+    }
+    if (IsDefined(schema.minimum) && !(value >= schema.minimum)) {
+        yield Create(ValueErrorType.IntegerMinimum, schema, path, value);
+    }
+    if (IsDefined(schema.multipleOf) && !(value % schema.multipleOf === 0)) {
+        yield Create(ValueErrorType.IntegerMultipleOf, schema, path, value);
+    }
+}
+function* FromIntersect$a(schema, references, path, value) {
+    let hasError = false;
+    for (const inner of schema.allOf) {
+        for (const error of Visit$6(inner, references, path, value)) {
+            hasError = true;
+            yield error;
+        }
+    }
+    if (hasError) {
+        return yield Create(ValueErrorType.Intersect, schema, path, value);
+    }
+    if (schema.unevaluatedProperties === false) {
+        const keyCheck = new RegExp(KeyOfPattern(schema));
+        for (const valueKey of Object.getOwnPropertyNames(value)) {
+            if (!keyCheck.test(valueKey)) {
+                yield Create(ValueErrorType.IntersectUnevaluatedProperties, schema, `${path}/${valueKey}`, value);
+            }
+        }
+    }
+    if (typeof schema.unevaluatedProperties === 'object') {
+        const keyCheck = new RegExp(KeyOfPattern(schema));
+        for (const valueKey of Object.getOwnPropertyNames(value)) {
+            if (!keyCheck.test(valueKey)) {
+                const next = Visit$6(schema.unevaluatedProperties, references, `${path}/${valueKey}`, value[valueKey]).next();
+                if (!next.done)
+                    yield next.value; // yield interior
+            }
+        }
+    }
+}
+function* FromIterator$2(schema, references, path, value) {
+    if (!IsIterator$3(value))
+        yield Create(ValueErrorType.Iterator, schema, path, value);
+}
+function* FromLiteral$1(schema, references, path, value) {
+    if (!(value === schema.const))
+        yield Create(ValueErrorType.Literal, schema, path, value);
+}
+function* FromNever(schema, references, path, value) {
+    yield Create(ValueErrorType.Never, schema, path, value);
+}
+function* FromNot$3(schema, references, path, value) {
+    if (Visit$6(schema.not, references, path, value).next().done === true)
+        yield Create(ValueErrorType.Not, schema, path, value);
+}
+function* FromNull$1(schema, references, path, value) {
+    if (!IsNull$3(value))
+        yield Create(ValueErrorType.Null, schema, path, value);
+}
+function* FromNumber$1(schema, references, path, value) {
+    if (!TypeSystemPolicy.IsNumberLike(value))
+        return yield Create(ValueErrorType.Number, schema, path, value);
+    if (IsDefined(schema.exclusiveMaximum) && !(value < schema.exclusiveMaximum)) {
+        yield Create(ValueErrorType.NumberExclusiveMaximum, schema, path, value);
+    }
+    if (IsDefined(schema.exclusiveMinimum) && !(value > schema.exclusiveMinimum)) {
+        yield Create(ValueErrorType.NumberExclusiveMinimum, schema, path, value);
+    }
+    if (IsDefined(schema.maximum) && !(value <= schema.maximum)) {
+        yield Create(ValueErrorType.NumberMaximum, schema, path, value);
+    }
+    if (IsDefined(schema.minimum) && !(value >= schema.minimum)) {
+        yield Create(ValueErrorType.NumberMinimum, schema, path, value);
+    }
+    if (IsDefined(schema.multipleOf) && !(value % schema.multipleOf === 0)) {
+        yield Create(ValueErrorType.NumberMultipleOf, schema, path, value);
+    }
+}
+function* FromObject$c(schema, references, path, value) {
+    if (!TypeSystemPolicy.IsObjectLike(value))
+        return yield Create(ValueErrorType.Object, schema, path, value);
+    if (IsDefined(schema.minProperties) && !(Object.getOwnPropertyNames(value).length >= schema.minProperties)) {
+        yield Create(ValueErrorType.ObjectMinProperties, schema, path, value);
+    }
+    if (IsDefined(schema.maxProperties) && !(Object.getOwnPropertyNames(value).length <= schema.maxProperties)) {
+        yield Create(ValueErrorType.ObjectMaxProperties, schema, path, value);
+    }
+    const requiredKeys = Array.isArray(schema.required) ? schema.required : [];
+    const knownKeys = Object.getOwnPropertyNames(schema.properties);
+    const unknownKeys = Object.getOwnPropertyNames(value);
+    for (const requiredKey of requiredKeys) {
+        if (unknownKeys.includes(requiredKey))
+            continue;
+        yield Create(ValueErrorType.ObjectRequiredProperty, schema.properties[requiredKey], `${path}/${EscapeKey(requiredKey)}`, undefined);
+    }
+    if (schema.additionalProperties === false) {
+        for (const valueKey of unknownKeys) {
+            if (!knownKeys.includes(valueKey)) {
+                yield Create(ValueErrorType.ObjectAdditionalProperties, schema, `${path}/${EscapeKey(valueKey)}`, value[valueKey]);
+            }
+        }
+    }
+    if (typeof schema.additionalProperties === 'object') {
+        for (const valueKey of unknownKeys) {
+            if (knownKeys.includes(valueKey))
+                continue;
+            yield* Visit$6(schema.additionalProperties, references, `${path}/${EscapeKey(valueKey)}`, value[valueKey]);
+        }
+    }
+    for (const knownKey of knownKeys) {
+        const property = schema.properties[knownKey];
+        if (schema.required && schema.required.includes(knownKey)) {
+            yield* Visit$6(property, references, `${path}/${EscapeKey(knownKey)}`, value[knownKey]);
+            if (ExtendsUndefinedCheck(schema) && !(knownKey in value)) {
+                yield Create(ValueErrorType.ObjectRequiredProperty, property, `${path}/${EscapeKey(knownKey)}`, undefined);
+            }
+        }
+        else {
+            if (TypeSystemPolicy.IsExactOptionalProperty(value, knownKey)) {
+                yield* Visit$6(property, references, `${path}/${EscapeKey(knownKey)}`, value[knownKey]);
+            }
+        }
+    }
+}
+function* FromPromise$2(schema, references, path, value) {
+    if (!IsPromise$2(value))
+        yield Create(ValueErrorType.Promise, schema, path, value);
+}
+function* FromRecord$7(schema, references, path, value) {
+    if (!TypeSystemPolicy.IsRecordLike(value))
+        return yield Create(ValueErrorType.Object, schema, path, value);
+    if (IsDefined(schema.minProperties) && !(Object.getOwnPropertyNames(value).length >= schema.minProperties)) {
+        yield Create(ValueErrorType.ObjectMinProperties, schema, path, value);
+    }
+    if (IsDefined(schema.maxProperties) && !(Object.getOwnPropertyNames(value).length <= schema.maxProperties)) {
+        yield Create(ValueErrorType.ObjectMaxProperties, schema, path, value);
+    }
+    const [patternKey, patternSchema] = Object.entries(schema.patternProperties)[0];
+    const regex = new RegExp(patternKey);
+    for (const [propertyKey, propertyValue] of Object.entries(value)) {
+        if (regex.test(propertyKey))
+            yield* Visit$6(patternSchema, references, `${path}/${EscapeKey(propertyKey)}`, propertyValue);
+    }
+    if (typeof schema.additionalProperties === 'object') {
+        for (const [propertyKey, propertyValue] of Object.entries(value)) {
+            if (!regex.test(propertyKey))
+                yield* Visit$6(schema.additionalProperties, references, `${path}/${EscapeKey(propertyKey)}`, propertyValue);
+        }
+    }
+    if (schema.additionalProperties === false) {
+        for (const [propertyKey, propertyValue] of Object.entries(value)) {
+            if (regex.test(propertyKey))
+                continue;
+            return yield Create(ValueErrorType.ObjectAdditionalProperties, schema, `${path}/${EscapeKey(propertyKey)}`, propertyValue);
+        }
+    }
+}
+function* FromRef$9(schema, references, path, value) {
+    yield* Visit$6(Deref$1(schema, references), references, path, value);
+}
+function* FromRegExp(schema, references, path, value) {
+    if (!IsString$3(value))
+        return yield Create(ValueErrorType.String, schema, path, value);
+    if (IsDefined(schema.minLength) && !(value.length >= schema.minLength)) {
+        yield Create(ValueErrorType.StringMinLength, schema, path, value);
+    }
+    if (IsDefined(schema.maxLength) && !(value.length <= schema.maxLength)) {
+        yield Create(ValueErrorType.StringMaxLength, schema, path, value);
+    }
+    const regex = new RegExp(schema.source, schema.flags);
+    if (!regex.test(value)) {
+        return yield Create(ValueErrorType.RegExp, schema, path, value);
+    }
+}
+function* FromString$1(schema, references, path, value) {
+    if (!IsString$3(value))
+        return yield Create(ValueErrorType.String, schema, path, value);
+    if (IsDefined(schema.minLength) && !(value.length >= schema.minLength)) {
+        yield Create(ValueErrorType.StringMinLength, schema, path, value);
+    }
+    if (IsDefined(schema.maxLength) && !(value.length <= schema.maxLength)) {
+        yield Create(ValueErrorType.StringMaxLength, schema, path, value);
+    }
+    if (IsString$3(schema.pattern)) {
+        const regex = new RegExp(schema.pattern);
+        if (!regex.test(value)) {
+            yield Create(ValueErrorType.StringPattern, schema, path, value);
+        }
+    }
+    if (IsString$3(schema.format)) {
+        if (!Has$1(schema.format)) {
+            yield Create(ValueErrorType.StringFormatUnknown, schema, path, value);
+        }
+        else {
+            const format = Get$1(schema.format);
+            if (!format(value)) {
+                yield Create(ValueErrorType.StringFormat, schema, path, value);
+            }
+        }
+    }
+}
+function* FromSymbol$1(schema, references, path, value) {
+    if (!IsSymbol$3(value))
+        yield Create(ValueErrorType.Symbol, schema, path, value);
+}
+function* FromTemplateLiteral$1(schema, references, path, value) {
+    if (!IsString$3(value))
+        return yield Create(ValueErrorType.String, schema, path, value);
+    const regex = new RegExp(schema.pattern);
+    if (!regex.test(value)) {
+        yield Create(ValueErrorType.StringPattern, schema, path, value);
+    }
+}
+function* FromThis$6(schema, references, path, value) {
+    yield* Visit$6(Deref$1(schema, references), references, path, value);
+}
+function* FromTuple$7(schema, references, path, value) {
+    if (!IsArray$3(value))
+        return yield Create(ValueErrorType.Tuple, schema, path, value);
+    if (schema.items === undefined && !(value.length === 0)) {
+        return yield Create(ValueErrorType.TupleLength, schema, path, value);
+    }
+    if (!(value.length === schema.maxItems)) {
+        return yield Create(ValueErrorType.TupleLength, schema, path, value);
+    }
+    if (!schema.items) {
+        return;
+    }
+    for (let i = 0; i < schema.items.length; i++) {
+        yield* Visit$6(schema.items[i], references, `${path}/${i}`, value[i]);
+    }
+}
+function* FromUndefined$1(schema, references, path, value) {
+    if (!IsUndefined$3(value))
+        yield Create(ValueErrorType.Undefined, schema, path, value);
+}
+function* FromUnion$a(schema, references, path, value) {
+    if (Check(schema, references, value))
+        return;
+    const errors = schema.anyOf.map((variant) => new ValueErrorIterator(Visit$6(variant, references, path, value)));
+    yield Create(ValueErrorType.Union, schema, path, value, errors);
+}
+function* FromUint8Array(schema, references, path, value) {
+    if (!IsUint8Array$3(value))
+        return yield Create(ValueErrorType.Uint8Array, schema, path, value);
+    if (IsDefined(schema.maxByteLength) && !(value.length <= schema.maxByteLength)) {
+        yield Create(ValueErrorType.Uint8ArrayMaxByteLength, schema, path, value);
+    }
+    if (IsDefined(schema.minByteLength) && !(value.length >= schema.minByteLength)) {
+        yield Create(ValueErrorType.Uint8ArrayMinByteLength, schema, path, value);
+    }
+}
+function* FromUnknown(schema, references, path, value) { }
+function* FromVoid(schema, references, path, value) {
+    if (!TypeSystemPolicy.IsVoidLike(value))
+        yield Create(ValueErrorType.Void, schema, path, value);
+}
+function* FromKind(schema, references, path, value) {
+    const check = Get(schema[Kind]);
+    if (!check(schema, value))
+        yield Create(ValueErrorType.Kind, schema, path, value);
+}
+function* Visit$6(schema, references, path, value) {
+    const references_ = IsDefined(schema.$id) ? [...references, schema] : references;
+    const schema_ = schema;
+    switch (schema_[Kind]) {
+        case 'Any':
+            return yield* FromAny();
+        case 'Array':
+            return yield* FromArray$9(schema_, references_, path, value);
+        case 'AsyncIterator':
+            return yield* FromAsyncIterator$2(schema_, references_, path, value);
+        case 'BigInt':
+            return yield* FromBigInt$1(schema_, references_, path, value);
+        case 'Boolean':
+            return yield* FromBoolean$1(schema_, references_, path, value);
+        case 'Constructor':
+            return yield* FromConstructor$2(schema_, references_, path, value);
+        case 'Date':
+            return yield* FromDate$3(schema_, references_, path, value);
+        case 'Function':
+            return yield* FromFunction$2(schema_, references_, path, value);
+        case 'Import':
+            return yield* FromImport$5(schema_, references_, path, value);
+        case 'Integer':
+            return yield* FromInteger$1(schema_, references_, path, value);
+        case 'Intersect':
+            return yield* FromIntersect$a(schema_, references_, path, value);
+        case 'Iterator':
+            return yield* FromIterator$2(schema_, references_, path, value);
+        case 'Literal':
+            return yield* FromLiteral$1(schema_, references_, path, value);
+        case 'Never':
+            return yield* FromNever(schema_, references_, path, value);
+        case 'Not':
+            return yield* FromNot$3(schema_, references_, path, value);
+        case 'Null':
+            return yield* FromNull$1(schema_, references_, path, value);
+        case 'Number':
+            return yield* FromNumber$1(schema_, references_, path, value);
+        case 'Object':
+            return yield* FromObject$c(schema_, references_, path, value);
+        case 'Promise':
+            return yield* FromPromise$2(schema_, references_, path, value);
+        case 'Record':
+            return yield* FromRecord$7(schema_, references_, path, value);
+        case 'Ref':
+            return yield* FromRef$9(schema_, references_, path, value);
+        case 'RegExp':
+            return yield* FromRegExp(schema_, references_, path, value);
+        case 'String':
+            return yield* FromString$1(schema_, references_, path, value);
+        case 'Symbol':
+            return yield* FromSymbol$1(schema_, references_, path, value);
+        case 'TemplateLiteral':
+            return yield* FromTemplateLiteral$1(schema_, references_, path, value);
+        case 'This':
+            return yield* FromThis$6(schema_, references_, path, value);
+        case 'Tuple':
+            return yield* FromTuple$7(schema_, references_, path, value);
+        case 'Undefined':
+            return yield* FromUndefined$1(schema_, references_, path, value);
+        case 'Union':
+            return yield* FromUnion$a(schema_, references_, path, value);
+        case 'Uint8Array':
+            return yield* FromUint8Array(schema_, references_, path, value);
+        case 'Unknown':
+            return yield* FromUnknown();
+        case 'Void':
+            return yield* FromVoid(schema_, references_, path, value);
+        default:
+            if (!Has(schema_[Kind]))
+                throw new ValueErrorsUnknownTypeError(schema);
+            return yield* FromKind(schema_, references_, path, value);
+    }
+}
+/** Returns an iterator for each error in this value. */
+function Errors(...args) {
+    const iterator = args.length === 3 ? Visit$6(args[0], args[1], '', args[2]) : Visit$6(args[0], [], '', args[1]);
+    return new ValueErrorIterator(iterator);
+}
+
+var __classPrivateFieldSet = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
+    if (kind === "m") throw new TypeError("Private method is not writable");
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
+};
+var __classPrivateFieldGet = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
+    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+};
+var _AssertError_instances, _AssertError_iterator, _AssertError_Iterator;
+// ------------------------------------------------------------------
+// AssertError
+// ------------------------------------------------------------------
+class AssertError extends TypeBoxError {
+    constructor(iterator) {
+        const error = iterator.First();
+        super(error === undefined ? 'Invalid Value' : error.message);
+        _AssertError_instances.add(this);
+        _AssertError_iterator.set(this, undefined);
+        __classPrivateFieldSet(this, _AssertError_iterator, iterator, "f");
+        this.error = error;
+    }
+    /** Returns an iterator for each error in this value. */
+    Errors() {
+        return new ValueErrorIterator(__classPrivateFieldGet(this, _AssertError_instances, "m", _AssertError_Iterator).call(this));
+    }
+}
+_AssertError_iterator = new WeakMap(), _AssertError_instances = new WeakSet(), _AssertError_Iterator = function* _AssertError_Iterator() {
+    if (this.error)
+        yield this.error;
+    yield* __classPrivateFieldGet(this, _AssertError_iterator, "f");
+};
+// ------------------------------------------------------------------
+// AssertValue
+// ------------------------------------------------------------------
+function AssertValue(schema, references, value) {
+    if (Check(schema, references, value))
+        return;
+    throw new AssertError(Errors(schema, references, value));
+}
+/** Asserts a value matches the given type or throws an `AssertError` if invalid */
+function Assert(...args) {
+    return args.length === 3 ? AssertValue(args[0], args[1], args[2]) : AssertValue(args[0], [], args[1]);
+}
+
+// ------------------------------------------------------------------
+// ValueGuard
+// ------------------------------------------------------------------
+// ------------------------------------------------------------------
+// Clonable
+// ------------------------------------------------------------------
+function FromObject$b(value) {
+    const Acc = {};
+    for (const key of Object.getOwnPropertyNames(value)) {
+        Acc[key] = Clone(value[key]);
+    }
+    for (const key of Object.getOwnPropertySymbols(value)) {
+        Acc[key] = Clone(value[key]);
+    }
+    return Acc;
+}
+function FromArray$8(value) {
+    return value.map((element) => Clone(element));
+}
+function FromTypedArray(value) {
+    return value.slice();
+}
+function FromMap(value) {
+    return new Map(Clone([...value.entries()]));
+}
+function FromSet(value) {
+    return new Set(Clone([...value.entries()]));
+}
+function FromDate$2(value) {
+    return new Date(value.toISOString());
+}
+function FromValue$1(value) {
+    return value;
+}
+// ------------------------------------------------------------------
+// Clone
+// ------------------------------------------------------------------
+/** Returns a clone of the given value */
+function Clone(value) {
+    if (IsArray$3(value))
+        return FromArray$8(value);
+    if (IsDate$3(value))
+        return FromDate$2(value);
+    if (IsTypedArray(value))
+        return FromTypedArray(value);
+    if (IsMap(value))
+        return FromMap(value);
+    if (IsSet(value))
+        return FromSet(value);
+    if (IsObject$3(value))
+        return FromObject$b(value);
+    if (IsValueType(value))
+        return FromValue$1(value);
+    throw new Error('ValueClone: Unable to clone value');
+}
+
+// ------------------------------------------------------------------
+// IsCheckable
+// ------------------------------------------------------------------
+function IsCheckable(schema) {
+    return IsKind$1(schema) && schema[Kind] !== 'Unsafe';
+}
+// ------------------------------------------------------------------
+// Types
+// ------------------------------------------------------------------
+function FromArray$7(schema, references, value) {
+    if (!IsArray$3(value))
+        return value;
+    return value.map((value) => Visit$5(schema.items, references, value));
+}
+function FromImport$4(schema, references, value) {
+    const definitions = globalThis.Object.values(schema.$defs);
+    const target = schema.$defs[schema.$ref];
+    return Visit$5(target, [...references, ...definitions], value);
+}
+function FromIntersect$9(schema, references, value) {
+    const unevaluatedProperties = schema.unevaluatedProperties;
+    const intersections = schema.allOf.map((schema) => Visit$5(schema, references, Clone(value)));
+    const composite = intersections.reduce((acc, value) => (IsObject$3(value) ? { ...acc, ...value } : value), {});
+    if (!IsObject$3(value) || !IsObject$3(composite) || !IsKind$1(unevaluatedProperties))
+        return composite;
+    const knownkeys = KeyOfPropertyKeys(schema);
+    for (const key of Object.getOwnPropertyNames(value)) {
+        if (knownkeys.includes(key))
+            continue;
+        if (Check(unevaluatedProperties, references, value[key])) {
+            composite[key] = Visit$5(unevaluatedProperties, references, value[key]);
+        }
+    }
+    return composite;
+}
+function FromObject$a(schema, references, value) {
+    if (!IsObject$3(value) || IsArray$3(value))
+        return value; // Check IsArray for AllowArrayObject configuration
+    const additionalProperties = schema.additionalProperties;
+    for (const key of Object.getOwnPropertyNames(value)) {
+        if (HasPropertyKey(schema.properties, key)) {
+            value[key] = Visit$5(schema.properties[key], references, value[key]);
+            continue;
+        }
+        if (IsKind$1(additionalProperties) && Check(additionalProperties, references, value[key])) {
+            value[key] = Visit$5(additionalProperties, references, value[key]);
+            continue;
+        }
+        delete value[key];
+    }
+    return value;
+}
+function FromRecord$6(schema, references, value) {
+    if (!IsObject$3(value))
+        return value;
+    const additionalProperties = schema.additionalProperties;
+    const propertyKeys = Object.getOwnPropertyNames(value);
+    const [propertyKey, propertySchema] = Object.entries(schema.patternProperties)[0];
+    const propertyKeyTest = new RegExp(propertyKey);
+    for (const key of propertyKeys) {
+        if (propertyKeyTest.test(key)) {
+            value[key] = Visit$5(propertySchema, references, value[key]);
+            continue;
+        }
+        if (IsKind$1(additionalProperties) && Check(additionalProperties, references, value[key])) {
+            value[key] = Visit$5(additionalProperties, references, value[key]);
+            continue;
+        }
+        delete value[key];
+    }
+    return value;
+}
+function FromRef$8(schema, references, value) {
+    return Visit$5(Deref$1(schema, references), references, value);
+}
+function FromThis$5(schema, references, value) {
+    return Visit$5(Deref$1(schema, references), references, value);
+}
+function FromTuple$6(schema, references, value) {
+    if (!IsArray$3(value))
+        return value;
+    if (IsUndefined$3(schema.items))
+        return [];
+    const length = Math.min(value.length, schema.items.length);
+    for (let i = 0; i < length; i++) {
+        value[i] = Visit$5(schema.items[i], references, value[i]);
+    }
+    // prettier-ignore
+    return value.length > length
+        ? value.slice(0, length)
+        : value;
+}
+function FromUnion$9(schema, references, value) {
+    for (const inner of schema.anyOf) {
+        if (IsCheckable(inner) && Check(inner, references, value)) {
+            return Visit$5(inner, references, value);
+        }
+    }
+    return value;
+}
+function Visit$5(schema, references, value) {
+    const references_ = IsString$3(schema.$id) ? Pushref(schema, references) : references;
+    const schema_ = schema;
+    switch (schema_[Kind]) {
+        case 'Array':
+            return FromArray$7(schema_, references_, value);
+        case 'Import':
+            return FromImport$4(schema_, references_, value);
+        case 'Intersect':
+            return FromIntersect$9(schema_, references_, value);
+        case 'Object':
+            return FromObject$a(schema_, references_, value);
+        case 'Record':
+            return FromRecord$6(schema_, references_, value);
+        case 'Ref':
+            return FromRef$8(schema_, references_, value);
+        case 'This':
+            return FromThis$5(schema_, references_, value);
+        case 'Tuple':
+            return FromTuple$6(schema_, references_, value);
+        case 'Union':
+            return FromUnion$9(schema_, references_, value);
+        default:
+            return value;
+    }
+}
+/** `[Mutable]` Removes excess properties from a value and returns the result. This function does not check the value and returns an unknown type. You should Check the result before use. Clean is a mutable operation. To avoid mutation, Clone the value first. */
+function Clean(...args) {
+    return args.length === 3 ? Visit$5(args[0], args[1], args[2]) : Visit$5(args[0], [], args[1]);
+}
+
+// ------------------------------------------------------------------
+// Conversions
+// ------------------------------------------------------------------
+function IsStringNumeric(value) {
+    return IsString$3(value) && !isNaN(value) && !isNaN(parseFloat(value));
+}
+function IsValueToString(value) {
+    return IsBigInt$3(value) || IsBoolean$3(value) || IsNumber$3(value);
+}
+function IsValueTrue(value) {
+    return value === true || (IsNumber$3(value) && value === 1) || (IsBigInt$3(value) && value === BigInt('1')) || (IsString$3(value) && (value.toLowerCase() === 'true' || value === '1'));
+}
+function IsValueFalse(value) {
+    return value === false || (IsNumber$3(value) && (value === 0 || Object.is(value, -0))) || (IsBigInt$3(value) && value === BigInt('0')) || (IsString$3(value) && (value.toLowerCase() === 'false' || value === '0' || value === '-0'));
+}
+function IsTimeStringWithTimeZone(value) {
+    return IsString$3(value) && /^(?:[0-2]\d:[0-5]\d:[0-5]\d|23:59:60)(?:\.\d+)?(?:z|[+-]\d\d(?::?\d\d)?)$/i.test(value);
+}
+function IsTimeStringWithoutTimeZone(value) {
+    return IsString$3(value) && /^(?:[0-2]\d:[0-5]\d:[0-5]\d|23:59:60)?$/i.test(value);
+}
+function IsDateTimeStringWithTimeZone(value) {
+    return IsString$3(value) && /^\d\d\d\d-[0-1]\d-[0-3]\dt(?:[0-2]\d:[0-5]\d:[0-5]\d|23:59:60)(?:\.\d+)?(?:z|[+-]\d\d(?::?\d\d)?)$/i.test(value);
+}
+function IsDateTimeStringWithoutTimeZone(value) {
+    return IsString$3(value) && /^\d\d\d\d-[0-1]\d-[0-3]\dt(?:[0-2]\d:[0-5]\d:[0-5]\d|23:59:60)?$/i.test(value);
+}
+function IsDateString(value) {
+    return IsString$3(value) && /^\d\d\d\d-[0-1]\d-[0-3]\d$/i.test(value);
+}
+// ------------------------------------------------------------------
+// Convert
+// ------------------------------------------------------------------
+function TryConvertLiteralString(value, target) {
+    const conversion = TryConvertString(value);
+    return conversion === target ? conversion : value;
+}
+function TryConvertLiteralNumber(value, target) {
+    const conversion = TryConvertNumber(value);
+    return conversion === target ? conversion : value;
+}
+function TryConvertLiteralBoolean(value, target) {
+    const conversion = TryConvertBoolean(value);
+    return conversion === target ? conversion : value;
+}
+// prettier-ignore
+function TryConvertLiteral(schema, value) {
+    return (IsString$3(schema.const) ? TryConvertLiteralString(value, schema.const) :
+        IsNumber$3(schema.const) ? TryConvertLiteralNumber(value, schema.const) :
+            IsBoolean$3(schema.const) ? TryConvertLiteralBoolean(value, schema.const) :
+                value);
+}
+function TryConvertBoolean(value) {
+    return IsValueTrue(value) ? true : IsValueFalse(value) ? false : value;
+}
+function TryConvertBigInt(value) {
+    const truncateInteger = (value) => value.split('.')[0];
+    return IsStringNumeric(value) ? BigInt(truncateInteger(value)) : IsNumber$3(value) ? BigInt(Math.trunc(value)) : IsValueFalse(value) ? BigInt(0) : IsValueTrue(value) ? BigInt(1) : value;
+}
+function TryConvertString(value) {
+    return IsSymbol$3(value) && value.description !== undefined ? value.description.toString() : IsValueToString(value) ? value.toString() : value;
+}
+function TryConvertNumber(value) {
+    return IsStringNumeric(value) ? parseFloat(value) : IsValueTrue(value) ? 1 : IsValueFalse(value) ? 0 : value;
+}
+function TryConvertInteger(value) {
+    return IsStringNumeric(value) ? parseInt(value) : IsNumber$3(value) ? Math.trunc(value) : IsValueTrue(value) ? 1 : IsValueFalse(value) ? 0 : value;
+}
+function TryConvertNull(value) {
+    return IsString$3(value) && value.toLowerCase() === 'null' ? null : value;
+}
+function TryConvertUndefined(value) {
+    return IsString$3(value) && value === 'undefined' ? undefined : value;
+}
+// ------------------------------------------------------------------
+// note: this function may return an invalid dates for the regex
+// tests above. Invalid dates will however be checked during the
+// casting function and will return a epoch date if invalid.
+// Consider better string parsing for the iso dates in future
+// revisions.
+// ------------------------------------------------------------------
+// prettier-ignore
+function TryConvertDate(value) {
+    return (IsDate$3(value) ? value :
+        IsNumber$3(value) ? new Date(value) :
+            IsValueTrue(value) ? new Date(1) :
+                IsValueFalse(value) ? new Date(0) :
+                    IsStringNumeric(value) ? new Date(parseInt(value)) :
+                        IsTimeStringWithoutTimeZone(value) ? new Date(`1970-01-01T${value}.000Z`) :
+                            IsTimeStringWithTimeZone(value) ? new Date(`1970-01-01T${value}`) :
+                                IsDateTimeStringWithoutTimeZone(value) ? new Date(`${value}.000Z`) :
+                                    IsDateTimeStringWithTimeZone(value) ? new Date(value) :
+                                        IsDateString(value) ? new Date(`${value}T00:00:00.000Z`) :
+                                            value);
+}
+// ------------------------------------------------------------------
+// Default
+// ------------------------------------------------------------------
+function Default$3(value) {
+    return value;
+}
+// ------------------------------------------------------------------
+// Convert
+// ------------------------------------------------------------------
+function FromArray$6(schema, references, value) {
+    const elements = IsArray$3(value) ? value : [value];
+    return elements.map((element) => Visit$4(schema.items, references, element));
+}
+function FromBigInt(schema, references, value) {
+    return TryConvertBigInt(value);
+}
+function FromBoolean(schema, references, value) {
+    return TryConvertBoolean(value);
+}
+function FromDate$1(schema, references, value) {
+    return TryConvertDate(value);
+}
+function FromImport$3(schema, references, value) {
+    const definitions = globalThis.Object.values(schema.$defs);
+    const target = schema.$defs[schema.$ref];
+    return Visit$4(target, [...references, ...definitions], value);
+}
+function FromInteger(schema, references, value) {
+    return TryConvertInteger(value);
+}
+function FromIntersect$8(schema, references, value) {
+    return schema.allOf.reduce((value, schema) => Visit$4(schema, references, value), value);
+}
+function FromLiteral(schema, references, value) {
+    return TryConvertLiteral(schema, value);
+}
+function FromNull(schema, references, value) {
+    return TryConvertNull(value);
+}
+function FromNumber(schema, references, value) {
+    return TryConvertNumber(value);
+}
+// prettier-ignore
+function FromObject$9(schema, references, value) {
+    if (!IsObject$3(value))
+        return value;
+    for (const propertyKey of Object.getOwnPropertyNames(schema.properties)) {
+        if (!HasPropertyKey(value, propertyKey))
+            continue;
+        value[propertyKey] = Visit$4(schema.properties[propertyKey], references, value[propertyKey]);
+    }
+    return value;
+}
+function FromRecord$5(schema, references, value) {
+    const isConvertable = IsObject$3(value);
+    if (!isConvertable)
+        return value;
+    const propertyKey = Object.getOwnPropertyNames(schema.patternProperties)[0];
+    const property = schema.patternProperties[propertyKey];
+    for (const [propKey, propValue] of Object.entries(value)) {
+        value[propKey] = Visit$4(property, references, propValue);
+    }
+    return value;
+}
+function FromRef$7(schema, references, value) {
+    return Visit$4(Deref$1(schema, references), references, value);
+}
+function FromString(schema, references, value) {
+    return TryConvertString(value);
+}
+function FromSymbol(schema, references, value) {
+    return IsString$3(value) || IsNumber$3(value) ? Symbol(value) : value;
+}
+function FromThis$4(schema, references, value) {
+    return Visit$4(Deref$1(schema, references), references, value);
+}
+// prettier-ignore
+function FromTuple$5(schema, references, value) {
+    const isConvertable = IsArray$3(value) && !IsUndefined$3(schema.items);
+    if (!isConvertable)
+        return value;
+    return value.map((value, index) => {
+        return (index < schema.items.length)
+            ? Visit$4(schema.items[index], references, value)
+            : value;
+    });
+}
+function FromUndefined(schema, references, value) {
+    return TryConvertUndefined(value);
+}
+function FromUnion$8(schema, references, value) {
+    for (const subschema of schema.anyOf) {
+        const converted = Visit$4(subschema, references, Clone(value));
+        if (!Check(subschema, references, converted))
+            continue;
+        return converted;
+    }
+    return value;
+}
+function Visit$4(schema, references, value) {
+    const references_ = Pushref(schema, references);
+    const schema_ = schema;
+    switch (schema[Kind]) {
+        case 'Array':
+            return FromArray$6(schema_, references_, value);
+        case 'BigInt':
+            return FromBigInt(schema_, references_, value);
+        case 'Boolean':
+            return FromBoolean(schema_, references_, value);
+        case 'Date':
+            return FromDate$1(schema_, references_, value);
+        case 'Import':
+            return FromImport$3(schema_, references_, value);
+        case 'Integer':
+            return FromInteger(schema_, references_, value);
+        case 'Intersect':
+            return FromIntersect$8(schema_, references_, value);
+        case 'Literal':
+            return FromLiteral(schema_, references_, value);
+        case 'Null':
+            return FromNull(schema_, references_, value);
+        case 'Number':
+            return FromNumber(schema_, references_, value);
+        case 'Object':
+            return FromObject$9(schema_, references_, value);
+        case 'Record':
+            return FromRecord$5(schema_, references_, value);
+        case 'Ref':
+            return FromRef$7(schema_, references_, value);
+        case 'String':
+            return FromString(schema_, references_, value);
+        case 'Symbol':
+            return FromSymbol(schema_, references_, value);
+        case 'This':
+            return FromThis$4(schema_, references_, value);
+        case 'Tuple':
+            return FromTuple$5(schema_, references_, value);
+        case 'Undefined':
+            return FromUndefined(schema_, references_, value);
+        case 'Union':
+            return FromUnion$8(schema_, references_, value);
+        default:
+            return Default$3(value);
+    }
+}
+/** `[Mutable]` Converts any type mismatched values to their target type if a reasonable conversion is possible. */
+// prettier-ignore
+function Convert(...args) {
+    return args.length === 3 ? Visit$4(args[0], args[1], args[2]) : Visit$4(args[0], [], args[1]);
+}
+
+// prettier-ignore
+class TransformDecodeError extends TypeBoxError {
+    constructor(schema, path, value, error) {
+        super(error instanceof Error ? error.message : 'Unknown error');
+        this.schema = schema;
+        this.path = path;
+        this.value = value;
+        this.error = error;
+    }
+}
+// ------------------------------------------------------------------
+// Decode
+// ------------------------------------------------------------------
+// prettier-ignore
+function Default$2(schema, path, value) {
+    try {
+        return IsTransform$1(schema) ? schema[TransformKind].Decode(value) : value;
+    }
+    catch (error) {
+        throw new TransformDecodeError(schema, path, value, error);
+    }
+}
+// prettier-ignore
+function FromArray$5(schema, references, path, value) {
+    return (IsArray$3(value))
+        ? Default$2(schema, path, value.map((value, index) => Visit$3(schema.items, references, `${path}/${index}`, value)))
+        : Default$2(schema, path, value);
+}
+// prettier-ignore
+function FromIntersect$7(schema, references, path, value) {
+    if (!IsObject$3(value) || IsValueType(value))
+        return Default$2(schema, path, value);
+    const knownEntries = KeyOfPropertyEntries(schema);
+    const knownKeys = knownEntries.map(entry => entry[0]);
+    const knownProperties = { ...value };
+    for (const [knownKey, knownSchema] of knownEntries)
+        if (knownKey in knownProperties) {
+            knownProperties[knownKey] = Visit$3(knownSchema, references, `${path}/${knownKey}`, knownProperties[knownKey]);
+        }
+    if (!IsTransform$1(schema.unevaluatedProperties)) {
+        return Default$2(schema, path, knownProperties);
+    }
+    const unknownKeys = Object.getOwnPropertyNames(knownProperties);
+    const unevaluatedProperties = schema.unevaluatedProperties;
+    const unknownProperties = { ...knownProperties };
+    for (const key of unknownKeys)
+        if (!knownKeys.includes(key)) {
+            unknownProperties[key] = Default$2(unevaluatedProperties, `${path}/${key}`, unknownProperties[key]);
+        }
+    return Default$2(schema, path, unknownProperties);
+}
+// prettier-ignore
+function FromImport$2(schema, references, path, value) {
+    const definitions = globalThis.Object.values(schema.$defs);
+    const target = schema.$defs[schema.$ref];
+    const transform = schema[TransformKind];
+    // Note: we need to re-spec the target as TSchema + [TransformKind]
+    const transformTarget = { [TransformKind]: transform, ...target };
+    return Visit$3(transformTarget, [...references, ...definitions], path, value);
+}
+function FromNot$2(schema, references, path, value) {
+    return Default$2(schema, path, Visit$3(schema.not, references, path, value));
+}
+// prettier-ignore
+function FromObject$8(schema, references, path, value) {
+    if (!IsObject$3(value))
+        return Default$2(schema, path, value);
+    const knownKeys = KeyOfPropertyKeys(schema);
+    const knownProperties = { ...value };
+    for (const key of knownKeys) {
+        if (!HasPropertyKey(knownProperties, key))
+            continue;
+        // if the property value is undefined, but the target is not, nor does it satisfy exact optional 
+        // property policy, then we need to continue. This is a special case for optional property handling 
+        // where a transforms wrapped in a optional modifiers should not run.
+        if (IsUndefined$3(knownProperties[key]) && (!IsUndefined$1(schema.properties[key]) ||
+            TypeSystemPolicy.IsExactOptionalProperty(knownProperties, key)))
+            continue;
+        // decode property
+        knownProperties[key] = Visit$3(schema.properties[key], references, `${path}/${key}`, knownProperties[key]);
+    }
+    if (!IsSchema$1(schema.additionalProperties)) {
+        return Default$2(schema, path, knownProperties);
+    }
+    const unknownKeys = Object.getOwnPropertyNames(knownProperties);
+    const additionalProperties = schema.additionalProperties;
+    const unknownProperties = { ...knownProperties };
+    for (const key of unknownKeys)
+        if (!knownKeys.includes(key)) {
+            unknownProperties[key] = Default$2(additionalProperties, `${path}/${key}`, unknownProperties[key]);
+        }
+    return Default$2(schema, path, unknownProperties);
+}
+// prettier-ignore
+function FromRecord$4(schema, references, path, value) {
+    if (!IsObject$3(value))
+        return Default$2(schema, path, value);
+    const pattern = Object.getOwnPropertyNames(schema.patternProperties)[0];
+    const knownKeys = new RegExp(pattern);
+    const knownProperties = { ...value };
+    for (const key of Object.getOwnPropertyNames(value))
+        if (knownKeys.test(key)) {
+            knownProperties[key] = Visit$3(schema.patternProperties[pattern], references, `${path}/${key}`, knownProperties[key]);
+        }
+    if (!IsSchema$1(schema.additionalProperties)) {
+        return Default$2(schema, path, knownProperties);
+    }
+    const unknownKeys = Object.getOwnPropertyNames(knownProperties);
+    const additionalProperties = schema.additionalProperties;
+    const unknownProperties = { ...knownProperties };
+    for (const key of unknownKeys)
+        if (!knownKeys.test(key)) {
+            unknownProperties[key] = Default$2(additionalProperties, `${path}/${key}`, unknownProperties[key]);
+        }
+    return Default$2(schema, path, unknownProperties);
+}
+// prettier-ignore
+function FromRef$6(schema, references, path, value) {
+    const target = Deref$1(schema, references);
+    return Default$2(schema, path, Visit$3(target, references, path, value));
+}
+// prettier-ignore
+function FromThis$3(schema, references, path, value) {
+    const target = Deref$1(schema, references);
+    return Default$2(schema, path, Visit$3(target, references, path, value));
+}
+// prettier-ignore
+function FromTuple$4(schema, references, path, value) {
+    return (IsArray$3(value) && IsArray$3(schema.items))
+        ? Default$2(schema, path, schema.items.map((schema, index) => Visit$3(schema, references, `${path}/${index}`, value[index])))
+        : Default$2(schema, path, value);
+}
+// prettier-ignore
+function FromUnion$7(schema, references, path, value) {
+    for (const subschema of schema.anyOf) {
+        if (!Check(subschema, references, value))
+            continue;
+        // note: ensure interior is decoded first
+        const decoded = Visit$3(subschema, references, path, value);
+        return Default$2(schema, path, decoded);
+    }
+    return Default$2(schema, path, value);
+}
+// prettier-ignore
+function Visit$3(schema, references, path, value) {
+    const references_ = Pushref(schema, references);
+    const schema_ = schema;
+    switch (schema[Kind]) {
+        case 'Array':
+            return FromArray$5(schema_, references_, path, value);
+        case 'Import':
+            return FromImport$2(schema_, references_, path, value);
+        case 'Intersect':
+            return FromIntersect$7(schema_, references_, path, value);
+        case 'Not':
+            return FromNot$2(schema_, references_, path, value);
+        case 'Object':
+            return FromObject$8(schema_, references_, path, value);
+        case 'Record':
+            return FromRecord$4(schema_, references_, path, value);
+        case 'Ref':
+            return FromRef$6(schema_, references_, path, value);
+        case 'Symbol':
+            return Default$2(schema_, path, value);
+        case 'This':
+            return FromThis$3(schema_, references_, path, value);
+        case 'Tuple':
+            return FromTuple$4(schema_, references_, path, value);
+        case 'Union':
+            return FromUnion$7(schema_, references_, path, value);
+        default:
+            return Default$2(schema_, path, value);
+    }
+}
+/**
+ * `[Internal]` Decodes the value and returns the result. This function requires that
+ * the caller `Check` the value before use. Passing unchecked values may result in
+ * undefined behavior. Refer to the `Value.Decode()` for implementation details.
+ */
+function TransformDecode(schema, references, value) {
+    return Visit$3(schema, references, '', value);
+}
+
+// prettier-ignore
+class TransformEncodeError extends TypeBoxError {
+    constructor(schema, path, value, error) {
+        super(`${error instanceof Error ? error.message : 'Unknown error'}`);
+        this.schema = schema;
+        this.path = path;
+        this.value = value;
+        this.error = error;
+    }
+}
+// ------------------------------------------------------------------
+// Encode
+// ------------------------------------------------------------------
+// prettier-ignore
+function Default$1(schema, path, value) {
+    try {
+        return IsTransform$1(schema) ? schema[TransformKind].Encode(value) : value;
+    }
+    catch (error) {
+        throw new TransformEncodeError(schema, path, value, error);
+    }
+}
+// prettier-ignore
+function FromArray$4(schema, references, path, value) {
+    const defaulted = Default$1(schema, path, value);
+    return IsArray$3(defaulted)
+        ? defaulted.map((value, index) => Visit$2(schema.items, references, `${path}/${index}`, value))
+        : defaulted;
+}
+// prettier-ignore
+function FromImport$1(schema, references, path, value) {
+    const definitions = globalThis.Object.values(schema.$defs);
+    const target = schema.$defs[schema.$ref];
+    const transform = schema[TransformKind];
+    // Note: we need to re-spec the target as TSchema + [TransformKind]
+    const transformTarget = { [TransformKind]: transform, ...target };
+    return Visit$2(transformTarget, [...references, ...definitions], path, value);
+}
+// prettier-ignore
+function FromIntersect$6(schema, references, path, value) {
+    const defaulted = Default$1(schema, path, value);
+    if (!IsObject$3(value) || IsValueType(value))
+        return defaulted;
+    const knownEntries = KeyOfPropertyEntries(schema);
+    const knownKeys = knownEntries.map(entry => entry[0]);
+    const knownProperties = { ...defaulted };
+    for (const [knownKey, knownSchema] of knownEntries)
+        if (knownKey in knownProperties) {
+            knownProperties[knownKey] = Visit$2(knownSchema, references, `${path}/${knownKey}`, knownProperties[knownKey]);
+        }
+    if (!IsTransform$1(schema.unevaluatedProperties)) {
+        return knownProperties;
+    }
+    const unknownKeys = Object.getOwnPropertyNames(knownProperties);
+    const unevaluatedProperties = schema.unevaluatedProperties;
+    const properties = { ...knownProperties };
+    for (const key of unknownKeys)
+        if (!knownKeys.includes(key)) {
+            properties[key] = Default$1(unevaluatedProperties, `${path}/${key}`, properties[key]);
+        }
+    return properties;
+}
+// prettier-ignore
+function FromNot$1(schema, references, path, value) {
+    return Default$1(schema.not, path, Default$1(schema, path, value));
+}
+// prettier-ignore
+function FromObject$7(schema, references, path, value) {
+    const defaulted = Default$1(schema, path, value);
+    if (!IsObject$3(defaulted))
+        return defaulted;
+    const knownKeys = KeyOfPropertyKeys(schema);
+    const knownProperties = { ...defaulted };
+    for (const key of knownKeys) {
+        if (!HasPropertyKey(knownProperties, key))
+            continue;
+        // if the property value is undefined, but the target is not, nor does it satisfy exact optional 
+        // property policy, then we need to continue. This is a special case for optional property handling 
+        // where a transforms wrapped in a optional modifiers should not run.
+        if (IsUndefined$3(knownProperties[key]) && (!IsUndefined$1(schema.properties[key]) ||
+            TypeSystemPolicy.IsExactOptionalProperty(knownProperties, key)))
+            continue;
+        // encode property
+        knownProperties[key] = Visit$2(schema.properties[key], references, `${path}/${key}`, knownProperties[key]);
+    }
+    if (!IsSchema$1(schema.additionalProperties)) {
+        return knownProperties;
+    }
+    const unknownKeys = Object.getOwnPropertyNames(knownProperties);
+    const additionalProperties = schema.additionalProperties;
+    const properties = { ...knownProperties };
+    for (const key of unknownKeys)
+        if (!knownKeys.includes(key)) {
+            properties[key] = Default$1(additionalProperties, `${path}/${key}`, properties[key]);
+        }
+    return properties;
+}
+// prettier-ignore
+function FromRecord$3(schema, references, path, value) {
+    const defaulted = Default$1(schema, path, value);
+    if (!IsObject$3(value))
+        return defaulted;
+    const pattern = Object.getOwnPropertyNames(schema.patternProperties)[0];
+    const knownKeys = new RegExp(pattern);
+    const knownProperties = { ...defaulted };
+    for (const key of Object.getOwnPropertyNames(value))
+        if (knownKeys.test(key)) {
+            knownProperties[key] = Visit$2(schema.patternProperties[pattern], references, `${path}/${key}`, knownProperties[key]);
+        }
+    if (!IsSchema$1(schema.additionalProperties)) {
+        return knownProperties;
+    }
+    const unknownKeys = Object.getOwnPropertyNames(knownProperties);
+    const additionalProperties = schema.additionalProperties;
+    const properties = { ...knownProperties };
+    for (const key of unknownKeys)
+        if (!knownKeys.test(key)) {
+            properties[key] = Default$1(additionalProperties, `${path}/${key}`, properties[key]);
+        }
+    return properties;
+}
+// prettier-ignore
+function FromRef$5(schema, references, path, value) {
+    const target = Deref$1(schema, references);
+    const resolved = Visit$2(target, references, path, value);
+    return Default$1(schema, path, resolved);
+}
+// prettier-ignore
+function FromThis$2(schema, references, path, value) {
+    const target = Deref$1(schema, references);
+    const resolved = Visit$2(target, references, path, value);
+    return Default$1(schema, path, resolved);
+}
+// prettier-ignore
+function FromTuple$3(schema, references, path, value) {
+    const value1 = Default$1(schema, path, value);
+    return IsArray$3(schema.items) ? schema.items.map((schema, index) => Visit$2(schema, references, `${path}/${index}`, value1[index])) : [];
+}
+// prettier-ignore
+function FromUnion$6(schema, references, path, value) {
+    // test value against union variants
+    for (const subschema of schema.anyOf) {
+        if (!Check(subschema, references, value))
+            continue;
+        const value1 = Visit$2(subschema, references, path, value);
+        return Default$1(schema, path, value1);
+    }
+    // test transformed value against union variants
+    for (const subschema of schema.anyOf) {
+        const value1 = Visit$2(subschema, references, path, value);
+        if (!Check(schema, references, value1))
+            continue;
+        return Default$1(schema, path, value1);
+    }
+    return Default$1(schema, path, value);
+}
+// prettier-ignore
+function Visit$2(schema, references, path, value) {
+    const references_ = Pushref(schema, references);
+    const schema_ = schema;
+    switch (schema[Kind]) {
+        case 'Array':
+            return FromArray$4(schema_, references_, path, value);
+        case 'Import':
+            return FromImport$1(schema_, references_, path, value);
+        case 'Intersect':
+            return FromIntersect$6(schema_, references_, path, value);
+        case 'Not':
+            return FromNot$1(schema_, references_, path, value);
+        case 'Object':
+            return FromObject$7(schema_, references_, path, value);
+        case 'Record':
+            return FromRecord$3(schema_, references_, path, value);
+        case 'Ref':
+            return FromRef$5(schema_, references_, path, value);
+        case 'This':
+            return FromThis$2(schema_, references_, path, value);
+        case 'Tuple':
+            return FromTuple$3(schema_, references_, path, value);
+        case 'Union':
+            return FromUnion$6(schema_, references_, path, value);
+        default:
+            return Default$1(schema_, path, value);
+    }
+}
+/**
+ * `[Internal]` Encodes the value and returns the result. This function expects the
+ * caller to pass a statically checked value. This function does not check the encoded
+ * result, meaning the result should be passed to `Check` before use. Refer to the
+ * `Value.Encode()` function for implementation details.
+ */
+function TransformEncode(schema, references, value) {
+    return Visit$2(schema, references, '', value);
+}
+
+// prettier-ignore
+function FromArray$3(schema, references) {
+    return IsTransform$1(schema) || Visit$1(schema.items, references);
+}
+// prettier-ignore
+function FromAsyncIterator$1(schema, references) {
+    return IsTransform$1(schema) || Visit$1(schema.items, references);
+}
+// prettier-ignore
+function FromConstructor$1(schema, references) {
+    return IsTransform$1(schema) || Visit$1(schema.returns, references) || schema.parameters.some((schema) => Visit$1(schema, references));
+}
+// prettier-ignore
+function FromFunction$1(schema, references) {
+    return IsTransform$1(schema) || Visit$1(schema.returns, references) || schema.parameters.some((schema) => Visit$1(schema, references));
+}
+// prettier-ignore
+function FromIntersect$5(schema, references) {
+    return IsTransform$1(schema) || IsTransform$1(schema.unevaluatedProperties) || schema.allOf.some((schema) => Visit$1(schema, references));
+}
+// prettier-ignore
+function FromIterator$1(schema, references) {
+    return IsTransform$1(schema) || Visit$1(schema.items, references);
+}
+// prettier-ignore
+function FromNot(schema, references) {
+    return IsTransform$1(schema) || Visit$1(schema.not, references);
+}
+// prettier-ignore
+function FromObject$6(schema, references) {
+    return (IsTransform$1(schema) ||
+        Object.values(schema.properties).some((schema) => Visit$1(schema, references)) ||
+        (IsSchema$1(schema.additionalProperties) && Visit$1(schema.additionalProperties, references)));
+}
+// prettier-ignore
+function FromPromise$1(schema, references) {
+    return IsTransform$1(schema) || Visit$1(schema.item, references);
+}
+// prettier-ignore
+function FromRecord$2(schema, references) {
+    const pattern = Object.getOwnPropertyNames(schema.patternProperties)[0];
+    const property = schema.patternProperties[pattern];
+    return IsTransform$1(schema) || Visit$1(property, references) || (IsSchema$1(schema.additionalProperties) && IsTransform$1(schema.additionalProperties));
+}
+// prettier-ignore
+function FromRef$4(schema, references) {
+    if (IsTransform$1(schema))
+        return true;
+    return Visit$1(Deref$1(schema, references), references);
+}
+// prettier-ignore
+function FromThis$1(schema, references) {
+    if (IsTransform$1(schema))
+        return true;
+    return Visit$1(Deref$1(schema, references), references);
+}
+// prettier-ignore
+function FromTuple$2(schema, references) {
+    return IsTransform$1(schema) || (!IsUndefined$3(schema.items) && schema.items.some((schema) => Visit$1(schema, references)));
+}
+// prettier-ignore
+function FromUnion$5(schema, references) {
+    return IsTransform$1(schema) || schema.anyOf.some((schema) => Visit$1(schema, references));
+}
+// prettier-ignore
+function Visit$1(schema, references) {
+    const references_ = Pushref(schema, references);
+    const schema_ = schema;
+    if (schema.$id && visited.has(schema.$id))
+        return false;
+    if (schema.$id)
+        visited.add(schema.$id);
+    switch (schema[Kind]) {
+        case 'Array':
+            return FromArray$3(schema_, references_);
+        case 'AsyncIterator':
+            return FromAsyncIterator$1(schema_, references_);
+        case 'Constructor':
+            return FromConstructor$1(schema_, references_);
+        case 'Function':
+            return FromFunction$1(schema_, references_);
+        case 'Intersect':
+            return FromIntersect$5(schema_, references_);
+        case 'Iterator':
+            return FromIterator$1(schema_, references_);
+        case 'Not':
+            return FromNot(schema_, references_);
+        case 'Object':
+            return FromObject$6(schema_, references_);
+        case 'Promise':
+            return FromPromise$1(schema_, references_);
+        case 'Record':
+            return FromRecord$2(schema_, references_);
+        case 'Ref':
+            return FromRef$4(schema_, references_);
+        case 'This':
+            return FromThis$1(schema_, references_);
+        case 'Tuple':
+            return FromTuple$2(schema_, references_);
+        case 'Union':
+            return FromUnion$5(schema_, references_);
+        default:
+            return IsTransform$1(schema);
+    }
+}
+const visited = new Set();
+/** Returns true if this schema contains a transform codec */
+function HasTransform(schema, references) {
+    visited.clear();
+    return Visit$1(schema, references);
+}
+
+// ------------------------------------------------------------------
+// ValueOrDefault
+// ------------------------------------------------------------------
+function ValueOrDefault(schema, value) {
+    const defaultValue = HasPropertyKey(schema, 'default') ? schema.default : undefined;
+    const clone = IsFunction$3(defaultValue) ? defaultValue() : Clone(defaultValue);
+    return IsUndefined$3(value) ? clone : IsObject$3(value) && IsObject$3(clone) ? Object.assign(clone, value) : value;
+}
+// ------------------------------------------------------------------
+// HasDefaultProperty
+// ------------------------------------------------------------------
+function HasDefaultProperty(schema) {
+    return IsKind$1(schema) && 'default' in schema;
+}
+// ------------------------------------------------------------------
+// Types
+// ------------------------------------------------------------------
+function FromArray$2(schema, references, value) {
+    // if the value is an array, we attempt to initialize it's elements
+    if (IsArray$3(value)) {
+        for (let i = 0; i < value.length; i++) {
+            value[i] = Visit(schema.items, references, value[i]);
+        }
+        return value;
+    }
+    // ... otherwise use default initialization
+    const defaulted = ValueOrDefault(schema, value);
+    if (!IsArray$3(defaulted))
+        return defaulted;
+    for (let i = 0; i < defaulted.length; i++) {
+        defaulted[i] = Visit(schema.items, references, defaulted[i]);
+    }
+    return defaulted;
+}
+function FromDate(schema, references, value) {
+    // special case intercept for dates
+    return IsDate$3(value) ? value : ValueOrDefault(schema, value);
+}
+function FromImport(schema, references, value) {
+    const definitions = globalThis.Object.values(schema.$defs);
+    const target = schema.$defs[schema.$ref];
+    return Visit(target, [...references, ...definitions], value);
+}
+function FromIntersect$4(schema, references, value) {
+    const defaulted = ValueOrDefault(schema, value);
+    return schema.allOf.reduce((acc, schema) => {
+        const next = Visit(schema, references, defaulted);
+        return IsObject$3(next) ? { ...acc, ...next } : next;
+    }, {});
+}
+function FromObject$5(schema, references, value) {
+    const defaulted = ValueOrDefault(schema, value);
+    // return defaulted
+    if (!IsObject$3(defaulted))
+        return defaulted;
+    const knownPropertyKeys = Object.getOwnPropertyNames(schema.properties);
+    // properties
+    for (const key of knownPropertyKeys) {
+        // note: we need to traverse into the object and test if the return value
+        // yielded a non undefined result. Here we interpret an undefined result as
+        // a non assignable property and continue.
+        const propertyValue = Visit(schema.properties[key], references, defaulted[key]);
+        if (IsUndefined$3(propertyValue))
+            continue;
+        defaulted[key] = Visit(schema.properties[key], references, defaulted[key]);
+    }
+    // return if not additional properties
+    if (!HasDefaultProperty(schema.additionalProperties))
+        return defaulted;
+    // additional properties
+    for (const key of Object.getOwnPropertyNames(defaulted)) {
+        if (knownPropertyKeys.includes(key))
+            continue;
+        defaulted[key] = Visit(schema.additionalProperties, references, defaulted[key]);
+    }
+    return defaulted;
+}
+function FromRecord$1(schema, references, value) {
+    const defaulted = ValueOrDefault(schema, value);
+    if (!IsObject$3(defaulted))
+        return defaulted;
+    const additionalPropertiesSchema = schema.additionalProperties;
+    const [propertyKeyPattern, propertySchema] = Object.entries(schema.patternProperties)[0];
+    const knownPropertyKey = new RegExp(propertyKeyPattern);
+    // properties
+    for (const key of Object.getOwnPropertyNames(defaulted)) {
+        if (!(knownPropertyKey.test(key) && HasDefaultProperty(propertySchema)))
+            continue;
+        defaulted[key] = Visit(propertySchema, references, defaulted[key]);
+    }
+    // return if not additional properties
+    if (!HasDefaultProperty(additionalPropertiesSchema))
+        return defaulted;
+    // additional properties
+    for (const key of Object.getOwnPropertyNames(defaulted)) {
+        if (knownPropertyKey.test(key))
+            continue;
+        defaulted[key] = Visit(additionalPropertiesSchema, references, defaulted[key]);
+    }
+    return defaulted;
+}
+function FromRef$3(schema, references, value) {
+    return Visit(Deref$1(schema, references), references, ValueOrDefault(schema, value));
+}
+function FromThis(schema, references, value) {
+    return Visit(Deref$1(schema, references), references, value);
+}
+function FromTuple$1(schema, references, value) {
+    const defaulted = ValueOrDefault(schema, value);
+    if (!IsArray$3(defaulted) || IsUndefined$3(schema.items))
+        return defaulted;
+    const [items, max] = [schema.items, Math.max(schema.items.length, defaulted.length)];
+    for (let i = 0; i < max; i++) {
+        if (i < items.length)
+            defaulted[i] = Visit(items[i], references, defaulted[i]);
+    }
+    return defaulted;
+}
+function FromUnion$4(schema, references, value) {
+    const defaulted = ValueOrDefault(schema, value);
+    for (const inner of schema.anyOf) {
+        const result = Visit(inner, references, Clone(defaulted));
+        if (Check(inner, references, result)) {
+            return result;
+        }
+    }
+    return defaulted;
+}
+function Visit(schema, references, value) {
+    const references_ = Pushref(schema, references);
+    const schema_ = schema;
+    switch (schema_[Kind]) {
+        case 'Array':
+            return FromArray$2(schema_, references_, value);
+        case 'Date':
+            return FromDate(schema_, references_, value);
+        case 'Import':
+            return FromImport(schema_, references_, value);
+        case 'Intersect':
+            return FromIntersect$4(schema_, references_, value);
+        case 'Object':
+            return FromObject$5(schema_, references_, value);
+        case 'Record':
+            return FromRecord$1(schema_, references_, value);
+        case 'Ref':
+            return FromRef$3(schema_, references_, value);
+        case 'This':
+            return FromThis(schema_, references_, value);
+        case 'Tuple':
+            return FromTuple$1(schema_, references_, value);
+        case 'Union':
+            return FromUnion$4(schema_, references_, value);
+        default:
+            return ValueOrDefault(schema_, value);
+    }
+}
+/** `[Mutable]` Generates missing properties on a value using default schema annotations if available. This function does not check the value and returns an unknown type. You should Check the result before use. Default is a mutable operation. To avoid mutation, Clone the value first. */
+function Default(...args) {
+    return args.length === 3 ? Visit(args[0], args[1], args[2]) : Visit(args[0], [], args[1]);
+}
+
+// ------------------------------------------------------------------
+// Error
+// ------------------------------------------------------------------
+class ParseError extends TypeBoxError {
+    constructor(message) {
+        super(message);
+    }
+}
+// prettier-ignore
+var ParseRegistry;
+(function (ParseRegistry) {
+    const registry = new Map([
+        ['Clone', (_type, _references, value) => Clone(value)],
+        ['Clean', (type, references, value) => Clean(type, references, value)],
+        ['Default', (type, references, value) => Default(type, references, value)],
+        ['Convert', (type, references, value) => Convert(type, references, value)],
+        ['Assert', (type, references, value) => { Assert(type, references, value); return value; }],
+        ['Decode', (type, references, value) => (HasTransform(type, references) ? TransformDecode(type, references, value) : value)],
+        ['Encode', (type, references, value) => (HasTransform(type, references) ? TransformEncode(type, references, value) : value)],
+    ]);
+    // Deletes an entry from the registry
+    function Delete(key) {
+        registry.delete(key);
+    }
+    ParseRegistry.Delete = Delete;
+    // Sets an entry in the registry
+    function Set(key, callback) {
+        registry.set(key, callback);
+    }
+    ParseRegistry.Set = Set;
+    // Gets an entry in the registry
+    function Get(key) {
+        return registry.get(key);
+    }
+    ParseRegistry.Get = Get;
+})(ParseRegistry || (ParseRegistry = {}));
+// ------------------------------------------------------------------
+// Default Parse Sequence
+// ------------------------------------------------------------------
+// prettier-ignore
+const ParseDefault = [
+    'Clone',
+    'Clean',
+    'Default',
+    'Convert',
+    'Assert',
+    'Decode'
+];
+// ------------------------------------------------------------------
+// ParseValue
+// ------------------------------------------------------------------
+function ParseValue(operations, type, references, value) {
+    return operations.reduce((value, operationKey) => {
+        const operation = ParseRegistry.Get(operationKey);
+        if (IsUndefined$3(operation))
+            throw new ParseError(`Unable to find Parse operation '${operationKey}'`);
+        return operation(type, references, value);
+    }, value);
+}
+/** Parses a value */
+function Parse(...args) {
+    // prettier-ignore
+    const [operations, schema, references, value] = (args.length === 4 ? [args[0], args[1], args[2], args[3]] :
+        args.length === 3 ? IsArray$3(args[0]) ? [args[0], args[1], [], args[2]] : [ParseDefault, args[0], args[1], args[2]] :
+            args.length === 2 ? [ParseDefault, args[0], [], args[1]] :
+                (() => { throw new ParseError('Invalid Arguments'); })());
+    return ParseValue(operations, schema, references, value);
+}
+
+const MAX_RETRIES = process.env.NODE_ENV === "production" ? 7 : 3;
+const RETRY_DELAY = 100;
+function debug(msg) {
+    console.log(msg);
+}
+class CanisterAgent {
+    constructor(agent, canisterId) {
+        this.agent = agent;
+        this.canisterId = canisterId;
+    }
+    executeQuery(serviceCall, mapper, args, retries = 0) {
+        return serviceCall()
+            .then(mapper)
+            .catch((err) => {
+            const responseErr = toCanisterResponseError(err);
+            const debugInfo = `error: ${JSON.stringify(responseErr, Object.getOwnPropertyNames(responseErr))}, args: ${JSON.stringify(args)}`;
+            if (!(responseErr instanceof ResponseTooLargeError) &&
+                !(responseErr instanceof DestinationInvalidError) &&
+                !(responseErr instanceof AuthError) &&
+                retries < MAX_RETRIES) {
+                const delay = RETRY_DELAY * Math.pow(2, retries);
+                if (responseErr instanceof ReplicaNotUpToDateError) {
+                    debug(`query: replica not up to date, retrying in ${delay}ms. retries: ${retries}. ${debugInfo}`);
+                }
+                else {
+                    debug(`query: error occurred, retrying in ${delay}ms. retries: ${retries}. ${debugInfo}`);
+                }
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        this.executeQuery(serviceCall, mapper, args, retries + 1)
+                            .then(resolve)
+                            .catch(reject);
+                    }, delay);
+                });
+            }
+            else {
+                debug(`query: Error performing query request, exiting retry loop. retries: ${retries}. ${debugInfo}`);
+                throw responseErr;
+            }
+        });
+    }
+}
+
+const Packer = new Packr({
+    useRecords: false,
+    skipValues: [undefined],
+    largeBigIntToString: true,
+});
+class MsgpackCanisterAgent extends CanisterAgent {
+    constructor(agent, canisterId) {
+        super(agent, canisterId);
+    }
+    async executeMsgpackQuery(methodName, args, mapper, requestValidator, responseValidator) {
+        const payload = MsgpackCanisterAgent.prepareMsgpackArgs(args, requestValidator);
+        return await this.executeQuery(() => this.agent.query(this.canisterId, {
+            methodName: methodName + "_msgpack",
+            arg: payload,
+        }), (resp) => {
+            if (resp.status === "replied") {
+                return Promise.resolve(MsgpackCanisterAgent.processMsgpackResponse(resp.reply.arg, mapper, responseValidator));
+            }
+            else {
+                throw new QueryCallRejectedError(Principal$1.fromText(this.canisterId), methodName, resp);
+            }
+        }, args);
+    }
+    async executeMsgpackUpdate(methodName, args, mapper, requestValidator, responseValidator) {
+        try {
+            const payload = MsgpackCanisterAgent.prepareMsgpackArgs(args, requestValidator);
+            const { requestId, response } = await this.agent.call(this.canisterId, {
+                methodName: methodName + "_msgpack",
+                arg: payload,
+                callSync: true,
+            });
+            const canisterId = Principal$1.fromText(this.canisterId);
+            if (response.ok && response.body?.certificate) {
+                const cert = response.body.certificate;
+                const certificate = await Certificate.create({
+                    certificate: bufFromBufLike$1(cert),
+                    rootKey: this.agent.rootKey,
+                    canisterId: Principal$1.from(canisterId),
+                    blsVerify: undefined,
+                });
+                const path = [new TextEncoder().encode("request_status"), requestId];
+                const status = new TextDecoder().decode(lookupResultToBuffer(certificate.lookup([...path, "status"])));
+                switch (status) {
+                    case "replied": {
+                        const reply = lookupResultToBuffer(certificate.lookup([...path, "reply"]));
+                        if (reply) {
+                            return MsgpackCanisterAgent.processMsgpackResponse(reply, mapper, responseValidator);
+                        }
+                        break;
+                    }
+                    case "rejected": {
+                        // Find rejection details in the certificate
+                        const rejectCode = new Uint8Array(lookupResultToBuffer(certificate.lookup([...path, "reject_code"])))[0];
+                        const rejectMessage = new TextDecoder().decode(lookupResultToBuffer(certificate.lookup([...path, "reject_message"])));
+                        const error_code_buf = lookupResultToBuffer(certificate.lookup([...path, "error_code"]));
+                        const error_code = error_code_buf
+                            ? new TextDecoder().decode(error_code_buf)
+                            : undefined;
+                        throw new UpdateCallRejectedError(canisterId, methodName, requestId, response, rejectCode, rejectMessage, error_code);
+                    }
+                }
+            }
+            if (response.status === 202) {
+                const { reply } = await pollForResponse(this.agent, canisterId, requestId, defaultStrategy());
+                return Promise.resolve(MsgpackCanisterAgent.processMsgpackResponse(reply, mapper, responseValidator));
+            }
+            else {
+                throw new UpdateCallRejectedError(canisterId, methodName, requestId, response, ReplicaRejectCode.CanisterReject, "");
+            }
+        }
+        catch (err) {
+            console.log(err, args);
+            throw toCanisterResponseError(err);
+        }
+    }
+    static validate(value, validator) {
+        return Parse(validator, value);
+    }
+    static prepareMsgpackArgs(value, validator) {
+        const validated = MsgpackCanisterAgent.validate(value, validator);
+        return Packer.pack(validated);
+    }
+    static processMsgpackResponse(responseBytes, mapper, validator) {
+        const response = Packer.unpack(new Uint8Array(responseBytes));
+        try {
+            const validated = MsgpackCanisterAgent.validate(response, validator);
+            return mapper(validated);
+        }
+        catch (err) {
+            console.error("Validation failed for response: ", response, err instanceof AssertError ? err.error : undefined);
+            throw err;
+        }
+    }
+}
+
+function apiAuthToken(auth) {
+    switch (auth.kind) {
+        case "api_key":
+            return {
+                ApiKey: auth.token,
+            };
+        case "jwt":
+            return {
+                Jwt: auth.token,
+            };
+    }
+}
+function apiBlobReference(domain) {
+    return {
+        blob_id: domain.blobId,
+        canister_id: principalStringToBytes(domain.canisterId),
+    };
+}
+function apiAccessGateConfig(domain) {
+    return {
+        gate: apiAccessGate(domain.gate),
+        expiry: apiOptional(domain.expiry, identity),
+    };
+}
+function apiAccessGate(domain) {
+    if (domain.kind === "composite_gate") {
+        return {
+            Composite: {
+                and: domain.operator === "and",
+                inner: domain.gates.map(apiLeafAccessGate),
+            },
+        };
+    }
+    return apiLeafAccessGate(domain);
+}
+function apiLeafAccessGate(domain) {
+    switch (domain.kind) {
+        case "neuron_gate":
+            return {
+                SnsNeuron: {
+                    governance_canister_id: principalStringToBytes(domain.governanceCanister),
+                    min_stake_e8s: apiOptional(domain.minStakeE8s, BigInt),
+                    min_dissolve_delay: apiOptional(domain.minDissolveDelay, BigInt),
+                },
+            };
+        case "payment_gate":
+            return {
+                Payment: {
+                    ledger_canister_id: principalStringToBytes(domain.ledgerCanister),
+                    amount: domain.amount,
+                    fee: domain.fee,
+                },
+            };
+        case "diamond_gate":
+            return "DiamondMember";
+        case "lifetime_diamond_gate":
+            return "LifetimeDiamondMember";
+        case "unique_person_gate":
+            return "UniquePerson";
+        case "credential_gate":
+            return {
+                VerifiedCredential: {
+                    credential_name: domain.credential.credentialName,
+                    issuer_canister_id: principalStringToBytes(domain.credential.issuerCanisterId),
+                    issuer_origin: domain.credential.issuerOrigin,
+                    credential_type: domain.credential.credentialType,
+                    credential_arguments: apiCredentialArguments(domain.credential.credentialArguments),
+                },
+            };
+        case "token_balance_gate":
+            return {
+                TokenBalance: {
+                    ledger_canister_id: principalStringToBytes(domain.ledgerCanister),
+                    min_balance: domain.minBalance,
+                },
+            };
+        case "locked_gate":
+            return "Locked";
+        case "referred_by_member_gate":
+            return "ReferredByMember";
+        default:
+            throw new Error(`Received a domain level group gate that we cannot parse: ${domain}`);
+    }
+}
+function apiCredentialArguments(domain) {
+    return Object.entries(domain ?? {}).reduce((res, [k, v]) => {
+        res[k] = typeof v === "number" ? { Int: v } : { String: v };
+        return res;
+    }, {});
+}
+function apiPermissionRole(domain) {
+    switch (domain) {
+        case "admins":
+            return "Admins";
+        case "members":
+            return "Members";
+        case "moderators":
+            return "Moderators";
+        case "none":
+            return "None";
+        case "owners":
+            return "Owner";
+    }
+}
+function apiMessagePermissions(domain) {
+    return {
+        audio: apiOptional(domain.audio, apiPermissionRole),
+        video: apiOptional(domain.video, apiPermissionRole),
+        video_call: apiOptional(domain.videoCall, apiPermissionRole),
+        custom: domain.custom.map((p) => ({
+            subtype: p.subtype,
+            role: apiPermissionRole(p.role),
+        })),
+        file: apiOptional(domain.file, apiPermissionRole),
+        poll: apiOptional(domain.poll, apiPermissionRole),
+        text: apiOptional(domain.text, apiPermissionRole),
+        crypto: apiOptional(domain.crypto, apiPermissionRole),
+        giphy: apiOptional(domain.giphy, apiPermissionRole),
+        default: apiPermissionRole(domain.default),
+        image: apiOptional(domain.image, apiPermissionRole),
+        prize: apiOptional(domain.prize, apiPermissionRole),
+        p2p_swap: apiOptional(domain.p2pSwap, apiPermissionRole),
+    };
+}
+function apiGroupPermissions(domain) {
+    return {
+        mention_all_members: apiPermissionRole(domain.mentionAllMembers),
+        delete_messages: apiPermissionRole(domain.deleteMessages),
+        remove_members: apiPermissionRole(domain.removeMembers),
+        update_group: apiPermissionRole(domain.updateGroup),
+        message_permissions: apiMessagePermissions(domain.messagePermissions),
+        invite_users: apiPermissionRole(domain.inviteUsers),
+        thread_permissions: apiOptional(domain.threadPermissions, apiMessagePermissions),
+        change_roles: apiPermissionRole(domain.changeRoles),
+        start_video_call: apiPermissionRole(domain.startVideoCall),
+        add_members: apiPermissionRole(domain.addMembers),
+        pin_messages: apiPermissionRole(domain.pinMessages),
+        react_to_messages: apiPermissionRole(domain.reactToMessages),
+    };
+}
+// export function apiOptionUpdate<A, B>(
+//     mapper: (a: A) => B,
+//     domain: OptionUpdate<A>,
+// ): ApiOptionUpdateV2<B> {
+//     if (domain === undefined) return "NoChange";
+//     if (domain === "set_to_none") return "SetToNone";
+//     return { SetToSome: mapper(domain.value) };
+// }
+function apiOptional(domain, mapper) {
+    return domain === undefined ? undefined : mapper(domain);
+}
+function identity(a) {
+    return a;
+}
+function principalStringToBytes(principal) {
+    return Principal$1.fromText(principal).toUint8Array();
+}
+
+/** Clones a Type */
+function CloneType(schema, options) {
+    return Clone$1(schema) ;
+}
+
+// prettier-ignore
+function FromComputed$3(target, parameters) {
+    return Computed('Awaited', [Computed(target, parameters)]);
+}
+// prettier-ignore
+function FromRef$2($ref) {
+    return Computed('Awaited', [Ref($ref)]);
+}
+// prettier-ignore
+function FromIntersect$3(types) {
+    return Intersect$1(FromRest$4(types));
+}
+// prettier-ignore
+function FromUnion$3(types) {
+    return Union$1(FromRest$4(types));
+}
+// prettier-ignore
+function FromPromise(type) {
+    return Awaited(type);
+}
+// prettier-ignore
+function FromRest$4(types) {
+    return types.map(type => Awaited(type));
+}
+/** `[JavaScript]` Constructs a type by recursively unwrapping Promise types */
+function Awaited(type, options) {
+    return CreateType(IsComputed$1(type) ? FromComputed$3(type.target, type.parameters) : IsIntersect$1(type) ? FromIntersect$3(type.allOf) : IsUnion$1(type) ? FromUnion$3(type.anyOf) : IsPromise$1(type) ? FromPromise(type.item) : IsRef$1(type) ? FromRef$2(type.$ref) : type, options);
+}
+
+// prettier-ignore
+function CompositeKeys(T) {
+    const Acc = [];
+    for (const L of T)
+        Acc.push(...KeyOfPropertyKeys(L));
+    return SetDistinct(Acc);
+}
+// prettier-ignore
+function FilterNever(T) {
+    return T.filter(L => !IsNever$1(L));
+}
+// prettier-ignore
+function CompositeProperty(T, K) {
+    const Acc = [];
+    for (const L of T)
+        Acc.push(...IndexFromPropertyKeys(L, [K]));
+    return FilterNever(Acc);
+}
+// prettier-ignore
+function CompositeProperties(T, K) {
+    const Acc = {};
+    for (const L of K) {
+        Acc[L] = IntersectEvaluated(CompositeProperty(T, L));
+    }
+    return Acc;
+}
+// prettier-ignore
+function Composite(T, options) {
+    const K = CompositeKeys(T);
+    const P = CompositeProperties(T, K);
+    const R = Object$1(P, options);
+    return R;
+}
+
+/** `[JavaScript]` Creates a Date type */
+function Date$1(options) {
+    return CreateType({ [Kind]: 'Date', type: 'Date' }, options);
+}
+
+/** `[Json]` Creates a Null type */
+function Null(options) {
+    return CreateType({ [Kind]: 'Null', type: 'null' }, options);
+}
+
+/** `[JavaScript]` Creates a Symbol type */
+function Symbol$1(options) {
+    return CreateType({ [Kind]: 'Symbol', type: 'symbol' }, options);
+}
+
+/** `[JavaScript]` Creates a Undefined type */
+function Undefined(options) {
+    return CreateType({ [Kind]: 'Undefined', type: 'undefined' }, options);
+}
+
+/** `[JavaScript]` Creates a Uint8Array type */
+function Uint8Array$1(options) {
+    return CreateType({ [Kind]: 'Uint8Array', type: 'Uint8Array' }, options);
+}
+
+// prettier-ignore
+function FromArray$1(T) {
+    return T.map(L => FromValue(L, false));
+}
+// prettier-ignore
+function FromProperties$a(value) {
+    const Acc = {};
+    for (const K of globalThis.Object.getOwnPropertyNames(value))
+        Acc[K] = Readonly(FromValue(value[K], false));
+    return Acc;
+}
+function ConditionalReadonly(T, root) {
+    return (root === true ? T : Readonly(T));
+}
+// prettier-ignore
+function FromValue(value, root) {
+    return (IsAsyncIterator$2(value) ? ConditionalReadonly(Any(), root) :
+        IsIterator$2(value) ? ConditionalReadonly(Any(), root) :
+            IsArray$2(value) ? Readonly(Tuple(FromArray$1(value))) :
+                IsUint8Array$2(value) ? Uint8Array$1() :
+                    IsDate$2(value) ? Date$1() :
+                        IsObject$2(value) ? ConditionalReadonly(Object$1(FromProperties$a(value)), root) :
+                            IsFunction$2(value) ? ConditionalReadonly(Function$1([], Unknown()), root) :
+                                IsUndefined$2(value) ? Undefined() :
+                                    IsNull$2(value) ? Null() :
+                                        IsSymbol$2(value) ? Symbol$1() :
+                                            IsBigInt$2(value) ? BigInt$1() :
+                                                IsNumber$2(value) ? Literal(value) :
+                                                    IsBoolean$2(value) ? Literal(value) :
+                                                        IsString$2(value) ? Literal(value) :
+                                                            Object$1({}));
+}
+/** `[JavaScript]` Creates a readonly const type from the given value. */
+function Const(T, options) {
+    return CreateType(FromValue(T, true), options);
+}
+
+/** `[JavaScript]` Extracts the ConstructorParameters from the given Constructor type */
+function ConstructorParameters(schema, options) {
+    return (IsConstructor$1(schema) ? Tuple(schema.parameters, options) : Never(options));
+}
+
+/** `[Json]` Creates a Enum type */
+function Enum(item, options) {
+    if (IsUndefined$2(item))
+        throw new Error('Enum undefined or empty');
+    const values1 = globalThis.Object.getOwnPropertyNames(item)
+        .filter((key) => isNaN(key))
+        .map((key) => item[key]);
+    const values2 = [...new Set(values1)];
+    const anyOf = values2.map((value) => Literal(value));
+    return Union$1(anyOf, { ...options, [Hint]: 'Enum' });
+}
+
+function ExcludeFromTemplateLiteral(L, R) {
+    return Exclude(TemplateLiteralToUnion(L), R);
+}
+
+function ExcludeRest(L, R) {
+    const excluded = L.filter((inner) => ExtendsCheck(inner, R) === ExtendsResult.False);
+    return excluded.length === 1 ? excluded[0] : Union$1(excluded);
+}
+/** `[Json]` Constructs a type by excluding from unionType all union members that are assignable to excludedMembers */
+function Exclude(L, R, options = {}) {
+    // overloads
+    if (IsTemplateLiteral$1(L))
+        return CreateType(ExcludeFromTemplateLiteral(L, R), options);
+    if (IsMappedResult$1(L))
+        return CreateType(ExcludeFromMappedResult(L, R), options);
+    // prettier-ignore
+    return CreateType(IsUnion$1(L) ? ExcludeRest(L.anyOf, R) :
+        ExtendsCheck(L, R) !== ExtendsResult.False ? Never() : L, options);
+}
+
+// prettier-ignore
+function FromProperties$9(P, U) {
+    const Acc = {};
+    for (const K2 of globalThis.Object.getOwnPropertyNames(P))
+        Acc[K2] = Exclude(P[K2], U);
+    return Acc;
+}
+// prettier-ignore
+function FromMappedResult$5(R, T) {
+    return FromProperties$9(R.properties, T);
+}
+// prettier-ignore
+function ExcludeFromMappedResult(R, T) {
+    const P = FromMappedResult$5(R, T);
+    return MappedResult(P);
+}
+
+function ExtractFromTemplateLiteral(L, R) {
+    return Extract(TemplateLiteralToUnion(L), R);
+}
+
+function ExtractRest(L, R) {
+    const extracted = L.filter((inner) => ExtendsCheck(inner, R) !== ExtendsResult.False);
+    return extracted.length === 1 ? extracted[0] : Union$1(extracted);
+}
+/** `[Json]` Constructs a type by extracting from type all union members that are assignable to union */
+function Extract(L, R, options) {
+    // overloads
+    if (IsTemplateLiteral$1(L))
+        return CreateType(ExtractFromTemplateLiteral(L, R), options);
+    if (IsMappedResult$1(L))
+        return CreateType(ExtractFromMappedResult(L, R), options);
+    // prettier-ignore
+    return CreateType(IsUnion$1(L) ? ExtractRest(L.anyOf, R) :
+        ExtendsCheck(L, R) !== ExtendsResult.False ? L : Never(), options);
+}
+
+// prettier-ignore
+function FromProperties$8(P, T) {
+    const Acc = {};
+    for (const K2 of globalThis.Object.getOwnPropertyNames(P))
+        Acc[K2] = Extract(P[K2], T);
+    return Acc;
+}
+// prettier-ignore
+function FromMappedResult$4(R, T) {
+    return FromProperties$8(R.properties, T);
+}
+// prettier-ignore
+function ExtractFromMappedResult(R, T) {
+    const P = FromMappedResult$4(R, T);
+    return MappedResult(P);
+}
+
+/** `[JavaScript]` Extracts the InstanceType from the given Constructor type */
+function InstanceType(schema, options) {
+    return (IsConstructor$1(schema) ? CreateType(schema.returns, options) : Never(options));
+}
+
+/** `[Json]` Creates an Integer type */
+function Integer(options) {
+    return CreateType({ [Kind]: 'Integer', type: 'integer' }, options);
+}
+
+// prettier-ignore
+function MappedIntrinsicPropertyKey(K, M, options) {
+    return {
+        [K]: Intrinsic(Literal(K), M, Clone$1(options))
+    };
+}
+// prettier-ignore
+function MappedIntrinsicPropertyKeys(K, M, options) {
+    const result = K.reduce((Acc, L) => {
+        return { ...Acc, ...MappedIntrinsicPropertyKey(L, M, options) };
+    }, {});
+    return result;
+}
+// prettier-ignore
+function MappedIntrinsicProperties(T, M, options) {
+    return MappedIntrinsicPropertyKeys(T['keys'], M, options);
+}
+// prettier-ignore
+function IntrinsicFromMappedKey(T, M, options) {
+    const P = MappedIntrinsicProperties(T, M, options);
+    return MappedResult(P);
+}
+
+// ------------------------------------------------------------------
+// Apply
+// ------------------------------------------------------------------
+function ApplyUncapitalize(value) {
+    const [first, rest] = [value.slice(0, 1), value.slice(1)];
+    return [first.toLowerCase(), rest].join('');
+}
+function ApplyCapitalize(value) {
+    const [first, rest] = [value.slice(0, 1), value.slice(1)];
+    return [first.toUpperCase(), rest].join('');
+}
+function ApplyUppercase(value) {
+    return value.toUpperCase();
+}
+function ApplyLowercase(value) {
+    return value.toLowerCase();
+}
+function FromTemplateLiteral(schema, mode, options) {
+    // note: template literals require special runtime handling as they are encoded in string patterns.
+    // This diverges from the mapped type which would otherwise map on the template literal kind.
+    const expression = TemplateLiteralParseExact(schema.pattern);
+    const finite = IsTemplateLiteralExpressionFinite(expression);
+    if (!finite)
+        return { ...schema, pattern: FromLiteralValue(schema.pattern, mode) };
+    const strings = [...TemplateLiteralExpressionGenerate(expression)];
+    const literals = strings.map((value) => Literal(value));
+    const mapped = FromRest$3(literals, mode);
+    const union = Union$1(mapped);
+    return TemplateLiteral([union], options);
+}
+// prettier-ignore
+function FromLiteralValue(value, mode) {
+    return (typeof value === 'string' ? (mode === 'Uncapitalize' ? ApplyUncapitalize(value) :
+        mode === 'Capitalize' ? ApplyCapitalize(value) :
+            mode === 'Uppercase' ? ApplyUppercase(value) :
+                mode === 'Lowercase' ? ApplyLowercase(value) :
+                    value) : value.toString());
+}
+// prettier-ignore
+function FromRest$3(T, M) {
+    return T.map(L => Intrinsic(L, M));
+}
+/** Applies an intrinsic string manipulation to the given type. */
+function Intrinsic(schema, mode, options = {}) {
+    // prettier-ignore
+    return (
+    // Intrinsic-Mapped-Inference
+    IsMappedKey$1(schema) ? IntrinsicFromMappedKey(schema, mode, options) :
+        // Standard-Inference
+        IsTemplateLiteral$1(schema) ? FromTemplateLiteral(schema, mode, options) :
+            IsUnion$1(schema) ? Union$1(FromRest$3(schema.anyOf, mode), options) :
+                IsLiteral$1(schema) ? Literal(FromLiteralValue(schema.const, mode), options) :
+                    // Default Type
+                    CreateType(schema, options));
+}
+
+/** `[Json]` Intrinsic function to Capitalize LiteralString types */
+function Capitalize(T, options = {}) {
+    return Intrinsic(T, 'Capitalize', options);
+}
+
+/** `[Json]` Intrinsic function to Lowercase LiteralString types */
+function Lowercase(T, options = {}) {
+    return Intrinsic(T, 'Lowercase', options);
+}
+
+/** `[Json]` Intrinsic function to Uncapitalize LiteralString types */
+function Uncapitalize(T, options = {}) {
+    return Intrinsic(T, 'Uncapitalize', options);
+}
+
+/** `[Json]` Intrinsic function to Uppercase LiteralString types */
+function Uppercase(T, options = {}) {
+    return Intrinsic(T, 'Uppercase', options);
+}
+
+// prettier-ignore
+function FromProperties$7(properties, propertyKeys, options) {
+    const result = {};
+    for (const K2 of globalThis.Object.getOwnPropertyNames(properties))
+        result[K2] = Omit(properties[K2], propertyKeys, Clone$1(options));
+    return result;
+}
+// prettier-ignore
+function FromMappedResult$3(mappedResult, propertyKeys, options) {
+    return FromProperties$7(mappedResult.properties, propertyKeys, options);
+}
+// prettier-ignore
+function OmitFromMappedResult(mappedResult, propertyKeys, options) {
+    const properties = FromMappedResult$3(mappedResult, propertyKeys, options);
+    return MappedResult(properties);
+}
+
+// prettier-ignore
+function FromIntersect$2(types, propertyKeys) {
+    return types.map((type) => OmitResolve(type, propertyKeys));
+}
+// prettier-ignore
+function FromUnion$2(types, propertyKeys) {
+    return types.map((type) => OmitResolve(type, propertyKeys));
+}
+// ------------------------------------------------------------------
+// FromProperty
+// ------------------------------------------------------------------
+// prettier-ignore
+function FromProperty(properties, key) {
+    const { [key]: _, ...R } = properties;
+    return R;
+}
+// prettier-ignore
+function FromProperties$6(properties, propertyKeys) {
+    return propertyKeys.reduce((T, K2) => FromProperty(T, K2), properties);
+}
+// prettier-ignore
+function FromObject$4(properties, propertyKeys) {
+    const options = Discard(properties, [TransformKind, '$id', 'required', 'properties']);
+    const omittedProperties = FromProperties$6(properties['properties'], propertyKeys);
+    return Object$1(omittedProperties, options);
+}
+// prettier-ignore
+function UnionFromPropertyKeys$1(propertyKeys) {
+    const result = propertyKeys.reduce((result, key) => IsLiteralValue$1(key) ? [...result, Literal(key)] : result, []);
+    return Union$1(result);
+}
+// prettier-ignore
+function OmitResolve(properties, propertyKeys) {
+    return (IsIntersect$1(properties) ? Intersect$1(FromIntersect$2(properties.allOf, propertyKeys)) :
+        IsUnion$1(properties) ? Union$1(FromUnion$2(properties.anyOf, propertyKeys)) :
+            IsObject$1(properties) ? FromObject$4(properties, propertyKeys) :
+                Object$1({}));
+}
+/** `[Json]` Constructs a type whose keys are picked from the given type */
+// prettier-ignore
+function Omit(type, key, options) {
+    const typeKey = IsArray$2(key) ? UnionFromPropertyKeys$1(key) : key;
+    const propertyKeys = IsSchema$1(key) ? IndexPropertyKeys(key) : key;
+    const isTypeRef = IsRef$1(type);
+    const isKeyRef = IsRef$1(key);
+    return (IsMappedResult$1(type) ? OmitFromMappedResult(type, propertyKeys, options) :
+        IsMappedKey$1(key) ? OmitFromMappedKey(type, key, options) :
+            (isTypeRef && isKeyRef) ? Computed('Omit', [type, typeKey], options) :
+                (!isTypeRef && isKeyRef) ? Computed('Omit', [type, typeKey], options) :
+                    (isTypeRef && !isKeyRef) ? Computed('Omit', [type, typeKey], options) :
+                        CreateType({ ...OmitResolve(type, propertyKeys), ...options }));
+}
+
+// prettier-ignore
+function FromPropertyKey$1(type, key, options) {
+    return { [key]: Omit(type, [key], Clone$1(options)) };
+}
+// prettier-ignore
+function FromPropertyKeys$1(type, propertyKeys, options) {
+    return propertyKeys.reduce((Acc, LK) => {
+        return { ...Acc, ...FromPropertyKey$1(type, LK, options) };
+    }, {});
+}
+// prettier-ignore
+function FromMappedKey$1(type, mappedKey, options) {
+    return FromPropertyKeys$1(type, mappedKey.keys, options);
+}
+// prettier-ignore
+function OmitFromMappedKey(type, mappedKey, options) {
+    const properties = FromMappedKey$1(type, mappedKey, options);
+    return MappedResult(properties);
+}
+
+// prettier-ignore
+function FromProperties$5(properties, propertyKeys, options) {
+    const result = {};
+    for (const K2 of globalThis.Object.getOwnPropertyNames(properties))
+        result[K2] = Pick(properties[K2], propertyKeys, Clone$1(options));
+    return result;
+}
+// prettier-ignore
+function FromMappedResult$2(mappedResult, propertyKeys, options) {
+    return FromProperties$5(mappedResult.properties, propertyKeys, options);
+}
+// prettier-ignore
+function PickFromMappedResult(mappedResult, propertyKeys, options) {
+    const properties = FromMappedResult$2(mappedResult, propertyKeys, options);
+    return MappedResult(properties);
+}
+
+function FromIntersect$1(types, propertyKeys) {
+    return types.map((type) => PickResolve(type, propertyKeys));
+}
+// prettier-ignore
+function FromUnion$1(types, propertyKeys) {
+    return types.map((type) => PickResolve(type, propertyKeys));
+}
+// prettier-ignore
+function FromProperties$4(properties, propertyKeys) {
+    const result = {};
+    for (const K2 of propertyKeys)
+        if (K2 in properties)
+            result[K2] = properties[K2];
+    return result;
+}
+// prettier-ignore
+function FromObject$3(T, K) {
+    const options = Discard(T, [TransformKind, '$id', 'required', 'properties']);
+    const properties = FromProperties$4(T['properties'], K);
+    return Object$1(properties, options);
+}
+// prettier-ignore
+function UnionFromPropertyKeys(propertyKeys) {
+    const result = propertyKeys.reduce((result, key) => IsLiteralValue$1(key) ? [...result, Literal(key)] : result, []);
+    return Union$1(result);
+}
+// prettier-ignore
+function PickResolve(properties, propertyKeys) {
+    return (IsIntersect$1(properties) ? Intersect$1(FromIntersect$1(properties.allOf, propertyKeys)) :
+        IsUnion$1(properties) ? Union$1(FromUnion$1(properties.anyOf, propertyKeys)) :
+            IsObject$1(properties) ? FromObject$3(properties, propertyKeys) :
+                Object$1({}));
+}
+/** `[Json]` Constructs a type whose keys are picked from the given type */
+// prettier-ignore
+function Pick(type, key, options) {
+    const typeKey = IsArray$2(key) ? UnionFromPropertyKeys(key) : key;
+    const propertyKeys = IsSchema$1(key) ? IndexPropertyKeys(key) : key;
+    const isTypeRef = IsRef$1(type);
+    const isKeyRef = IsRef$1(key);
+    return (IsMappedResult$1(type) ? PickFromMappedResult(type, propertyKeys, options) :
+        IsMappedKey$1(key) ? PickFromMappedKey(type, key, options) :
+            (isTypeRef && isKeyRef) ? Computed('Pick', [type, typeKey], options) :
+                (!isTypeRef && isKeyRef) ? Computed('Pick', [type, typeKey], options) :
+                    (isTypeRef && !isKeyRef) ? Computed('Pick', [type, typeKey], options) :
+                        CreateType({ ...PickResolve(type, propertyKeys), ...options }));
+}
+
+// prettier-ignore
+function FromPropertyKey(type, key, options) {
+    return {
+        [key]: Pick(type, [key], Clone$1(options))
+    };
+}
+// prettier-ignore
+function FromPropertyKeys(type, propertyKeys, options) {
+    return propertyKeys.reduce((result, leftKey) => {
+        return { ...result, ...FromPropertyKey(type, leftKey, options) };
+    }, {});
+}
+// prettier-ignore
+function FromMappedKey(type, mappedKey, options) {
+    return FromPropertyKeys(type, mappedKey.keys, options);
+}
+// prettier-ignore
+function PickFromMappedKey(type, mappedKey, options) {
+    const properties = FromMappedKey(type, mappedKey, options);
+    return MappedResult(properties);
+}
+
+// prettier-ignore
+function FromComputed$2(target, parameters) {
+    return Computed('Partial', [Computed(target, parameters)]);
+}
+// prettier-ignore
+function FromRef$1($ref) {
+    return Computed('Partial', [Ref($ref)]);
+}
+// prettier-ignore
+function FromProperties$3(properties) {
+    const partialProperties = {};
+    for (const K of globalThis.Object.getOwnPropertyNames(properties))
+        partialProperties[K] = Optional(properties[K]);
+    return partialProperties;
+}
+// prettier-ignore
+function FromObject$2(T) {
+    const options = Discard(T, [TransformKind, '$id', 'required', 'properties']);
+    const properties = FromProperties$3(T['properties']);
+    return Object$1(properties, options);
+}
+// prettier-ignore
+function FromRest$2(types) {
+    return types.map(type => PartialResolve(type));
+}
+// ------------------------------------------------------------------
+// PartialResolve
+// ------------------------------------------------------------------
+// prettier-ignore
+function PartialResolve(type) {
+    return (IsComputed$1(type) ? FromComputed$2(type.target, type.parameters) :
+        IsRef$1(type) ? FromRef$1(type.$ref) :
+            IsIntersect$1(type) ? Intersect$1(FromRest$2(type.allOf)) :
+                IsUnion$1(type) ? Union$1(FromRest$2(type.anyOf)) :
+                    IsObject$1(type) ? FromObject$2(type) :
+                        Object$1({}));
+}
+/** `[Json]` Constructs a type where all properties are optional */
+function Partial(type, options) {
+    if (IsMappedResult$1(type)) {
+        return PartialFromMappedResult(type, options);
+    }
+    else {
+        // special: mapping types require overridable options
+        return CreateType({ ...PartialResolve(type), ...options });
+    }
+}
+
+// prettier-ignore
+function FromProperties$2(K, options) {
+    const Acc = {};
+    for (const K2 of globalThis.Object.getOwnPropertyNames(K))
+        Acc[K2] = Partial(K[K2], Clone$1(options));
+    return Acc;
+}
+// prettier-ignore
+function FromMappedResult$1(R, options) {
+    return FromProperties$2(R.properties, options);
+}
+// prettier-ignore
+function PartialFromMappedResult(R, options) {
+    const P = FromMappedResult$1(R, options);
+    return MappedResult(P);
+}
+
+// ------------------------------------------------------------------
+// RecordCreateFromPattern
+// ------------------------------------------------------------------
+// prettier-ignore
+function RecordCreateFromPattern(pattern, T, options) {
+    return CreateType({ [Kind]: 'Record', type: 'object', patternProperties: { [pattern]: T } }, options);
+}
+// ------------------------------------------------------------------
+// RecordCreateFromKeys
+// ------------------------------------------------------------------
+// prettier-ignore
+function RecordCreateFromKeys(K, T, options) {
+    const result = {};
+    for (const K2 of K)
+        result[K2] = T;
+    return Object$1(result, { ...options, [Hint]: 'Record' });
+}
+// prettier-ignore
+function FromTemplateLiteralKey(K, T, options) {
+    return (IsTemplateLiteralFinite(K)
+        ? RecordCreateFromKeys(IndexPropertyKeys(K), T, options)
+        : RecordCreateFromPattern(K.pattern, T, options));
+}
+// prettier-ignore
+function FromUnionKey(key, type, options) {
+    return RecordCreateFromKeys(IndexPropertyKeys(Union$1(key)), type, options);
+}
+// prettier-ignore
+function FromLiteralKey(key, type, options) {
+    return RecordCreateFromKeys([key.toString()], type, options);
+}
+// prettier-ignore
+function FromRegExpKey(key, type, options) {
+    return RecordCreateFromPattern(key.source, type, options);
+}
+// prettier-ignore
+function FromStringKey(key, type, options) {
+    const pattern = IsUndefined$2(key.pattern) ? PatternStringExact : key.pattern;
+    return RecordCreateFromPattern(pattern, type, options);
+}
+// prettier-ignore
+function FromAnyKey(_, type, options) {
+    return RecordCreateFromPattern(PatternStringExact, type, options);
+}
+// prettier-ignore
+function FromNeverKey(_key, type, options) {
+    return RecordCreateFromPattern(PatternNeverExact, type, options);
+}
+// prettier-ignore
+function FromIntegerKey(_key, type, options) {
+    return RecordCreateFromPattern(PatternNumberExact, type, options);
+}
+// prettier-ignore
+function FromNumberKey(_, type, options) {
+    return RecordCreateFromPattern(PatternNumberExact, type, options);
+}
+// ------------------------------------------------------------------
+// TRecordOrObject
+// ------------------------------------------------------------------
+/** `[Json]` Creates a Record type */
+function Record(key, type, options = {}) {
+    // prettier-ignore
+    return (IsComputed$1(type) ? Computed('Record', [key, Computed(type.target, type.parameters)], options) :
+        IsComputed$1(key) ? Computed('Record', [Computed(type.target, type.parameters), type], options) :
+            IsRef$1(key) ? Computed('Record', [Ref(key.$ref), type]) :
+                IsUnion$1(key) ? FromUnionKey(key.anyOf, type, options) :
+                    IsTemplateLiteral$1(key) ? FromTemplateLiteralKey(key, type, options) :
+                        IsLiteral$1(key) ? FromLiteralKey(key.const, type, options) :
+                            IsInteger$1(key) ? FromIntegerKey(key, type, options) :
+                                IsNumber$1(key) ? FromNumberKey(key, type, options) :
+                                    IsRegExp$1(key) ? FromRegExpKey(key, type, options) :
+                                        IsString$1(key) ? FromStringKey(key, type, options) :
+                                            IsAny$1(key) ? FromAnyKey(key, type, options) :
+                                                IsNever$1(key) ? FromNeverKey(key, type, options) :
+                                                    Never(options));
+}
+
+// prettier-ignore
+function FromComputed$1(target, parameters) {
+    return Computed('Required', [Computed(target, parameters)]);
+}
+// prettier-ignore
+function FromRef($ref) {
+    return Computed('Required', [Ref($ref)]);
+}
+// prettier-ignore
+function FromProperties$1(properties) {
+    const requiredProperties = {};
+    for (const K of globalThis.Object.getOwnPropertyNames(properties))
+        requiredProperties[K] = Discard(properties[K], [OptionalKind]);
+    return requiredProperties;
+}
+// prettier-ignore
+function FromObject$1(type) {
+    const options = Discard(type, [TransformKind, '$id', 'required', 'properties']);
+    const properties = FromProperties$1(type['properties']);
+    return Object$1(properties, options);
+}
+// prettier-ignore
+function FromRest$1(types) {
+    return types.map(type => RequiredResolve(type));
+}
+// ------------------------------------------------------------------
+// RequiredResolve
+// ------------------------------------------------------------------
+// prettier-ignore
+function RequiredResolve(type) {
+    return (IsComputed$1(type) ? FromComputed$1(type.target, type.parameters) :
+        IsRef$1(type) ? FromRef(type.$ref) :
+            IsIntersect$1(type) ? Intersect$1(FromRest$1(type.allOf)) :
+                IsUnion$1(type) ? Union$1(FromRest$1(type.anyOf)) :
+                    IsObject$1(type) ? FromObject$1(type) :
+                        Object$1({}));
+}
+/** `[Json]` Constructs a type where all properties are required */
+function Required(type, options) {
+    if (IsMappedResult$1(type)) {
+        return RequiredFromMappedResult(type, options);
+    }
+    else {
+        // special: mapping types require overridable options
+        return CreateType({ ...RequiredResolve(type), ...options });
+    }
+}
+
+// prettier-ignore
+function FromProperties(P, options) {
+    const Acc = {};
+    for (const K2 of globalThis.Object.getOwnPropertyNames(P))
+        Acc[K2] = Required(P[K2], options);
+    return Acc;
+}
+// prettier-ignore
+function FromMappedResult(R, options) {
+    return FromProperties(R.properties, options);
+}
+// prettier-ignore
+function RequiredFromMappedResult(R, options) {
+    const P = FromMappedResult(R, options);
+    return MappedResult(P);
+}
+
+// prettier-ignore
+function DerefParameters(moduleProperties, types) {
+    return types.map((type) => {
+        return IsRef$1(type)
+            ? Deref(moduleProperties, type.$ref)
+            : FromType(moduleProperties, type);
+    });
+}
+// prettier-ignore
+function Deref(moduleProperties, ref) {
+    return (ref in moduleProperties
+        ? IsRef$1(moduleProperties[ref])
+            ? Deref(moduleProperties, moduleProperties[ref].$ref)
+            : FromType(moduleProperties, moduleProperties[ref])
+        : Never());
+}
+// prettier-ignore
+function FromAwaited(parameters) {
+    return Awaited(parameters[0]);
+}
+// prettier-ignore
+function FromIndex(parameters) {
+    return Index(parameters[0], parameters[1]);
+}
+// prettier-ignore
+function FromKeyOf(parameters) {
+    return KeyOf(parameters[0]);
+}
+// prettier-ignore
+function FromPartial(parameters) {
+    return Partial(parameters[0]);
+}
+// prettier-ignore
+function FromOmit(parameters) {
+    return Omit(parameters[0], parameters[1]);
+}
+// prettier-ignore
+function FromPick(parameters) {
+    return Pick(parameters[0], parameters[1]);
+}
+// prettier-ignore
+function FromRecord(parameters) {
+    return Record(parameters[0], parameters[1]);
+}
+// prettier-ignore
+function FromRequired(parameters) {
+    return Required(parameters[0]);
+}
+// prettier-ignore
+function FromComputed(moduleProperties, target, parameters) {
+    const dereferenced = DerefParameters(moduleProperties, parameters);
+    return (target === 'Awaited' ? FromAwaited(dereferenced) :
+        target === 'Index' ? FromIndex(dereferenced) :
+            target === 'KeyOf' ? FromKeyOf(dereferenced) :
+                target === 'Partial' ? FromPartial(dereferenced) :
+                    target === 'Omit' ? FromOmit(dereferenced) :
+                        target === 'Pick' ? FromPick(dereferenced) :
+                            target === 'Record' ? FromRecord(dereferenced) :
+                                target === 'Required' ? FromRequired(dereferenced) :
+                                    Never());
+}
+function FromObject(moduleProperties, properties) {
+    return Object$1(globalThis.Object.keys(properties).reduce((result, key) => {
+        return { ...result, [key]: FromType(moduleProperties, properties[key]) };
+    }, {}));
+}
+// prettier-ignore
+function FromConstructor(moduleProperties, parameters, instanceType) {
+    return Constructor(FromRest(moduleProperties, parameters), FromType(moduleProperties, instanceType));
+}
+// prettier-ignore
+function FromFunction(moduleProperties, parameters, returnType) {
+    return Function$1(FromRest(moduleProperties, parameters), FromType(moduleProperties, returnType));
+}
+function FromTuple(moduleProperties, types) {
+    return Tuple(FromRest(moduleProperties, types));
+}
+function FromIntersect(moduleProperties, types) {
+    return Intersect$1(FromRest(moduleProperties, types));
+}
+function FromUnion(moduleProperties, types) {
+    return Union$1(FromRest(moduleProperties, types));
+}
+function FromArray(moduleProperties, type) {
+    return Array$1(FromType(moduleProperties, type));
+}
+function FromAsyncIterator(moduleProperties, type) {
+    return AsyncIterator(FromType(moduleProperties, type));
+}
+function FromIterator(moduleProperties, type) {
+    return Iterator(FromType(moduleProperties, type));
+}
+function FromRest(moduleProperties, types) {
+    return types.map((type) => FromType(moduleProperties, type));
+}
+// prettier-ignore
+function FromType(moduleProperties, type) {
+    return (
+    // Modifier Unwrap - Reapplied via CreateType Options
+    IsOptional$1(type) ? CreateType(FromType(moduleProperties, Discard(type, [OptionalKind])), type) :
+        IsReadonly(type) ? CreateType(FromType(moduleProperties, Discard(type, [ReadonlyKind])), type) :
+            // Traveral
+            IsArray$1(type) ? CreateType(FromArray(moduleProperties, type.items), type) :
+                IsAsyncIterator$1(type) ? CreateType(FromAsyncIterator(moduleProperties, type.items), type) :
+                    IsComputed$1(type) ? CreateType(FromComputed(moduleProperties, type.target, type.parameters)) :
+                        IsConstructor$1(type) ? CreateType(FromConstructor(moduleProperties, type.parameters, type.returns), type) :
+                            IsFunction$1(type) ? CreateType(FromFunction(moduleProperties, type.parameters, type.returns), type) :
+                                IsIntersect$1(type) ? CreateType(FromIntersect(moduleProperties, type.allOf), type) :
+                                    IsIterator$1(type) ? CreateType(FromIterator(moduleProperties, type.items), type) :
+                                        IsObject$1(type) ? CreateType(FromObject(moduleProperties, type.properties), type) :
+                                            IsTuple$1(type) ? CreateType(FromTuple(moduleProperties, type.items || []), type) :
+                                                IsUnion$1(type) ? CreateType(FromUnion(moduleProperties, type.anyOf), type) :
+                                                    type);
+}
+// prettier-ignore
+function ComputeType(moduleProperties, key) {
+    return (key in moduleProperties
+        ? FromType(moduleProperties, moduleProperties[key])
+        : Never());
+}
+// prettier-ignore
+function ComputeModuleProperties(moduleProperties) {
+    return globalThis.Object.getOwnPropertyNames(moduleProperties).reduce((result, key) => {
+        return { ...result, [key]: ComputeType(moduleProperties, key) };
+    }, {});
+}
+
+// ------------------------------------------------------------------
+// Module
+// ------------------------------------------------------------------
+// prettier-ignore
+class TModule {
+    constructor($defs) {
+        const computed = ComputeModuleProperties($defs);
+        const identified = this.WithIdentifiers(computed);
+        this.$defs = identified;
+    }
+    /** `[Json]` Imports a Type by Key. */
+    Import(key, options) {
+        const $defs = { ...this.$defs, [key]: CreateType(this.$defs[key], options) };
+        return CreateType({ [Kind]: 'Import', $defs, $ref: key });
+    }
+    // prettier-ignore
+    WithIdentifiers($defs) {
+        return globalThis.Object.getOwnPropertyNames($defs).reduce((result, key) => {
+            return { ...result, [key]: { ...$defs[key], $id: key } };
+        }, {});
+    }
+}
+/** `[Json]` Creates a Type Definition Module. */
+function Module(properties) {
+    return new TModule(properties);
+}
+
+/** `[Json]` Creates a Not type */
+function Not(type, options) {
+    return CreateType({ [Kind]: 'Not', not: type }, options);
+}
+
+/** `[JavaScript]` Extracts the Parameters from the given Function type */
+function Parameters(schema, options) {
+    return (IsFunction$1(schema) ? Tuple(schema.parameters, options) : Never());
+}
+
+/** `[Json]` Creates a Readonly and Optional property */
+function ReadonlyOptional(schema) {
+    return Readonly(Optional(schema));
+}
+
+// Auto Tracked For Recursive Types without ID's
+let Ordinal = 0;
+/** `[Json]` Creates a Recursive type */
+function Recursive(callback, options = {}) {
+    if (IsUndefined$2(options.$id))
+        options.$id = `T${Ordinal++}`;
+    const thisType = CloneType(callback({ [Kind]: 'This', $ref: `${options.$id}` }));
+    thisType.$id = options.$id;
+    // prettier-ignore
+    return CreateType({ [Hint]: 'Recursive', ...thisType }, options);
+}
+
+/** `[JavaScript]` Creates a RegExp type */
+function RegExp$1(unresolved, options) {
+    const expr = IsString$2(unresolved) ? new globalThis.RegExp(unresolved) : unresolved;
+    return CreateType({ [Kind]: 'RegExp', type: 'RegExp', source: expr.source, flags: expr.flags }, options);
+}
+
+// ------------------------------------------------------------------
+// TypeGuard
+// ------------------------------------------------------------------
+// prettier-ignore
+function RestResolve(T) {
+    return (IsIntersect$1(T) ? T.allOf :
+        IsUnion$1(T) ? T.anyOf :
+            IsTuple$1(T) ? T.items ?? [] :
+                []);
+}
+/** `[Json]` Extracts interior Rest elements from Tuple, Intersect and Union types */
+function Rest(T) {
+    return RestResolve(T);
+}
+
+/** `[JavaScript]` Extracts the ReturnType from the given Function type */
+function ReturnType(schema, options) {
+    return (IsFunction$1(schema) ? CreateType(schema.returns, options) : Never(options));
+}
+
+// ------------------------------------------------------------------
+// TransformBuilders
+// ------------------------------------------------------------------
+class TransformDecodeBuilder {
+    constructor(schema) {
+        this.schema = schema;
+    }
+    Decode(decode) {
+        return new TransformEncodeBuilder(this.schema, decode);
+    }
+}
+// prettier-ignore
+class TransformEncodeBuilder {
+    constructor(schema, decode) {
+        this.schema = schema;
+        this.decode = decode;
+    }
+    EncodeTransform(encode, schema) {
+        const Encode = (value) => schema[TransformKind].Encode(encode(value));
+        const Decode = (value) => this.decode(schema[TransformKind].Decode(value));
+        const Codec = { Encode: Encode, Decode: Decode };
+        return { ...schema, [TransformKind]: Codec };
+    }
+    EncodeSchema(encode, schema) {
+        const Codec = { Decode: this.decode, Encode: encode };
+        return { ...schema, [TransformKind]: Codec };
+    }
+    Encode(encode) {
+        return (IsTransform$1(this.schema) ? this.EncodeTransform(encode, this.schema) : this.EncodeSchema(encode, this.schema));
+    }
+}
+/** `[Json]` Creates a Transform type */
+function Transform(schema) {
+    return new TransformDecodeBuilder(schema);
+}
+
+/** `[JavaScript]` Creates a Void type */
+function Void(options) {
+    return CreateType({ [Kind]: 'Void', type: 'void' }, options);
+}
+
+// ------------------------------------------------------------------
+// Type: Module
+// ------------------------------------------------------------------
+
+var TypeBuilder = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    Any: Any,
+    Array: Array$1,
+    AsyncIterator: AsyncIterator,
+    Awaited: Awaited,
+    BigInt: BigInt$1,
+    Boolean: Boolean$1,
+    Capitalize: Capitalize,
+    Composite: Composite,
+    Const: Const,
+    Constructor: Constructor,
+    ConstructorParameters: ConstructorParameters,
+    Date: Date$1,
+    Enum: Enum,
+    Exclude: Exclude,
+    Extends: Extends,
+    Extract: Extract,
+    Function: Function$1,
+    Index: Index,
+    InstanceType: InstanceType,
+    Integer: Integer,
+    Intersect: Intersect$1,
+    Iterator: Iterator,
+    KeyOf: KeyOf,
+    Literal: Literal,
+    Lowercase: Lowercase,
+    Mapped: Mapped,
+    Module: Module,
+    Never: Never,
+    Not: Not,
+    Null: Null,
+    Number: Number$1,
+    Object: Object$1,
+    Omit: Omit,
+    Optional: Optional,
+    Parameters: Parameters,
+    Partial: Partial,
+    Pick: Pick,
+    Promise: Promise$1,
+    Readonly: Readonly,
+    ReadonlyOptional: ReadonlyOptional,
+    Record: Record,
+    Recursive: Recursive,
+    Ref: Ref,
+    RegExp: RegExp$1,
+    Required: Required,
+    Rest: Rest,
+    ReturnType: ReturnType,
+    String: String$1,
+    Symbol: Symbol$1,
+    TemplateLiteral: TemplateLiteral,
+    Transform: Transform,
+    Tuple: Tuple,
+    Uint8Array: Uint8Array$1,
+    Uncapitalize: Uncapitalize,
+    Undefined: Undefined,
+    Union: Union$1,
+    Unknown: Unknown,
+    Unsafe: Unsafe,
+    Uppercase: Uppercase,
+    Void: Void
+});
+
+// ------------------------------------------------------------------
+// JsonTypeBuilder
+// ------------------------------------------------------------------
+/** JavaScript Type Builder with Static Resolution for TypeScript */
+const Type = TypeBuilder;
+
+/**
+ * ATTENTION. This code was AUTO GENERATED by ts2typebox. While I don't know
+ * your use case, there is a high chance that direct changes to this file get
+ * lost. Consider making changes to the underlying Typescript code you use to
+ * generate this file instead. The default file is called "types.ts", perhaps
+ * have a look there! :]
+ */
+Type.Union([
+    Type.Object({
+        Success: Type.Tuple([
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+        ]),
+    }),
+    Type.Object({
+        NeuronAlreadyExists: Type.Tuple([
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+        ]),
+    }),
+    Type.Literal("StakeTooLow"),
+    Type.Object({
+        TransferError: Type.String(),
+    }),
+    Type.Literal("GovernanceCanisterNotSupported"),
+    Type.Literal("Unauthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        TransferError: Type.String(),
+    }),
+    Type.Literal("GovernanceCanisterNotSupported"),
+    Type.Literal("Unauthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("GovernanceCanisterNotSupported"),
+    Type.Object({
+        InsufficientPayment: Type.BigInt(),
+    }),
+    Type.Object({
+        PaymentFailed: Type.String(),
+    }),
+    Type.Object({
+        Retrying: Type.String(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+const ProposalsBotCanisterInstallMode = Type.Union([
+    Type.Literal("Install"),
+    Type.Literal("Reinstall"),
+    Type.Literal("Upgrade"),
+]);
+const ProposalsBotTreasury = Type.Union([Type.Literal("ICP"), Type.Literal("SNS")]);
+const ReferralStatus = Type.Union([
+    Type.Literal("Registered"),
+    Type.Literal("Diamond"),
+    Type.Literal("UniquePerson"),
+    Type.Literal("LifetimeDiamond"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UserNotFound"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    updates_since: Type.BigInt(),
+});
+Type.Object({
+    mute: Type.Boolean(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CallerNotInGroup"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("AlreadyEnded"),
+    Type.Literal("GroupFrozen"),
+    Type.Literal("UserNotInGroup"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserNotInGroup"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("Invalid"),
+    Type.Literal("ChatFrozen"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+const GroupInviteCodeSuccessResult = Type.Object({
+    code: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Union([
+    Type.Object({
+        Success: GroupInviteCodeSuccessResult,
+    }),
+    Type.Literal("NotAuthorized"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("CannotUnblockSelf"),
+    Type.Literal("GroupNotPublic"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotFollowing"),
+    Type.Literal("ThreadNotFound"),
+    Type.Literal("UserNotInGroup"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("GroupFrozen"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+    Type.Literal("NotPlatformModerator"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    correlation_id: Type.BigInt(),
+});
+const GroupEnableInviteCodeSuccessResult = Type.Object({
+    code: Type.BigInt(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        AlreadyVoted: Type.Boolean(),
+    }),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("NoEligibleNeurons"),
+    Type.Literal("ProposalMessageNotFound"),
+    Type.Literal("ProposalNotFound"),
+    Type.Literal("ProposalNotAcceptingVotes"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+]);
+Type.Object({
+    correlation_id: Type.BigInt(),
+});
+const GroupGenerateBotApiKeySuccessResult = Type.Object({
+    api_key: Type.String(),
+});
+Type.Union([
+    Type.Object({
+        Success: GroupGenerateBotApiKeySuccessResult,
+    }),
+    Type.Literal("BotNotFound"),
+    Type.Literal("ChatFrozen"),
+    Type.Literal("NotAuthorized"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("ProposalMessageNotFound"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+]);
+Type.Object({
+    invite_code: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NoChange"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NoChange"),
+    Type.Literal("InvalidReaction"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+]);
+Type.Object({
+    invite_code: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const GroupRulesSuccessResult = Type.Object({
+    rules: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("CannotBlockSelf"),
+    Type.Literal("CannotBlockUser"),
+    Type.Literal("GroupNotPublic"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserNotInGroup"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("CannotRemoveSelf"),
+    Type.Literal("CannotRemoveUser"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserNotInGroup"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotInvited"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("ChatFrozen"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("NotFound"),
+]);
+Type.Object({
+    updates_since: Type.BigInt(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("AlreadyReported"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+]);
+Type.Object({});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("AlreadyFollowing"),
+    Type.Literal("ThreadNotFound"),
+    Type.Literal("UserNotInGroup"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("GroupFrozen"),
+]);
+const ChannelId = Type.BigInt();
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UserSuspended"),
+]);
+const UserMessageActivitySummary = Type.Object({
+    read_up_to: Type.BigInt(),
+    latest_event_timestamp: Type.BigInt(),
+    unread_count: Type.Number(),
+});
+Type.Object({
+    last_seen: Type.BigInt(),
+});
+Type.Literal("Success");
+Type.Object({
+    Success: Type.String(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("AlreadyEnded"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserBlocked"),
+    Type.Literal("ChatNotFound"),
+]);
+Type.Object({
+    swap_id: Type.BigInt(),
+});
+const UserTokenSwapStatusTokenSwapStatus = Type.Object({
+    started: Type.BigInt(),
+    icrc2: Type.Boolean(),
+    auto_withdrawals: Type.Boolean(),
+    deposit_account: Type.Union([
+        Type.Object({
+            Ok: Type.Null(),
+        }),
+        Type.Object({
+            Err: Type.String(),
+        }),
+        Type.Null(),
+    ]),
+    transfer: Type.Union([
+        Type.Object({
+            Ok: Type.BigInt(),
+        }),
+        Type.Object({
+            Err: Type.String(),
+        }),
+        Type.Null(),
+    ]),
+    transfer_or_approval: Type.Union([
+        Type.Object({
+            Ok: Type.BigInt(),
+        }),
+        Type.Object({
+            Err: Type.String(),
+        }),
+        Type.Null(),
+    ]),
+    notify_dex: Type.Union([
+        Type.Object({
+            Ok: Type.Null(),
+        }),
+        Type.Object({
+            Err: Type.String(),
+        }),
+        Type.Null(),
+    ]),
+    amount_swapped: Type.Union([
+        Type.Object({
+            Ok: Type.Union([
+                Type.Object({
+                    Ok: Type.BigInt(),
+                }),
+                Type.Object({
+                    Err: Type.String(),
+                }),
+            ]),
+        }),
+        Type.Object({
+            Err: Type.String(),
+        }),
+        Type.Null(),
+    ]),
+    withdraw_from_dex: Type.Union([
+        Type.Object({
+            Ok: Type.BigInt(),
+        }),
+        Type.Object({
+            Err: Type.String(),
+        }),
+        Type.Null(),
+    ]),
+    success: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+});
+const UserSwapTokensSuccessResult = Type.Object({
+    amount_out: Type.BigInt(),
+});
+Type.Object({
+    since: Type.BigInt(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("ChatNotFound"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("CannotTipSelf"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("TransferCannotBeZero"),
+    Type.Literal("TransferNotToMessageSender"),
+    Type.Object({
+        TransferFailed: Type.String(),
+    }),
+    Type.Literal("ChatFrozen"),
+    Type.Literal("PinRequired"),
+    Type.Object({
+        PinIncorrect: Type.BigInt(),
+    }),
+    Type.Object({
+        TooManyFailedPinAttempts: Type.BigInt(),
+    }),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Object({
+        Retrying: Type.String(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UserSuspended"),
+]);
+Type.Literal("Success");
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("ChatNotFound"),
+]);
+Type.Union([
+    Type.Object({
+        Success: Type.String(),
+    }),
+    Type.Literal("NotFound"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("ChatNotFound"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("ChatNotFound"),
+    Type.Literal("UserSuspended"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("Invalid"),
+    Type.Literal("NameTaken"),
+    Type.Literal("UserSuspended"),
+]);
+Type.Object({
+    updates_since: Type.BigInt(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("GroupNotFound"),
+    Type.Literal("GroupNotPublic"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("OwnerCannotLeave"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("ChatFrozen"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("ChatNotFound"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Object({
+        Success: Type.String(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    text: Type.String(),
+});
+const UserClaimDailyChitSuccessResult = Type.Object({
+    chit_earned: Type.Number(),
+    chit_balance: Type.Number(),
+    streak: Type.Number(),
+    next_claim: Type.BigInt(),
+});
+Type.Union([
+    Type.Object({
+        Success: UserClaimDailyChitSuccessResult,
+    }),
+    Type.Object({
+        AlreadyClaimed: Type.BigInt(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("ChatFrozen"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    start: Type.Number(),
+    max_results: Type.Number(),
+});
+const UserMessageActivity = Type.Union([
+    Type.Literal("Mention"),
+    Type.Literal("Reaction"),
+    Type.Literal("QuoteReply"),
+    Type.Literal("Tip"),
+    Type.Literal("Crypto"),
+    Type.Literal("PollVote"),
+    Type.Literal("P2PSwapAccepted"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UserSuspended"),
+]);
+Type.Literal("Success");
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        Failed: Type.String(),
+    }),
+]);
+const UserPublicProfilePublicProfile = Type.Object({
+    username: Type.String(),
+    display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    avatar_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    bio: Type.String(),
+    is_premium: Type.Boolean(),
+    phone_is_verified: Type.Boolean(),
+    created: Type.BigInt(),
+});
+Type.Union([
+    Type.Object({
+        Success: Type.BigInt(),
+    }),
+    Type.Object({
+        ApproveError: Type.String(),
+    }),
+    Type.Object({
+        RetrieveBtcError: Type.String(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    amount: Type.BigInt(),
+    address: Type.String(),
+});
+Type.Literal("Success");
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CommunityNotFound"),
+    Type.Literal("CommunityNotPublic"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("LastOwnerCannotLeave"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("CommunityFrozen"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Literal("Success");
+Type.Object({
+    reminder_id: Type.BigInt(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("CommunityFrozen"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    from: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    to: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    skip: Type.Optional(Type.Union([Type.Number(), Type.Undefined()])),
+    max: Type.Number(),
+    ascending: Type.Boolean(),
+});
+const UserNamedAccount = Type.Object({
+    name: Type.String(),
+    account: Type.String(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("ChatNotFound"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("AlreadyReported"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+const UserAutoWallet = Type.Object({
+    min_cents_visible: Type.Number(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("ChatNotFound"),
+    Type.Literal("UserBlocked"),
+    Type.Literal("UserSuspended"),
+]);
+Type.Literal("Success");
+Type.Object({
+    read_up_to: Type.BigInt(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("ChatNotFound"),
+]);
+Type.Literal("Success");
+const CommunityPermission = Type.Union([
+    Type.Literal("ChangeRoles"),
+    Type.Literal("UpdateDetails"),
+    Type.Literal("InviteUsers"),
+    Type.Literal("RemoveMembers"),
+    Type.Literal("CreatePublicChannel"),
+    Type.Literal("CreatePrivateChannel"),
+    Type.Literal("ManageUserGroups"),
+]);
+const MessageReminderContent = Type.Object({
+    reminder_id: Type.BigInt(),
+    notes: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+});
+const Reaction = Type.String();
+const FieldTooShortResult = Type.Object({
+    length_provided: Type.Number(),
+    min_length: Type.Number(),
+});
+const MessageIndex = Type.Number();
+const DiamondMembershipPlanDuration = Type.Union([
+    Type.Literal("OneMonth"),
+    Type.Literal("ThreeMonths"),
+    Type.Literal("OneYear"),
+    Type.Literal("Lifetime"),
+]);
+const EventIndex = Type.Number();
+const VoteOperation = Type.Union([Type.Literal("RegisterVote"), Type.Literal("DeleteVote")]);
+const SlashCommandOptionChoiceString = Type.Object({
+    name: Type.String(),
+    value: Type.String(),
+});
+const SuspensionAction = Type.Union([
+    Type.Object({
+        Unsuspend: Type.BigInt(),
+    }),
+    Type.Object({
+        Delete: Type.BigInt(),
+    }),
+]);
+const GroupPermission = Type.Union([
+    Type.Literal("ChangeRoles"),
+    Type.Literal("UpdateGroup"),
+    Type.Literal("AddMembers"),
+    Type.Literal("InviteUsers"),
+    Type.Literal("RemoveMembers"),
+    Type.Literal("DeleteMessages"),
+    Type.Literal("PinMessages"),
+    Type.Literal("ReactToMessages"),
+    Type.Literal("MentionAllMembers"),
+    Type.Literal("StartVideoCall"),
+]);
+const SwapStatusErrorCancelled = Type.Object({
+    token0_txn_out: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const SubscriptionKeys = Type.Object({
+    p256dh: Type.String(),
+    auth: Type.String(),
+});
+const CommunityRole = Type.Union([
+    Type.Literal("Owner"),
+    Type.Literal("Admin"),
+    Type.Literal("Member"),
+]);
+const ExchangeId = Type.Union([
+    Type.Literal("ICPSwap"),
+    Type.Literal("Sonic"),
+    Type.Literal("KongSwap"),
+]);
+const ProposalDecisionStatus = Type.Union([
+    Type.Literal("Unspecified"),
+    Type.Literal("Open"),
+    Type.Literal("Rejected"),
+    Type.Literal("Adopted"),
+    Type.Literal("Executed"),
+    Type.Literal("Failed"),
+]);
+const CanisterUpgradeStatus = Type.Union([
+    Type.Literal("InProgress"),
+    Type.Literal("NotRequired"),
+]);
+const OptionUpdateU128 = Type.Union([
+    Type.Literal("NoChange"),
+    Type.Literal("SetToNone"),
+    Type.Object({
+        SetToSome: Type.BigInt(),
+    }),
+], { default: "NoChange" });
+const SwapStatusErrorExpired = Type.Object({
+    token0_txn_out: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const PinNumberSettings = Type.Object({
+    length: Type.Number(),
+    attempts_blocked_until: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const ApproveError = Type.Union([
+    Type.Object({
+        BadFee: Type.Object({
+            expected_fee: Type.BigInt(),
+        }),
+    }),
+    Type.Object({
+        InsufficientFunds: Type.Object({
+            balance: Type.BigInt(),
+        }),
+    }),
+    Type.Object({
+        AllowanceChanged: Type.Object({
+            current_allowance: Type.BigInt(),
+        }),
+    }),
+    Type.Object({
+        Expired: Type.Object({
+            ledger_time: Type.BigInt(),
+        }),
+    }),
+    Type.Literal("TooOld"),
+    Type.Object({
+        CreatedInFuture: Type.Object({
+            ledger_time: Type.BigInt(),
+        }),
+    }),
+    Type.Object({
+        Duplicate: Type.Object({
+            duplicate_of: Type.BigInt(),
+        }),
+    }),
+    Type.Literal("TemporarilyUnavailable"),
+    Type.Object({
+        GenericError: Type.Object({
+            error_code: Type.BigInt(),
+            message: Type.String(),
+        }),
+    }),
+]);
+const VideoCallPresence = Type.Union([
+    Type.Literal("Default"),
+    Type.Literal("Owner"),
+    Type.Literal("Hidden"),
+]);
+const ChatMetrics = Type.Object({
+    text_messages: Type.BigInt(),
+    image_messages: Type.BigInt(),
+    video_messages: Type.BigInt(),
+    audio_messages: Type.BigInt(),
+    file_messages: Type.BigInt(),
+    polls: Type.BigInt(),
+    poll_votes: Type.BigInt(),
+    crypto_messages: Type.BigInt(),
+    icp_messages: Type.BigInt(),
+    sns1_messages: Type.BigInt(),
+    ckbtc_messages: Type.BigInt(),
+    chat_messages: Type.BigInt(),
+    kinic_messages: Type.BigInt(),
+    deleted_messages: Type.BigInt(),
+    giphy_messages: Type.BigInt(),
+    prize_messages: Type.BigInt(),
+    prize_winner_messages: Type.BigInt(),
+    replies: Type.BigInt(),
+    edits: Type.BigInt(),
+    reactions: Type.BigInt(),
+    proposals: Type.BigInt(),
+    reported_messages: Type.BigInt(),
+    message_reminders: Type.BigInt(),
+    custom_type_messages: Type.BigInt(),
+    last_active: Type.BigInt(),
+});
+const VideoCallType = Type.Union([Type.Literal("Broadcast"), Type.Literal("Default")]);
+const MessagePermission = Type.Union([
+    Type.Literal("Text"),
+    Type.Literal("Image"),
+    Type.Literal("Video"),
+    Type.Literal("Audio"),
+    Type.Literal("File"),
+    Type.Literal("Poll"),
+    Type.Literal("Crypto"),
+    Type.Literal("Giphy"),
+    Type.Literal("Prize"),
+    Type.Literal("P2pSwap"),
+    Type.Literal("VideoCall"),
+]);
+const SlashCommandOptionChoiceI128 = Type.Object({
+    name: Type.String(),
+    value: Type.BigInt(),
+});
+const VideoCall = Type.Object({
+    message_index: MessageIndex,
+    call_type: VideoCallType,
+});
+const GroupRole = Type.Union([
+    Type.Literal("Owner"),
+    Type.Literal("Admin"),
+    Type.Literal("Moderator"),
+    Type.Literal("Participant"),
+]);
+const AuthToken = Type.Union([
+    Type.Object({
+        Jwt: Type.String(),
+    }),
+    Type.Object({
+        ApiKey: Type.String(),
+    }),
+]);
+const StringParam = Type.Object({
+    min_length: Type.Number(),
+    max_length: Type.Number(),
+    choices: Type.Array(SlashCommandOptionChoiceString),
+});
+const GroupPermissionRole = Type.Union([
+    Type.Literal("None"),
+    Type.Literal("Owner"),
+    Type.Literal("Admins"),
+    Type.Literal("Moderators"),
+    Type.Literal("Members"),
+]);
+const AcceptSwapSuccess = Type.Object({
+    token1_txn_in: Type.BigInt(),
+});
+const OptionUpdateU64 = Type.Union([
+    Type.Literal("NoChange"),
+    Type.Literal("SetToNone"),
+    Type.Object({
+        SetToSome: Type.BigInt(),
+    }),
+], { default: "NoChange" });
+const GroupCanisterThreadDetails = Type.Object({
+    root_message_index: MessageIndex,
+    latest_event: EventIndex,
+    latest_message: MessageIndex,
+    last_updated: Type.BigInt(),
+});
+const Tokens = Type.Object({
+    e8s: Type.BigInt(),
+});
+const Rules = Type.Object({
+    text: Type.String(),
+    enabled: Type.Boolean(),
+});
+const SubscriptionInfo = Type.Object({
+    endpoint: Type.String(),
+    keys: SubscriptionKeys,
+});
+const OptionUpdateVideoCall = Type.Union([
+    Type.Literal("NoChange"),
+    Type.Literal("SetToNone"),
+    Type.Object({
+        SetToSome: VideoCall,
+    }),
+], { default: "NoChange" });
+const UserSummaryVolatile = Type.Object({
+    total_chit_earned: Type.Number(),
+    chit_balance: Type.Number(),
+    streak: Type.Number(),
+});
+const CommunityPermissionRole = Type.Union([
+    Type.Literal("Owners"),
+    Type.Literal("Admins"),
+    Type.Literal("Members"),
+]);
+const ProposalRewardStatus = Type.Union([
+    Type.Literal("Unspecified"),
+    Type.Literal("AcceptVotes"),
+    Type.Literal("ReadyToSettle"),
+    Type.Literal("Settled"),
+]);
+const OptionUpdatePinNumberSettings = Type.Union([
+    Type.Literal("NoChange"),
+    Type.Literal("SetToNone"),
+    Type.Object({
+        SetToSome: PinNumberSettings,
+    }),
+], { default: "NoChange" });
+const CommunityPermissions = Type.Object({
+    change_roles: CommunityPermissionRole,
+    update_details: CommunityPermissionRole,
+    invite_users: CommunityPermissionRole,
+    remove_members: CommunityPermissionRole,
+    create_public_channel: CommunityPermissionRole,
+    create_private_channel: CommunityPermissionRole,
+    manage_user_groups: CommunityPermissionRole,
+});
+const StreakInsurance = Type.Object({
+    days_insured: Type.Number(),
+    days_missed: Type.Number(),
+});
+const FieldTooLongResult = Type.Object({
+    length_provided: Type.Number(),
+    max_length: Type.Number(),
+});
+const Chit = Type.Object({
+    balance: Type.Number(),
+    streak: Type.Number(),
+});
+const PinNumberWrapper = Type.String();
+const GiphyImageVariant = Type.Object({
+    width: Type.Number(),
+    height: Type.Number(),
+    url: Type.String(),
+    mime_type: Type.String(),
+});
+const Achievement = Type.Union([
+    Type.Literal("JoinedGroup"),
+    Type.Literal("JoinedCommunity"),
+    Type.Literal("SentDirectMessage"),
+    Type.Literal("ReceivedDirectMessage"),
+    Type.Literal("SetAvatar"),
+    Type.Literal("SetBio"),
+    Type.Literal("SetDisplayName"),
+    Type.Literal("UpgradedToDiamond"),
+    Type.Literal("UpgradedToGoldDiamond"),
+    Type.Literal("Streak3"),
+    Type.Literal("Streak7"),
+    Type.Literal("Streak14"),
+    Type.Literal("Streak30"),
+    Type.Literal("Streak100"),
+    Type.Literal("Streak365"),
+    Type.Literal("SentPoll"),
+    Type.Literal("SentText"),
+    Type.Literal("SentImage"),
+    Type.Literal("SentVideo"),
+    Type.Literal("SentAudio"),
+    Type.Literal("SentFile"),
+    Type.Literal("SentGiphy"),
+    Type.Literal("SentPrize"),
+    Type.Literal("SentMeme"),
+    Type.Literal("SentCrypto"),
+    Type.Literal("SentP2PSwapOffer"),
+    Type.Literal("StartedCall"),
+    Type.Literal("ReactedToMessage"),
+    Type.Literal("EditedMessage"),
+    Type.Literal("RepliedInThread"),
+    Type.Literal("QuoteReplied"),
+    Type.Literal("TippedMessage"),
+    Type.Literal("DeletedMessage"),
+    Type.Literal("ForwardedMessage"),
+    Type.Literal("ProvedUniquePersonhood"),
+    Type.Literal("ReceivedCrypto"),
+    Type.Literal("HadMessageReactedTo"),
+    Type.Literal("HadMessageTipped"),
+    Type.Literal("VotedOnPoll"),
+    Type.Literal("SentReminder"),
+    Type.Literal("JoinedCall"),
+    Type.Literal("AcceptedP2PSwapOffer"),
+    Type.Literal("SetCommunityDisplayName"),
+    Type.Literal("Referred1stUser"),
+    Type.Literal("Referred3rdUser"),
+    Type.Literal("Referred10thUser"),
+    Type.Literal("Referred20thUser"),
+    Type.Literal("Referred50thUser"),
+    Type.Literal("FollowedThread"),
+    Type.Literal("FavouritedChat"),
+    Type.Literal("SetPin"),
+    Type.Literal("SwappedFromWallet"),
+    Type.Literal("PinnedChat"),
+    Type.Literal("ChangedTheme"),
+]);
+Type.Record(Type.String(), Type.Never());
+const ThumbnailData = Type.String();
+const GroupReplyContext = Type.Object({
+    event_index: EventIndex,
+});
+const PushEventResult = Type.Object({
+    index: EventIndex,
+    timestamp: Type.BigInt(),
+    expires_at: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const BuildVersion = Type.Object({
+    major: Type.Number(),
+    minor: Type.Number(),
+    patch: Type.Number(),
+});
+const OptionUpdateGroupPermissionRole = Type.Union([
+    Type.Literal("NoChange"),
+    Type.Literal("SetToNone"),
+    Type.Object({
+        SetToSome: GroupPermissionRole,
+    }),
+], { default: "NoChange" });
+const Cryptocurrency = Type.Union([
+    Type.Literal("InternetComputer"),
+    Type.Literal("SNS1"),
+    Type.Literal("CKBTC"),
+    Type.Literal("CHAT"),
+    Type.Literal("KINIC"),
+    Type.Object({
+        Other: Type.String(),
+    }),
+]);
+const ChitEarnedReason = Type.Union([
+    Type.Literal("DailyClaim"),
+    Type.Object({
+        Achievement: Achievement,
+    }),
+    Type.Object({
+        ExternalAchievement: Type.String(),
+    }),
+    Type.Object({
+        Referral: ReferralStatus,
+    }),
+    Type.Literal("MemeContestWinner"),
+]);
+const InvalidPollReason = Type.Union([
+    Type.Object({
+        TooFewOptions: Type.Number(),
+    }),
+    Type.Object({
+        TooManyOptions: Type.Number(),
+    }),
+    Type.Object({
+        OptionTooLong: Type.Number(),
+    }),
+    Type.Literal("DuplicateOptions"),
+    Type.Literal("EndDateInThePast"),
+    Type.Literal("PollsNotValidForDirectChats"),
+]);
+const MembersAddedToDefaultChannel = Type.Object({
+    count: Type.Number(),
+});
+const CryptoAccountNNS = Type.Union([
+    Type.Literal("Mint"),
+    Type.Object({
+        Account: Type.Tuple([
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+        ]),
+    }),
+]);
+const MessageReminderCreatedContent = Type.Object({
+    reminder_id: Type.BigInt(),
+    remind_at: Type.BigInt(),
+    notes: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    hidden: Type.Boolean(),
+});
+const TransferFromError = Type.Union([
+    Type.Object({
+        BadFee: Type.Object({
+            expected_fee: Type.BigInt(),
+        }),
+    }),
+    Type.Object({
+        BadBurn: Type.Object({
+            min_burn_amount: Type.BigInt(),
+        }),
+    }),
+    Type.Object({
+        InsufficientFunds: Type.Object({
+            balance: Type.BigInt(),
+        }),
+    }),
+    Type.Object({
+        InsufficientAllowance: Type.Object({
+            allowance: Type.BigInt(),
+        }),
+    }),
+    Type.Literal("TooOld"),
+    Type.Object({
+        CreatedInFuture: Type.Object({
+            ledger_time: Type.BigInt(),
+        }),
+    }),
+    Type.Object({
+        Duplicate: Type.Object({
+            duplicate_of: Type.BigInt(),
+        }),
+    }),
+    Type.Literal("TemporarilyUnavailable"),
+    Type.Object({
+        GenericError: Type.Object({
+            error_code: Type.BigInt(),
+            message: Type.String(),
+        }),
+    }),
+]);
+const MessageMatch = Type.Object({
+    message_index: MessageIndex,
+    score: Type.Number(),
+});
+const OptionUpdateStreakInsurance = Type.Union([
+    Type.Literal("NoChange"),
+    Type.Literal("SetToNone"),
+    Type.Object({
+        SetToSome: StreakInsurance,
+    }),
+], { default: "NoChange" });
+const DirectChatCreated = Type.Record(Type.String(), Type.Never());
+const GroupInviteCodeChange = Type.Union([
+    Type.Literal("Enabled"),
+    Type.Literal("Disabled"),
+    Type.Literal("Reset"),
+]);
+const Version = Type.Number();
+const OptionalCommunityPermissions = Type.Object({
+    change_roles: Type.Optional(Type.Union([CommunityPermissionRole, Type.Undefined()])),
+    update_details: Type.Optional(Type.Union([CommunityPermissionRole, Type.Undefined()])),
+    invite_users: Type.Optional(Type.Union([CommunityPermissionRole, Type.Undefined()])),
+    remove_members: Type.Optional(Type.Union([CommunityPermissionRole, Type.Undefined()])),
+    create_public_channel: Type.Optional(Type.Union([CommunityPermissionRole, Type.Undefined()])),
+    create_private_channel: Type.Optional(Type.Union([CommunityPermissionRole, Type.Undefined()])),
+    manage_user_groups: Type.Optional(Type.Union([CommunityPermissionRole, Type.Undefined()])),
+});
+const CommunityMembership = Type.Object({
+    joined: Type.BigInt(),
+    role: CommunityRole,
+    rules_accepted: Type.Boolean(),
+    display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    lapsed: Type.Boolean(),
+});
+const VerifiedCredentialArgumentValue = Type.Union([
+    Type.Object({
+        String: Type.String(),
+    }),
+    Type.Object({
+        Int: Type.Number(),
+    }),
+]);
+const BotPermissions = Type.Object({
+    community: Type.Array(CommunityPermission),
+    chat: Type.Array(GroupPermission),
+    message: Type.Array(MessagePermission),
+});
+const VideoCallAccessTokenArgs = Type.Object({
+    call_type: VideoCallType,
+});
+const P2PSwapCancelled = Type.Object({
+    token0_txn_out: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const TextContent = Type.Object({
+    text: Type.String(),
+});
+const MessageId = Type.BigInt();
+const AutonomousConfig = Type.Object({
+    permissions: BotPermissions,
+});
+const SlashCommandOptionChoiceF64 = Type.Object({
+    name: Type.String(),
+    value: Type.Number(),
+});
+const CustomPermission = Type.Object({
+    subtype: Type.String(),
+    role: GroupPermissionRole,
+});
+const TSBytes = Type.Uint8Array();
+const UpdatedRules = Type.Object({
+    text: Type.String(),
+    enabled: Type.Boolean(),
+    new_version: Type.Boolean(),
+});
+const OptionUpdateString = Type.Union([
+    Type.Literal("NoChange"),
+    Type.Literal("SetToNone"),
+    Type.Object({
+        SetToSome: Type.String(),
+    }),
+], { default: "NoChange" });
+const DecimalParam = Type.Object({
+    min_value: Type.Number(),
+    max_value: Type.Number(),
+    choices: Type.Array(SlashCommandOptionChoiceF64),
+});
+const DiamondMembershipStatus = Type.Union([
+    Type.Literal("Inactive"),
+    Type.Literal("Active"),
+    Type.Literal("Lifetime"),
+]);
+const PollConfig = Type.Object({
+    text: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    options: Type.Array(Type.String()),
+    end_date: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    anonymous: Type.Boolean(),
+    show_votes_before_end_date: Type.Boolean(),
+    allow_multiple_votes_per_user: Type.Boolean(),
+    allow_user_to_change_vote: Type.Boolean(),
+});
+const Tally = Type.Object({
+    yes: Type.BigInt(),
+    no: Type.BigInt(),
+    total: Type.BigInt(),
+    timestamp: Type.BigInt(),
+});
+const DiamondMembershipFeesByDuration = Type.Object({
+    one_month: Type.BigInt(),
+    three_months: Type.BigInt(),
+    one_year: Type.BigInt(),
+    lifetime: Type.BigInt(),
+});
+const UserGroupSummary = Type.Object({
+    user_group_id: Type.Number(),
+    name: Type.String(),
+    members: Type.Number(),
+});
+const DiamondMembershipSubscription = Type.Union([
+    Type.Literal("Disabled"),
+    Type.Literal("OneMonth"),
+    Type.Literal("ThreeMonths"),
+    Type.Literal("OneYear"),
+]);
+const GroupIndexFreezeGroupSuspensionDetails = Type.Object({
+    duration: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    reason: Type.String(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("ChatAlreadyExcluded"),
+    Type.Literal("ChatNotFound"),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    canister_id: TSBytes,
+    full: Type.Boolean(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("LocalGroupIndexNotFound"),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    search_term: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    languages: Type.Array(Type.String()),
+    page_index: Type.Number(),
+    page_size: Type.Number(),
+    include_moderation_flags: Type.Number(),
+});
+const GroupIndexFreezeCommunitySuspensionDetails = Type.Object({
+    duration: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    reason: Type.String(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    value: Type.Number(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("ChatNotFrozen"),
+    Type.Literal("ChatNotFound"),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("Unchanged"),
+    Type.Literal("CommunityNotFound"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("InvalidFlags"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("ChatNotExcluded"),
+    Type.Literal("ChatNotFound"),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    search_term: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    page_index: Type.Number(),
+    page_size: Type.Number(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    value: Type.Number(),
+});
+Type.Object({
+    file_hash: Type.Tuple([
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+    ]),
+    file_size: Type.BigInt(),
+});
+const StorageIndexUserUserRecord = Type.Object({
+    byte_limit: Type.BigInt(),
+    bytes_used: Type.BigInt(),
+});
+Type.Union([
+    Type.Object({
+        Success: StorageIndexUserUserRecord,
+    }),
+    Type.Literal("UserNotFound"),
+]);
+const StorageIndexProjectedAllowance = Type.Object({
+    byte_limit: Type.BigInt(),
+    bytes_used: Type.BigInt(),
+    bytes_used_after_upload: Type.BigInt(),
+    bytes_used_after_operation: Type.BigInt(),
+});
+const StorageIndexAllocationBucketSuccessResult = Type.Object({
+    canister_id: TSBytes,
+    file_id: Type.BigInt(),
+    chunk_size: Type.Number(),
+    byte_limit: Type.BigInt(),
+    bytes_used: Type.BigInt(),
+    bytes_used_after_upload: Type.BigInt(),
+    projected_allowance: StorageIndexProjectedAllowance,
+});
+Type.Union([
+    Type.Object({
+        Success: StorageIndexAllocationBucketSuccessResult,
+    }),
+    Type.Object({
+        AllowanceExceeded: StorageIndexProjectedAllowance,
+    }),
+    Type.Literal("UserNotFound"),
+    Type.Literal("BucketUnavailable"),
+]);
+Type.Object({
+    file_hash: Type.Tuple([
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+    ]),
+    file_size: Type.BigInt(),
+    file_id_seed: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    regex: Type.String(),
+});
+Type.Union([
+    Type.Object({
+        Success: Type.BigInt(),
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("AlreadyAdded"),
+    Type.Object({
+        InvalidRequest: Type.String(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("IncompleteConfig"),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+const RegistryMessageFilterSummary = Type.Object({
+    id: Type.BigInt(),
+    regex: Type.String(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("NotFound"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    id: Type.BigInt(),
+});
+const RegistryNervousSystemSummary = Type.Object({
+    root_canister_id: TSBytes,
+    governance_canister_id: TSBytes,
+    ledger_canister_id: TSBytes,
+    index_canister_id: TSBytes,
+    is_nns: Type.Boolean(),
+    proposal_rejection_fee: Type.BigInt(),
+    submitting_proposals_enabled: Type.Boolean(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    swap_provider: ExchangeId,
+    add: Type.Boolean(),
+});
+Type.Object({
+    since: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    ledger_canister_id: TSBytes,
+    enabled: Type.Boolean(),
+});
+const UserIndexDiamondMembershipFeesDiamondMembershipFees = Type.Object({
+    token: Cryptocurrency,
+    one_month: Type.BigInt(),
+    three_months: Type.BigInt(),
+    one_year: Type.BigInt(),
+    lifetime: Type.BigInt(),
+});
+const UserIndexUsersChitSuccessResult = Type.Object({
+    chit: Type.Array(Chit),
+});
+Type.Union([
+    Type.Object({
+        Success: Type.String(),
+    }),
+    Type.Literal("NotInitialised"),
+]);
+Type.Object({
+    pay_in_chat: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    subscription: Type.Optional(Type.Union([DiamondMembershipSubscription, Type.Undefined()])),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotDiamondMember"),
+    Type.Literal("AlreadyLifetimeDiamondMember"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UserAlreadySuspended"),
+    Type.Literal("UserNotFound"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UsernameTaken"),
+    Type.Literal("UsernameInvalid"),
+    Type.Object({
+        UsernameTooShort: Type.Number(),
+    }),
+    Type.Object({
+        UsernameTooLong: Type.Number(),
+    }),
+]);
+Type.Object({
+    username: Type.String(),
+    is_bot: Type.Boolean(),
+});
+Type.Object({
+    moderation_flags_enabled: Type.Number(),
+});
+Type.Literal("Success");
+Type.Object({
+    value: Type.Number(),
+});
+Type.Literal("Success");
+const UserIndexExternalAchievementsExternalAchievement = Type.Object({
+    id: Type.Number(),
+    name: Type.String(),
+    url: Type.String(),
+    chit_reward: Type.Number(),
+    expires: Type.BigInt(),
+    budget_exhausted: Type.Boolean(),
+});
+Type.Object({
+    updates_since: Type.BigInt(),
+});
+Type.Object({
+    updated_since: Type.BigInt(),
+});
+const UserIndexReferralMetricsReferralMetrics = Type.Object({
+    users_who_referred: Type.Number(),
+    users_who_referred_paid_diamond: Type.Number(),
+    users_who_referred_unpaid_diamond: Type.Number(),
+    users_who_referred_90_percent_unpaid_diamond: Type.Number(),
+    referrals_of_paid_diamond: Type.Number(),
+    referrals_of_unpaid_diamond: Type.Number(),
+    referrals_other: Type.Number(),
+    icp_raised_by_referrals_to_paid_diamond: Type.Number(),
+});
+const UserIndexPayForDiamondMembershipSuccessResult = Type.Object({
+    expires_at: Type.BigInt(),
+    pay_in_chat: Type.Boolean(),
+    subscription: DiamondMembershipSubscription,
+    proof_jwt: Type.String(),
+});
+Type.Union([
+    Type.Object({
+        Success: UserIndexPayForDiamondMembershipSuccessResult,
+    }),
+    Type.Literal("AlreadyLifetimeDiamondMember"),
+    Type.Literal("CurrencyNotSupported"),
+    Type.Literal("PriceMismatch"),
+    Type.Literal("PaymentAlreadyInProgress"),
+    Type.Literal("UserNotFound"),
+    Type.Object({
+        InsufficientFunds: Type.BigInt(),
+    }),
+    Type.Object({
+        TransferFailed: Type.String(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    duration: DiamondMembershipPlanDuration,
+    token: Cryptocurrency,
+    expected_price_e8s: Type.BigInt(),
+    recurring: Type.Boolean(),
+});
+Type.Object({
+    search_term: Type.String(),
+    max_results: Type.Number(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        MalformedSignature: Type.String(),
+    }),
+    Type.Literal("DelegationTooOld"),
+    Type.Literal("UserNotFound"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("BotNotFound"),
+    Type.Literal("NotAuthorised"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UserNotSuspended"),
+    Type.Literal("UserNotFound"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    search_term: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    page_index: Type.Number(),
+    page_size: Type.Number(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        Invalid: Type.String(),
+    }),
+    Type.Literal("UserNotFound"),
+]);
+Type.Object({
+    user_ii_principal: TSBytes,
+    credential_jwt: Type.String(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UsernameTaken"),
+    Type.Literal("UserNotFound"),
+    Type.Literal("UsernameInvalid"),
+    Type.Object({
+        UsernameTooShort: Type.Number(),
+    }),
+    Type.Object({
+        UsernameTooLong: Type.Number(),
+    }),
+]);
+Type.Object({
+    username: Type.String(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("PrincipalInvalid"),
+    Type.Literal("PrincipalAlreadyUsed"),
+    Type.Literal("AvatarInvalid"),
+    Type.Literal("EndpointInvalid"),
+    Type.Literal("BotNotFound"),
+    Type.Literal("BotSuspended"),
+    Type.Literal("NotAuthorised"),
+    Type.Literal("OwnerNotFound"),
+    Type.Literal("OwnerSuspended"),
+    Type.Literal("NewOwnerNotFound"),
+    Type.Literal("NewOwnerSuspended"),
+    Type.Literal("DescriptionTooLong"),
+    Type.Literal("TooManyCommands"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UserNotFound"),
+    Type.Literal("DisplayNameInvalid"),
+    Type.Object({
+        DisplayNameTooShort: Type.Number(),
+    }),
+    Type.Object({
+        DisplayNameTooLong: Type.Number(),
+    }),
+]);
+Type.Object({
+    display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("Invalid"),
+]);
+Type.Literal("Success");
+const UserIndexReportedMessagesSuccessResult = Type.Object({
+    json: Type.String(),
+});
+Type.Object({
+    Success: UserIndexReportedMessagesSuccessResult,
+});
+Type.Union([
+    Type.Object({
+        Success: TSBytes,
+    }),
+    Type.Literal("NewRegistrationsClosed"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("CommunityFrozen"),
+    Type.Object({
+        TooManyInvites: Type.Number(),
+    }),
+    Type.Literal("UserSuspended"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("Frozen"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("AlreadyAdded"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("GroupNotFound"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("ChatFrozen"),
+    Type.Object({
+        TooManyInvites: Type.Number(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+const LocalUserIndexBotCreateChannelSuccessResult = Type.Object({
+    channel_id: ChannelId,
+});
+const LocalUserIndexBotCreateChannelResponse = Type.Union([
+    Type.Object({
+        Success: LocalUserIndexBotCreateChannelSuccessResult,
+    }),
+    Type.Object({
+        FailedAuthentication: Type.String(),
+    }),
+    Type.Object({
+        InvalidRequest: Type.String(),
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("Frozen"),
+    Type.Object({
+        C2CError: Type.Tuple([Type.Number(), Type.String()]),
+    }),
+]);
+Type.Union([
+    Type.Object({
+        Success: Type.String(),
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    channel_id: ChannelId,
+    auth_token: AuthToken,
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("ChannelNotFound"),
+    Type.Object({
+        FailedAuthentication: Type.String(),
+    }),
+    Type.Object({
+        InvalidRequest: Type.String(),
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("Frozen"),
+    Type.Object({
+        C2CError: Type.Tuple([Type.Number(), Type.String()]),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    username: Type.String(),
+    referral_code: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    public_key: TSBytes,
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UserNotFound"),
+    Type.Literal("SwapNotFound"),
+    Type.Literal("AmountNotSpecified"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+const LocalUserIndexChatEventsEventsByIndexArgs = Type.Object({
+    events: Type.Array(EventIndex),
+});
+const LocalUserIndexChatEventsEventsWindowArgs = Type.Object({
+    mid_point: MessageIndex,
+    max_messages: Type.Number(),
+    max_events: Type.Number(),
+});
+const LocalUserIndexChatEventsEventsPageArgs = Type.Object({
+    start_index: EventIndex,
+    ascending: Type.Boolean(),
+    max_messages: Type.Number(),
+    max_events: Type.Number(),
+});
+const LocalUserIndexChatEventsEventsArgsInner = Type.Union([
+    Type.Object({
+        Page: LocalUserIndexChatEventsEventsPageArgs,
+    }),
+    Type.Object({
+        ByIndex: LocalUserIndexChatEventsEventsByIndexArgs,
+    }),
+    Type.Object({
+        Window: LocalUserIndexChatEventsEventsWindowArgs,
+    }),
+]);
+Type.Union([
+    Type.Object({
+        Success: Type.String(),
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+const LocalUserIndexBotSendMessageSuccessResult = Type.Object({
+    message_id: MessageId,
+    event_index: EventIndex,
+    message_index: MessageIndex,
+    timestamp: Type.BigInt(),
+    expires_at: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined(), Type.Null()])),
+});
+const LocalUserIndexGroupAndCommunitySummaryUpdatesSummaryUpdatesArgs = Type.Object({
+    canister_id: TSBytes,
+    is_community: Type.Boolean(),
+    invite_code: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    updates_since: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    invite_code: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    updates_since: Type.BigInt(),
+});
+Type.Object({
+    channel_id: ChannelId,
+    updates_since: Type.BigInt(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("LastOwnerCannotLeave"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("CannotRemoveSelf"),
+    Type.Literal("CannotRemoveUser"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("TargetUserNotInCommunity"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("CommunityFrozen"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+    Type.Literal("UserLapsed"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    channel_id: Type.Optional(Type.Union([ChannelId, Type.Undefined()])),
+    mute: Type.Boolean(),
+});
+Type.Object({
+    channel_id: ChannelId,
+    message_id: MessageId,
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+]);
+const CommunityCreateUserGroupSuccessResult = Type.Object({
+    user_group_id: Type.Number(),
+});
+Type.Union([
+    Type.Object({
+        Success: CommunityCreateUserGroupSuccessResult,
+    }),
+    Type.Object({
+        NameTooShort: FieldTooShortResult,
+    }),
+    Type.Object({
+        NameTooLong: FieldTooLongResult,
+    }),
+    Type.Literal("NameInvalid"),
+    Type.Literal("NameTaken"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+    message_id: MessageId,
+    new_achievement: Type.Boolean(),
+});
+Type.Object({
+    channel_id: ChannelId,
+    message_id: MessageId,
+    presence: VideoCallPresence,
+    new_achievement: Type.Boolean(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("AlreadyEnded"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+});
+Type.Object({
+    channel_id: ChannelId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_index: MessageIndex,
+    poll_option: Type.Number(),
+    operation: VoteOperation,
+    new_achievement: Type.Boolean(),
+});
+Type.Object({
+    channel_id: ChannelId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+});
+const CommunitySearchChannelSuccessResult = Type.Object({
+    matches: Type.Array(MessageMatch),
+});
+Type.Union([
+    Type.Object({
+        Success: CommunitySearchChannelSuccessResult,
+    }),
+    Type.Literal("InvalidTerm"),
+    Type.Object({
+        TermTooLong: Type.Number(),
+    }),
+    Type.Object({
+        TermTooShort: Type.Number(),
+    }),
+    Type.Object({
+        TooManyUsers: Type.Number(),
+    }),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInChannel"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_ids: Type.Array(MessageId),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("TargetUserNotInCommunity"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("Invalid"),
+    Type.Literal("CommunityFrozen"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+});
+const CommunityInviteCodeSuccessResult = Type.Object({
+    code: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Union([
+    Type.Object({
+        Success: CommunityInviteCodeSuccessResult,
+    }),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("NotAuthorized"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("CannotUnblockSelf"),
+    Type.Literal("CommunityNotPublic"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    invite_code: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    search_term: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    page_index: Type.Number(),
+    page_size: Type.Number(),
+});
+Type.Object({
+    channel_id: ChannelId,
+    invite_code: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    updates_since: Type.BigInt(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UserGroupNotFound"),
+    Type.Object({
+        NameTooShort: FieldTooShortResult,
+    }),
+    Type.Object({
+        NameTooLong: FieldTooLongResult,
+    }),
+    Type.Literal("NameInvalid"),
+    Type.Literal("NameTaken"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    mid_point: MessageIndex,
+    max_messages: Type.Number(),
+    max_events: Type.Number(),
+    latest_known_update: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    channel_id: ChannelId,
+    thread_root_message_index: MessageIndex,
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotFollowing"),
+    Type.Literal("ThreadNotFound"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("NotPlatformModerator"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_ids: Type.Array(MessageId),
+    as_platform_moderator: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    new_achievement: Type.Boolean(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("TargetUserNotInCommunity"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("TargetUserNotInChannel"),
+    Type.Literal("CannotRemoveSelf"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserLapsed"),
+]);
+const CommunityEnableInviteCodeSuccessResult = Type.Object({
+    code: Type.BigInt(),
+});
+Type.Union([
+    Type.Object({
+        Success: CommunityEnableInviteCodeSuccessResult,
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+    message_index: MessageIndex,
+    adopt: Type.Boolean(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        AlreadyVoted: Type.Boolean(),
+    }),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("NoEligibleNeurons"),
+    Type.Literal("ProposalMessageNotFound"),
+    Type.Literal("ProposalNotFound"),
+    Type.Literal("ProposalNotAcceptingVotes"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+    Type.Literal("UserLapsed"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+    invite_code: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const CommunityGenerateBotApiKeySuccessResult = Type.Object({
+    api_key: Type.String(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("TargetUserNotInChannel"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("Invalid"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    channel_id: Type.Optional(Type.Union([ChannelId, Type.Undefined()])),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotInvited"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInCommunity"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    messages: Type.Array(MessageIndex),
+    latest_known_update: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    channel_id: ChannelId,
+    message_index: MessageIndex,
+    adopt: Type.Boolean(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("ProposalMessageNotFound"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    user_group_ids: Type.Array(Type.Number()),
+});
+const CommunityUpdateCommunitySuccessResult = Type.Object({
+    rules_version: Type.Optional(Type.Union([Version, Type.Undefined()])),
+});
+Type.Union([
+    Type.Object({
+        SuccessV2: CommunityUpdateCommunitySuccessResult,
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Object({
+        NameTooShort: FieldTooShortResult,
+    }),
+    Type.Object({
+        NameTooLong: FieldTooLongResult,
+    }),
+    Type.Literal("NameReserved"),
+    Type.Object({
+        DescriptionTooLong: FieldTooLongResult,
+    }),
+    Type.Object({
+        AvatarTooBig: FieldTooLongResult,
+    }),
+    Type.Object({
+        BannerTooBig: FieldTooLongResult,
+    }),
+    Type.Literal("AccessGateInvalid"),
+    Type.Literal("NameTaken"),
+    Type.Literal("InternalError"),
+    Type.Object({
+        RulesTooLong: FieldTooLongResult,
+    }),
+    Type.Object({
+        RulesTooShort: FieldTooShortResult,
+    }),
+    Type.Literal("UserSuspended"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("InvalidLanguage"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    reaction: Reaction,
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NoChange"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    invite_code: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    channel_id: ChannelId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    reaction: Reaction,
+    username: Type.String(),
+    display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    new_achievement: Type.Boolean(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NoChange"),
+    Type.Literal("InvalidReaction"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+    threads: Type.Array(MessageIndex),
+    latest_client_thread_update: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("CannotBlockSelf"),
+    Type.Literal("CannotBlockUser"),
+    Type.Literal("CommunityNotPublic"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("TargetUserNotInCommunity"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("CommunityFrozen"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+    message_index: MessageIndex,
+});
+Type.Union([
+    Type.Object({
+        Success: PushEventResult,
+    }),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("NoChange"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+    message_id: MessageId,
+    updated_since: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const CommunitySendMessageSuccessResult = Type.Object({
+    event_index: EventIndex,
+    message_index: MessageIndex,
+    timestamp: Type.BigInt(),
+    expires_at: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Union([
+    Type.Object({
+        Success: CommunitySendMessageSuccessResult,
+    }),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("ThreadMessageNotFound"),
+    Type.Literal("MessageEmpty"),
+    Type.Object({
+        TextTooLong: Type.Number(),
+    }),
+    Type.Object({
+        InvalidPoll: InvalidPollReason,
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("UserSuspended"),
+    Type.Object({
+        InvalidRequest: Type.String(),
+    }),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("RulesNotAccepted"),
+    Type.Literal("MessageAlreadyExists"),
+    Type.Literal("CommunityRulesNotAccepted"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    events: Type.Array(EventIndex),
+    latest_known_update: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    Success: TSBytes,
+});
+Type.Object({
+    channel_id: ChannelId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    start_index: EventIndex,
+    ascending: Type.Boolean(),
+    max_messages: Type.Number(),
+    max_events: Type.Number(),
+    latest_known_update: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("NotFound"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    pin: Type.Optional(Type.Union([PinNumberWrapper, Type.Undefined()])),
+    new_achievement: Type.Boolean(),
+});
+const CommunityCreateChannelSuccessResult = Type.Object({
+    channel_id: ChannelId,
+});
+Type.Object({
+    invite_code: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    updates_since: Type.BigInt(),
+});
+const CommunityImportGroupSuccessResult = Type.Object({
+    channel_id: ChannelId,
+    total_bytes: Type.BigInt(),
+});
+Type.Union([
+    Type.Object({
+        Success: CommunityImportGroupSuccessResult,
+    }),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserNotCommunityOwner"),
+    Type.Literal("UserNotInGroup"),
+    Type.Literal("UserNotGroupOwner"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("GroupNotFound"),
+    Type.Literal("GroupAlreadyBeingImported"),
+    Type.Literal("GroupImportingToAnotherCommunity"),
+    Type.Literal("GroupFrozen"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    delete: Type.Boolean(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("AlreadyReported"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+    Type.Literal("UserLapsed"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserLapsed"),
+]);
+const CommunityUpdateChannelSuccessResult = Type.Object({
+    rules_version: Type.Optional(Type.Union([Version, Type.Undefined()])),
+});
+Type.Object({
+    display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    new_achievement: Type.Boolean(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("DisplayNameInvalid"),
+    Type.Object({
+        DisplayNameTooShort: Type.Number(),
+    }),
+    Type.Object({
+        DisplayNameTooLong: Type.Number(),
+    }),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    invite_code: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("AlreadyFollowing"),
+    Type.Literal("ThreadNotFound"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+    thread_root_message_index: MessageIndex,
+    new_achievement: Type.Boolean(),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    channel_id: ChannelId,
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    subscription: SubscriptionInfo,
+});
+Type.Literal("Success");
+Type.Object({
+    p256dh_key: Type.String(),
+});
+Type.Union([
+    Type.Literal("Yes"),
+    Type.Literal("No"),
+]);
+Type.Object({
+    p256dh_key: Type.String(),
+});
+Type.Literal("Success");
+const StorageBucketDeleteFilesDeleteFileFailureReason = Type.Union([
+    Type.Literal("NotFound"),
+    Type.Literal("NotAuthorized"),
+]);
+Type.Object({
+    file_ids: Type.Array(Type.BigInt()),
+});
+const StorageBucketDeleteFilesDeleteFileFailure = Type.Object({
+    file_id: Type.BigInt(),
+    reason: StorageBucketDeleteFilesDeleteFileFailureReason,
+});
+Type.Object({
+    file_id: Type.BigInt(),
+});
+const StorageBucketFileInfoSuccessResult = Type.Object({
+    is_owner: Type.Boolean(),
+    file_size: Type.BigInt(),
+    file_hash: Type.Tuple([
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+    ]),
+});
+Type.Union([
+    Type.Object({
+        Success: StorageBucketFileInfoSuccessResult,
+    }),
+    Type.Literal("NotFound"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("AllowanceExceeded"),
+    Type.Literal("FileAlreadyExists"),
+    Type.Literal("FileTooBig"),
+    Type.Literal("FileExpired"),
+    Type.Literal("ChunkAlreadyExists"),
+    Type.Literal("ChunkIndexTooHigh"),
+    Type.Literal("ChunkSizeMismatch"),
+    Type.Literal("Full"),
+    Type.Literal("HashMismatch"),
+    Type.Literal("InvalidFileId"),
+    Type.Literal("UserNotFound"),
+]);
+Type.Object({
+    file_id: Type.BigInt(),
+    hash: Type.Tuple([
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+    ]),
+    mime_type: Type.String(),
+    accessors: Type.Array(TSBytes),
+    chunk_index: Type.Number(),
+    chunk_size: Type.Number(),
+    total_size: Type.BigInt(),
+    bytes: TSBytes,
+    expiry: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("NotFound"),
+]);
+Type.Object({
+    file_id: Type.BigInt(),
+});
+Type.Union([
+    Type.Object({
+        Success: Type.BigInt(),
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("NotFound"),
+]);
+Type.Object({
+    file_id: Type.BigInt(),
+    accessors: Type.Array(TSBytes),
+});
+Type.Object({
+    governance_canister_id: TSBytes,
+    stake: Type.BigInt(),
+});
+Type.Object({
+    governance_canister_id: TSBytes,
+    amount: Type.BigInt(),
+});
+const ProposalsBotExecuteGenericNervousSystemFunction = Type.Object({
+    function_id: Type.BigInt(),
+    payload: TSBytes,
+});
+const ProposalsBotUpgradeSnsControlledCanister = Type.Object({
+    canister_id: TSBytes,
+    new_canister_wasm: TSBytes,
+    mode: ProposalsBotCanisterInstallMode,
+});
+const GroupSearchMessagesSuccessResult = Type.Object({
+    matches: Type.Array(MessageMatch),
+});
+Type.Union([
+    Type.Object({
+        Success: GroupSearchMessagesSuccessResult,
+    }),
+    Type.Literal("InvalidTerm"),
+    Type.Object({
+        TermTooLong: Type.Number(),
+    }),
+    Type.Object({
+        TermTooShort: Type.Number(),
+    }),
+    Type.Object({
+        TooManyUsers: Type.Number(),
+    }),
+    Type.Literal("CallerNotInGroup"),
+]);
+Type.Object({
+    rules: Rules,
+    permissions: Type.Optional(Type.Union([CommunityPermissions, Type.Undefined()])),
+    primary_language: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    history_visible_to_new_joiners: Type.Boolean(),
+});
+Type.Object({
+    message_id: MessageId,
+    correlation_id: Type.BigInt(),
+});
+Type.Object({
+    message_id: MessageId,
+    new_achievement: Type.Boolean(),
+});
+Type.Object({
+    message_id: MessageId,
+    presence: VideoCallPresence,
+    new_achievement: Type.Boolean(),
+});
+Type.Object({
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+});
+Type.Object({
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_index: MessageIndex,
+    poll_option: Type.Number(),
+    operation: VoteOperation,
+    new_achievement: Type.Boolean(),
+    correlation_id: Type.BigInt(),
+});
+Type.Object({
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+});
+Type.Object({
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_ids: Type.Array(MessageId),
+    correlation_id: Type.BigInt(),
+});
+Type.Object({
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    mid_point: MessageIndex,
+    max_messages: Type.Number(),
+    max_events: Type.Number(),
+    latest_known_update: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    thread_root_message_index: MessageIndex,
+});
+Type.Object({
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_ids: Type.Array(MessageId),
+    as_platform_moderator: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    new_achievement: Type.Boolean(),
+    correlation_id: Type.BigInt(),
+});
+Type.Union([
+    Type.Object({
+        Success: GroupEnableInviteCodeSuccessResult,
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+]);
+const GroupUpdateGroupSuccessResult = Type.Object({
+    rules_version: Type.Optional(Type.Union([Version, Type.Undefined()])),
+});
+Type.Object({
+    message_index: MessageIndex,
+    adopt: Type.Boolean(),
+});
+Type.Object({
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    messages: Type.Array(MessageIndex),
+    latest_known_update: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    message_index: MessageIndex,
+    adopt: Type.Boolean(),
+});
+Type.Object({
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    reaction: Reaction,
+    correlation_id: Type.BigInt(),
+});
+Type.Object({
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    reaction: Reaction,
+    username: Type.String(),
+    display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    new_achievement: Type.Boolean(),
+    correlation_id: Type.BigInt(),
+});
+Type.Object({
+    threads: Type.Array(MessageIndex),
+    latest_client_thread_update: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Union([
+    Type.Object({
+        Success: GroupRulesSuccessResult,
+    }),
+    Type.Literal("NotAuthorized"),
+]);
+Type.Union([
+    Type.Object({
+        Success: PushEventResult,
+    }),
+    Type.Literal("NoChange"),
+    Type.Literal("MessageIndexOutOfRange"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+]);
+Type.Object({
+    message_index: MessageIndex,
+    correlation_id: Type.BigInt(),
+});
+Type.Object({
+    message_id: MessageId,
+    updated_since: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const GroupSendMessageSuccessResult = Type.Object({
+    event_index: EventIndex,
+    message_index: MessageIndex,
+    timestamp: Type.BigInt(),
+    expires_at: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Union([
+    Type.Object({
+        Success: GroupSendMessageSuccessResult,
+    }),
+    Type.Literal("ThreadMessageNotFound"),
+    Type.Literal("MessageEmpty"),
+    Type.Object({
+        TextTooLong: Type.Number(),
+    }),
+    Type.Object({
+        InvalidPoll: InvalidPollReason,
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Object({
+        InvalidRequest: Type.String(),
+    }),
+    Type.Literal("ChatFrozen"),
+    Type.Literal("RulesNotAccepted"),
+    Type.Literal("MessageAlreadyExists"),
+]);
+Type.Object({
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    events: Type.Array(EventIndex),
+    latest_known_update: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    message_index: MessageIndex,
+    correlation_id: Type.BigInt(),
+});
+Type.Union([
+    Type.Object({
+        SuccessV2: PushEventResult,
+    }),
+    Type.Literal("NoChange"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+]);
+Type.Object({
+    Success: TSBytes,
+});
+Type.Object({
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    start_index: EventIndex,
+    ascending: Type.Boolean(),
+    max_messages: Type.Number(),
+    max_events: Type.Number(),
+    latest_known_update: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    pin: Type.Optional(Type.Union([PinNumberWrapper, Type.Undefined()])),
+    new_achievement: Type.Boolean(),
+});
+Type.Object({
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    delete: Type.Boolean(),
+});
+Type.Object({
+    thread_root_message_index: MessageIndex,
+    new_achievement: Type.Boolean(),
+});
+const UserSearchMessagesSuccessResult = Type.Object({
+    matches: Type.Array(MessageMatch),
+});
+Type.Union([
+    Type.Object({
+        Success: UserSearchMessagesSuccessResult,
+    }),
+    Type.Literal("InvalidTerm"),
+    Type.Object({
+        TermTooLong: Type.Number(),
+    }),
+    Type.Object({
+        TermTooShort: Type.Number(),
+    }),
+    Type.Literal("ChatNotFound"),
+]);
+Type.Object({
+    Success: Type.Array(UserNamedAccount),
+});
+Type.Union([
+    Type.Object({
+        Success: UserTokenSwapStatusTokenSwapStatus,
+    }),
+    Type.Literal("NotFound"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        TooShort: FieldTooShortResult,
+    }),
+    Type.Object({
+        TooLong: FieldTooLongResult,
+    }),
+    Type.Literal("PinRequired"),
+    Type.Object({
+        PinIncorrect: Type.BigInt(),
+    }),
+    Type.Object({
+        TooManyFailedPinAttempts: Type.BigInt(),
+    }),
+    Type.Object({
+        MalformedSignature: Type.String(),
+    }),
+    Type.Literal("DelegationTooOld"),
+]);
+const UserSwapTokensICPSwapArgs = Type.Object({
+    swap_canister_id: TSBytes,
+    zero_for_one: Type.Boolean(),
+});
+Type.Union([
+    Type.Object({
+        Success: UserSwapTokensSuccessResult,
+    }),
+    Type.Literal("SwapFailed"),
+    Type.Literal("PinRequired"),
+    Type.Object({
+        PinIncorrect: Type.BigInt(),
+    }),
+    Type.Object({
+        TooManyFailedPinAttempts: Type.BigInt(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        AvatarTooBig: FieldTooLongResult,
+    }),
+    Type.Literal("UserSuspended"),
+]);
+const UserManualWallet = Type.Object({
+    tokens: Type.Array(TSBytes),
+});
+const UserChannelSummaryUpdates = Type.Object({
+    channel_id: ChannelId,
+    read_by_me_up_to: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    threads_read: Type.Record(MessageIndex, MessageIndex),
+    archived: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    date_read_pinned: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const UserWalletConfig = Type.Union([
+    Type.Object({
+        Auto: UserAutoWallet,
+    }),
+    Type.Object({
+        Manual: UserManualWallet,
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        TooLong: FieldTooLongResult,
+    }),
+    Type.Literal("UserSuspended"),
+]);
+const UserChannelSummary = Type.Object({
+    channel_id: ChannelId,
+    read_by_me_up_to: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    threads_read: Type.Record(MessageIndex, MessageIndex),
+    archived: Type.Boolean(),
+    date_read_pinned: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        ApproveError: ApproveError,
+    }),
+    Type.Literal("PinRequired"),
+    Type.Object({
+        PinIncorrect: Type.BigInt(),
+    }),
+    Type.Object({
+        TooManyFailedPinAttempts: Type.BigInt(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Object({
+        Success: Type.BigInt(),
+    }),
+    Type.Literal("ReminderDateInThePast"),
+    Type.Object({
+        NotesTooLong: FieldTooLongResult,
+    }),
+    Type.Literal("UserSuspended"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        SuccessV2: PushEventResult,
+    }),
+    Type.Literal("NoChange"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("ChatNotFound"),
+    Type.Literal("UserSuspended"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("NoChange"),
+    Type.Object({
+        NicknameTooShort: FieldTooShortResult,
+    }),
+    Type.Object({
+        NicknameTooLong: FieldTooLongResult,
+    }),
+    Type.Literal("UserSuspended"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        SuccessV2: PushEventResult,
+    }),
+    Type.Literal("NoChange"),
+    Type.Literal("InvalidReaction"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("ChatNotFound"),
+    Type.Literal("UserSuspended"),
+]);
+Type.Object({
+    exchange_id: ExchangeId,
+    swap_canister_id: TSBytes,
+    ledger_canister_id: TSBytes,
+    amount: Type.BigInt(),
+    fee: Type.BigInt(),
+});
+Type.Object({
+    Success: UserPublicProfilePublicProfile,
+});
+const UserMarkReadThreadRead = Type.Object({
+    root_message_index: MessageIndex,
+    read_up_to: MessageIndex,
+});
+const UserMarkReadChannelMessagesRead = Type.Object({
+    channel_id: ChannelId,
+    read_up_to: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    threads: Type.Array(UserMarkReadThreadRead),
+    date_read_pinned: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    Success: TSBytes,
+});
+Type.Object({
+    config: UserWalletConfig,
+});
+const PaymentGate = Type.Object({
+    ledger_canister_id: TSBytes,
+    amount: Type.BigInt(),
+    fee: Type.BigInt(),
+});
+const VersionedRules = Type.Object({
+    text: Type.String(),
+    version: Version,
+    enabled: Type.Boolean(),
+});
+const AccountICRC1 = Type.Object({
+    owner: TSBytes,
+    subaccount: Type.Optional(Type.Union([
+        Type.Tuple([
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+        ]),
+        Type.Undefined(),
+    ])),
+});
+const CommunityMembershipUpdates = Type.Object({
+    role: Type.Optional(Type.Union([CommunityRole, Type.Undefined()])),
+    rules_accepted: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    display_name: OptionUpdateString,
+    lapsed: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+});
+const GiphyContent = Type.Object({
+    caption: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    title: Type.String(),
+    desktop: GiphyImageVariant,
+    mobile: GiphyImageVariant,
+});
+const SnsNeuronGate = Type.Object({
+    governance_canister_id: TSBytes,
+    min_stake_e8s: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    min_dissolve_delay: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const OptionalMessagePermissions = Type.Object({
+    default: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    text: OptionUpdateGroupPermissionRole,
+    image: OptionUpdateGroupPermissionRole,
+    video: OptionUpdateGroupPermissionRole,
+    audio: OptionUpdateGroupPermissionRole,
+    file: OptionUpdateGroupPermissionRole,
+    poll: OptionUpdateGroupPermissionRole,
+    crypto: OptionUpdateGroupPermissionRole,
+    giphy: OptionUpdateGroupPermissionRole,
+    prize: OptionUpdateGroupPermissionRole,
+    p2p_swap: OptionUpdateGroupPermissionRole,
+    video_call: OptionUpdateGroupPermissionRole,
+    custom_updated: Type.Array(CustomPermission),
+    custom_deleted: Type.Array(Type.String()),
+});
+const Delegation = Type.Object({
+    pubkey: TSBytes,
+    expiration: Type.BigInt(),
+});
+const MessagePermissions = Type.Object({
+    default: GroupPermissionRole,
+    text: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    image: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    video: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    audio: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    file: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    poll: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    crypto: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    giphy: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    prize: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    p2p_swap: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    video_call: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    custom: Type.Array(CustomPermission),
+});
+const ChatId = TSBytes;
+const CryptoAccountICRC1 = Type.Union([
+    Type.Literal("Mint"),
+    Type.Object({
+        Account: AccountICRC1,
+    }),
+]);
+const IntegerParam = Type.Object({
+    min_value: Type.BigInt(),
+    max_value: Type.BigInt(),
+    choices: Type.Array(SlashCommandOptionChoiceI128),
+});
+const VerifiedCredentialGate = Type.Object({
+    issuer_canister_id: TSBytes,
+    issuer_origin: Type.String(),
+    credential_type: Type.String(),
+    credential_name: Type.String(),
+    credential_arguments: Type.Record(Type.String(), VerifiedCredentialArgumentValue),
+});
+const NnsProposal = Type.Object({
+    id: Type.BigInt(),
+    topic: Type.Number(),
+    proposer: Type.BigInt(),
+    created: Type.BigInt(),
+    title: Type.String(),
+    summary: Type.String(),
+    url: Type.String(),
+    status: ProposalDecisionStatus,
+    reward_status: ProposalRewardStatus,
+    tally: Tally,
+    deadline: Type.BigInt(),
+    payload_text_rendering: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    last_updated: Type.BigInt(),
+});
+const BlobReference = Type.Object({
+    canister_id: TSBytes,
+    blob_id: Type.BigInt(),
+});
+const PendingCryptoTransactionICRC1 = Type.Object({
+    ledger: TSBytes,
+    token: Cryptocurrency,
+    amount: Type.BigInt(),
+    to: AccountICRC1,
+    fee: Type.BigInt(),
+    memo: Type.Optional(Type.Union([TSBytes, Type.Undefined()])),
+    created: Type.BigInt(),
+});
+const HydratedMention = Type.Object({
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    message_index: MessageIndex,
+    event_index: EventIndex,
+});
+const DiamondMembershipFees = Type.Object({
+    chat_fees: DiamondMembershipFeesByDuration,
+    icp_fees: DiamondMembershipFeesByDuration,
+});
+const Document = Type.Object({
+    id: Type.BigInt(),
+    mime_type: Type.String(),
+    data: TSBytes,
+});
+const FileContent = Type.Object({
+    name: Type.String(),
+    caption: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    mime_type: Type.String(),
+    file_size: Type.Number(),
+    blob_reference: Type.Optional(Type.Union([BlobReference, Type.Undefined()])),
+});
+const UserSummaryStable = Type.Object({
+    username: Type.String(),
+    display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    avatar_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    is_bot: Type.Boolean(),
+    suspended: Type.Boolean(),
+    diamond_membership_status: DiamondMembershipStatus,
+    is_unique_person: Type.Boolean(),
+});
+const ChitEarned = Type.Object({
+    amount: Type.Number(),
+    timestamp: Type.BigInt(),
+    reason: ChitEarnedReason,
+});
+const CustomContent = Type.Object({
+    kind: Type.String(),
+    data: TSBytes,
+});
+const FailedCryptoTransactionICRC1 = Type.Object({
+    ledger: TSBytes,
+    token: Cryptocurrency,
+    amount: Type.BigInt(),
+    fee: Type.BigInt(),
+    from: CryptoAccountICRC1,
+    to: CryptoAccountICRC1,
+    memo: Type.Optional(Type.Union([TSBytes, Type.Undefined()])),
+    created: Type.BigInt(),
+    error_message: Type.String(),
+});
+const TokenBalanceGate = Type.Object({
+    ledger_canister_id: TSBytes,
+    min_balance: Type.BigInt(),
+});
+const GateCheckFailedReason = Type.Union([
+    Type.Literal("NotDiamondMember"),
+    Type.Literal("NotLifetimeDiamondMember"),
+    Type.Literal("NoUniquePersonProof"),
+    Type.Literal("NoSnsNeuronsFound"),
+    Type.Literal("NoSnsNeuronsWithRequiredStakeFound"),
+    Type.Literal("NoSnsNeuronsWithRequiredDissolveDelayFound"),
+    Type.Object({
+        PaymentFailed: TransferFromError,
+    }),
+    Type.Object({
+        InsufficientBalance: Type.BigInt(),
+    }),
+    Type.Object({
+        FailedVerifiedCredentialCheck: Type.String(),
+    }),
+    Type.Literal("Locked"),
+    Type.Literal("NotReferredByMember"),
+]);
+const TokenInfo = Type.Object({
+    token: Cryptocurrency,
+    ledger: TSBytes,
+    decimals: Type.Number(),
+    fee: Type.BigInt(),
+});
+const CompletedCryptoTransactionNNS = Type.Object({
+    ledger: TSBytes,
+    token: Cryptocurrency,
+    amount: Tokens,
+    fee: Tokens,
+    from: CryptoAccountNNS,
+    to: CryptoAccountNNS,
+    memo: Type.BigInt(),
+    created: Type.BigInt(),
+    transaction_hash: Type.Tuple([
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+    ]),
+    block_index: Type.BigInt(),
+});
+const OptionUpdateOptionalMessagePermissions = Type.Union([
+    Type.Literal("NoChange"),
+    Type.Literal("SetToNone"),
+    Type.Object({
+        SetToSome: OptionalMessagePermissions,
+    }),
+], { default: "NoChange" });
+const AccessTokenType = Type.Union([
+    Type.Object({
+        StartVideoCallV2: VideoCallAccessTokenArgs,
+    }),
+    Type.Literal("JoinVideoCall"),
+    Type.Literal("MarkVideoCallAsEnded"),
+]);
+const PendingCryptoTransactionICRC2 = Type.Object({
+    ledger: TSBytes,
+    token: Cryptocurrency,
+    amount: Type.BigInt(),
+    from: AccountICRC1,
+    to: AccountICRC1,
+    fee: Type.BigInt(),
+    memo: Type.Optional(Type.Union([TSBytes, Type.Undefined()])),
+    created: Type.BigInt(),
+});
+const AudioContent = Type.Object({
+    caption: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    mime_type: Type.String(),
+    blob_reference: Type.Optional(Type.Union([BlobReference, Type.Undefined()])),
+});
+const ImageContent = Type.Object({
+    width: Type.Number(),
+    height: Type.Number(),
+    thumbnail_data: ThumbnailData,
+    caption: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    mime_type: Type.String(),
+    blob_reference: Type.Optional(Type.Union([BlobReference, Type.Undefined()])),
+});
+const UserId = TSBytes;
+const CommunityId = TSBytes;
+const BotInstallationLocation = Type.Union([
+    Type.Object({
+        Community: CommunityId,
+    }),
+    Type.Object({
+        Group: ChatId,
+    }),
+]);
+const CompletedCryptoTransactionICRC1 = Type.Object({
+    ledger: TSBytes,
+    token: Cryptocurrency,
+    amount: Type.BigInt(),
+    from: CryptoAccountICRC1,
+    to: CryptoAccountICRC1,
+    fee: Type.BigInt(),
+    memo: Type.Optional(Type.Union([TSBytes, Type.Undefined()])),
+    created: Type.BigInt(),
+    block_index: Type.BigInt(),
+});
+const GroupMembership = Type.Object({
+    joined: Type.BigInt(),
+    role: GroupRole,
+    mentions: Type.Array(HydratedMention),
+    notifications_muted: Type.Boolean(),
+    my_metrics: ChatMetrics,
+    latest_threads: Type.Array(GroupCanisterThreadDetails),
+    rules_accepted: Type.Boolean(),
+    lapsed: Type.Boolean(),
+});
+const UserOrAccount = Type.Union([
+    Type.Object({
+        User: UserId,
+    }),
+    Type.Object({
+        Account: Type.Tuple([
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+            Type.Number(),
+        ]),
+    }),
+]);
+const VerifiedCredentialGateArgs = Type.Object({
+    user_ii_principal: TSBytes,
+    credential_jwt: Type.String(),
+    credential_jwts: Type.Array(Type.String()),
+    ii_origin: Type.String(),
+});
+const OptionalGroupPermissions = Type.Object({
+    change_roles: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    update_group: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    invite_users: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    add_members: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    remove_members: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    delete_messages: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    pin_messages: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    react_to_messages: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    mention_all_members: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    start_video_call: Type.Optional(Type.Union([GroupPermissionRole, Type.Undefined()])),
+    message_permissions: Type.Optional(Type.Union([OptionalMessagePermissions, Type.Undefined()])),
+    thread_permissions: OptionUpdateOptionalMessagePermissions,
+});
+const GovernanceProposalsSubtype = Type.Object({
+    is_nns: Type.Boolean(),
+    governance_canister_id: TSBytes,
+});
+const GroupMembershipUpdates = Type.Object({
+    role: Type.Optional(Type.Union([GroupRole, Type.Undefined()])),
+    mentions: Type.Array(HydratedMention),
+    notifications_muted: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    my_metrics: Type.Optional(Type.Union([ChatMetrics, Type.Undefined()])),
+    latest_threads: Type.Array(GroupCanisterThreadDetails),
+    unfollowed_threads: Type.Array(MessageIndex),
+    rules_accepted: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    lapsed: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+});
+const FailedCryptoTransactionNNS = Type.Object({
+    ledger: TSBytes,
+    token: Cryptocurrency,
+    amount: Tokens,
+    fee: Tokens,
+    from: CryptoAccountNNS,
+    to: CryptoAccountNNS,
+    memo: Type.BigInt(),
+    created: Type.BigInt(),
+    transaction_hash: Type.Tuple([
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+    ]),
+    error_message: Type.String(),
+});
+const SnsProposal = Type.Object({
+    id: Type.BigInt(),
+    action: Type.BigInt(),
+    proposer: Type.Tuple([
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+    ]),
+    created: Type.BigInt(),
+    title: Type.String(),
+    summary: Type.String(),
+    url: Type.String(),
+    status: ProposalDecisionStatus,
+    reward_status: ProposalRewardStatus,
+    tally: Tally,
+    deadline: Type.BigInt(),
+    payload_text_rendering: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    minimum_yes_proportion_of_total: Type.Number(),
+    minimum_yes_proportion_of_exercised: Type.Number(),
+    last_updated: Type.BigInt(),
+});
+const UsersBlocked = Type.Object({
+    user_ids: Type.Array(UserId),
+    blocked_by: UserId,
+});
+const CommunityMember = Type.Object({
+    user_id: UserId,
+    date_added: Type.BigInt(),
+    role: CommunityRole,
+    display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    referred_by: Type.Optional(Type.Union([UserId, Type.Undefined()])),
+    lapsed: Type.Boolean(),
+});
+const User = Type.Object({
+    user_id: UserId,
+    username: Type.String(),
+});
+const MessageReport = Type.Object({
+    reported_by: UserId,
+    timestamp: Type.BigInt(),
+    reason_code: Type.Number(),
+    notes: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+});
+const ThreadSummary = Type.Object({
+    participant_ids: Type.Array(UserId),
+    followed_by_me: Type.Boolean(),
+    reply_count: Type.Number(),
+    latest_event_index: EventIndex,
+    latest_event_timestamp: Type.BigInt(),
+});
+const OptionUpdateDocument = Type.Union([
+    Type.Literal("NoChange"),
+    Type.Literal("SetToNone"),
+    Type.Object({
+        SetToSome: Document,
+    }),
+], { default: "NoChange" });
+const SuspensionDetails = Type.Object({
+    reason: Type.String(),
+    action: SuspensionAction,
+    suspended_by: UserId,
+});
+const DiamondMembershipDetails = Type.Object({
+    expires_at: Type.BigInt(),
+    pay_in_chat: Type.Boolean(),
+    subscription: DiamondMembershipSubscription,
+});
+const MemberLeft = Type.Object({
+    user_id: UserId,
+});
+const BotAdded = Type.Object({
+    user_id: UserId,
+    added_by: UserId,
+});
+const UserGroupDetails = Type.Object({
+    user_group_id: Type.Number(),
+    name: Type.String(),
+    members: Type.Array(UserId),
+});
+Type.Object({
+    count: Type.Number(),
+    exclusions: Type.Array(ChatId),
+});
+Type.Object({
+    chat_id: ChatId,
+    reason: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    suspend_members: Type.Optional(Type.Union([GroupIndexFreezeGroupSuspensionDetails, Type.Undefined()])),
+});
+Type.Object({
+    chat_id: ChatId,
+});
+const GroupIndexLookupChannelByGroupIdSuccessResult = Type.Object({
+    community_id: CommunityId,
+    channel_id: ChannelId,
+});
+Type.Union([
+    Type.Object({
+        Success: GroupIndexLookupChannelByGroupIdSuccessResult,
+    }),
+    Type.Literal("NotFound"),
+]);
+Type.Object({
+    group_id: ChatId,
+});
+Type.Object({
+    community_id: CommunityId,
+});
+Type.Object({
+    community_id: CommunityId,
+    reason: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    suspend_members: Type.Optional(Type.Union([GroupIndexFreezeCommunitySuspensionDetails, Type.Undefined()])),
+});
+Type.Object({
+    chat_id: ChatId,
+});
+Type.Object({
+    community_id: CommunityId,
+    flags: Type.Number(),
+});
+Type.Object({
+    chat_id: ChatId,
+});
+Type.Object({
+    group_ids: Type.Array(ChatId),
+    community_ids: Type.Array(CommunityId),
+    active_since: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    chat_id: ChatId,
+});
+Type.Union([
+    Type.Object({
+        Success: StorageIndexProjectedAllowance,
+    }),
+    Type.Object({
+        AllowanceExceeded: StorageIndexProjectedAllowance,
+    }),
+    Type.Literal("UserNotFound"),
+]);
+Type.Object({
+    enabled: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    community_id: Type.Optional(Type.Union([CommunityId, Type.Undefined()])),
+    channel_id: Type.Optional(Type.Union([ChannelId, Type.Undefined()])),
+    community_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    channel_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+});
+const RegistryPayment = Type.Object({
+    amount: Type.BigInt(),
+    block_index: Type.BigInt(),
+    timestamp: Type.BigInt(),
+    user_id: UserId,
+});
+const RegistryTokenDetails = Type.Object({
+    ledger_canister_id: TSBytes,
+    name: Type.String(),
+    symbol: Type.String(),
+    decimals: Type.Number(),
+    fee: Type.BigInt(),
+    logo: Type.String(),
+    logo_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    info_url: Type.String(),
+    how_to_buy_url: Type.String(),
+    transaction_url_format: Type.String(),
+    supported_standards: Type.Array(Type.String()),
+    added: Type.BigInt(),
+    enabled: Type.Boolean(),
+    last_updated: Type.BigInt(),
+    payments: Type.Array(RegistryPayment),
+});
+Type.Object({
+    Success: Type.Array(UserIndexDiamondMembershipFeesDiamondMembershipFees),
+});
+Type.Object({
+    Success: UserIndexUsersChitSuccessResult,
+});
+Type.Object({
+    users: Type.Array(UserId),
+    year: Type.Number(),
+    month: Type.Number(),
+});
+Type.Object({
+    user_id: UserId,
+    duration: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    reason: Type.String(),
+});
+const UserIndexPlatformOperatorsSuccessResult = Type.Object({
+    users: Type.Array(UserId),
+});
+Type.Object({
+    Success: UserIndexPlatformOperatorsSuccessResult,
+});
+const UserIndexPlatformModeratorsSuccessResult = Type.Object({
+    users: Type.Array(UserId),
+});
+const UserIndexSuspectedBotsSuccessResult = Type.Object({
+    users: Type.Array(UserId),
+});
+Type.Object({
+    after: Type.Optional(Type.Union([UserId, Type.Undefined()])),
+    count: Type.Number(),
+});
+const UserIndexExternalAchievementsSuccessResult = Type.Object({
+    last_updated: Type.BigInt(),
+    added_or_updated: Type.Array(UserIndexExternalAchievementsExternalAchievement),
+});
+Type.Union([
+    Type.Object({
+        Success: UserIndexExternalAchievementsSuccessResult,
+    }),
+    Type.Literal("SuccessNoUpdates"),
+]);
+Type.Object({
+    user_id: Type.Optional(Type.Union([UserId, Type.Undefined()])),
+    username: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+});
+Type.Object({
+    Success: UserIndexReferralMetricsReferralMetrics,
+});
+Type.Object({
+    bot_id: UserId,
+});
+Type.Object({
+    user_id: UserId,
+});
+const UserIndexUsersUserGroup = Type.Object({
+    users: Type.Array(UserId),
+    updated_since: Type.BigInt(),
+});
+Type.Object({
+    user_groups: Type.Array(UserIndexUsersUserGroup),
+    users_suspended_since: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const UserIndexChitLeaderboardChitUserBalance = Type.Object({
+    user_id: UserId,
+    username: Type.String(),
+    balance: Type.Number(),
+});
+Type.Object({
+    fees: DiamondMembershipFees,
+});
+Type.Object({
+    Success: ChatId,
+});
+Type.Object({
+    user_id: Type.Optional(Type.Union([UserId, Type.Undefined()])),
+});
+Type.Object({
+    community_id: CommunityId,
+    user_ids: Type.Array(UserId),
+    caller_username: Type.String(),
+});
+Type.Object({
+    location: BotInstallationLocation,
+    bot_id: UserId,
+    granted_permissions: BotPermissions,
+});
+Type.Object({
+    group_id: ChatId,
+    user_ids: Type.Array(UserId),
+    caller_username: Type.String(),
+    correlation_id: Type.BigInt(),
+});
+Type.Object({
+    chat_id: ChatId,
+    invite_code: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    verified_credential_args: Type.Optional(Type.Union([VerifiedCredentialGateArgs, Type.Undefined()])),
+    correlation_id: Type.BigInt(),
+});
+Type.Object({
+    location: BotInstallationLocation,
+    bot_id: UserId,
+});
+const LocalUserIndexRegisterUserSuccessResult = Type.Object({
+    user_id: UserId,
+    icp_account: Type.Tuple([
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+    ]),
+});
+Type.Object({
+    user_id: UserId,
+    swap_id: Type.BigInt(),
+    input_token: Type.Boolean(),
+    amount: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    fee: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const LocalUserIndexChatEventsEventsContext = Type.Union([
+    Type.Object({
+        Direct: UserId,
+    }),
+    Type.Object({
+        Group: Type.Tuple([ChatId, Type.Union([MessageIndex, Type.Null()])]),
+    }),
+    Type.Object({
+        Channel: Type.Tuple([CommunityId, ChannelId, Type.Union([MessageIndex, Type.Null()])]),
+    }),
+]);
+Type.Object({
+    community_id: CommunityId,
+    invite_code: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    referred_by: Type.Optional(Type.Union([UserId, Type.Undefined()])),
+    verified_credential_args: Type.Optional(Type.Union([VerifiedCredentialGateArgs, Type.Undefined()])),
+});
+Type.Object({
+    community_id: CommunityId,
+    channel_id: ChannelId,
+    invite_code: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    referred_by: Type.Optional(Type.Union([UserId, Type.Undefined()])),
+    verified_credential_args: Type.Optional(Type.Union([VerifiedCredentialGateArgs, Type.Undefined()])),
+});
+const LocalUserIndexInviteUsersToChannelFailedResult = Type.Object({
+    failed_users: Type.Array(UserId),
+});
+const LocalUserIndexInviteUsersToChannelPartialSuccessResult = Type.Object({
+    failed_users: Type.Array(UserId),
+});
+Type.Object({
+    community_id: CommunityId,
+    channel_id: ChannelId,
+    user_ids: Type.Array(UserId),
+    caller_username: Type.String(),
+});
+const LocalUserIndexBotSendMessageResponse = Type.Union([
+    Type.Object({
+        Success: LocalUserIndexBotSendMessageSuccessResult,
+    }),
+    Type.Object({
+        FailedAuthentication: Type.String(),
+    }),
+    Type.Object({
+        InvalidRequest: Type.String(),
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("Frozen"),
+    Type.Literal("ThreadNotFound"),
+    Type.Literal("MessageAlreadyFinalised"),
+    Type.Object({
+        C2CError: Type.Tuple([Type.Number(), Type.String()]),
+    }),
+]);
+Type.Object({
+    requests: Type.Array(LocalUserIndexGroupAndCommunitySummaryUpdatesSummaryUpdatesArgs),
+});
+Type.Object({
+    user_id: UserId,
+});
+Type.Object({
+    channel_id: Type.Optional(Type.Union([ChannelId, Type.Undefined()])),
+    user_ids: Type.Array(UserId),
+});
+Type.Object({
+    name: Type.String(),
+    user_ids: Type.Array(UserId),
+});
+Type.Object({
+    channel_id: ChannelId,
+    search_term: Type.String(),
+    max_results: Type.Number(),
+    users: Type.Optional(Type.Union([Type.Array(UserId), Type.Undefined()])),
+});
+Type.Object({
+    user_id: UserId,
+    new_role: CommunityRole,
+});
+Type.Object({
+    user_id: UserId,
+});
+Type.Object({
+    user_group_id: Type.Number(),
+    name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    users_to_add: Type.Array(UserId),
+    users_to_remove: Type.Array(UserId),
+});
+Type.Object({
+    channel_id: ChannelId,
+    user_id: UserId,
+});
+Type.Object({
+    user_ids: Type.Array(UserId),
+});
+const CommunityCommunityMembersSuccessResult = Type.Object({
+    members: Type.Array(CommunityMember),
+});
+const CommunityAddMembersToChannelUserFailedError = Type.Object({
+    user_id: UserId,
+    error: Type.String(),
+});
+Type.Object({
+    channel_id: ChannelId,
+    user_ids: Type.Array(UserId),
+    added_by_name: Type.String(),
+    added_by_display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+});
+const CommunityAddMembersToChannelPartialSuccessResult = Type.Object({
+    users_added: Type.Array(UserId),
+    users_already_in_channel: Type.Array(UserId),
+    users_limit_reached: Type.Array(UserId),
+    users_failed_with_error: Type.Array(CommunityAddMembersToChannelUserFailedError),
+});
+const CommunityAddMembersToChannelFailedResult = Type.Object({
+    users_already_in_channel: Type.Array(UserId),
+    users_limit_reached: Type.Array(UserId),
+    users_failed_with_error: Type.Array(CommunityAddMembersToChannelUserFailedError),
+});
+Type.Union([
+    Type.Object({
+        Success: CommunityGenerateBotApiKeySuccessResult,
+    }),
+    Type.Literal("BotNotFound"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("NotAuthorized"),
+]);
+Type.Object({
+    bot_id: UserId,
+    requested_permissions: BotPermissions,
+    channel_id: Type.Optional(Type.Union([ChannelId, Type.Undefined()])),
+});
+Type.Object({
+    channel_id: ChannelId,
+    user_id: UserId,
+    new_role: GroupRole,
+});
+Type.Object({
+    user_id: UserId,
+});
+Type.Object({
+    bot_id: UserId,
+    granted_permissions: BotPermissions,
+});
+Type.Union([
+    Type.Object({
+        Success: CommunityCreateChannelSuccessResult,
+    }),
+    Type.Object({
+        NameTooShort: FieldTooShortResult,
+    }),
+    Type.Object({
+        NameTooLong: FieldTooLongResult,
+    }),
+    Type.Literal("NameReserved"),
+    Type.Object({
+        DescriptionTooLong: FieldTooLongResult,
+    }),
+    Type.Object({
+        RulesTooShort: FieldTooShortResult,
+    }),
+    Type.Object({
+        RulesTooLong: FieldTooLongResult,
+    }),
+    Type.Object({
+        AvatarTooBig: FieldTooLongResult,
+    }),
+    Type.Literal("AccessGateInvalid"),
+    Type.Object({
+        MaxChannelsCreated: Type.Number(),
+    }),
+    Type.Literal("NameTaken"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("ExternalUrlInvalid"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    group_id: ChatId,
+});
+Type.Union([
+    Type.Object({
+        SuccessV2: CommunityUpdateChannelSuccessResult,
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInChannel"),
+    Type.Object({
+        NameTooShort: FieldTooShortResult,
+    }),
+    Type.Object({
+        NameTooLong: FieldTooLongResult,
+    }),
+    Type.Literal("NameReserved"),
+    Type.Object({
+        DescriptionTooLong: FieldTooLongResult,
+    }),
+    Type.Object({
+        AvatarTooBig: FieldTooLongResult,
+    }),
+    Type.Literal("AccessGateInvalid"),
+    Type.Literal("NameTaken"),
+    Type.Object({
+        RulesTooLong: FieldTooLongResult,
+    }),
+    Type.Object({
+        RulesTooShort: FieldTooShortResult,
+    }),
+    Type.Literal("UserSuspended"),
+    Type.Literal("ExternalUrlInvalid"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    success: Type.Array(Type.BigInt()),
+    failures: Type.Array(StorageBucketDeleteFilesDeleteFileFailure),
+});
+const ProposalsBotTransferSnsTreasuryFunds = Type.Object({
+    treasury: ProposalsBotTreasury,
+    amount: Type.BigInt(),
+    to: AccountICRC1,
+    memo: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const ProposalsBotMintSnsTokens = Type.Object({
+    amount: Type.BigInt(),
+    to: AccountICRC1,
+    memo: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    user_ids: Type.Array(UserId),
+});
+const OnlineUsersLastOnlineUserLastOnline = Type.Object({
+    user_id: UserId,
+    duration_since_last_online: Type.BigInt(),
+});
+Type.Object({
+    search_term: Type.String(),
+    max_results: Type.Number(),
+    users: Type.Optional(Type.Union([Type.Array(UserId), Type.Undefined()])),
+});
+const GroupConvertIntoCommunitySuccessResult = Type.Object({
+    community_id: CommunityId,
+    channel_id: ChannelId,
+});
+Type.Union([
+    Type.Object({
+        Success: GroupConvertIntoCommunitySuccessResult,
+    }),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("AlreadyImportingToAnotherCommunity"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    user_ids: Type.Array(UserId),
+});
+Type.Object({
+    user_id: UserId,
+    new_role: GroupRole,
+    correlation_id: Type.BigInt(),
+});
+Type.Object({
+    user_id: UserId,
+    correlation_id: Type.BigInt(),
+});
+Type.Union([
+    Type.Object({
+        SuccessV2: GroupUpdateGroupSuccessResult,
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Object({
+        NameTooShort: FieldTooShortResult,
+    }),
+    Type.Object({
+        NameTooLong: FieldTooLongResult,
+    }),
+    Type.Literal("NameReserved"),
+    Type.Object({
+        DescriptionTooLong: FieldTooLongResult,
+    }),
+    Type.Object({
+        RulesTooShort: FieldTooShortResult,
+    }),
+    Type.Object({
+        RulesTooLong: FieldTooLongResult,
+    }),
+    Type.Object({
+        AvatarTooBig: FieldTooLongResult,
+    }),
+    Type.Literal("AccessGateInvalid"),
+    Type.Literal("NameTaken"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+    Type.Literal("InternalError"),
+]);
+Type.Object({
+    bot_id: UserId,
+    requested_permissions: BotPermissions,
+});
+Type.Object({
+    user_id: UserId,
+    correlation_id: Type.BigInt(),
+});
+Type.Object({
+    user_id: UserId,
+    correlation_id: Type.BigInt(),
+});
+Type.Object({
+    bot_id: UserId,
+    granted_permissions: BotPermissions,
+});
+Type.Object({
+    user_id: UserId,
+    search_term: Type.String(),
+    max_results: Type.Number(),
+});
+const UserCommunitySummaryUpdates = Type.Object({
+    community_id: CommunityId,
+    channels: Type.Array(UserChannelSummaryUpdates),
+    index: Type.Optional(Type.Union([Type.Number(), Type.Undefined()])),
+    archived: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    pinned: Type.Optional(Type.Union([Type.Array(ChannelId), Type.Undefined()])),
+});
+const UserGroupChatSummary = Type.Object({
+    chat_id: ChatId,
+    local_user_index_canister_id: TSBytes,
+    read_by_me_up_to: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    threads_read: Type.Record(MessageIndex, MessageIndex),
+    archived: Type.Boolean(),
+    date_read_pinned: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    user_id: UserId,
+    message_id: MessageId,
+});
+const UserCreateGroupSuccessResult = Type.Object({
+    chat_id: ChatId,
+});
+Type.Object({
+    user_id: UserId,
+    message_id: MessageId,
+});
+Type.Object({
+    user_id: UserId,
+    message_id: MessageId,
+});
+const UserCommunitySummary = Type.Object({
+    community_id: CommunityId,
+    local_user_index_canister_id: TSBytes,
+    channels: Type.Array(UserChannelSummary),
+    index: Type.Number(),
+    archived: Type.Boolean(),
+    pinned: Type.Array(ChannelId),
+});
+const UserSwapTokensExchangeArgs = Type.Union([
+    Type.Object({
+        ICPSwap: UserSwapTokensICPSwapArgs,
+    }),
+    Type.Object({
+        Sonic: UserSwapTokensICPSwapArgs,
+    }),
+    Type.Object({
+        KongSwap: UserSwapTokensICPSwapArgs,
+    }),
+]);
+const UserSwapTokensArgs = Type.Object({
+    swap_id: Type.BigInt(),
+    input_token: TokenInfo,
+    output_token: TokenInfo,
+    input_amount: Type.BigInt(),
+    exchange_args: UserSwapTokensExchangeArgs,
+    min_output_amount: Type.BigInt(),
+    pin: Type.Optional(Type.Union([PinNumberWrapper, Type.Undefined()])),
+});
+Type.Object({
+    avatar: Type.Optional(Type.Union([Document, Type.Undefined()])),
+});
+Type.Object({
+    user_id: UserId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_ids: Type.Array(MessageId),
+    correlation_id: Type.BigInt(),
+});
+const UserGroupChatSummaryUpdates = Type.Object({
+    chat_id: ChatId,
+    read_by_me_up_to: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    threads_read: Type.Record(MessageIndex, MessageIndex),
+    archived: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    date_read_pinned: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    user_id: UserId,
+});
+Type.Object({
+    groups: Type.Array(ChatId),
+    duration: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const UserContactsContact = Type.Object({
+    user_id: UserId,
+    nickname: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+});
+const UserContactsSuccessResult = Type.Object({
+    contacts: Type.Array(UserContactsContact),
+});
+Type.Object({
+    user_id: UserId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    mid_point: MessageIndex,
+    max_messages: Type.Number(),
+    max_events: Type.Number(),
+    latest_known_update: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    user_id: UserId,
+    block_user: Type.Boolean(),
+});
+const UserInitialStateCommunitiesInitial = Type.Object({
+    summaries: Type.Array(UserCommunitySummary),
+});
+const UserInitialStateGroupChatsInitial = Type.Object({
+    summaries: Type.Array(UserGroupChatSummary),
+    pinned: Type.Array(ChatId),
+});
+Type.Object({
+    user_id: UserId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_ids: Type.Array(MessageId),
+    correlation_id: Type.BigInt(),
+});
+Type.Object({
+    Success: Type.Array(ChatId),
+});
+const UserUpdatesGroupChatsUpdates = Type.Object({
+    added: Type.Array(UserGroupChatSummary),
+    updated: Type.Array(UserGroupChatSummaryUpdates),
+    removed: Type.Array(ChatId),
+    pinned: Type.Optional(Type.Union([Type.Array(ChatId), Type.Undefined()])),
+});
+const UserUpdatesCommunitiesUpdates = Type.Object({
+    added: Type.Array(UserCommunitySummary),
+    updated: Type.Array(UserCommunitySummaryUpdates),
+    removed: Type.Array(CommunityId),
+});
+Type.Object({
+    chat_id: ChatId,
+});
+Type.Object({
+    chat_id: ChatId,
+});
+Type.Object({
+    user_id: UserId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    messages: Type.Array(MessageIndex),
+    latest_known_update: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    spender: AccountICRC1,
+    ledger_canister_id: TSBytes,
+    amount: Type.BigInt(),
+    expires_in: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    pin: Type.Optional(Type.Union([PinNumberWrapper, Type.Undefined()])),
+});
+Type.Object({
+    chat_id: ChatId,
+});
+const UserTokenSwapsTokenSwap = Type.Object({
+    args: UserSwapTokensArgs,
+    started: Type.BigInt(),
+    icrc2: Type.Boolean(),
+    transfer_or_approval: Type.Optional(Type.Union([
+        Type.Object({
+            Ok: Type.BigInt(),
+        }),
+        Type.Object({
+            Err: Type.String(),
+        }),
+        Type.Undefined(),
+    ])),
+    notified_dex: Type.Optional(Type.Union([
+        Type.Object({
+            Ok: Type.Null(),
+        }),
+        Type.Object({
+            Err: Type.String(),
+        }),
+        Type.Undefined(),
+    ])),
+    amount_swapped: Type.Optional(Type.Union([
+        Type.Object({
+            Ok: Type.Union([
+                Type.Object({
+                    Ok: Type.BigInt(),
+                }),
+                Type.Object({
+                    Err: Type.String(),
+                }),
+            ]),
+        }),
+        Type.Object({
+            Err: Type.String(),
+        }),
+        Type.Undefined(),
+    ])),
+    withdrawn_from_dex: Type.Optional(Type.Union([
+        Type.Object({
+            Ok: Type.BigInt(),
+        }),
+        Type.Object({
+            Err: Type.String(),
+        }),
+        Type.Undefined(),
+    ])),
+    success: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+});
+const UserTokenSwapsSuccessResult = Type.Object({
+    total: Type.Number(),
+    swaps: Type.Array(UserTokenSwapsTokenSwap),
+});
+Type.Object({
+    user_id: UserId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    reaction: Reaction,
+    correlation_id: Type.BigInt(),
+});
+const UserSetContactOptionalContact = Type.Object({
+    user_id: UserId,
+    nickname: OptionUpdateString,
+});
+Type.Object({
+    contact: UserSetContactOptionalContact,
+});
+Type.Object({
+    user_id: UserId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    reaction: Reaction,
+    correlation_id: Type.BigInt(),
+});
+const UserReferral = Type.Object({
+    user_id: UserId,
+    status: ReferralStatus,
+});
+Type.Object({
+    user_id: UserId,
+});
+Type.Object({
+    indexes: Type.Array(Type.Tuple([CommunityId, Type.Number()])),
+});
+const UserSendMessageSuccessResult = Type.Object({
+    chat_id: ChatId,
+    event_index: EventIndex,
+    message_index: MessageIndex,
+    timestamp: Type.BigInt(),
+    expires_at: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    user_id: UserId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    events: Type.Array(EventIndex),
+    latest_known_update: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const UserCreateCommunitySuccessResult = Type.Object({
+    community_id: CommunityId,
+});
+Type.Union([
+    Type.Object({
+        Success: UserCreateCommunitySuccessResult,
+    }),
+    Type.Object({
+        NameTooShort: FieldTooShortResult,
+    }),
+    Type.Object({
+        NameTooLong: FieldTooLongResult,
+    }),
+    Type.Literal("NameReserved"),
+    Type.Object({
+        DescriptionTooLong: FieldTooLongResult,
+    }),
+    Type.Object({
+        RulesTooShort: FieldTooShortResult,
+    }),
+    Type.Object({
+        RulesTooLong: FieldTooLongResult,
+    }),
+    Type.Object({
+        AvatarTooBig: FieldTooLongResult,
+    }),
+    Type.Object({
+        BannerTooBig: FieldTooLongResult,
+    }),
+    Type.Literal("AccessGateInvalid"),
+    Type.Object({
+        MaxCommunitiesCreated: Type.Number(),
+    }),
+    Type.Literal("NameTaken"),
+    Type.Literal("Throttled"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("Unauthorized"),
+    Type.Literal("DefaultChannelsInvalid"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+const UserMarkReadChatMessagesRead = Type.Object({
+    chat_id: ChatId,
+    read_up_to: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    threads: Type.Array(UserMarkReadThreadRead),
+    date_read_pinned: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const UserMarkReadCommunityMessagesRead = Type.Object({
+    community_id: CommunityId,
+    channels_read: Type.Array(UserMarkReadChannelMessagesRead),
+});
+Type.Object({
+    user_id: UserId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    start_index: EventIndex,
+    ascending: Type.Boolean(),
+    max_messages: Type.Number(),
+    max_events: Type.Number(),
+    latest_known_update: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Object({
+    community_id: CommunityId,
+});
+Type.Object({
+    user_id: UserId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    pin: Type.Optional(Type.Union([PinNumberWrapper, Type.Undefined()])),
+});
+Type.Object({
+    community_id: CommunityId,
+});
+const UserChitEventsSuccessResult = Type.Object({
+    events: Type.Array(ChitEarned),
+    total: Type.Number(),
+});
+Type.Object({
+    them: UserId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    delete: Type.Boolean(),
+});
+const VideoContent = Type.Object({
+    width: Type.Number(),
+    height: Type.Number(),
+    thumbnail_data: ThumbnailData,
+    caption: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    mime_type: Type.String(),
+    image_blob_reference: Type.Optional(Type.Union([BlobReference, Type.Undefined()])),
+    video_blob_reference: Type.Optional(Type.Union([BlobReference, Type.Undefined()])),
+});
+const GroupPermissions = Type.Object({
+    change_roles: GroupPermissionRole,
+    update_group: GroupPermissionRole,
+    add_members: GroupPermissionRole,
+    invite_users: GroupPermissionRole,
+    remove_members: GroupPermissionRole,
+    delete_messages: GroupPermissionRole,
+    pin_messages: GroupPermissionRole,
+    react_to_messages: GroupPermissionRole,
+    mention_all_members: GroupPermissionRole,
+    start_video_call: GroupPermissionRole,
+    message_permissions: MessagePermissions,
+    thread_permissions: Type.Optional(Type.Union([MessagePermissions, Type.Undefined()])),
+});
+const SlashCommandParamType = Type.Union([
+    Type.Literal("UserParam"),
+    Type.Literal("BooleanParam"),
+    Type.Object({
+        StringParam: StringParam,
+    }),
+    Type.Object({
+        IntegerParam: IntegerParam,
+    }),
+    Type.Object({
+        DecimalParam: DecimalParam,
+    }),
+]);
+const GroupSubtype = Type.Object({
+    GovernanceProposals: GovernanceProposalsSubtype,
+});
+const SignedDelegation = Type.Object({
+    delegation: Delegation,
+    signature: TSBytes,
+});
+const P2PSwapReserved = Type.Object({
+    reserved_by: UserId,
+});
+const UserSummary = Type.Object({
+    user_id: UserId,
+    username: Type.String(),
+    display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    avatar_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    is_bot: Type.Boolean(),
+    suspended: Type.Boolean(),
+    diamond_member: Type.Boolean(),
+    diamond_membership_status: DiamondMembershipStatus,
+    total_chit_earned: Type.Number(),
+    chit_balance: Type.Number(),
+    streak: Type.Number(),
+    is_unique_person: Type.Boolean(),
+});
+const CompletedCryptoTransactionICRC2 = Type.Object({
+    ledger: TSBytes,
+    token: Cryptocurrency,
+    amount: Type.BigInt(),
+    spender: UserId,
+    from: CryptoAccountICRC1,
+    to: CryptoAccountICRC1,
+    fee: Type.BigInt(),
+    memo: Type.Optional(Type.Union([TSBytes, Type.Undefined()])),
+    created: Type.BigInt(),
+    block_index: Type.BigInt(),
+});
+const AvatarChanged = Type.Object({
+    new_avatar: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    previous_avatar: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    changed_by: UserId,
+});
+const MembersRemoved = Type.Object({
+    user_ids: Type.Array(UserId),
+    removed_by: UserId,
+});
+const PublicApiKeyDetails = Type.Object({
+    bot_id: UserId,
+    granted_permissions: BotPermissions,
+    generated_by: UserId,
+    generated_at: Type.BigInt(),
+});
+const BotActionCommunityDetails = Type.Object({
+    community_id: CommunityId,
+});
+const BotGroupDetails = Type.Object({
+    user_id: UserId,
+    added_by: UserId,
+    permissions: BotPermissions,
+});
+const SwapStatusErrorReserved = Type.Object({
+    reserved_by: UserId,
+});
+const BotRemoved = Type.Object({
+    user_id: UserId,
+    removed_by: UserId,
+});
+const MessagePinned = Type.Object({
+    message_index: MessageIndex,
+    pinned_by: UserId,
+});
+const P2PSwapContentInitial = Type.Object({
+    token0: TokenInfo,
+    token0_amount: Type.BigInt(),
+    token1: TokenInfo,
+    token1_amount: Type.BigInt(),
+    expires_in: Type.BigInt(),
+    caption: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+});
+const GroupDescriptionChanged = Type.Object({
+    new_description: Type.String(),
+    previous_description: Type.String(),
+    changed_by: UserId,
+});
+const PrizeContent = Type.Object({
+    prizes_remaining: Type.Number(),
+    prizes_pending: Type.Number(),
+    winners: Type.Array(UserId),
+    winner_count: Type.Number(),
+    user_is_winner: Type.Boolean(),
+    token: Cryptocurrency,
+    end_date: Type.BigInt(),
+    caption: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    diamond_only: Type.Boolean(),
+    lifetime_diamond_only: Type.Boolean(),
+    unique_person_only: Type.Boolean(),
+    streak_only: Type.Number(),
+});
+const GroupRulesChanged = Type.Object({
+    enabled: Type.Boolean(),
+    prev_enabled: Type.Boolean(),
+    changed_by: UserId,
+});
+const GroupCreated = Type.Object({
+    name: Type.String(),
+    description: Type.String(),
+    created_by: UserId,
+});
+const UserSummaryV2 = Type.Object({
+    user_id: UserId,
+    stable: Type.Optional(Type.Union([UserSummaryStable, Type.Undefined()])),
+    volatile: Type.Optional(Type.Union([UserSummaryVolatile, Type.Undefined()])),
+});
+const ExternalUrlUpdated = Type.Object({
+    updated_by: UserId,
+    new_url: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+});
+const DeletedGroupInfo = Type.Object({
+    id: ChatId,
+    timestamp: Type.BigInt(),
+    deleted_by: UserId,
+    group_name: Type.String(),
+    name: Type.String(),
+    public: Type.Boolean(),
+});
+const SwapStatusErrorAccepted = Type.Object({
+    accepted_by: UserId,
+    token1_txn_in: Type.BigInt(),
+});
+const P2PSwapCompleted = Type.Object({
+    accepted_by: UserId,
+    token1_txn_in: Type.BigInt(),
+    token0_txn_out: Type.BigInt(),
+    token1_txn_out: Type.BigInt(),
+});
+const GroupInviteCodeChanged = Type.Object({
+    change: GroupInviteCodeChange,
+    changed_by: UserId,
+});
+const GroupNameChanged = Type.Object({
+    new_name: Type.String(),
+    previous_name: Type.String(),
+    changed_by: UserId,
+});
+const AccessGateNonComposite = Type.Union([
+    Type.Literal("DiamondMember"),
+    Type.Literal("LifetimeDiamondMember"),
+    Type.Literal("UniquePerson"),
+    Type.Object({
+        VerifiedCredential: VerifiedCredentialGate,
+    }),
+    Type.Object({
+        SnsNeuron: SnsNeuronGate,
+    }),
+    Type.Object({
+        Payment: PaymentGate,
+    }),
+    Type.Object({
+        TokenBalance: TokenBalanceGate,
+    }),
+    Type.Literal("Locked"),
+    Type.Literal("ReferredByMember"),
+]);
+const Chat = Type.Union([
+    Type.Object({
+        Direct: ChatId,
+    }),
+    Type.Object({
+        Group: ChatId,
+    }),
+    Type.Object({
+        Channel: Type.Tuple([CommunityId, ChannelId]),
+    }),
+]);
+const DeletedBy = Type.Object({
+    deleted_by: UserId,
+    timestamp: Type.BigInt(),
+});
+const CompletedCryptoTransaction = Type.Union([
+    Type.Object({
+        NNS: CompletedCryptoTransactionNNS,
+    }),
+    Type.Object({
+        ICRC1: CompletedCryptoTransactionICRC1,
+    }),
+    Type.Object({
+        ICRC2: CompletedCryptoTransactionICRC2,
+    }),
+]);
+const P2PSwapAccepted = Type.Object({
+    accepted_by: UserId,
+    token1_txn_in: Type.BigInt(),
+});
+const GroupMember = Type.Object({
+    user_id: UserId,
+    date_added: Type.BigInt(),
+    role: GroupRole,
+    lapsed: Type.Boolean(),
+});
+const StartVideoCallArgs = Type.Object({
+    call_type: VideoCallType,
+    chat: Chat,
+});
+const MessageUnpinned = Type.Object({
+    message_index: MessageIndex,
+    unpinned_by: UserId,
+    due_to_message_deleted: Type.Boolean(),
+});
+const TotalVotes = Type.Union([
+    Type.Object({
+        Visible: Type.Record(Type.Number(), Type.Array(UserId)),
+    }),
+    Type.Object({
+        Anonymous: Type.Record(Type.Number(), Type.Number()),
+    }),
+    Type.Object({
+        Hidden: Type.Number(),
+    }),
+]);
+const MultiUserChat = Type.Union([
+    Type.Object({
+        Group: ChatId,
+    }),
+    Type.Object({
+        Channel: Type.Tuple([CommunityId, ChannelId]),
+    }),
+]);
+const UsersUnblocked = Type.Object({
+    user_ids: Type.Array(UserId),
+    unblocked_by: UserId,
+});
+const Tips = Type.Array(Type.Tuple([TSBytes, Type.Array(Type.Tuple([UserId, Type.BigInt()]))]));
+const CallParticipant = Type.Object({
+    user_id: UserId,
+    joined: Type.BigInt(),
+});
+const PermissionsChanged = Type.Object({
+    old_permissions_v2: GroupPermissions,
+    new_permissions_v2: GroupPermissions,
+    changed_by: UserId,
+});
+const GroupFrozen = Type.Object({
+    frozen_by: UserId,
+    reason: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+});
+const BotUpdated = Type.Object({
+    user_id: UserId,
+    updated_by: UserId,
+});
+const FailedCryptoTransactionICRC2 = Type.Object({
+    ledger: TSBytes,
+    token: Cryptocurrency,
+    amount: Type.BigInt(),
+    fee: Type.BigInt(),
+    spender: UserId,
+    from: CryptoAccountICRC1,
+    to: CryptoAccountICRC1,
+    memo: Type.Optional(Type.Union([TSBytes, Type.Undefined()])),
+    created: Type.BigInt(),
+    error_message: Type.String(),
+});
+const Proposal = Type.Union([
+    Type.Object({
+        NNS: NnsProposal,
+    }),
+    Type.Object({
+        SNS: SnsProposal,
+    }),
+]);
+const UsersInvited = Type.Object({
+    user_ids: Type.Array(UserId),
+    invited_by: UserId,
+});
+const PendingCryptoTransactionNNS = Type.Object({
+    ledger: TSBytes,
+    token: Cryptocurrency,
+    amount: Tokens,
+    to: UserOrAccount,
+    fee: Type.Optional(Type.Union([Tokens, Type.Undefined()])),
+    memo: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    created: Type.BigInt(),
+});
+const DeletedCommunityInfo = Type.Object({
+    id: CommunityId,
+    timestamp: Type.BigInt(),
+    deleted_by: UserId,
+    name: Type.String(),
+    public: Type.Boolean(),
+});
+const VideoCallParticipants = Type.Object({
+    participants: Type.Array(CallParticipant),
+    hidden: Type.Array(CallParticipant),
+    last_updated: Type.BigInt(),
+});
+const SwapStatusErrorCompleted = Type.Object({
+    accepted_by: UserId,
+    token1_txn_in: Type.BigInt(),
+    token0_txn_out: Type.BigInt(),
+    token1_txn_out: Type.BigInt(),
+});
+const AirdropConfig = Type.Object({
+    community_id: CommunityId,
+    channel_id: ChannelId,
+    community_name: Type.String(),
+    channel_name: Type.String(),
+});
+const MembersAdded = Type.Object({
+    user_ids: Type.Array(UserId),
+    added_by: UserId,
+    unblocked: Type.Array(UserId),
+});
+const FrozenGroupInfo = Type.Object({
+    timestamp: Type.BigInt(),
+    frozen_by: UserId,
+    reason: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+});
+const GroupUnfrozen = Type.Object({
+    unfrozen_by: UserId,
+});
+const EventsTimeToLiveUpdated = Type.Object({
+    updated_by: UserId,
+    new_ttl: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const BotCommandArgValue = Type.Union([
+    Type.Object({
+        String: Type.String(),
+    }),
+    Type.Object({
+        Integer: Type.BigInt(),
+    }),
+    Type.Object({
+        Decimal: Type.Number(),
+    }),
+    Type.Object({
+        Boolean: Type.Boolean(),
+    }),
+    Type.Object({
+        User: UserId,
+    }),
+]);
+const MemberJoined = Type.Object({
+    user_id: UserId,
+    invited_by: Type.Optional(Type.Union([UserId, Type.Undefined()])),
+});
+const JoinVideoCallArgs = Type.Object({
+    chat: Chat,
+});
+const SlashCommandParam = Type.Object({
+    name: Type.String(),
+    description: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    placeholder: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    required: Type.Boolean(),
+    param_type: SlashCommandParamType,
+});
+const SlashCommandSchema = Type.Object({
+    name: Type.String(),
+    description: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    placeholder: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    params: Type.Array(SlashCommandParam),
+    permissions: BotPermissions,
+});
+const RoleChanged = Type.Object({
+    user_ids: Type.Array(UserId),
+    changed_by: UserId,
+    old_role: GroupRole,
+    new_role: GroupRole,
+});
+const GroupVisibilityChanged = Type.Object({
+    public: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    messages_visible_to_non_members: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    changed_by: UserId,
+});
+const MarkVideoCallAsEndedArgs = Type.Object({
+    chat: Chat,
+});
+const SelectedGroupUpdates = Type.Object({
+    timestamp: Type.BigInt(),
+    last_updated: Type.BigInt(),
+    latest_event_index: EventIndex,
+    members_added_or_updated: Type.Array(GroupMember),
+    members_removed: Type.Array(UserId),
+    bots_added_or_updated: Type.Array(BotGroupDetails),
+    bots_removed: Type.Array(UserId),
+    api_keys_generated: Type.Array(PublicApiKeyDetails),
+    blocked_users_added: Type.Array(UserId),
+    blocked_users_removed: Type.Array(UserId),
+    invited_users: Type.Optional(Type.Union([Type.Array(UserId), Type.Undefined()])),
+    pinned_messages_added: Type.Array(MessageIndex),
+    pinned_messages_removed: Type.Array(MessageIndex),
+    chat_rules: Type.Optional(Type.Union([VersionedRules, Type.Undefined()])),
+});
+const OptionUpdateFrozenGroupInfo = Type.Union([
+    Type.Literal("NoChange"),
+    Type.Literal("SetToNone"),
+    Type.Object({
+        SetToSome: FrozenGroupInfo,
+    }),
+], { default: "NoChange" });
+const ProposalContent = Type.Object({
+    governance_canister_id: TSBytes,
+    proposal: Proposal,
+    my_vote: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+});
+const ReplyContext = Type.Object({
+    chat_if_other: Type.Optional(Type.Union([Type.Tuple([Chat, Type.Union([MessageIndex, Type.Null()])]), Type.Undefined()])),
+    event_index: EventIndex,
+});
+const BotActionChatDetails = Type.Object({
+    chat: Chat,
+    thread: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+});
+const ReportedMessage = Type.Object({
+    reports: Type.Array(MessageReport),
+    count: Type.Number(),
+});
+const OptionUpdateAirdropConfig = Type.Union([
+    Type.Literal("NoChange"),
+    Type.Literal("SetToNone"),
+    Type.Object({
+        SetToSome: AirdropConfig,
+    }),
+], { default: "NoChange" });
+const DiamondMembershipStatusFull = Type.Union([
+    Type.Literal("Inactive"),
+    Type.Object({
+        Active: DiamondMembershipDetails,
+    }),
+    Type.Literal("Lifetime"),
+]);
+const OptionUpdateGroupSubtype = Type.Union([
+    Type.Literal("NoChange"),
+    Type.Literal("SetToNone"),
+    Type.Object({
+        SetToSome: GroupSubtype,
+    }),
+], { default: "NoChange" });
+const BotDefinition = Type.Object({
+    description: Type.String(),
+    commands: Type.Array(SlashCommandSchema),
+    autonomous_config: Type.Optional(Type.Union([AutonomousConfig, Type.Undefined()])),
+});
+const GroupIndexActiveGroupsSuccessResult = Type.Object({
+    timestamp: Type.BigInt(),
+    active_groups: Type.Array(ChatId),
+    active_communities: Type.Array(CommunityId),
+    deleted_groups: Type.Array(DeletedGroupInfo),
+    deleted_communities: Type.Array(DeletedCommunityInfo),
+});
+const RegistryUpdatesSuccessResult = Type.Object({
+    last_updated: Type.BigInt(),
+    token_details: Type.Optional(Type.Union([Type.Array(RegistryTokenDetails), Type.Undefined()])),
+    nervous_system_details: Type.Array(RegistryNervousSystemSummary),
+    message_filters_added: Type.Array(RegistryMessageFilterSummary),
+    message_filters_removed: Type.Array(Type.BigInt()),
+    swap_providers: Type.Optional(Type.Union([Type.Array(ExchangeId), Type.Undefined()])),
+    airdrop_config: OptionUpdateAirdropConfig,
+});
+Type.Union([
+    Type.Object({
+        Success: RegistryUpdatesSuccessResult,
+    }),
+    Type.Literal("SuccessNoUpdates"),
+]);
+Type.Object({
+    Success: UserIndexPlatformModeratorsSuccessResult,
+});
+Type.Object({
+    Success: UserIndexSuspectedBotsSuccessResult,
+});
+Type.Union([
+    Type.Object({
+        Success: UserSummary,
+    }),
+    Type.Literal("UserNotFound"),
+]);
+const UserIndexBotUpdatesBotSchema = Type.Object({
+    id: UserId,
+    owner: UserId,
+    name: Type.String(),
+    avatar_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    endpoint: Type.String(),
+    description: Type.String(),
+    commands: Type.Array(SlashCommandSchema),
+    autonomous_config: Type.Optional(Type.Union([AutonomousConfig, Type.Undefined()])),
+    last_updated: Type.BigInt(),
+});
+const UserIndexSearchResult = Type.Object({
+    users: Type.Array(UserSummary),
+    timestamp: Type.BigInt(),
+});
+Type.Object({
+    Success: UserIndexSearchResult,
+});
+Type.Object({
+    user_id: UserId,
+    delegation: SignedDelegation,
+});
+const UserIndexChitLeaderboardSuccessResult = Type.Object({
+    all_time: Type.Array(UserIndexChitLeaderboardChitUserBalance),
+    this_month: Type.Array(UserIndexChitLeaderboardChitUserBalance),
+    last_month: Type.Array(UserIndexChitLeaderboardChitUserBalance),
+});
+Type.Object({
+    SuccessV2: UserIndexChitLeaderboardSuccessResult,
+});
+Type.Object({
+    bot_id: UserId,
+    owner: Type.Optional(Type.Union([UserId, Type.Undefined()])),
+    principal: Type.Optional(Type.Union([TSBytes, Type.Undefined()])),
+    avatar: OptionUpdateString,
+    endpoint: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    definition: Type.Optional(Type.Union([BotDefinition, Type.Undefined()])),
+});
+Type.Object({
+    principal: TSBytes,
+    owner: UserId,
+    name: Type.String(),
+    avatar: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    endpoint: Type.String(),
+    definition: BotDefinition,
+});
+const UserIndexCurrentUserSuccessResult = Type.Object({
+    user_id: UserId,
+    username: Type.String(),
+    date_created: Type.BigInt(),
+    display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    avatar_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    canister_upgrade_status: CanisterUpgradeStatus,
+    wasm_version: BuildVersion,
+    icp_account: Type.Tuple([
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+    ]),
+    referrals: Type.Array(UserId),
+    is_platform_moderator: Type.Boolean(),
+    is_platform_operator: Type.Boolean(),
+    suspension_details: Type.Optional(Type.Union([SuspensionDetails, Type.Undefined()])),
+    is_suspected_bot: Type.Boolean(),
+    diamond_membership_details: Type.Optional(Type.Union([DiamondMembershipDetails, Type.Undefined()])),
+    diamond_membership_status: DiamondMembershipStatusFull,
+    moderation_flags_enabled: Type.Number(),
+    is_unique_person: Type.Boolean(),
+});
+Type.Union([
+    Type.Object({
+        Success: UserIndexCurrentUserSuccessResult,
+    }),
+    Type.Literal("UserNotFound"),
+]);
+Type.Object({
+    token_type: AccessTokenType,
+    chat: Chat,
+});
+Type.Union([
+    Type.Object({
+        Success: LocalUserIndexRegisterUserSuccessResult,
+    }),
+    Type.Literal("RegistrationInProgress"),
+    Type.Literal("AlreadyRegistered"),
+    Type.Literal("UserLimitReached"),
+    Type.Literal("UsernameInvalid"),
+    Type.Object({
+        UsernameTooShort: Type.Number(),
+    }),
+    Type.Object({
+        UsernameTooLong: Type.Number(),
+    }),
+    Type.Literal("CyclesBalanceTooLow"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+    Type.Object({
+        PublicKeyInvalid: Type.String(),
+    }),
+    Type.Literal("ReferralCodeInvalid"),
+    Type.Literal("ReferralCodeAlreadyClaimed"),
+    Type.Literal("ReferralCodeExpired"),
+]);
+const LocalUserIndexChatEventsEventsArgs = Type.Object({
+    context: LocalUserIndexChatEventsEventsContext,
+    args: LocalUserIndexChatEventsEventsArgsInner,
+    latest_known_update: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        PartialSuccess: LocalUserIndexInviteUsersToChannelPartialSuccessResult,
+    }),
+    Type.Object({
+        Failed: LocalUserIndexInviteUsersToChannelFailedResult,
+    }),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        TooManyInvites: Type.Number(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    chat_id: MultiUserChat,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    event_index: EventIndex,
+    reason_code: Type.Number(),
+    notes: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+});
+Type.Union([
+    Type.Object({
+        Success: SelectedGroupUpdates,
+    }),
+    Type.Object({
+        SuccessNoUpdates: Type.BigInt(),
+    }),
+    Type.Literal("PrivateCommunity"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("PrivateChannel"),
+]);
+const CommunitySelectedChannelInitialSuccessResult = Type.Object({
+    timestamp: Type.BigInt(),
+    last_updated: Type.BigInt(),
+    latest_event_index: EventIndex,
+    members: Type.Array(GroupMember),
+    basic_members: Type.Array(UserId),
+    blocked_users: Type.Array(UserId),
+    invited_users: Type.Array(UserId),
+    pinned_messages: Type.Array(MessageIndex),
+    chat_rules: VersionedRules,
+    api_keys: Type.Array(PublicApiKeyDetails),
+});
+Type.Union([
+    Type.Object({
+        Success: CommunityCommunityMembersSuccessResult,
+    }),
+    Type.Literal("PrivateCommunity"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        PartialSuccess: CommunityAddMembersToChannelPartialSuccessResult,
+    }),
+    Type.Object({
+        Failed: CommunityAddMembersToChannelFailedResult,
+    }),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("CommunityPublic"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("ChannelNotFound"),
+    Type.Object({
+        UserLimitReached: Type.Number(),
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+const CommunitySelectedInitialSuccessResult = Type.Object({
+    timestamp: Type.BigInt(),
+    last_updated: Type.BigInt(),
+    latest_event_index: EventIndex,
+    members: Type.Array(CommunityMember),
+    bots: Type.Array(BotGroupDetails),
+    api_keys: Type.Array(PublicApiKeyDetails),
+    basic_members: Type.Array(UserId),
+    blocked_users: Type.Array(UserId),
+    invited_users: Type.Array(UserId),
+    chat_rules: VersionedRules,
+    user_groups: Type.Array(UserGroupDetails),
+    referrals: Type.Array(UserId),
+});
+Type.Union([
+    Type.Object({
+        Success: VideoCallParticipants,
+    }),
+    Type.Literal("VideoCallNotFound"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("ChannelNotFound"),
+]);
+const CommunitySelectedUpdatesSuccessResult = Type.Object({
+    timestamp: Type.BigInt(),
+    last_updated: Type.BigInt(),
+    members_added_or_updated: Type.Array(CommunityMember),
+    members_removed: Type.Array(UserId),
+    bots_added_or_updated: Type.Array(BotGroupDetails),
+    bots_removed: Type.Array(UserId),
+    api_keys_generated: Type.Array(PublicApiKeyDetails),
+    blocked_users_added: Type.Array(UserId),
+    blocked_users_removed: Type.Array(UserId),
+    invited_users: Type.Optional(Type.Union([Type.Array(UserId), Type.Undefined()])),
+    chat_rules: Type.Optional(Type.Union([VersionedRules, Type.Undefined()])),
+    user_groups: Type.Array(UserGroupDetails),
+    user_groups_deleted: Type.Array(Type.Number()),
+    referrals_added: Type.Array(UserId),
+    referrals_removed: Type.Array(UserId),
+});
+Type.Union([
+    Type.Object({
+        Success: CommunitySelectedUpdatesSuccessResult,
+    }),
+    Type.Object({
+        SuccessNoUpdates: Type.BigInt(),
+    }),
+    Type.Literal("PrivateCommunity"),
+]);
+const ProposalsBotProposalToSubmitAction = Type.Union([
+    Type.Literal("Motion"),
+    Type.Object({
+        TransferSnsTreasuryFunds: ProposalsBotTransferSnsTreasuryFunds,
+    }),
+    Type.Object({
+        MintSnsTokens: ProposalsBotMintSnsTokens,
+    }),
+    Type.Literal("UpgradeSnsToNextVersion"),
+    Type.Literal("AdvanceSnsTargetVersion"),
+    Type.Object({
+        UpgradeSnsControlledCanister: ProposalsBotUpgradeSnsControlledCanister,
+    }),
+    Type.Object({
+        ExecuteGenericNervousSystemFunction: ProposalsBotExecuteGenericNervousSystemFunction,
+    }),
+]);
+const ProposalsBotProposalToSubmit = Type.Object({
+    title: Type.String(),
+    summary: Type.String(),
+    url: Type.String(),
+    action: ProposalsBotProposalToSubmitAction,
+});
+Type.Object({
+    Success: Type.Array(OnlineUsersLastOnlineUserLastOnline),
+});
+const GroupSelectedInitialSuccessResult = Type.Object({
+    timestamp: Type.BigInt(),
+    last_updated: Type.BigInt(),
+    latest_event_index: EventIndex,
+    participants: Type.Array(GroupMember),
+    bots: Type.Array(BotGroupDetails),
+    api_keys: Type.Array(PublicApiKeyDetails),
+    basic_members: Type.Array(UserId),
+    blocked_users: Type.Array(UserId),
+    invited_users: Type.Array(UserId),
+    pinned_messages: Type.Array(MessageIndex),
+    chat_rules: VersionedRules,
+});
+Type.Union([
+    Type.Object({
+        Success: GroupSelectedInitialSuccessResult,
+    }),
+    Type.Literal("CallerNotInGroup"),
+]);
+Type.Union([
+    Type.Object({
+        Success: VideoCallParticipants,
+    }),
+    Type.Literal("VideoCallNotFound"),
+    Type.Literal("CallerNotInGroup"),
+]);
+Type.Union([
+    Type.Object({
+        Success: SelectedGroupUpdates,
+    }),
+    Type.Object({
+        SuccessNoUpdates: Type.BigInt(),
+    }),
+    Type.Literal("CallerNotInGroup"),
+]);
+Type.Object({
+    to_add: Type.Array(Chat),
+    to_remove: Type.Array(Chat),
+});
+const UserMessageActivityEvent = Type.Object({
+    chat: Chat,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_index: MessageIndex,
+    message_id: MessageId,
+    event_index: EventIndex,
+    activity: UserMessageActivity,
+    timestamp: Type.BigInt(),
+    user_id: Type.Optional(Type.Union([UserId, Type.Undefined()])),
+});
+Type.Union([
+    Type.Object({
+        Success: UserCreateGroupSuccessResult,
+    }),
+    Type.Object({
+        NameTooShort: FieldTooShortResult,
+    }),
+    Type.Object({
+        NameTooLong: FieldTooLongResult,
+    }),
+    Type.Literal("NameReserved"),
+    Type.Object({
+        DescriptionTooLong: FieldTooLongResult,
+    }),
+    Type.Object({
+        RulesTooShort: FieldTooShortResult,
+    }),
+    Type.Object({
+        RulesTooLong: FieldTooLongResult,
+    }),
+    Type.Object({
+        AvatarTooBig: FieldTooLongResult,
+    }),
+    Type.Literal("AccessGateInvalid"),
+    Type.Object({
+        MaxGroupsCreated: Type.Number(),
+    }),
+    Type.Literal("NameTaken"),
+    Type.Literal("Throttled"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UnauthorizedToCreatePublicGroup"),
+    Type.Literal("InternalError"),
+]);
+const UserSetPinNumberPinNumberVerification = Type.Union([
+    Type.Literal("None"),
+    Type.Object({
+        PIN: PinNumberWrapper,
+    }),
+    Type.Object({
+        Delegation: SignedDelegation,
+    }),
+]);
+Type.Object({
+    new: Type.Optional(Type.Union([PinNumberWrapper, Type.Undefined()])),
+    verification: UserSetPinNumberPinNumberVerification,
+});
+const UserMessageActivityFeedSuccessResult = Type.Object({
+    events: Type.Array(UserMessageActivityEvent),
+    total: Type.Number(),
+});
+Type.Object({
+    Success: UserMessageActivityFeedSuccessResult,
+});
+Type.Object({
+    chat: Chat,
+    recipient: UserId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    ledger: TSBytes,
+    token: Cryptocurrency,
+    amount: Type.BigInt(),
+    fee: Type.BigInt(),
+    decimals: Type.Number(),
+    pin: Type.Optional(Type.Union([PinNumberWrapper, Type.Undefined()])),
+});
+const UserChatInList = Type.Union([
+    Type.Object({
+        Direct: ChatId,
+    }),
+    Type.Object({
+        Group: ChatId,
+    }),
+    Type.Object({
+        Favourite: Chat,
+    }),
+    Type.Object({
+        Community: Type.Tuple([CommunityId, ChannelId]),
+    }),
+]);
+Type.Object({
+    chat: UserChatInList,
+});
+Type.Object({
+    Success: UserContactsSuccessResult,
+});
+const UserInitialStateFavouriteChatsInitial = Type.Object({
+    chats: Type.Array(Chat),
+    pinned: Type.Array(Chat),
+});
+const UserUpdatesFavouriteChatsUpdates = Type.Object({
+    chats: Type.Optional(Type.Union([Type.Array(Chat), Type.Undefined()])),
+    pinned: Type.Optional(Type.Union([Type.Array(Chat), Type.Undefined()])),
+});
+const UserSendMessageWithTransferToGroupSuccessResult = Type.Object({
+    event_index: EventIndex,
+    message_index: MessageIndex,
+    timestamp: Type.BigInt(),
+    expires_at: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    transfer: CompletedCryptoTransaction,
+});
+Type.Object({
+    chat: Chat,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    event_index: EventIndex,
+    notes: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    remind_at: Type.BigInt(),
+});
+Type.Object({
+    Success: UserTokenSwapsSuccessResult,
+});
+Type.Object({
+    to_archive: Type.Array(Chat),
+    to_unarchive: Type.Array(Chat),
+});
+const UserArchiveUnarchiveChatsPartialSuccessResult = Type.Object({
+    chats_not_found: Type.Array(Chat),
+});
+const UserSendMessageTransferSuccessV2Result = Type.Object({
+    chat_id: ChatId,
+    event_index: EventIndex,
+    message_index: MessageIndex,
+    timestamp: Type.BigInt(),
+    expires_at: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    transfer: CompletedCryptoTransaction,
+});
+Type.Union([
+    Type.Object({
+        Success: UserSendMessageSuccessResult,
+    }),
+    Type.Object({
+        TransferSuccessV2: UserSendMessageTransferSuccessV2Result,
+    }),
+    Type.Literal("MessageEmpty"),
+    Type.Object({
+        TextTooLong: Type.Number(),
+    }),
+    Type.Literal("RecipientBlocked"),
+    Type.Literal("RecipientNotFound"),
+    Type.Object({
+        InvalidPoll: InvalidPollReason,
+    }),
+    Type.Object({
+        InvalidRequest: Type.String(),
+    }),
+    Type.Object({
+        TransferFailed: Type.String(),
+    }),
+    Type.Literal("TransferCannotBeZero"),
+    Type.Literal("TransferCannotBeToSelf"),
+    Type.Object({
+        P2PSwapSetUpFailed: Type.String(),
+    }),
+    Type.Literal("DuplicateMessageId"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("PinRequired"),
+    Type.Object({
+        PinIncorrect: Type.BigInt(),
+    }),
+    Type.Object({
+        TooManyFailedPinAttempts: Type.BigInt(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+const UserSendMessageWithTransferToChannelSuccessResult = Type.Object({
+    event_index: EventIndex,
+    message_index: MessageIndex,
+    timestamp: Type.BigInt(),
+    expires_at: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    transfer: CompletedCryptoTransaction,
+});
+Type.Object({
+    messages_read: Type.Array(UserMarkReadChatMessagesRead),
+    community_messages_read: Type.Array(UserMarkReadCommunityMessagesRead),
+});
+Type.Object({
+    Success: UserChitEventsSuccessResult,
+});
+Type.Object({
+    chat: UserChatInList,
+});
+const PrizeWinnerContent = Type.Object({
+    winner: UserId,
+    transaction: CompletedCryptoTransaction,
+    prize_message: MessageIndex,
+});
+const VideoCallContent = Type.Object({
+    call_type: VideoCallType,
+    ended: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    participants: Type.Array(CallParticipant),
+    hidden_participants: Type.Number(),
+});
+const EventWrapperGroupFrozen = Type.Object({
+    index: EventIndex,
+    timestamp: Type.BigInt(),
+    correlation_id: Type.BigInt(),
+    expires_at: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    event: GroupFrozen,
+});
+const FailedCryptoTransaction = Type.Union([
+    Type.Object({
+        NNS: FailedCryptoTransactionNNS,
+    }),
+    Type.Object({
+        ICRC1: FailedCryptoTransactionICRC1,
+    }),
+    Type.Object({
+        ICRC2: FailedCryptoTransactionICRC2,
+    }),
+]);
+const CompositeGate = Type.Object({
+    inner: Type.Array(AccessGateNonComposite),
+    and: Type.Boolean(),
+});
+const EventWrapperGroupUnfrozen = Type.Object({
+    index: EventIndex,
+    timestamp: Type.BigInt(),
+    correlation_id: Type.BigInt(),
+    expires_at: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    event: GroupUnfrozen,
+});
+const PendingCryptoTransaction = Type.Union([
+    Type.Object({
+        NNS: PendingCryptoTransactionNNS,
+    }),
+    Type.Object({
+        ICRC1: PendingCryptoTransactionICRC1,
+    }),
+    Type.Object({
+        ICRC2: PendingCryptoTransactionICRC2,
+    }),
+]);
+const BotActionScope = Type.Union([
+    Type.Object({
+        Chat: BotActionChatDetails,
+    }),
+    Type.Object({
+        Community: BotActionCommunityDetails,
+    }),
+]);
+const CryptoTransaction = Type.Union([
+    Type.Object({
+        Pending: PendingCryptoTransaction,
+    }),
+    Type.Object({
+        Completed: CompletedCryptoTransaction,
+    }),
+    Type.Object({
+        Failed: FailedCryptoTransaction,
+    }),
+]);
+const P2PSwapStatus = Type.Union([
+    Type.Literal("Open"),
+    Type.Object({
+        Cancelled: P2PSwapCancelled,
+    }),
+    Type.Object({
+        Expired: P2PSwapCancelled,
+    }),
+    Type.Object({
+        Reserved: P2PSwapReserved,
+    }),
+    Type.Object({
+        Accepted: P2PSwapAccepted,
+    }),
+    Type.Object({
+        Completed: P2PSwapCompleted,
+    }),
+]);
+const PollVotes = Type.Object({
+    total: TotalVotes,
+    user: Type.Array(Type.Number()),
+});
+const CurrentUserSummary = Type.Object({
+    user_id: UserId,
+    username: Type.String(),
+    display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    avatar_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    is_bot: Type.Boolean(),
+    is_platform_moderator: Type.Boolean(),
+    is_platform_operator: Type.Boolean(),
+    suspension_details: Type.Optional(Type.Union([SuspensionDetails, Type.Undefined()])),
+    is_suspected_bot: Type.Boolean(),
+    diamond_membership_details: Type.Optional(Type.Union([DiamondMembershipDetails, Type.Undefined()])),
+    diamond_membership_status: DiamondMembershipStatusFull,
+    moderation_flags_enabled: Type.Number(),
+    is_unique_person: Type.Boolean(),
+});
+const BotCommandArg = Type.Object({
+    name: Type.String(),
+    value: BotCommandArgValue,
+});
+const BotCommand = Type.Object({
+    name: Type.String(),
+    args: Type.Array(BotCommandArg),
+    initiator: UserId,
+});
+const SwapStatusError = Type.Union([
+    Type.Object({
+        Reserved: SwapStatusErrorReserved,
+    }),
+    Type.Object({
+        Accepted: SwapStatusErrorAccepted,
+    }),
+    Type.Object({
+        Completed: SwapStatusErrorCompleted,
+    }),
+    Type.Object({
+        Expired: SwapStatusErrorExpired,
+    }),
+    Type.Object({
+        Cancelled: SwapStatusErrorCancelled,
+    }),
+]);
+const BotMatch = Type.Object({
+    id: UserId,
+    score: Type.Number(),
+    name: Type.String(),
+    description: Type.String(),
+    owner: UserId,
+    avatar_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    commands: Type.Array(SlashCommandSchema),
+    autonomous_config: Type.Optional(Type.Union([AutonomousConfig, Type.Undefined()])),
+});
+const BotActionByCommandArgs = Type.Object({
+    bot_id: UserId,
+    command: BotCommand,
+    scope: BotActionScope,
+});
+const P2PSwapContent = Type.Object({
+    swap_id: Type.Number(),
+    token0: TokenInfo,
+    token0_amount: Type.BigInt(),
+    token1: TokenInfo,
+    token1_amount: Type.BigInt(),
+    expires_at: Type.BigInt(),
+    caption: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    token0_txn_in: Type.BigInt(),
+    status: P2PSwapStatus,
+});
+const AccessGate = Type.Union([
+    Type.Literal("DiamondMember"),
+    Type.Literal("LifetimeDiamondMember"),
+    Type.Literal("UniquePerson"),
+    Type.Object({
+        VerifiedCredential: VerifiedCredentialGate,
+    }),
+    Type.Object({
+        SnsNeuron: SnsNeuronGate,
+    }),
+    Type.Object({
+        Payment: PaymentGate,
+    }),
+    Type.Object({
+        TokenBalance: TokenBalanceGate,
+    }),
+    Type.Object({
+        Composite: CompositeGate,
+    }),
+    Type.Literal("Locked"),
+    Type.Literal("ReferredByMember"),
+]);
+Type.Union([
+    Type.Object({
+        Success: EventWrapperGroupFrozen,
+    }),
+    Type.Literal("ChatAlreadyFrozen"),
+    Type.Literal("ChatNotFound"),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Object({
+        Success: EventWrapperGroupUnfrozen,
+    }),
+    Type.Literal("CommunityNotFrozen"),
+    Type.Literal("CommunityNotFound"),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Object({
+        Success: EventWrapperGroupFrozen,
+    }),
+    Type.Literal("CommunityAlreadyFrozen"),
+    Type.Literal("CommunityNotFound"),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    Success: GroupIndexActiveGroupsSuccessResult,
+});
+Type.Union([
+    Type.Object({
+        Success: EventWrapperGroupUnfrozen,
+    }),
+    Type.Literal("ChatNotFrozen"),
+    Type.Literal("ChatNotFound"),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+const UserIndexBotUpdatesSuccessResult = Type.Object({
+    added_or_updated: Type.Array(UserIndexBotUpdatesBotSchema),
+    removed: Type.Array(UserId),
+    timestamp: Type.BigInt(),
+});
+Type.Union([
+    Type.Object({
+        Success: UserIndexBotUpdatesSuccessResult,
+    }),
+    Type.Literal("SuccessNoUpdates"),
+]);
+const UserIndexUsersResult = Type.Object({
+    users: Type.Array(UserSummaryV2),
+    current_user: Type.Optional(Type.Union([CurrentUserSummary, Type.Undefined()])),
+    deleted: Type.Array(UserId),
+    timestamp: Type.BigInt(),
+});
+Type.Object({
+    Success: UserIndexUsersResult,
+});
+const UserIndexExploreBotsSuccessResult = Type.Object({
+    matches: Type.Array(BotMatch),
+    total: Type.Number(),
+});
+Type.Union([
+    Type.Object({
+        Success: UserIndexExploreBotsSuccessResult,
+    }),
+    Type.Object({
+        TermTooShort: Type.Number(),
+    }),
+    Type.Object({
+        TermTooLong: Type.Number(),
+    }),
+    Type.Literal("InvalidTerm"),
+]);
+Type.Object({
+    requests: Type.Array(LocalUserIndexChatEventsEventsArgs),
+});
+Type.Union([
+    Type.Object({
+        StartVideoCall: StartVideoCallArgs,
+    }),
+    Type.Object({
+        JoinVideoCall: JoinVideoCallArgs,
+    }),
+    Type.Object({
+        MarkVideoCallAsEnded: MarkVideoCallAsEndedArgs,
+    }),
+    Type.Object({
+        BotActionByCommand: BotActionByCommandArgs,
+    }),
+    Type.Object({
+        BotActionByApiKey: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("AlreadyClaimed"),
+    Type.Literal("PrizeFullyClaimed"),
+    Type.Literal("PrizeEnded"),
+    Type.Literal("LedgerError"),
+    Type.Object({
+        TransferFailed: Type.Tuple([Type.String(), FailedCryptoTransaction]),
+    }),
+    Type.Object({
+        FailedAfterTransfer: Type.Tuple([Type.String(), CompletedCryptoTransaction]),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+    Type.Literal("UserLapsed"),
+]);
+Type.Union([
+    Type.Object({
+        Success: PollVotes,
+    }),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("UserCannotChangeVote"),
+    Type.Literal("PollNotFound"),
+    Type.Literal("PollEnded"),
+    Type.Literal("OptionIndexOutOfRange"),
+    Type.Literal("UserLapsed"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        StatusError: SwapStatusError,
+    }),
+    Type.Literal("SwapNotFound"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("ChatFrozen"),
+]);
+Type.Union([
+    Type.Object({
+        Success: CommunitySelectedChannelInitialSuccessResult,
+    }),
+    Type.Literal("PrivateCommunity"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("PrivateChannel"),
+]);
+Type.Union([
+    Type.Object({
+        Success: CommunitySelectedInitialSuccessResult,
+    }),
+    Type.Literal("PrivateCommunity"),
+]);
+Type.Union([
+    Type.Object({
+        Success: AcceptSwapSuccess,
+    }),
+    Type.Literal("InsufficientFunds"),
+    Type.Object({
+        StatusError: SwapStatusError,
+    }),
+    Type.Literal("SwapNotFound"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("ChatFrozen"),
+    Type.Literal("PinRequired"),
+    Type.Object({
+        PinIncorrect: Type.BigInt(),
+    }),
+    Type.Object({
+        TooManyFailedPinAttempts: Type.BigInt(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+    Type.Literal("UserLapsed"),
+]);
+Type.Object({
+    governance_canister_id: TSBytes,
+    proposal: ProposalsBotProposalToSubmit,
+    transaction: PendingCryptoTransactionICRC2,
+});
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("AlreadyClaimed"),
+    Type.Literal("PrizeFullyClaimed"),
+    Type.Literal("PrizeEnded"),
+    Type.Literal("LedgerError"),
+    Type.Object({
+        TransferFailed: Type.Tuple([Type.String(), FailedCryptoTransaction]),
+    }),
+    Type.Object({
+        FailedAfterTransfer: Type.Tuple([Type.String(), CompletedCryptoTransaction]),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Object({
+        Success: PollVotes,
+    }),
+    Type.Literal("PollNotFound"),
+    Type.Literal("PollEnded"),
+    Type.Literal("OptionIndexOutOfRange"),
+    Type.Literal("UserCannotChangeVote"),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        StatusError: SwapStatusError,
+    }),
+    Type.Literal("SwapNotFound"),
+    Type.Literal("UserNotInGroup"),
+    Type.Literal("ChatFrozen"),
+]);
+Type.Union([
+    Type.Object({
+        Success: AcceptSwapSuccess,
+    }),
+    Type.Literal("InsufficientFunds"),
+    Type.Object({
+        StatusError: SwapStatusError,
+    }),
+    Type.Literal("SwapNotFound"),
+    Type.Literal("UserNotInGroup"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+    Type.Literal("PinRequired"),
+    Type.Object({
+        PinIncorrect: Type.BigInt(),
+    }),
+    Type.Object({
+        TooManyFailedPinAttempts: Type.BigInt(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Literal("ChatNotFound"),
+    Type.Object({
+        StatusError: SwapStatusError,
+    }),
+    Type.Literal("SwapNotFound"),
+]);
+Type.Union([
+    Type.Object({
+        Success: UserSendMessageWithTransferToGroupSuccessResult,
+    }),
+    Type.Object({
+        TextTooLong: Type.Number(),
+    }),
+    Type.Literal("RecipientBlocked"),
+    Type.Object({
+        CallerNotInGroup: Type.Union([CompletedCryptoTransaction, Type.Null()]),
+    }),
+    Type.Object({
+        CryptocurrencyNotSupported: Cryptocurrency,
+    }),
+    Type.Object({
+        InvalidRequest: Type.String(),
+    }),
+    Type.Object({
+        TransferFailed: Type.String(),
+    }),
+    Type.Literal("TransferCannotBeZero"),
+    Type.Literal("TransferCannotBeToSelf"),
+    Type.Object({
+        P2PSwapSetUpFailed: Type.String(),
+    }),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+    Type.Literal("RulesNotAccepted"),
+    Type.Literal("MessageAlreadyExists"),
+    Type.Object({
+        Retrying: Type.Tuple([Type.String(), CompletedCryptoTransaction]),
+    }),
+    Type.Literal("PinRequired"),
+    Type.Object({
+        PinIncorrect: Type.BigInt(),
+    }),
+    Type.Object({
+        TooManyFailedPinAttempts: Type.BigInt(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    withdrawal: PendingCryptoTransaction,
+    pin: Type.Optional(Type.Union([PinNumberWrapper, Type.Undefined()])),
+});
+Type.Union([
+    Type.Object({
+        Success: CompletedCryptoTransaction,
+    }),
+    Type.Object({
+        TransactionFailed: FailedCryptoTransaction,
+    }),
+    Type.Literal("CurrencyNotSupported"),
+    Type.Literal("PinRequired"),
+    Type.Object({
+        PinIncorrect: Type.BigInt(),
+    }),
+    Type.Object({
+        TooManyFailedPinAttempts: Type.BigInt(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Literal("Success"),
+    Type.Object({
+        PartialSuccess: UserArchiveUnarchiveChatsPartialSuccessResult,
+    }),
+    Type.Literal("Failure"),
+    Type.Literal("UserSuspended"),
+]);
+Type.Union([
+    Type.Object({
+        Success: UserSendMessageWithTransferToChannelSuccessResult,
+    }),
+    Type.Object({
+        TextTooLong: Type.Number(),
+    }),
+    Type.Literal("RecipientBlocked"),
+    Type.Object({
+        UserNotInCommunity: Type.Union([CompletedCryptoTransaction, Type.Null()]),
+    }),
+    Type.Object({
+        UserNotInChannel: CompletedCryptoTransaction,
+    }),
+    Type.Object({
+        ChannelNotFound: CompletedCryptoTransaction,
+    }),
+    Type.Object({
+        CryptocurrencyNotSupported: Cryptocurrency,
+    }),
+    Type.Object({
+        InvalidRequest: Type.String(),
+    }),
+    Type.Object({
+        TransferFailed: Type.String(),
+    }),
+    Type.Literal("TransferCannotBeZero"),
+    Type.Literal("TransferCannotBeToSelf"),
+    Type.Object({
+        P2PSwapSetUpFailed: Type.String(),
+    }),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("RulesNotAccepted"),
+    Type.Literal("MessageAlreadyExists"),
+    Type.Literal("CommunityRulesNotAccepted"),
+    Type.Object({
+        Retrying: Type.Tuple([Type.String(), CompletedCryptoTransaction]),
+    }),
+    Type.Literal("PinRequired"),
+    Type.Object({
+        PinIncorrect: Type.BigInt(),
+    }),
+    Type.Object({
+        TooManyFailedPinAttempts: Type.BigInt(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Object({
+        Success: AcceptSwapSuccess,
+    }),
+    Type.Literal("ChatNotFound"),
+    Type.Literal("InsufficientFunds"),
+    Type.Object({
+        StatusError: SwapStatusError,
+    }),
+    Type.Literal("SwapNotFound"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("PinRequired"),
+    Type.Object({
+        PinIncorrect: Type.BigInt(),
+    }),
+    Type.Object({
+        TooManyFailedPinAttempts: Type.BigInt(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+const PollContent = Type.Object({
+    config: PollConfig,
+    votes: PollVotes,
+    ended: Type.Boolean(),
+});
+const CryptoContent = Type.Object({
+    recipient: UserId,
+    transfer: CryptoTransaction,
+    caption: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+});
+const PrizeContentInitial = Type.Object({
+    prizes_v2: Type.Array(Type.BigInt()),
+    transfer: CryptoTransaction,
+    end_date: Type.BigInt(),
+    caption: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    diamond_only: Type.Boolean(),
+    lifetime_diamond_only: Type.Boolean(),
+    unique_person_only: Type.Boolean(),
+    streak_only: Type.Number(),
+});
+const BotMessageContext = Type.Object({
+    command: Type.Optional(Type.Union([BotCommand, Type.Undefined()])),
+    finalised: Type.Boolean(),
+});
+const BotMessageContent = Type.Union([
+    Type.Object({
+        Text: TextContent,
+    }),
+    Type.Object({
+        Image: ImageContent,
+    }),
+    Type.Object({
+        Video: VideoContent,
+    }),
+    Type.Object({
+        Audio: AudioContent,
+    }),
+    Type.Object({
+        File: FileContent,
+    }),
+    Type.Object({
+        Poll: PollContent,
+    }),
+    Type.Object({
+        Giphy: GiphyContent,
+    }),
+]);
+const OptionUpdateAccessGate = Type.Union([
+    Type.Literal("NoChange"),
+    Type.Literal("SetToNone"),
+    Type.Object({
+        SetToSome: AccessGate,
+    }),
+], { default: "NoChange" });
+const MessageContent = Type.Union([
+    Type.Object({
+        Text: TextContent,
+    }),
+    Type.Object({
+        Image: ImageContent,
+    }),
+    Type.Object({
+        Video: VideoContent,
+    }),
+    Type.Object({
+        Audio: AudioContent,
+    }),
+    Type.Object({
+        File: FileContent,
+    }),
+    Type.Object({
+        Poll: PollContent,
+    }),
+    Type.Object({
+        Crypto: CryptoContent,
+    }),
+    Type.Object({
+        Deleted: DeletedBy,
+    }),
+    Type.Object({
+        Giphy: GiphyContent,
+    }),
+    Type.Object({
+        GovernanceProposal: ProposalContent,
+    }),
+    Type.Object({
+        Prize: PrizeContent,
+    }),
+    Type.Object({
+        PrizeWinner: PrizeWinnerContent,
+    }),
+    Type.Object({
+        MessageReminderCreated: MessageReminderCreatedContent,
+    }),
+    Type.Object({
+        MessageReminder: MessageReminderContent,
+    }),
+    Type.Object({
+        ReportedMessage: ReportedMessage,
+    }),
+    Type.Object({
+        P2PSwap: P2PSwapContent,
+    }),
+    Type.Object({
+        VideoCall: VideoCallContent,
+    }),
+    Type.Object({
+        Custom: CustomContent,
+    }),
+]);
+const GroupMatch = Type.Object({
+    id: ChatId,
+    name: Type.String(),
+    description: Type.String(),
+    avatar_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    member_count: Type.Number(),
+    gate: Type.Optional(Type.Union([AccessGate, Type.Undefined()])),
+    subtype: Type.Optional(Type.Union([GroupSubtype, Type.Undefined()])),
+    verified: Type.Boolean(),
+});
+const AccessGateConfig = Type.Object({
+    gate: AccessGate,
+    expiry: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+});
+const MessageContentInitial = Type.Union([
+    Type.Object({
+        Text: TextContent,
+    }),
+    Type.Object({
+        Image: ImageContent,
+    }),
+    Type.Object({
+        Video: VideoContent,
+    }),
+    Type.Object({
+        Audio: AudioContent,
+    }),
+    Type.Object({
+        File: FileContent,
+    }),
+    Type.Object({
+        Poll: PollContent,
+    }),
+    Type.Object({
+        Crypto: CryptoContent,
+    }),
+    Type.Object({
+        Deleted: DeletedBy,
+    }),
+    Type.Object({
+        Giphy: GiphyContent,
+    }),
+    Type.Object({
+        GovernanceProposal: ProposalContent,
+    }),
+    Type.Object({
+        Prize: PrizeContentInitial,
+    }),
+    Type.Object({
+        MessageReminderCreated: MessageReminderCreatedContent,
+    }),
+    Type.Object({
+        MessageReminder: MessageReminderContent,
+    }),
+    Type.Object({
+        P2PSwap: P2PSwapContentInitial,
+    }),
+    Type.Object({
+        Custom: CustomContent,
+    }),
+]);
+const OptionUpdateAccessGateConfig = Type.Union([
+    Type.Literal("NoChange"),
+    Type.Literal("SetToNone"),
+    Type.Object({
+        SetToSome: AccessGateConfig,
+    }),
+], { default: "NoChange" });
+const GroupGateUpdated = Type.Object({
+    updated_by: UserId,
+    new_gate: Type.Optional(Type.Union([AccessGate, Type.Undefined()])),
+    new_gate_config: Type.Optional(Type.Union([AccessGateConfig, Type.Undefined()])),
+});
+const GroupIndexExploreGroupsSuccessResult = Type.Object({
+    matches: Type.Array(GroupMatch),
+    total: Type.Number(),
+});
+Type.Union([
+    Type.Object({
+        Success: GroupIndexExploreGroupsSuccessResult,
+    }),
+    Type.Object({
+        TermTooShort: Type.Number(),
+    }),
+    Type.Object({
+        TermTooLong: Type.Number(),
+    }),
+    Type.Literal("InvalidTerm"),
+]);
+const LocalUserIndexBotCreateChannelArgs = Type.Object({
+    is_public: Type.Boolean(),
+    name: Type.String(),
+    description: Type.String(),
+    rules: Rules,
+    avatar: Type.Optional(Type.Union([Document, Type.Undefined()])),
+    history_visible_to_new_joiners: Type.Boolean(),
+    messages_visible_to_non_members: Type.Boolean(),
+    permissions: Type.Optional(Type.Union([GroupPermissions, Type.Undefined()])),
+    events_ttl: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    gate_config: Type.Optional(Type.Union([AccessGateConfig, Type.Undefined()])),
+    external_url: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    auth_token: AuthToken,
+});
+const LocalUserIndexBotSendMessageArgs = Type.Object({
+    channel_id: Type.Optional(Type.Union([ChannelId, Type.Undefined()])),
+    message_id: Type.Optional(Type.Union([MessageId, Type.Undefined()])),
+    content: BotMessageContent,
+    block_level_markdown: Type.Boolean(),
+    finalised: Type.Boolean(),
+    auth_token: AuthToken,
+});
+const CommunityDeletedMessageSuccessResult = Type.Object({
+    content: MessageContent,
+});
+Type.Union([
+    Type.Object({
+        Success: CommunityDeletedMessageSuccessResult,
+    }),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("MessageHardDeleted"),
+]);
+Type.Object({
+    name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    description: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    rules: Type.Optional(Type.Union([UpdatedRules, Type.Undefined()])),
+    avatar: OptionUpdateDocument,
+    banner: OptionUpdateDocument,
+    permissions: Type.Optional(Type.Union([OptionalCommunityPermissions, Type.Undefined()])),
+    gate_config: OptionUpdateAccessGateConfig,
+    public: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    primary_language: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+});
+Type.Object({
+    channel_id: ChannelId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    content: MessageContentInitial,
+    sender_name: Type.String(),
+    sender_display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    replies_to: Type.Optional(Type.Union([GroupReplyContext, Type.Undefined()])),
+    mentioned: Type.Array(User),
+    forwarding: Type.Boolean(),
+    block_level_markdown: Type.Boolean(),
+    community_rules_accepted: Type.Optional(Type.Union([Version, Type.Undefined()])),
+    channel_rules_accepted: Type.Optional(Type.Union([Version, Type.Undefined()])),
+    message_filter_failed: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    new_achievement: Type.Boolean(),
+});
+Type.Object({
+    is_public: Type.Boolean(),
+    name: Type.String(),
+    description: Type.String(),
+    rules: Rules,
+    subtype: Type.Optional(Type.Union([GroupSubtype, Type.Undefined()])),
+    avatar: Type.Optional(Type.Union([Document, Type.Undefined()])),
+    history_visible_to_new_joiners: Type.Boolean(),
+    messages_visible_to_non_members: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    permissions_v2: Type.Optional(Type.Union([GroupPermissions, Type.Undefined()])),
+    events_ttl: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    gate_config: Type.Optional(Type.Union([AccessGateConfig, Type.Undefined()])),
+    external_url: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+});
+Type.Object({
+    channel_id: ChannelId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    content: MessageContentInitial,
+    block_level_markdown: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    new_achievement: Type.Boolean(),
+});
+Type.Object({
+    channel_id: ChannelId,
+    name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    description: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    rules: Type.Optional(Type.Union([UpdatedRules, Type.Undefined()])),
+    avatar: OptionUpdateDocument,
+    permissions_v2: Type.Optional(Type.Union([OptionalGroupPermissions, Type.Undefined()])),
+    events_ttl: OptionUpdateU64,
+    gate_config: OptionUpdateAccessGateConfig,
+    public: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    messages_visible_to_non_members: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    external_url: OptionUpdateString,
+});
+const GroupDeletedMessageSuccessResult = Type.Object({
+    content: MessageContent,
+});
+Type.Object({
+    name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    description: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    rules: Type.Optional(Type.Union([UpdatedRules, Type.Undefined()])),
+    avatar: OptionUpdateDocument,
+    permissions_v2: Type.Optional(Type.Union([OptionalGroupPermissions, Type.Undefined()])),
+    events_ttl: OptionUpdateU64,
+    gate_config: OptionUpdateAccessGateConfig,
+    public: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    messages_visible_to_non_members: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    correlation_id: Type.BigInt(),
+});
+Type.Object({
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    content: MessageContentInitial,
+    sender_name: Type.String(),
+    sender_display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    replies_to: Type.Optional(Type.Union([GroupReplyContext, Type.Undefined()])),
+    mentioned: Type.Array(User),
+    forwarding: Type.Boolean(),
+    block_level_markdown: Type.Boolean(),
+    rules_accepted: Type.Optional(Type.Union([Version, Type.Undefined()])),
+    message_filter_failed: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    new_achievement: Type.Boolean(),
+    correlation_id: Type.BigInt(),
+});
+Type.Object({
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    content: MessageContentInitial,
+    block_level_markdown: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    new_achievement: Type.Boolean(),
+    correlation_id: Type.BigInt(),
+});
+Type.Object({
+    is_public: Type.Boolean(),
+    name: Type.String(),
+    description: Type.String(),
+    rules: Rules,
+    avatar: Type.Optional(Type.Union([Document, Type.Undefined()])),
+    history_visible_to_new_joiners: Type.Boolean(),
+    messages_visible_to_non_members: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    permissions_v2: Type.Optional(Type.Union([GroupPermissions, Type.Undefined()])),
+    events_ttl: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    gate_config: Type.Optional(Type.Union([AccessGateConfig, Type.Undefined()])),
+});
+const UserDeletedMessageSuccessResult = Type.Object({
+    content: MessageContent,
+});
+Type.Union([
+    Type.Object({
+        Success: UserDeletedMessageSuccessResult,
+    }),
+    Type.Literal("ChatNotFound"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("MessageHardDeleted"),
+]);
+Type.Object({
+    group_id: ChatId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    content: MessageContentInitial,
+    sender_name: Type.String(),
+    sender_display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    replies_to: Type.Optional(Type.Union([GroupReplyContext, Type.Undefined()])),
+    mentioned: Type.Array(User),
+    block_level_markdown: Type.Boolean(),
+    correlation_id: Type.BigInt(),
+    rules_accepted: Type.Optional(Type.Union([Version, Type.Undefined()])),
+    message_filter_failed: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    pin: Type.Optional(Type.Union([PinNumberWrapper, Type.Undefined()])),
+});
+Type.Object({
+    recipient: UserId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    content: MessageContentInitial,
+    replies_to: Type.Optional(Type.Union([ReplyContext, Type.Undefined()])),
+    forwarding: Type.Boolean(),
+    block_level_markdown: Type.Boolean(),
+    message_filter_failed: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    pin: Type.Optional(Type.Union([PinNumberWrapper, Type.Undefined()])),
+    correlation_id: Type.BigInt(),
+});
+Type.Object({
+    is_public: Type.Boolean(),
+    name: Type.String(),
+    description: Type.String(),
+    rules: Rules,
+    avatar: Type.Optional(Type.Union([Document, Type.Undefined()])),
+    banner: Type.Optional(Type.Union([Document, Type.Undefined()])),
+    history_visible_to_new_joiners: Type.Boolean(),
+    permissions: Type.Optional(Type.Union([CommunityPermissions, Type.Undefined()])),
+    gate_config: Type.Optional(Type.Union([AccessGateConfig, Type.Undefined()])),
+    default_channels: Type.Array(Type.String()),
+    default_channel_rules: Type.Optional(Type.Union([Rules, Type.Undefined()])),
+    primary_language: Type.String(),
+});
+Type.Object({
+    community_id: CommunityId,
+    channel_id: ChannelId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    content: MessageContentInitial,
+    sender_name: Type.String(),
+    sender_display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    replies_to: Type.Optional(Type.Union([GroupReplyContext, Type.Undefined()])),
+    mentioned: Type.Array(User),
+    block_level_markdown: Type.Boolean(),
+    community_rules_accepted: Type.Optional(Type.Union([Version, Type.Undefined()])),
+    channel_rules_accepted: Type.Optional(Type.Union([Version, Type.Undefined()])),
+    message_filter_failed: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    pin: Type.Optional(Type.Union([PinNumberWrapper, Type.Undefined()])),
+});
+Type.Object({
+    user_id: UserId,
+    thread_root_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    message_id: MessageId,
+    content: MessageContentInitial,
+    block_level_markdown: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    correlation_id: Type.BigInt(),
+});
+const ChannelMatch = Type.Object({
+    id: ChannelId,
+    name: Type.String(),
+    description: Type.String(),
+    avatar_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    member_count: Type.Number(),
+    gate: Type.Optional(Type.Union([AccessGate, Type.Undefined()])),
+    gate_config: Type.Optional(Type.Union([AccessGateConfig, Type.Undefined()])),
+    subtype: Type.Optional(Type.Union([GroupSubtype, Type.Undefined()])),
+});
+const Message$1 = Type.Object({
+    message_index: MessageIndex,
+    message_id: MessageId,
+    sender: UserId,
+    content: MessageContent,
+    bot_context: Type.Optional(Type.Union([BotMessageContext, Type.Undefined()])),
+    replies_to: Type.Optional(Type.Union([ReplyContext, Type.Undefined()])),
+    reactions: Type.Array(Type.Tuple([Reaction, Type.Array(UserId)])),
+    tips: Tips,
+    thread_summary: Type.Optional(Type.Union([ThreadSummary, Type.Undefined()])),
+    edited: Type.Boolean(),
+    forwarded: Type.Boolean(),
+    block_level_markdown: Type.Boolean(),
+});
+const CommunityMatch = Type.Object({
+    id: CommunityId,
+    score: Type.Number(),
+    name: Type.String(),
+    description: Type.String(),
+    avatar_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    banner_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    member_count: Type.Number(),
+    channel_count: Type.Number(),
+    gate: Type.Optional(Type.Union([AccessGate, Type.Undefined()])),
+    gate_config: Type.Optional(Type.Union([AccessGateConfig, Type.Undefined()])),
+    moderation_flags: Type.Number(),
+    primary_language: Type.String(),
+    verified: Type.Boolean(),
+});
+const EventWrapperMessage = Type.Object({
+    index: EventIndex,
+    timestamp: Type.BigInt(),
+    correlation_id: Type.BigInt(),
+    expires_at: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    event: Message$1,
+});
+const ChatEvent = Type.Union([
+    Type.Literal("Empty"),
+    Type.Object({
+        Message: Message$1,
+    }),
+    Type.Object({
+        GroupChatCreated: GroupCreated,
+    }),
+    Type.Object({
+        DirectChatCreated: DirectChatCreated,
+    }),
+    Type.Object({
+        GroupNameChanged: GroupNameChanged,
+    }),
+    Type.Object({
+        GroupDescriptionChanged: GroupDescriptionChanged,
+    }),
+    Type.Object({
+        GroupRulesChanged: GroupRulesChanged,
+    }),
+    Type.Object({
+        AvatarChanged: AvatarChanged,
+    }),
+    Type.Object({
+        ParticipantsAdded: MembersAdded,
+    }),
+    Type.Object({
+        ParticipantsRemoved: MembersRemoved,
+    }),
+    Type.Object({
+        ParticipantJoined: MemberJoined,
+    }),
+    Type.Object({
+        ParticipantLeft: MemberLeft,
+    }),
+    Type.Object({
+        RoleChanged: RoleChanged,
+    }),
+    Type.Object({
+        UsersBlocked: UsersBlocked,
+    }),
+    Type.Object({
+        UsersUnblocked: UsersUnblocked,
+    }),
+    Type.Object({
+        MessagePinned: MessagePinned,
+    }),
+    Type.Object({
+        MessageUnpinned: MessageUnpinned,
+    }),
+    Type.Object({
+        PermissionsChanged: PermissionsChanged,
+    }),
+    Type.Object({
+        GroupVisibilityChanged: GroupVisibilityChanged,
+    }),
+    Type.Object({
+        GroupInviteCodeChanged: GroupInviteCodeChanged,
+    }),
+    Type.Object({
+        ChatFrozen: GroupFrozen,
+    }),
+    Type.Object({
+        ChatUnfrozen: GroupUnfrozen,
+    }),
+    Type.Object({
+        EventsTimeToLiveUpdated: EventsTimeToLiveUpdated,
+    }),
+    Type.Object({
+        GroupGateUpdated: GroupGateUpdated,
+    }),
+    Type.Object({
+        UsersInvited: UsersInvited,
+    }),
+    Type.Object({
+        MembersAddedToDefaultChannel: MembersAddedToDefaultChannel,
+    }),
+    Type.Object({
+        ExternalUrlUpdated: ExternalUrlUpdated,
+    }),
+    Type.Object({
+        BotAdded: BotAdded,
+    }),
+    Type.Object({
+        BotRemoved: BotRemoved,
+    }),
+    Type.Object({
+        BotUpdated: BotUpdated,
+    }),
+    Type.Literal("FailedToDeserialize"),
+]);
+const CommunityCanisterChannelSummaryUpdates = Type.Object({
+    channel_id: ChannelId,
+    last_updated: Type.BigInt(),
+    name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    description: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    subtype: OptionUpdateGroupSubtype,
+    avatar_id: OptionUpdateU128,
+    is_public: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    messages_visible_to_non_members: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    latest_message: Type.Optional(Type.Union([EventWrapperMessage, Type.Undefined()])),
+    latest_message_sender_display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    latest_event_index: Type.Optional(Type.Union([EventIndex, Type.Undefined()])),
+    latest_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    member_count: Type.Optional(Type.Union([Type.Number(), Type.Undefined()])),
+    permissions_v2: Type.Optional(Type.Union([GroupPermissions, Type.Undefined()])),
+    updated_events: Type.Array(Type.Tuple([Type.Union([MessageIndex, Type.Null()]), EventIndex, Type.BigInt()])),
+    metrics: Type.Optional(Type.Union([ChatMetrics, Type.Undefined()])),
+    date_last_pinned: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    events_ttl: OptionUpdateU64,
+    events_ttl_last_updated: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    gate: OptionUpdateAccessGate,
+    gate_config: OptionUpdateAccessGateConfig,
+    membership: Type.Optional(Type.Union([GroupMembershipUpdates, Type.Undefined()])),
+    video_call_in_progress: OptionUpdateVideoCall,
+    external_url: OptionUpdateString,
+    any_updates_missed: Type.Boolean(),
+});
+const GroupIndexExploreCommunitiesSuccessResult = Type.Object({
+    matches: Type.Array(CommunityMatch),
+    total: Type.Number(),
+});
+Type.Union([
+    Type.Object({
+        Success: GroupIndexExploreCommunitiesSuccessResult,
+    }),
+    Type.Object({
+        TermTooShort: Type.Number(),
+    }),
+    Type.Object({
+        TermTooLong: Type.Number(),
+    }),
+    Type.Literal("InvalidTerm"),
+    Type.Literal("InvalidFlags"),
+]);
+const CommunityUndeleteMessagesSuccessResult = Type.Object({
+    messages: Type.Array(Message$1),
+});
+Type.Union([
+    Type.Object({
+        Success: CommunityUndeleteMessagesSuccessResult,
+    }),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("GroupNotFound"),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("UserLapsed"),
+]);
+const CommunityExploreChannelsSuccessResult = Type.Object({
+    matches: Type.Array(ChannelMatch),
+    total: Type.Number(),
+});
+Type.Union([
+    Type.Object({
+        Success: CommunityExploreChannelsSuccessResult,
+    }),
+    Type.Object({
+        TermTooShort: Type.Number(),
+    }),
+    Type.Object({
+        TermTooLong: Type.Number(),
+    }),
+    Type.Literal("InvalidTerm"),
+    Type.Literal("PrivateCommunity"),
+]);
+Type.Union([
+    Type.Object({
+        Success: GroupDeletedMessageSuccessResult,
+    }),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("MessageHardDeleted"),
+]);
+const GroupUndeleteMessagesSuccessResult = Type.Object({
+    messages: Type.Array(Message$1),
+});
+Type.Union([
+    Type.Object({
+        Success: GroupUndeleteMessagesSuccessResult,
+    }),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("MessageNotFound"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Literal("ChatFrozen"),
+]);
+const UserUndeleteMessagesSuccessResult = Type.Object({
+    messages: Type.Array(Message$1),
+});
+Type.Union([
+    Type.Object({
+        Success: UserUndeleteMessagesSuccessResult,
+    }),
+    Type.Literal("ChatNotFound"),
+    Type.Literal("UserSuspended"),
+]);
+const DirectChatSummary = Type.Object({
+    them: UserId,
+    last_updated: Type.BigInt(),
+    latest_message: EventWrapperMessage,
+    latest_event_index: EventIndex,
+    latest_message_index: MessageIndex,
+    date_created: Type.BigInt(),
+    read_by_me_up_to: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    read_by_them_up_to: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    notifications_muted: Type.Boolean(),
+    metrics: ChatMetrics,
+    my_metrics: ChatMetrics,
+    archived: Type.Boolean(),
+    events_ttl: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    events_ttl_last_updated: Type.BigInt(),
+    video_call_in_progress: Type.Optional(Type.Union([VideoCall, Type.Undefined()])),
+});
+const MessagesResponse = Type.Object({
+    messages: Type.Array(EventWrapperMessage),
+    latest_event_index: EventIndex,
+    chat_last_updated: Type.BigInt(),
+});
+const GroupCanisterGroupChatSummary = Type.Object({
+    chat_id: ChatId,
+    local_user_index_canister_id: TSBytes,
+    last_updated: Type.BigInt(),
+    name: Type.String(),
+    description: Type.String(),
+    subtype: Type.Optional(Type.Union([GroupSubtype, Type.Undefined()])),
+    avatar_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    is_public: Type.Boolean(),
+    history_visible_to_new_joiners: Type.Boolean(),
+    messages_visible_to_non_members: Type.Boolean(),
+    min_visible_event_index: EventIndex,
+    min_visible_message_index: MessageIndex,
+    latest_message: Type.Optional(Type.Union([EventWrapperMessage, Type.Undefined()])),
+    latest_event_index: EventIndex,
+    latest_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    joined: Type.BigInt(),
+    participant_count: Type.Number(),
+    role: GroupRole,
+    mentions: Type.Array(HydratedMention),
+    wasm_version: BuildVersion,
+    permissions_v2: GroupPermissions,
+    notifications_muted: Type.Boolean(),
+    metrics: ChatMetrics,
+    my_metrics: ChatMetrics,
+    latest_threads: Type.Array(GroupCanisterThreadDetails),
+    frozen: Type.Optional(Type.Union([FrozenGroupInfo, Type.Undefined()])),
+    date_last_pinned: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    events_ttl: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    events_ttl_last_updated: Type.BigInt(),
+    gate: Type.Optional(Type.Union([AccessGate, Type.Undefined()])),
+    gate_config: Type.Optional(Type.Union([AccessGateConfig, Type.Undefined()])),
+    rules_accepted: Type.Boolean(),
+    membership: Type.Optional(Type.Union([GroupMembership, Type.Undefined()])),
+    video_call_in_progress: Type.Optional(Type.Union([VideoCall, Type.Undefined()])),
+    verified: Type.Boolean(),
+});
+const EventWrapperChatEvent = Type.Object({
+    index: EventIndex,
+    timestamp: Type.BigInt(),
+    correlation_id: Type.BigInt(),
+    expires_at: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    event: ChatEvent,
+});
+const ThreadPreview = Type.Object({
+    root_message: EventWrapperMessage,
+    latest_replies: Type.Array(EventWrapperMessage),
+    total_replies: Type.Number(),
+});
+const GroupCanisterGroupChatSummaryUpdates = Type.Object({
+    chat_id: ChatId,
+    last_updated: Type.BigInt(),
+    name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    description: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    subtype: OptionUpdateGroupSubtype,
+    avatar_id: OptionUpdateU128,
+    latest_message: Type.Optional(Type.Union([EventWrapperMessage, Type.Undefined()])),
+    latest_event_index: Type.Optional(Type.Union([EventIndex, Type.Undefined()])),
+    latest_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    participant_count: Type.Optional(Type.Union([Type.Number(), Type.Undefined()])),
+    role: Type.Optional(Type.Union([GroupRole, Type.Undefined()])),
+    mentions: Type.Array(HydratedMention),
+    wasm_version: Type.Optional(Type.Union([BuildVersion, Type.Undefined()])),
+    permissions_v2: Type.Optional(Type.Union([GroupPermissions, Type.Undefined()])),
+    updated_events: Type.Array(Type.Tuple([Type.Union([MessageIndex, Type.Null()]), EventIndex, Type.BigInt()])),
+    metrics: Type.Optional(Type.Union([ChatMetrics, Type.Undefined()])),
+    my_metrics: Type.Optional(Type.Union([ChatMetrics, Type.Undefined()])),
+    is_public: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    messages_visible_to_non_members: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    latest_threads: Type.Array(GroupCanisterThreadDetails),
+    unfollowed_threads: Type.Array(MessageIndex),
+    notifications_muted: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    frozen: OptionUpdateFrozenGroupInfo,
+    date_last_pinned: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    events_ttl: OptionUpdateU64,
+    events_ttl_last_updated: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    gate: OptionUpdateAccessGate,
+    gate_config: OptionUpdateAccessGateConfig,
+    rules_accepted: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    membership: Type.Optional(Type.Union([GroupMembershipUpdates, Type.Undefined()])),
+    video_call_in_progress: OptionUpdateVideoCall,
+    any_updates_missed: Type.Boolean(),
+    verified: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+});
+const DirectChatSummaryUpdates = Type.Object({
+    chat_id: ChatId,
+    last_updated: Type.BigInt(),
+    latest_message: Type.Optional(Type.Union([EventWrapperMessage, Type.Undefined()])),
+    latest_event_index: Type.Optional(Type.Union([EventIndex, Type.Undefined()])),
+    latest_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    read_by_me_up_to: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    read_by_them_up_to: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    notifications_muted: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    updated_events: Type.Array(Type.Tuple([EventIndex, Type.BigInt()])),
+    metrics: Type.Optional(Type.Union([ChatMetrics, Type.Undefined()])),
+    my_metrics: Type.Optional(Type.Union([ChatMetrics, Type.Undefined()])),
+    archived: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    events_ttl: OptionUpdateU64,
+    events_ttl_last_updated: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    video_call_in_progress: OptionUpdateVideoCall,
+});
+const PublicGroupSummary = Type.Object({
+    chat_id: ChatId,
+    local_user_index_canister_id: TSBytes,
+    last_updated: Type.BigInt(),
+    name: Type.String(),
+    description: Type.String(),
+    subtype: Type.Optional(Type.Union([GroupSubtype, Type.Undefined()])),
+    history_visible_to_new_joiners: Type.Boolean(),
+    messages_visible_to_non_members: Type.Boolean(),
+    avatar_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    latest_message: Type.Optional(Type.Union([EventWrapperMessage, Type.Undefined()])),
+    latest_event_index: EventIndex,
+    latest_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    participant_count: Type.Number(),
+    wasm_version: BuildVersion,
+    is_public: Type.Boolean(),
+    frozen: Type.Optional(Type.Union([FrozenGroupInfo, Type.Undefined()])),
+    events_ttl: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    events_ttl_last_updated: Type.BigInt(),
+    gate: Type.Optional(Type.Union([AccessGate, Type.Undefined()])),
+    gate_config: Type.Optional(Type.Union([AccessGateConfig, Type.Undefined()])),
+});
+const CommunityCanisterChannelSummary = Type.Object({
+    channel_id: ChannelId,
+    last_updated: Type.BigInt(),
+    name: Type.String(),
+    description: Type.String(),
+    subtype: Type.Optional(Type.Union([GroupSubtype, Type.Undefined()])),
+    avatar_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    is_public: Type.Boolean(),
+    history_visible_to_new_joiners: Type.Boolean(),
+    messages_visible_to_non_members: Type.Boolean(),
+    min_visible_event_index: EventIndex,
+    min_visible_message_index: MessageIndex,
+    latest_message: Type.Optional(Type.Union([EventWrapperMessage, Type.Undefined()])),
+    latest_message_sender_display_name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    latest_event_index: EventIndex,
+    latest_message_index: Type.Optional(Type.Union([MessageIndex, Type.Undefined()])),
+    member_count: Type.Number(),
+    permissions_v2: GroupPermissions,
+    metrics: ChatMetrics,
+    date_last_pinned: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    events_ttl: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    events_ttl_last_updated: Type.BigInt(),
+    gate: Type.Optional(Type.Union([AccessGate, Type.Undefined()])),
+    gate_config: Type.Optional(Type.Union([AccessGateConfig, Type.Undefined()])),
+    membership: Type.Optional(Type.Union([GroupMembership, Type.Undefined()])),
+    video_call_in_progress: Type.Optional(Type.Union([VideoCall, Type.Undefined()])),
+    is_invited: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    external_url: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+});
+const GroupIndexRecommendedGroupsSuccessResult = Type.Object({
+    groups: Type.Array(PublicGroupSummary),
+});
+Type.Object({
+    Success: GroupIndexRecommendedGroupsSuccessResult,
+});
+Type.Union([
+    Type.Object({
+        Success: GroupCanisterGroupChatSummary,
+    }),
+    Type.Literal("AlreadyInGroup"),
+    Type.Object({
+        AlreadyInGroupV2: GroupCanisterGroupChatSummary,
+    }),
+    Type.Object({
+        GateCheckFailed: GateCheckFailedReason,
+    }),
+    Type.Literal("GroupNotFound"),
+    Type.Literal("GroupNotPublic"),
+    Type.Literal("NotInvited"),
+    Type.Object({
+        ParticipantLimitReached: Type.Number(),
+    }),
+    Type.Literal("Blocked"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("ChatFrozen"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Object({
+        SuccessAdded: CommunityCanisterChannelSummary,
+    }),
+    Type.Object({
+        SuccessUpdated: CommunityCanisterChannelSummaryUpdates,
+    }),
+    Type.Literal("SuccessNoUpdates"),
+    Type.Literal("PrivateCommunity"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("PrivateChannel"),
+]);
+Type.Union([
+    Type.Object({
+        Success: CommunityCanisterChannelSummary,
+    }),
+    Type.Literal("PrivateCommunity"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("PrivateChannel"),
+]);
+Type.Union([
+    Type.Object({
+        Success: MessagesResponse,
+    }),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("ThreadNotFound"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Object({
+        ReplicaNotUpToDateV2: Type.BigInt(),
+    }),
+]);
+const CommunityThreadPreviewsSuccessResult = Type.Object({
+    threads: Type.Array(ThreadPreview),
+    timestamp: Type.BigInt(),
+});
+Type.Union([
+    Type.Object({
+        Success: CommunityThreadPreviewsSuccessResult,
+    }),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("UserNotInChannel"),
+    Type.Object({
+        ReplicaNotUpToDate: Type.BigInt(),
+    }),
+]);
+const GroupSummaryUpdatesSuccessResult = Type.Object({
+    updates: GroupCanisterGroupChatSummaryUpdates,
+});
+Type.Union([
+    Type.Object({
+        Success: GroupSummaryUpdatesSuccessResult,
+    }),
+    Type.Literal("SuccessNoUpdates"),
+    Type.Literal("CallerNotInGroup"),
+]);
+Type.Union([
+    Type.Object({
+        Success: MessagesResponse,
+    }),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("ThreadMessageNotFound"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Object({
+        ReplicaNotUpToDateV2: Type.BigInt(),
+    }),
+]);
+const GroupPublicSummarySuccessResult = Type.Object({
+    summary: PublicGroupSummary,
+    is_invited: Type.Boolean(),
+});
+Type.Union([
+    Type.Object({
+        Success: GroupPublicSummarySuccessResult,
+    }),
+    Type.Literal("NotAuthorized"),
+]);
+const GroupThreadPreviewsSuccessResult = Type.Object({
+    threads: Type.Array(ThreadPreview),
+    timestamp: Type.BigInt(),
+});
+const GroupSummarySuccessResult = Type.Object({
+    summary: GroupCanisterGroupChatSummary,
+});
+Type.Union([
+    Type.Object({
+        Success: GroupSummarySuccessResult,
+    }),
+    Type.Literal("CallerNotInGroup"),
+]);
+const UserInitialStateDirectChatsInitial = Type.Object({
+    summaries: Type.Array(DirectChatSummary),
+    pinned: Type.Array(ChatId),
+});
+const UserUpdatesDirectChatsUpdates = Type.Object({
+    added: Type.Array(DirectChatSummary),
+    updated: Type.Array(DirectChatSummaryUpdates),
+    removed: Type.Array(ChatId),
+    pinned: Type.Optional(Type.Union([Type.Array(ChatId), Type.Undefined()])),
+});
+Type.Union([
+    Type.Object({
+        Success: MessagesResponse,
+    }),
+    Type.Literal("ChatNotFound"),
+    Type.Literal("ThreadMessageNotFound"),
+    Type.Object({
+        ReplicaNotUpToDateV2: Type.BigInt(),
+    }),
+]);
+const EventsResponse = Type.Object({
+    events: Type.Array(EventWrapperChatEvent),
+    expired_event_ranges: Type.Array(Type.Tuple([EventIndex, EventIndex])),
+    expired_message_ranges: Type.Array(Type.Tuple([MessageIndex, MessageIndex])),
+    latest_event_index: EventIndex,
+    chat_last_updated: Type.BigInt(),
+});
+const CommunityCanisterCommunitySummary = Type.Object({
+    community_id: CommunityId,
+    local_user_index_canister_id: TSBytes,
+    last_updated: Type.BigInt(),
+    name: Type.String(),
+    description: Type.String(),
+    avatar_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    banner_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    is_public: Type.Boolean(),
+    member_count: Type.Number(),
+    permissions: CommunityPermissions,
+    frozen: Type.Optional(Type.Union([FrozenGroupInfo, Type.Undefined()])),
+    gate: Type.Optional(Type.Union([AccessGate, Type.Undefined()])),
+    gate_config: Type.Optional(Type.Union([AccessGateConfig, Type.Undefined()])),
+    primary_language: Type.String(),
+    latest_event_index: EventIndex,
+    channels: Type.Array(CommunityCanisterChannelSummary),
+    membership: Type.Optional(Type.Union([CommunityMembership, Type.Undefined()])),
+    user_groups: Type.Array(UserGroupSummary),
+    is_invited: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    metrics: ChatMetrics,
+    verified: Type.Boolean(),
+});
+const CommunityCanisterCommunitySummaryUpdates = Type.Object({
+    community_id: CommunityId,
+    last_updated: Type.BigInt(),
+    name: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    description: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    avatar_id: OptionUpdateU128,
+    banner_id: OptionUpdateU128,
+    is_public: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    member_count: Type.Optional(Type.Union([Type.Number(), Type.Undefined()])),
+    permissions: Type.Optional(Type.Union([CommunityPermissions, Type.Undefined()])),
+    frozen: OptionUpdateFrozenGroupInfo,
+    gate: OptionUpdateAccessGate,
+    gate_config: OptionUpdateAccessGateConfig,
+    primary_language: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    latest_event_index: Type.Optional(Type.Union([EventIndex, Type.Undefined()])),
+    channels_added: Type.Array(CommunityCanisterChannelSummary),
+    channels_updated: Type.Array(CommunityCanisterChannelSummaryUpdates),
+    channels_removed: Type.Array(ChannelId),
+    membership: Type.Optional(Type.Union([CommunityMembershipUpdates, Type.Undefined()])),
+    user_groups: Type.Array(UserGroupSummary),
+    user_groups_deleted: Type.Array(Type.Number()),
+    metrics: Type.Optional(Type.Union([ChatMetrics, Type.Undefined()])),
+    verified: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+});
+const LocalUserIndexChatEventsEventsResponse = Type.Union([
+    Type.Object({
+        Success: EventsResponse,
+    }),
+    Type.Literal("NotFound"),
+    Type.Object({
+        ReplicaNotUpToDate: Type.BigInt(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+const LocalUserIndexChatEventsSuccessResult = Type.Object({
+    responses: Type.Array(LocalUserIndexChatEventsEventsResponse),
+    timestamp: Type.BigInt(),
+});
+Type.Object({
+    Success: LocalUserIndexChatEventsSuccessResult,
+});
+Type.Union([
+    Type.Object({
+        Success: CommunityCanisterCommunitySummary,
+    }),
+    Type.Object({
+        AlreadyInCommunity: CommunityCanisterCommunitySummary,
+    }),
+    Type.Object({
+        GateCheckFailed: GateCheckFailedReason,
+    }),
+    Type.Literal("CommunityNotFound"),
+    Type.Literal("CommunityNotPublic"),
+    Type.Literal("NotInvited"),
+    Type.Object({
+        MemberLimitReached: Type.Number(),
+    }),
+    Type.Literal("UserBlocked"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("CommunityFrozen"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Union([
+    Type.Object({
+        Success: CommunityCanisterChannelSummary,
+    }),
+    Type.Object({
+        SuccessJoinedCommunity: CommunityCanisterCommunitySummary,
+    }),
+    Type.Object({
+        AlreadyInChannel: CommunityCanisterChannelSummary,
+    }),
+    Type.Object({
+        GateCheckFailed: GateCheckFailedReason,
+    }),
+    Type.Literal("CommunityNotFound"),
+    Type.Literal("CommunityNotPublic"),
+    Type.Literal("ChannelNotFound"),
+    Type.Object({
+        MemberLimitReached: Type.Number(),
+    }),
+    Type.Literal("UserBlocked"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("CommunityFrozen"),
+    Type.Literal("NotInvited"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+const LocalUserIndexGroupAndCommunitySummaryUpdatesSummaryUpdatesResponse = Type.Union([
+    Type.Object({
+        SuccessGroup: GroupCanisterGroupChatSummary,
+    }),
+    Type.Object({
+        SuccessCommunity: CommunityCanisterCommunitySummary,
+    }),
+    Type.Object({
+        SuccessGroupUpdates: GroupCanisterGroupChatSummaryUpdates,
+    }),
+    Type.Object({
+        SuccessCommunityUpdates: CommunityCanisterCommunitySummaryUpdates,
+    }),
+    Type.Literal("SuccessNoUpdates"),
+    Type.Literal("NotFound"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+Type.Object({
+    Success: Type.Array(LocalUserIndexGroupAndCommunitySummaryUpdatesSummaryUpdatesResponse),
+});
+Type.Union([
+    Type.Object({
+        Success: CommunityCanisterCommunitySummaryUpdates,
+    }),
+    Type.Literal("SuccessNoUpdates"),
+    Type.Literal("PrivateCommunity"),
+]);
+Type.Union([
+    Type.Object({
+        Success: EventsResponse,
+    }),
+    Type.Literal("UserNotInCommunity"),
+    Type.Literal("UserNotInChannel"),
+    Type.Literal("ChannelNotFound"),
+    Type.Literal("ThreadNotFound"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Object({
+        ReplicaNotUpToDateV2: Type.BigInt(),
+    }),
+]);
+Type.Union([
+    Type.Object({
+        Success: CommunityCanisterCommunitySummary,
+    }),
+    Type.Literal("PrivateCommunity"),
+]);
+Type.Union([
+    Type.Object({
+        Success: GroupThreadPreviewsSuccessResult,
+    }),
+    Type.Literal("CallerNotInGroup"),
+    Type.Object({
+        ReplicaNotUpToDate: Type.BigInt(),
+    }),
+]);
+Type.Union([
+    Type.Object({
+        Success: EventsResponse,
+    }),
+    Type.Literal("CallerNotInGroup"),
+    Type.Literal("ThreadMessageNotFound"),
+    Type.Literal("UserSuspended"),
+    Type.Literal("UserLapsed"),
+    Type.Object({
+        ReplicaNotUpToDateV2: Type.BigInt(),
+    }),
+]);
+Type.Union([
+    Type.Object({
+        Success: EventsResponse,
+    }),
+    Type.Literal("ChatNotFound"),
+    Type.Literal("ThreadMessageNotFound"),
+    Type.Object({
+        ReplicaNotUpToDateV2: Type.BigInt(),
+    }),
+]);
+const UserInitialStateSuccessResult = Type.Object({
+    timestamp: Type.BigInt(),
+    direct_chats: UserInitialStateDirectChatsInitial,
+    group_chats: UserInitialStateGroupChatsInitial,
+    favourite_chats: UserInitialStateFavouriteChatsInitial,
+    communities: UserInitialStateCommunitiesInitial,
+    avatar_id: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    blocked_users: Type.Array(UserId),
+    suspended: Type.Boolean(),
+    pin_number_settings: Type.Optional(Type.Union([PinNumberSettings, Type.Undefined()])),
+    local_user_index_canister_id: TSBytes,
+    achievements: Type.Array(ChitEarned),
+    achievements_last_seen: Type.BigInt(),
+    total_chit_earned: Type.Number(),
+    chit_balance: Type.Number(),
+    streak: Type.Number(),
+    streak_ends: Type.BigInt(),
+    streak_insurance: Type.Optional(Type.Union([StreakInsurance, Type.Undefined()])),
+    next_daily_claim: Type.BigInt(),
+    is_unique_person: Type.Boolean(),
+    wallet_config: UserWalletConfig,
+    referrals: Type.Array(UserReferral),
+    message_activity_summary: UserMessageActivitySummary,
+});
+Type.Object({
+    Success: UserInitialStateSuccessResult,
+});
+const UserUpdatesSuccessResult = Type.Object({
+    timestamp: Type.BigInt(),
+    username: Type.Optional(Type.Union([Type.String(), Type.Undefined()])),
+    display_name: OptionUpdateString,
+    direct_chats: UserUpdatesDirectChatsUpdates,
+    group_chats: UserUpdatesGroupChatsUpdates,
+    favourite_chats: UserUpdatesFavouriteChatsUpdates,
+    communities: UserUpdatesCommunitiesUpdates,
+    avatar_id: OptionUpdateU128,
+    blocked_users: Type.Optional(Type.Union([Type.Array(UserId), Type.Undefined()])),
+    suspended: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    pin_number_settings: OptionUpdatePinNumberSettings,
+    achievements: Type.Array(ChitEarned),
+    achievements_last_seen: Type.Optional(Type.Union([Type.BigInt(), Type.Undefined()])),
+    total_chit_earned: Type.Number(),
+    chit_balance: Type.Number(),
+    streak: Type.Number(),
+    streak_ends: Type.BigInt(),
+    streak_insurance: OptionUpdateStreakInsurance,
+    next_daily_claim: Type.BigInt(),
+    is_unique_person: Type.Optional(Type.Union([Type.Boolean(), Type.Undefined()])),
+    wallet_config: Type.Optional(Type.Union([UserWalletConfig, Type.Undefined()])),
+    referrals: Type.Array(UserReferral),
+    message_activity_summary: Type.Optional(Type.Union([UserMessageActivitySummary, Type.Undefined()])),
+});
+Type.Union([
+    Type.Object({
+        Success: UserUpdatesSuccessResult,
+    }),
+    Type.Literal("SuccessNoUpdates"),
+]);
+
+class BotGatewayClient extends MsgpackCanisterAgent {
     constructor(canisterId, agent, env) {
-        super();
+        super(agent, canisterId);
         this.env = env;
-        _BotGatewayClient_botService.set(this, undefined);
-        __classPrivateFieldSet$4(this, _BotGatewayClient_botService, CandidService.createServiceClient(idlFactory$2, canisterId, env.icHost, agent), "f");
     }
     sendMessage(message, auth) {
-        return CandidService.handleResponse(__classPrivateFieldGet$4(this, _BotGatewayClient_botService, "f").bot_send_message(message.toInputArgs(auth)), (res) => {
-            if (!("Success" in res)) {
-                console.error("Call to execute_bot_action failed with: ", JSON.stringify(res));
-            }
-            return res;
-        }).catch((err) => {
-            console.error("Call to execute_bot_action failed with: ", JSON.stringify(err));
+        return this.executeMsgpackUpdate("bot_send_message", message.toInputArgs(auth), identity, LocalUserIndexBotSendMessageArgs, LocalUserIndexBotSendMessageResponse).catch((err) => {
+            console.error("Call to bot_send_message failed with: ", JSON.stringify(err));
             throw err;
         });
     }
     createChannel(channel, auth) {
-        return CandidService.handleResponse(__classPrivateFieldGet$4(this, _BotGatewayClient_botService, "f").bot_create_channel(channel.toInputArgs(auth)), (res) => {
-            if (!("Success" in res)) {
-                console.error("Call to execute_bot_action failed with: ", JSON.stringify(res));
-            }
-            return res;
-        }).catch((err) => {
-            console.error("Call to execute_bot_action failed with: ", JSON.stringify(err));
+        return this.executeMsgpackUpdate("bot_create_channel", channel.toInputArgs(auth), identity, LocalUserIndexBotCreateChannelArgs, LocalUserIndexBotCreateChannelResponse).catch((err) => {
+            console.error("Call to bot_create_channel failed with: ", JSON.stringify(err));
             throw err;
         });
     }
 }
-_BotGatewayClient_botService = new WeakMap();
 
 var sha3 = {exports: {}};
 
@@ -36763,9 +52895,9 @@ const idlFactory$1 = ({ IDL }) => {
 };
 
 class StorageIndexClient extends CandidService {
-    constructor(agent, canisterId, icHost) {
+    constructor(agent, canisterId) {
         super();
-        this.service = CandidService.createServiceClient(idlFactory$1, canisterId, icHost, agent);
+        this.service = CandidService.createServiceClient(idlFactory$1, canisterId, agent);
     }
     allocatedBucket(fileHash, fileSize, fileIdSeed) {
         return CandidService.handleResponse(this.service.allocated_bucket_v2({
@@ -36854,9 +52986,9 @@ const idlFactory = ({ IDL }) => {
 };
 
 class StorageBucketClient extends CandidService {
-    constructor(agent, canisterId, icHost) {
+    constructor(agent, canisterId) {
         super();
-        this.service = CandidService.createServiceClient(idlFactory, canisterId, icHost, agent);
+        this.service = CandidService.createServiceClient(idlFactory, canisterId, agent);
     }
     uploadChunk(fileId, hash, mimeType, accessors, totalSize, chunkSize, chunkIndex, bytes, expiryTimestampMillis) {
         return CandidService.handleResponse(this.service.upload_chunk_v2({
@@ -36877,8 +53009,7 @@ class DataClient extends EventTarget {
     constructor(agent, config) {
         super();
         this.agent = agent;
-        this.config = config;
-        this.storageIndexClient = new StorageIndexClient(agent, config.openStorageCanisterId, config.icHost);
+        this.storageIndexClient = new StorageIndexClient(agent, config.openStorageCanisterId);
     }
     async uploadData(accessorCanisterIds, mimeType, data) {
         const accessorIds = accessorCanisterIds.map((c) => Principal$1.fromText(c));
@@ -36904,7 +53035,7 @@ class DataClient extends EventTarget {
         const chunkSize = allocatedBucketResponse.Success.chunk_size;
         const chunkCount = Math.ceil(fileSize / chunkSize);
         const chunkIndexes = [...Array(chunkCount).keys()];
-        const bucketClient = new StorageBucketClient(this.agent, bucketCanisterId, this.config.icHost);
+        const bucketClient = new StorageBucketClient(this.agent, bucketCanisterId);
         let chunksCompleted = 0;
         const promises = chunkIndexes.map(async (chunkIndex) => {
             const start = chunkIndex * chunkSize;
@@ -36940,195 +53071,52 @@ function hashBytes(bytes) {
     return hash.arrayBuffer();
 }
 
-function apiAuthToken(auth) {
-    switch (auth.kind) {
-        case "api_key":
-            return {
-                ApiKey: auth.token,
-            };
-        case "jwt":
-            return {
-                Jwt: auth.token,
-            };
-    }
-}
-function apiBlobReference(domain) {
-    return {
-        blob_id: domain.blobId,
-        canister_id: Principal$1.fromText(domain.canisterId),
-    };
-}
-function apiAccessGateConfig(domain) {
-    return {
-        gate: apiAccessGate(domain.gate),
-        expiry: apiOptional(domain.expiry, identity),
-    };
-}
-function apiAccessGate(domain) {
-    if (domain.kind === "composite_gate") {
-        return {
-            Composite: {
-                and: domain.operator === "and",
-                inner: domain.gates.map(apiLeafAccessGate),
-            },
-        };
-    }
-    return apiLeafAccessGate(domain);
-}
-function apiLeafAccessGate(domain) {
-    switch (domain.kind) {
-        case "neuron_gate":
-            return {
-                SnsNeuron: {
-                    governance_canister_id: Principal$1.fromText(domain.governanceCanister),
-                    min_stake_e8s: domain.minStakeE8s ? [BigInt(domain.minStakeE8s)] : [],
-                    min_dissolve_delay: domain.minDissolveDelay
-                        ? [BigInt(domain.minDissolveDelay)]
-                        : [],
-                },
-            };
-        case "payment_gate":
-            return {
-                Payment: {
-                    ledger_canister_id: Principal$1.fromText(domain.ledgerCanister),
-                    amount: domain.amount,
-                    fee: domain.fee,
-                },
-            };
-        case "diamond_gate":
-            return { DiamondMember: null };
-        case "lifetime_diamond_gate":
-            return { LifetimeDiamondMember: null };
-        case "unique_person_gate":
-            return { UniquePerson: null };
-        case "credential_gate":
-            return {
-                VerifiedCredential: {
-                    credential_name: domain.credential.credentialName,
-                    issuer_canister_id: Principal$1.fromText(domain.credential.issuerCanisterId),
-                    issuer_origin: domain.credential.issuerOrigin,
-                    credential_type: domain.credential.credentialType,
-                    credential_arguments: Object.entries(domain.credential.credentialArguments ?? {}).map(([k, v]) => [k, typeof v === "string" ? { String: v } : { Int: v }]),
-                },
-            };
-        case "token_balance_gate":
-            return {
-                TokenBalance: {
-                    ledger_canister_id: Principal$1.fromText(domain.ledgerCanister),
-                    min_balance: domain.minBalance,
-                },
-            };
-        case "locked_gate":
-            return { Locked: null };
-        case "referred_by_member_gate":
-            return { ReferredByMember: null };
-        default:
-            throw new Error(`Received a domain level group gate that we cannot parse: ${domain}`);
-    }
-}
-function apiPermissionRole(domain) {
-    switch (domain) {
-        case "admins":
-            return { Admins: null };
-        case "members":
-            return { Members: null };
-        case "moderators":
-            return { Moderators: null };
-        case "none":
-            return { None: null };
-        case "owners":
-            return { Owner: null };
-    }
-}
-function apiMessagePermissions(domain) {
-    return {
-        audio: apiOptional(domain.audio, apiPermissionRole),
-        video: apiOptional(domain.video, apiPermissionRole),
-        video_call: apiOptional(domain.videoCall, apiPermissionRole),
-        custom: domain.custom.map((p) => ({
-            subtype: p.subtype,
-            role: apiPermissionRole(p.role),
-        })),
-        file: apiOptional(domain.file, apiPermissionRole),
-        poll: apiOptional(domain.poll, apiPermissionRole),
-        text: apiOptional(domain.text, apiPermissionRole),
-        crypto: apiOptional(domain.crypto, apiPermissionRole),
-        giphy: apiOptional(domain.giphy, apiPermissionRole),
-        default: apiPermissionRole(domain.default),
-        image: apiOptional(domain.image, apiPermissionRole),
-        prize: apiOptional(domain.prize, apiPermissionRole),
-        p2p_swap: apiOptional(domain.p2pSwap, apiPermissionRole),
-    };
-}
-function apiGroupPermissions(domain) {
-    return {
-        mention_all_members: apiPermissionRole(domain.mentionAllMembers),
-        delete_messages: apiPermissionRole(domain.deleteMessages),
-        remove_members: apiPermissionRole(domain.removeMembers),
-        update_group: apiPermissionRole(domain.updateGroup),
-        message_permissions: apiMessagePermissions(domain.messagePermissions),
-        invite_users: apiPermissionRole(domain.inviteUsers),
-        thread_permissions: apiOptional(domain.threadPermissions, apiMessagePermissions),
-        change_roles: apiPermissionRole(domain.changeRoles),
-        start_video_call: apiPermissionRole(domain.startVideoCall),
-        add_members: apiPermissionRole(domain.addMembers),
-        pin_messages: apiPermissionRole(domain.pinMessages),
-        react_to_messages: apiPermissionRole(domain.reactToMessages),
-    };
-}
-function apiOptional(domain, mapper) {
-    return domain === undefined ? [] : [mapper(domain)];
-}
-function identity(a) {
-    return a;
-}
-
 var _Channel_isPublic, _Channel_permissions, _Channel_messagesVisibleToNonMembers, _Channel_historyVisibleToNewJoiners, _Channel_rules, _Channel_gateConfig, _Channel_externalUrl, _Channel_avatar, _Channel_eventsTtl;
 class Channel {
     setMessagesVisibleToNonMembers(val) {
-        __classPrivateFieldSet$4(this, _Channel_messagesVisibleToNonMembers, val, "f");
+        __classPrivateFieldSet$5(this, _Channel_messagesVisibleToNonMembers, val, "f");
         return this;
     }
     setIsPublic(val) {
-        __classPrivateFieldSet$4(this, _Channel_isPublic, val, "f");
+        __classPrivateFieldSet$5(this, _Channel_isPublic, val, "f");
         return this;
     }
     setThreadPermissions(perm, role) {
-        if (__classPrivateFieldGet$4(this, _Channel_permissions, "f").threadPermissions === undefined) {
-            __classPrivateFieldGet$4(this, _Channel_permissions, "f").threadPermissions = { custom: [], default: "members" };
+        if (__classPrivateFieldGet$5(this, _Channel_permissions, "f").threadPermissions === undefined) {
+            __classPrivateFieldGet$5(this, _Channel_permissions, "f").threadPermissions = { custom: [], default: "members" };
         }
-        __classPrivateFieldGet$4(this, _Channel_permissions, "f").threadPermissions[perm] = role;
+        __classPrivateFieldGet$5(this, _Channel_permissions, "f").threadPermissions[perm] = role;
         return this;
     }
     setMessagePermissions(perm, role) {
-        __classPrivateFieldGet$4(this, _Channel_permissions, "f").messagePermissions[perm] = role;
+        __classPrivateFieldGet$5(this, _Channel_permissions, "f").messagePermissions[perm] = role;
         return this;
     }
     setGroupPermission(perm, role) {
-        __classPrivateFieldGet$4(this, _Channel_permissions, "f")[perm] = role;
+        __classPrivateFieldGet$5(this, _Channel_permissions, "f")[perm] = role;
         return this;
     }
     setHistoryVisibleToNewJoiners(val) {
-        __classPrivateFieldSet$4(this, _Channel_historyVisibleToNewJoiners, val, "f");
+        __classPrivateFieldSet$5(this, _Channel_historyVisibleToNewJoiners, val, "f");
         return this;
     }
     setRules(text) {
-        __classPrivateFieldSet$4(this, _Channel_rules, { text, enabled: true }, "f");
+        __classPrivateFieldSet$5(this, _Channel_rules, { text, enabled: true }, "f");
         return this;
     }
     set gateConfig(val) {
-        __classPrivateFieldSet$4(this, _Channel_gateConfig, val, "f");
+        __classPrivateFieldSet$5(this, _Channel_gateConfig, val, "f");
     }
     setExternalUrl(val) {
-        __classPrivateFieldSet$4(this, _Channel_externalUrl, val, "f");
+        __classPrivateFieldSet$5(this, _Channel_externalUrl, val, "f");
         return this;
     }
     setAvatar(val) {
-        __classPrivateFieldSet$4(this, _Channel_avatar, val, "f");
+        __classPrivateFieldSet$5(this, _Channel_avatar, val, "f");
         return this;
     }
     setEventsTtl(val) {
-        __classPrivateFieldSet$4(this, _Channel_eventsTtl, val, "f");
+        __classPrivateFieldSet$5(this, _Channel_eventsTtl, val, "f");
         return this;
     }
     constructor(name, description) {
@@ -37162,18 +53150,18 @@ class Channel {
     }
     toInputArgs(auth) {
         return {
-            is_public: __classPrivateFieldGet$4(this, _Channel_isPublic, "f"),
-            permissions: apiOptional(__classPrivateFieldGet$4(this, _Channel_permissions, "f"), apiGroupPermissions),
-            gate_config: apiOptional(__classPrivateFieldGet$4(this, _Channel_gateConfig, "f"), apiAccessGateConfig),
+            is_public: __classPrivateFieldGet$5(this, _Channel_isPublic, "f"),
+            permissions: apiOptional(__classPrivateFieldGet$5(this, _Channel_permissions, "f"), apiGroupPermissions),
+            gate_config: apiOptional(__classPrivateFieldGet$5(this, _Channel_gateConfig, "f"), apiAccessGateConfig),
             auth_token: apiAuthToken(auth),
-            external_url: apiOptional(__classPrivateFieldGet$4(this, _Channel_externalUrl, "f"), identity),
+            external_url: apiOptional(__classPrivateFieldGet$5(this, _Channel_externalUrl, "f"), identity),
             name: this.name,
             description: this.description,
-            events_ttl: apiOptional(__classPrivateFieldGet$4(this, _Channel_eventsTtl, "f"), identity),
-            messages_visible_to_non_members: __classPrivateFieldGet$4(this, _Channel_messagesVisibleToNonMembers, "f"),
-            history_visible_to_new_joiners: __classPrivateFieldGet$4(this, _Channel_historyVisibleToNewJoiners, "f"),
-            rules: __classPrivateFieldGet$4(this, _Channel_rules, "f"),
-            avatar: apiOptional(__classPrivateFieldGet$4(this, _Channel_avatar, "f"), (data) => {
+            events_ttl: apiOptional(__classPrivateFieldGet$5(this, _Channel_eventsTtl, "f"), identity),
+            messages_visible_to_non_members: __classPrivateFieldGet$5(this, _Channel_messagesVisibleToNonMembers, "f"),
+            history_visible_to_new_joiners: __classPrivateFieldGet$5(this, _Channel_historyVisibleToNewJoiners, "f"),
+            rules: __classPrivateFieldGet$5(this, _Channel_rules, "f"),
+            avatar: apiOptional(__classPrivateFieldGet$5(this, _Channel_avatar, "f"), (data) => {
                 return {
                     id: random128(),
                     data,
@@ -37196,42 +53184,44 @@ class Message {
         this.content = content;
     }
     setChannelId(id) {
-        __classPrivateFieldSet$4(this, _Message_channelId, id, "f");
+        __classPrivateFieldSet$5(this, _Message_channelId, id, "f");
         return this;
     }
     setFinalised(finalised) {
-        __classPrivateFieldSet$4(this, _Message_finalised, finalised, "f");
+        __classPrivateFieldSet$5(this, _Message_finalised, finalised, "f");
         return this;
     }
     setBlockLevelMarkdown(blm) {
-        __classPrivateFieldSet$4(this, _Message_blockLevelMarkdown, blm, "f");
+        __classPrivateFieldSet$5(this, _Message_blockLevelMarkdown, blm, "f");
         return this;
     }
     setMessageId(messageId) {
-        __classPrivateFieldSet$4(this, _Message_messageId, messageId, "f");
+        __classPrivateFieldSet$5(this, _Message_messageId, messageId, "f");
         return this;
     }
     setContextMessageId(messageId) {
-        __classPrivateFieldSet$4(this, _Message_contextMessageId, messageId, "f");
+        __classPrivateFieldSet$5(this, _Message_contextMessageId, messageId, "f");
         return this;
     }
     toResponse() {
         return {
-            id: __classPrivateFieldGet$4(this, _Message_contextMessageId, "f") ?? 0n,
+            id: __classPrivateFieldGet$5(this, _Message_contextMessageId, "f") ?? 0n,
             content: this.content,
-            finalised: __classPrivateFieldGet$4(this, _Message_finalised, "f"),
-            blockLevelMarkdown: __classPrivateFieldGet$4(this, _Message_blockLevelMarkdown, "f"),
+            finalised: __classPrivateFieldGet$5(this, _Message_finalised, "f"),
+            blockLevelMarkdown: __classPrivateFieldGet$5(this, _Message_blockLevelMarkdown, "f"),
         };
     }
     toInputArgs(auth) {
-        return {
-            channel_id: apiOptional(__classPrivateFieldGet$4(this, _Message_channelId, "f"), identity),
-            message_id: apiOptional(__classPrivateFieldGet$4(this, _Message_messageId, "f"), identity),
+        const args = {
+            channel_id: apiOptional(__classPrivateFieldGet$5(this, _Message_channelId, "f"), BigInt),
+            message_id: apiOptional(__classPrivateFieldGet$5(this, _Message_messageId, "f"), identity),
             content: this.content,
-            finalised: __classPrivateFieldGet$4(this, _Message_finalised, "f"),
-            block_level_markdown: __classPrivateFieldGet$4(this, _Message_blockLevelMarkdown, "f") ?? false,
+            finalised: __classPrivateFieldGet$5(this, _Message_finalised, "f"),
+            block_level_markdown: __classPrivateFieldGet$5(this, _Message_blockLevelMarkdown, "f") ?? false,
             auth_token: apiAuthToken(auth),
         };
+        console.log("Input Args: ", JSON.stringify(args));
+        return args;
     }
 }
 _Message_channelId = new WeakMap(), _Message_messageId = new WeakMap(), _Message_contextMessageId = new WeakMap(), _Message_finalised = new WeakMap(), _Message_blockLevelMarkdown = new WeakMap();
@@ -37248,7 +53238,6 @@ class ImageMessage extends Message {
                 mime_type: mimeType,
                 blob_reference: apiOptional(blobReference, apiBlobReference),
                 thumbnail_data: "",
-                caption: [],
                 width,
             },
         });
@@ -37266,7 +53255,6 @@ class FileMessage extends Message {
                 file_size: fileSize,
                 mime_type: mimeType,
                 blob_reference: apiOptional(blobReference, apiBlobReference),
-                caption: [],
             },
         });
     }
@@ -37302,7 +53290,7 @@ class PollMessage extends Message {
                     text: apiOptional(question, identity),
                     allow_multiple_votes_per_user: false,
                     show_votes_before_end_date: true,
-                    end_date: [pollEndDate(duration)],
+                    end_date: apiOptional(pollEndDate(duration), identity),
                     anonymous: false,
                     allow_user_to_change_vote: true,
                     options: answers,
@@ -37338,32 +53326,32 @@ class BotClient extends CandidService {
         _BotClient_decoded.set(this, undefined);
         _BotClient_env.set(this, undefined);
         _BotClient_agent.set(this, undefined);
-        __classPrivateFieldSet$4(this, _BotClient_auth, auth, "f");
-        __classPrivateFieldSet$4(this, _BotClient_env, env, "f");
-        __classPrivateFieldSet$4(this, _BotClient_agent, agent, "f");
-        switch (__classPrivateFieldGet$4(this, _BotClient_auth, "f").kind) {
+        __classPrivateFieldSet$5(this, _BotClient_auth, auth, "f");
+        __classPrivateFieldSet$5(this, _BotClient_env, env, "f");
+        __classPrivateFieldSet$5(this, _BotClient_agent, agent, "f");
+        switch (__classPrivateFieldGet$5(this, _BotClient_auth, "f").kind) {
             case "api_key":
-                __classPrivateFieldSet$4(this, _BotClient_decoded, __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_decodeApiKey).call(this, __classPrivateFieldGet$4(this, _BotClient_auth, "f").token), "f");
+                __classPrivateFieldSet$5(this, _BotClient_decoded, __classPrivateFieldGet$5(this, _BotClient_instances, "m", _BotClient_decodeApiKey).call(this, __classPrivateFieldGet$5(this, _BotClient_auth, "f").token), "f");
                 break;
             case "jwt":
-                __classPrivateFieldSet$4(this, _BotClient_decoded, __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_decodeJwt).call(this, __classPrivateFieldGet$4(this, _BotClient_auth, "f").token), "f");
+                __classPrivateFieldSet$5(this, _BotClient_decoded, __classPrivateFieldGet$5(this, _BotClient_instances, "m", _BotClient_decodeJwt).call(this, __classPrivateFieldGet$5(this, _BotClient_auth, "f").token), "f");
                 break;
         }
-        __classPrivateFieldSet$4(this, _BotClient_botService, new BotGatewayClient(__classPrivateFieldGet$4(this, _BotClient_instances, "a", _BotClient_botApiGateway_get), agent, env), "f");
+        __classPrivateFieldSet$5(this, _BotClient_botService, new BotGatewayClient(__classPrivateFieldGet$5(this, _BotClient_instances, "a", _BotClient_botApiGateway_get), agent, env), "f");
     }
     get command() {
-        if (__classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_hasCommand).call(this, __classPrivateFieldGet$4(this, _BotClient_decoded, "f"))) {
-            return __classPrivateFieldGet$4(this, _BotClient_decoded, "f").command;
+        if (__classPrivateFieldGet$5(this, _BotClient_instances, "m", _BotClient_hasCommand).call(this, __classPrivateFieldGet$5(this, _BotClient_decoded, "f"))) {
+            return __classPrivateFieldGet$5(this, _BotClient_decoded, "f").command;
         }
     }
     sendMessage(message) {
-        return __classPrivateFieldGet$4(this, _BotClient_botService, "f").sendMessage(message, __classPrivateFieldGet$4(this, _BotClient_auth, "f"));
+        return __classPrivateFieldGet$5(this, _BotClient_botService, "f").sendMessage(message, __classPrivateFieldGet$5(this, _BotClient_auth, "f"));
     }
     createChannel(channel) {
-        return __classPrivateFieldGet$4(this, _BotClient_botService, "f").createChannel(channel, __classPrivateFieldGet$4(this, _BotClient_auth, "f"));
+        return __classPrivateFieldGet$5(this, _BotClient_botService, "f").createChannel(channel, __classPrivateFieldGet$5(this, _BotClient_auth, "f"));
     }
     get scope() {
-        return __classPrivateFieldGet$4(this, _BotClient_decoded, "f").scope;
+        return __classPrivateFieldGet$5(this, _BotClient_decoded, "f").scope;
     }
     get chatScope() {
         if (isChatScope(this.scope)) {
@@ -37381,35 +53369,35 @@ class BotClient extends CandidService {
         }
     }
     stringArg(name) {
-        const arg = __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_namedArg).call(this, name);
+        const arg = __classPrivateFieldGet$5(this, _BotClient_instances, "m", _BotClient_namedArg).call(this, name);
         return arg !== undefined && "String" in arg.value ? arg.value.String : undefined;
     }
     booleanArg(name) {
-        const arg = __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_namedArg).call(this, name);
+        const arg = __classPrivateFieldGet$5(this, _BotClient_instances, "m", _BotClient_namedArg).call(this, name);
         return arg !== undefined && "Boolean" in arg.value ? arg.value.Boolean : undefined;
     }
     numberArg(name) {
-        const arg = __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_namedArg).call(this, name);
+        const arg = __classPrivateFieldGet$5(this, _BotClient_instances, "m", _BotClient_namedArg).call(this, name);
         return arg !== undefined && "Number" in arg.value ? arg.value.Number : undefined;
     }
     userArg(name) {
-        const arg = __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_namedArg).call(this, name);
+        const arg = __classPrivateFieldGet$5(this, _BotClient_instances, "m", _BotClient_namedArg).call(this, name);
         return arg !== undefined && "User" in arg.value
-            ? __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_principalBytesToString).call(this, arg.value.User)
+            ? __classPrivateFieldGet$5(this, _BotClient_instances, "m", _BotClient_principalBytesToString).call(this, arg.value.User)
             : undefined;
     }
     get threadRootMessageId() {
-        return this.chatScope?.Chat?.thread_root_message_index;
+        return this.chatScope?.Chat?.thread;
     }
     get chatId() {
         return this.chatScope?.Chat?.chat;
     }
     get botId() {
-        switch (__classPrivateFieldGet$4(this, _BotClient_decoded, "f").kind) {
+        switch (__classPrivateFieldGet$5(this, _BotClient_decoded, "f").kind) {
             case "api_key":
-                return __classPrivateFieldGet$4(this, _BotClient_decoded, "f").bot_id;
+                return __classPrivateFieldGet$5(this, _BotClient_decoded, "f").bot_id;
             case "jwt":
-                return __classPrivateFieldGet$4(this, _BotClient_decoded, "f").bot;
+                return __classPrivateFieldGet$5(this, _BotClient_decoded, "f").bot;
         }
     }
     get commandArgs() {
@@ -37428,16 +53416,16 @@ class BotClient extends CandidService {
         return Promise.resolve(new PollMessage(question, answers).setContextMessageId(this.messageId));
     }
     createImageMessage(imageData, mimeType, width, height) {
-        const dataClient = new DataClient(__classPrivateFieldGet$4(this, _BotClient_agent, "f"), __classPrivateFieldGet$4(this, _BotClient_env, "f"));
-        const canisterId = __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_extractCanisterFromChat).call(this);
+        const dataClient = new DataClient(__classPrivateFieldGet$5(this, _BotClient_agent, "f"), __classPrivateFieldGet$5(this, _BotClient_env, "f"));
+        const canisterId = __classPrivateFieldGet$5(this, _BotClient_instances, "m", _BotClient_extractCanisterFromChat).call(this);
         const uploadContentPromise = dataClient.uploadData([canisterId], mimeType, imageData);
         return uploadContentPromise.then((blobReference) => {
             return new ImageMessage(width, height, mimeType, blobReference).setContextMessageId(this.messageId);
         });
     }
     createFileMessage(name, data, mimeType, fileSize) {
-        const dataClient = new DataClient(__classPrivateFieldGet$4(this, _BotClient_agent, "f"), __classPrivateFieldGet$4(this, _BotClient_env, "f"));
-        const canisterId = __classPrivateFieldGet$4(this, _BotClient_instances, "m", _BotClient_extractCanisterFromChat).call(this);
+        const dataClient = new DataClient(__classPrivateFieldGet$5(this, _BotClient_agent, "f"), __classPrivateFieldGet$5(this, _BotClient_env, "f"));
+        const canisterId = __classPrivateFieldGet$5(this, _BotClient_instances, "m", _BotClient_extractCanisterFromChat).call(this);
         const uploadContentPromise = dataClient.uploadData([canisterId], mimeType, data);
         return uploadContentPromise.then((blobReference) => {
             return new FileMessage(name, mimeType, fileSize, blobReference).setContextMessageId(this.messageId);
@@ -37445,11 +53433,11 @@ class BotClient extends CandidService {
     }
 }
 _BotClient_botService = new WeakMap(), _BotClient_auth = new WeakMap(), _BotClient_decoded = new WeakMap(), _BotClient_env = new WeakMap(), _BotClient_agent = new WeakMap(), _BotClient_instances = new WeakSet(), _BotClient_botApiGateway_get = function _BotClient_botApiGateway_get() {
-    switch (__classPrivateFieldGet$4(this, _BotClient_decoded, "f").kind) {
+    switch (__classPrivateFieldGet$5(this, _BotClient_decoded, "f").kind) {
         case "api_key":
-            return __classPrivateFieldGet$4(this, _BotClient_decoded, "f").gateway;
+            return __classPrivateFieldGet$5(this, _BotClient_decoded, "f").gateway;
         case "jwt":
-            return __classPrivateFieldGet$4(this, _BotClient_decoded, "f").bot_api_gateway;
+            return __classPrivateFieldGet$5(this, _BotClient_decoded, "f").bot_api_gateway;
     }
 }, _BotClient_decodeApiKey = function _BotClient_decodeApiKey(apiKey) {
     const buffer = Buffer.from(apiKey, "base64");
@@ -37457,7 +53445,7 @@ _BotClient_botService = new WeakMap(), _BotClient_auth = new WeakMap(), _BotClie
     const json = JSON.parse(decoded);
     return { ...json, kind: "api_key" };
 }, _BotClient_decodeJwt = function _BotClient_decodeJwt(token) {
-    const publicKey = __classPrivateFieldGet$4(this, _BotClient_env, "f").openchatPublicKey.replace(/\\n/g, "\n");
+    const publicKey = __classPrivateFieldGet$5(this, _BotClient_env, "f").openchatPublicKey.replace(/\\n/g, "\n");
     try {
         const decoded = jwt.verify(token, publicKey, { algorithms: ["ES256"] });
         if (typeof decoded !== "string") {
@@ -37497,14 +53485,22 @@ function isCommunityScope(scope) {
 }
 
 var _BotClientFactory_instances, _BotClientFactory_agent, _BotClientFactory_validateConfig;
+function isMainnet(icUrl) {
+    return icUrl.includes("icp-api.io");
+}
 function createAgent(env) {
     const identity = createIdentity(env.identityPrivateKey);
     console.log("Principal: ", identity.getPrincipal().toText());
-    return new HttpAgent({
+    const agent = HttpAgent.createSync({
         identity,
         host: env.icHost,
-        retryTimes: 5,
+        verifyQuerySignatures: false,
     });
+    const fetchRootKey = !isMainnet(env.icHost);
+    if (fetchRootKey) {
+        agent.fetchRootKey().catch((err) => console.error("Error fetching root key", err));
+    }
+    return agent;
 }
 function createIdentity(privateKey) {
     const privateKeyPem = privateKey.replace(/\\n/g, "\n");
@@ -37521,14 +53517,14 @@ class BotClientFactory {
         _BotClientFactory_instances.add(this);
         this.env = env;
         _BotClientFactory_agent.set(this, undefined);
-        __classPrivateFieldGet$4(this, _BotClientFactory_instances, "m", _BotClientFactory_validateConfig).call(this, env);
-        __classPrivateFieldSet$4(this, _BotClientFactory_agent, createAgent(env), "f");
+        __classPrivateFieldGet$5(this, _BotClientFactory_instances, "m", _BotClientFactory_validateConfig).call(this, env);
+        __classPrivateFieldSet$5(this, _BotClientFactory_agent, createAgent(env), "f");
     }
     createClientFromApiKey(apiKey) {
-        return new BotClient(__classPrivateFieldGet$4(this, _BotClientFactory_agent, "f"), this.env, { kind: "api_key", token: apiKey });
+        return new BotClient(__classPrivateFieldGet$5(this, _BotClientFactory_agent, "f"), this.env, { kind: "api_key", token: apiKey });
     }
     createClientFromJwt(jwt) {
-        return new BotClient(__classPrivateFieldGet$4(this, _BotClientFactory_agent, "f"), this.env, { kind: "jwt", token: jwt });
+        return new BotClient(__classPrivateFieldGet$5(this, _BotClientFactory_agent, "f"), this.env, { kind: "jwt", token: jwt });
     }
 }
 _BotClientFactory_agent = new WeakMap(), _BotClientFactory_instances = new WeakSet(), _BotClientFactory_validateConfig = function _BotClientFactory_validateConfig(env) {

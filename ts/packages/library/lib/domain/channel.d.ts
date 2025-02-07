@@ -1,4 +1,4 @@
-import type { BotCreateChannelArgs } from "../services/bot_gateway/candid/types";
+import type { LocalUserIndexBotCreateChannelArgs } from "../typebox/typebox";
 import type { AccessGateConfig } from "./access";
 import type { AuthToken } from "./bot";
 import type { PermissionRole, LowercaseMessagePermission as MessagePermission, LowercaseChatPermission as ChatPermission } from "./permissions";
@@ -22,5 +22,5 @@ export declare class Channel {
     setAvatar(val: Uint8Array | undefined): Channel;
     setEventsTtl(val: bigint | undefined): Channel;
     constructor(name: string, description: string);
-    toInputArgs(auth: AuthToken): BotCreateChannelArgs;
+    toInputArgs(auth: AuthToken): LocalUserIndexBotCreateChannelArgs;
 }

@@ -1,4 +1,4 @@
-import type { BotSendMessageArgs, MessageContent } from "../services/bot_gateway/candid/types";
+import type { LocalUserIndexBotSendMessageArgs as BotSendMessageArgs, BotMessageContent as MessageContent } from "../typebox/typebox";
 import type { AuthToken, BlobReference } from "./bot";
 export type MessageResponse = {
     id: bigint;

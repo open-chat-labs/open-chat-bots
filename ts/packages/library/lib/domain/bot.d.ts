@@ -1,5 +1,4 @@
-import type { Chat } from "../services/storageIndex/candid/types";
-import type { ChatPermission, CommunityPermission, MessagePermission } from "./permissions";
+import type { BotActionScope, BotPermissions, Chat } from "../typebox/typebox";
 export type DecodedJwt = {
     kind: "jwt";
     exp: number;
@@ -18,27 +17,21 @@ export type DecodedApiKey = {
     secret: string;
 };
 export type DecodedPayload = DecodedApiKey | DecodedJwt;
-export type BotPermissions = {
-    community: CommunityPermission[];
-    chat: ChatPermission[];
-    message: MessagePermission[];
-};
 export type BotCommand = {
     name: string;
     args: BotCommandArg[];
     initiator: string;
 };
-export type BotActionScope = BotActionChatScope | BotActionCommunityScope;
 export type BotActionChatScope = {
     Chat: {
         chat: Chat;
-        thread_root_message_index?: number;
-        message_id?: bigint;
+        thread?: number;
+        message_id: bigint;
     };
 };
 export type BotActionCommunityScope = {
     Community: {
-        community_id: string;
+        community_id: Uint8Array;
     };
 };
 export type BotCommandArg = {

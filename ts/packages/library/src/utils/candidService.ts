@@ -6,13 +6,8 @@ export abstract class CandidService {
     static createServiceClient<T>(
         factory: IDL.InterfaceFactory,
         canisterId: string,
-        host: string,
         agent: HttpAgent,
     ): T {
-        const isMainnet = host.includes("icp-api.io");
-        if (!isMainnet) {
-            agent.fetchRootKey();
-        }
         return Actor.createActor<T>(factory, {
             agent,
             canisterId,

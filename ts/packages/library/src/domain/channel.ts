@@ -5,7 +5,7 @@ import {
     identity,
     apiAuthToken,
 } from "../mapping";
-import type { BotCreateChannelArgs } from "../services/bot_gateway/candid/types";
+import type { LocalUserIndexBotCreateChannelArgs } from "../typebox/typebox";
 import { random128 } from "../utils/rng";
 import type { AccessGateConfig } from "./access";
 import type { AuthToken } from "./bot";
@@ -107,7 +107,7 @@ export class Channel {
         public description: string,
     ) {}
 
-    public toInputArgs(auth: AuthToken): BotCreateChannelArgs {
+    public toInputArgs(auth: AuthToken): LocalUserIndexBotCreateChannelArgs {
         return {
             is_public: this.#isPublic,
             permissions: apiOptional(this.#permissions, apiGroupPermissions),

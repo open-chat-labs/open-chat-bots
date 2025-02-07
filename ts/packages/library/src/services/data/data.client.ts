@@ -19,14 +19,10 @@ export class DataClient extends EventTarget {
 
     constructor(
         private agent: HttpAgent,
-        private config: BotClientConfig,
+        config: BotClientConfig,
     ) {
         super();
-        this.storageIndexClient = new StorageIndexClient(
-            agent,
-            config.openStorageCanisterId,
-            config.icHost,
-        );
+        this.storageIndexClient = new StorageIndexClient(agent, config.openStorageCanisterId);
     }
 
     async uploadData(
@@ -71,11 +67,7 @@ export class DataClient extends EventTarget {
         const chunkSize = allocatedBucketResponse.Success.chunk_size;
         const chunkCount = Math.ceil(fileSize / chunkSize);
         const chunkIndexes = [...Array(chunkCount).keys()];
-        const bucketClient = new StorageBucketClient(
-            this.agent,
-            bucketCanisterId,
-            this.config.icHost,
-        );
+        const bucketClient = new StorageBucketClient(this.agent, bucketCanisterId);
 
         let chunksCompleted = 0;
 
@@ -105,7 +97,7 @@ export class DataClient extends EventTarget {
                         return;
                     }
                 } catch (e) {
-                    console.log("Error uploading chunk " + chunkIndex, e);
+                    console.error("Error uploading chunk " + chunkIndex, e);
                 }
             }
             throw new Error("Failed to upload chunk");

@@ -1,11 +1,11 @@
 import { apiAuthToken, apiBlobReference, apiOptional, identity } from "../mapping";
 import type {
-    BotSendMessageArgs,
+    LocalUserIndexBotSendMessageArgs as BotSendMessageArgs,
     FileContent,
     ImageContent,
-    MessageContent,
+    BotMessageContent as MessageContent,
     PollContent,
-} from "../services/bot_gateway/candid/types";
+} from "../typebox/typebox";
 import type { AuthToken, BlobReference } from "./bot";
 
 type FileMessageContent = { File: FileContent };
@@ -67,7 +67,7 @@ export class Message {
 
     toInputArgs(auth: AuthToken): BotSendMessageArgs {
         return {
-            channel_id: apiOptional(this.#channelId, identity),
+            channel_id: apiOptional(this.#channelId, BigInt),
             message_id: apiOptional(this.#messageId, identity),
             content: this.content as MessageContent,
             finalised: this.#finalised,
@@ -91,7 +91,6 @@ export class ImageMessage extends Message {
                 mime_type: mimeType,
                 blob_reference: apiOptional(blobReference, apiBlobReference),
                 thumbnail_data: "",
-                caption: [],
                 width,
             },
         });
@@ -111,7 +110,6 @@ export class FileMessage extends Message {
                 file_size: fileSize,
                 mime_type: mimeType,
                 blob_reference: apiOptional(blobReference, apiBlobReference),
-                caption: [],
             },
         });
     }
@@ -152,7 +150,7 @@ export class PollMessage extends Message {
                     text: apiOptional(question, identity),
                     allow_multiple_votes_per_user: false,
                     show_votes_before_end_date: true,
-                    end_date: [pollEndDate(duration)],
+                    end_date: apiOptional(pollEndDate(duration), identity),
                     anonymous: false,
                     allow_user_to_change_vote: true,
                     options: answers,

@@ -10,13 +10,12 @@ import { CandidService } from "../../utils/candidService";
 export class StorageBucketClient extends CandidService {
     private service: StorageBucketService;
 
-    constructor(agent: HttpAgent, canisterId: string, icHost: string) {
+    constructor(agent: HttpAgent, canisterId: string) {
         super();
 
         this.service = CandidService.createServiceClient<StorageBucketService>(
             idlFactory,
             canisterId,
-            icHost,
             agent,
         );
     }

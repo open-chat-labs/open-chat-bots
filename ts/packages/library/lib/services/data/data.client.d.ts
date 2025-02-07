@@ -9,7 +9,6 @@ export type UploadFileResponse = {
 };
 export declare class DataClient extends EventTarget {
     private agent;
-    private config;
     private storageIndexClient;
     constructor(agent: HttpAgent, config: BotClientConfig);
     uploadData(accessorCanisterIds: string[], mimeType: string, data: Uint8Array): Promise<BlobReference>;

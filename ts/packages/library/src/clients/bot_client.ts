@@ -3,11 +3,12 @@ import { BadRequestError } from "../utils/error_response";
 import { HttpAgent } from "@dfinity/agent";
 import { CandidService } from "../utils/candidService";
 import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
-import type {
-    BotCreateChannelResponse,
-    BotSendMessageResponse,
-} from "../services/bot_gateway/candid/types";
-import type { Chat } from "../services/storageIndex/candid/types";
+import {
+    LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
+    LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
+    type BotActionScope,
+    type Chat,
+} from "../typebox/typebox";
 import { DataClient } from "../services/data/data.client";
 import { Principal } from "@dfinity/principal";
 import {
@@ -16,9 +17,6 @@ import {
     PollMessage,
     TextMessage,
     type AuthToken,
-    type BotActionChatScope,
-    type BotActionCommunityScope,
-    type BotActionScope,
     type BotClientConfig,
     type BotCommand,
     type BotCommandArg,
@@ -26,6 +24,8 @@ import {
     type DecodedJwt,
     type DecodedPayload,
     type Message,
+    type BotActionChatScope,
+    type BotActionCommunityScope,
 } from "../domain";
 import type { Channel } from "../domain/channel";
 
@@ -166,7 +166,7 @@ export class BotClient extends CandidService {
     }
 
     public get threadRootMessageId(): number | undefined | null {
-        return this.chatScope?.Chat?.thread_root_message_index;
+        return this.chatScope?.Chat?.thread;
     }
 
     public get chatId(): Chat | undefined {

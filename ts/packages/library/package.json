@@ -29,7 +29,9 @@
         "@dfinity/candid": "^2.2.0",
         "@dfinity/identity-secp256k1": "^2.2.0",
         "@dfinity/principal": "^2.2.0",
+        "@sinclair/typebox": "^0.34.16",
         "js-sha3": "^0.9.3",
-        "jsonwebtoken": "^9.0.2"
+        "jsonwebtoken": "^9.0.2",
+        "msgpackr": "^1.11.2"
     }
 }

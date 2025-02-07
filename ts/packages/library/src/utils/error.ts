@@ -26,6 +26,24 @@ export class AuthError extends HttpError {
     }
 }
 
+export class ResponseTooLargeError extends HttpError {
+    constructor(
+        error: Error,
+        public size: number,
+        public maxSize: number,
+    ) {
+        super(500, error);
+        this.name = "ResponseTooLargeError";
+    }
+}
+
+export class InvalidDelegationError extends HttpError {
+    constructor(error: Error) {
+        super(403, error);
+        this.name = "InvalidDelegationError";
+    }
+}
+
 export class ReplicaNotUpToDateError extends Error {
     public static byTimestamp(
         replicaTimestamp: bigint,
@@ -54,6 +72,11 @@ export function toCanisterResponseError(error: Error): HttpError | ReplicaNotUpT
         return new DestinationInvalidError(error);
     }
 
+    const tooLarge = responseTooLarge(error);
+    if (tooLarge) {
+        return tooLarge;
+    }
+
     const statusLine = error.message
         .split("\n")
         .map((l) => l.trim().toLowerCase())
@@ -74,5 +97,21 @@ export function toCanisterResponseError(error: Error): HttpError | ReplicaNotUpT
         }
     }
 
+    if (code === 403 && error.message.includes("Invalid delegation")) {
+        return new InvalidDelegationError(error);
+    }
+
     return code === 401 || code === 403 ? new AuthError(code, error) : new HttpError(code, error);
+}
+
+function responseTooLarge(error: Error): ResponseTooLargeError | undefined {
+    const regex = /application payload size \((\d+)\) cannot be larger than (\d+)/;
+    const match = error.message.match(regex);
+
+    if (match) {
+        const size = parseInt(match[1]);
+        const maxSize = parseInt(match[2]);
+        return new ResponseTooLargeError(error, size, maxSize);
+    }
+    return undefined;
 }

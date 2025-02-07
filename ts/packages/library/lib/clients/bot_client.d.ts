@@ -1,8 +1,7 @@
 import { HttpAgent } from "@dfinity/agent";
 import { CandidService } from "../utils/candidService";
-import type { BotCreateChannelResponse, BotSendMessageResponse } from "../services/bot_gateway/candid/types";
-import type { Chat } from "../services/storageIndex/candid/types";
-import { FileMessage, ImageMessage, PollMessage, TextMessage, type AuthToken, type BotActionChatScope, type BotActionCommunityScope, type BotActionScope, type BotClientConfig, type BotCommand, type BotCommandArg, type Message } from "../domain";
+import { LocalUserIndexBotSendMessageResponse as BotSendMessageResponse, LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse, type BotActionScope, type Chat } from "../typebox/typebox";
+import { FileMessage, ImageMessage, PollMessage, TextMessage, type AuthToken, type BotClientConfig, type BotCommand, type BotCommandArg, type Message, type BotActionChatScope, type BotActionCommunityScope } from "../domain";
 import type { Channel } from "../domain/channel";
 export declare class BotClient extends CandidService {
     #private;
