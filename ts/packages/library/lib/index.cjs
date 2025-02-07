@@ -43198,7 +43198,7 @@ function Parse(...args) {
 const MAX_RETRIES = process.env.NODE_ENV === "production" ? 7 : 3;
 const RETRY_DELAY = 100;
 function debug(msg) {
-    console.log(msg);
+    console.debug(msg);
 }
 class CanisterAgent {
     constructor(agent, canisterId) {
@@ -43309,7 +43309,7 @@ class MsgpackCanisterAgent extends CanisterAgent {
             }
         }
         catch (err) {
-            console.log(err, args);
+            console.error(err, args);
             throw toCanisterResponseError(err);
         }
     }
@@ -53053,7 +53053,7 @@ class DataClient extends EventTarget {
                     }
                 }
                 catch (e) {
-                    console.log("Error uploading chunk " + chunkIndex, e);
+                    console.error("Error uploading chunk " + chunkIndex, e);
                 }
             }
             throw new Error("Failed to upload chunk");
@@ -53214,7 +53214,7 @@ class Message {
         };
     }
     toInputArgs(auth) {
-        const args = {
+        return {
             channel_id: apiOptional(__classPrivateFieldGet$5(this, _Message_channelId, "f"), BigInt),
             message_id: apiOptional(__classPrivateFieldGet$5(this, _Message_messageId, "f"), identity),
             content: this.content,
@@ -53222,8 +53222,6 @@ class Message {
             block_level_markdown: __classPrivateFieldGet$5(this, _Message_blockLevelMarkdown, "f") ?? false,
             auth_token: apiAuthToken(auth),
         };
-        console.log("Input Args: ", JSON.stringify(args));
-        return args;
     }
 }
 _Message_channelId = new WeakMap(), _Message_messageId = new WeakMap(), _Message_contextMessageId = new WeakMap(), _Message_finalised = new WeakMap(), _Message_blockLevelMarkdown = new WeakMap();
@@ -53378,9 +53376,13 @@ class BotClient extends CandidService {
         const arg = __classPrivateFieldGet$5(this, _BotClient_instances, "m", _BotClient_namedArg).call(this, name);
         return arg !== undefined && "Boolean" in arg.value ? arg.value.Boolean : undefined;
     }
-    numberArg(name) {
+    decimalArg(name) {
         const arg = __classPrivateFieldGet$5(this, _BotClient_instances, "m", _BotClient_namedArg).call(this, name);
-        return arg !== undefined && "Number" in arg.value ? arg.value.Number : undefined;
+        return arg !== undefined && "Decimal" in arg.value ? arg.value.Decimal : undefined;
+    }
+    integerArg(name) {
+        const arg = __classPrivateFieldGet$5(this, _BotClient_instances, "m", _BotClient_namedArg).call(this, name);
+        return arg !== undefined && "Integer" in arg.value ? arg.value.Integer : undefined;
     }
     userArg(name) {
         const arg = __classPrivateFieldGet$5(this, _BotClient_instances, "m", _BotClient_namedArg).call(this, name);
@@ -53409,7 +53411,7 @@ class BotClient extends CandidService {
         return this.command?.name;
     }
     get initiator() {
-        return this.command?.initiator;
+        return apiOptional(this.command?.initiator, __classPrivateFieldGet$5(this, _BotClient_instances, "m", _BotClient_principalBytesToString));
     }
     createTextMessage(text) {
         return Promise.resolve(new TextMessage(text).setContextMessageId(this.messageId));

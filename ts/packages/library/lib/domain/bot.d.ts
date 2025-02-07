@@ -1,4 +1,4 @@
-import type { BotActionScope, BotPermissions, Chat } from "../typebox/typebox";
+import type { BotActionScope, BotCommand, BotPermissions, Chat } from "../typebox/typebox";
 export type DecodedJwt = {
     kind: "jwt";
     exp: number;
@@ -17,11 +17,6 @@ export type DecodedApiKey = {
     secret: string;
 };
 export type DecodedPayload = DecodedApiKey | DecodedJwt;
-export type BotCommand = {
-    name: string;
-    args: BotCommandArg[];
-    initiator: string;
-};
 export type BotActionChatScope = {
     Chat: {
         chat: Chat;
@@ -33,20 +28,6 @@ export type BotActionCommunityScope = {
     Community: {
         community_id: Uint8Array;
     };
-};
-export type BotCommandArg = {
-    name: string;
-    value: BotCommandArgValue;
-};
-export type BotCommandArgValue = BotCommandStringValue | BotCommandBooleanValue | BotCommandNumberValue | BotCommandUserValue;
-export type BotCommandStringValue = {
-    String: string;
-};
-export type BotCommandBooleanValue = {
-    Boolean: boolean;
-};
-export type BotCommandNumberValue = {
-    Number: number;
 };
 export type BotCommandUserValue = {
     User: Uint8Array;

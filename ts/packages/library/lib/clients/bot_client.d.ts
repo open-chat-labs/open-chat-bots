@@ -1,7 +1,7 @@
 import { HttpAgent } from "@dfinity/agent";
 import { CandidService } from "../utils/candidService";
-import { LocalUserIndexBotSendMessageResponse as BotSendMessageResponse, LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse, type BotActionScope, type Chat } from "../typebox/typebox";
-import { FileMessage, ImageMessage, PollMessage, TextMessage, type AuthToken, type BotClientConfig, type BotCommand, type BotCommandArg, type Message, type BotActionChatScope, type BotActionCommunityScope } from "../domain";
+import { LocalUserIndexBotSendMessageResponse as BotSendMessageResponse, LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse, type BotActionScope, type Chat, BotCommandArg, BotCommand } from "../typebox/typebox";
+import { FileMessage, ImageMessage, PollMessage, TextMessage, type AuthToken, type BotClientConfig, type Message, type BotActionChatScope, type BotActionCommunityScope } from "../domain";
 import type { Channel } from "../domain/channel";
 export declare class BotClient extends CandidService {
     #private;
@@ -15,7 +15,8 @@ export declare class BotClient extends CandidService {
     get messageId(): bigint | undefined;
     stringArg(name: string): string | undefined;
     booleanArg(name: string): boolean | undefined;
-    numberArg(name: string): number | undefined;
+    decimalArg(name: string): number | undefined;
+    integerArg(name: string): bigint | undefined;
     userArg(name: string): string | undefined;
     get threadRootMessageId(): number | undefined | null;
     get chatId(): Chat | undefined;

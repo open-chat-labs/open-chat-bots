@@ -8,6 +8,8 @@ import {
     LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
     type BotActionScope,
     type Chat,
+    BotCommandArg,
+    BotCommand,
 } from "../typebox/typebox";
 import { DataClient } from "../services/data/data.client";
 import { Principal } from "@dfinity/principal";
@@ -18,8 +20,6 @@ import {
     TextMessage,
     type AuthToken,
     type BotClientConfig,
-    type BotCommand,
-    type BotCommandArg,
     type DecodedApiKey,
     type DecodedJwt,
     type DecodedPayload,
@@ -28,6 +28,7 @@ import {
     type BotActionCommunityScope,
 } from "../domain";
 import type { Channel } from "../domain/channel";
+import { apiOptional } from "../mapping";
 
 export class BotClient extends CandidService {
     #botService: BotGatewayClient;
@@ -153,9 +154,14 @@ export class BotClient extends CandidService {
         return arg !== undefined && "Boolean" in arg.value ? arg.value.Boolean : undefined;
     }
 
-    public numberArg(name: string): number | undefined {
+    public decimalArg(name: string): number | undefined {
         const arg = this.#namedArg(name);
-        return arg !== undefined && "Number" in arg.value ? arg.value.Number : undefined;
+        return arg !== undefined && "Decimal" in arg.value ? arg.value.Decimal : undefined;
+    }
+
+    public integerArg(name: string): bigint | undefined {
+        const arg = this.#namedArg(name);
+        return arg !== undefined && "Integer" in arg.value ? arg.value.Integer : undefined;
     }
 
     public userArg(name: string): string | undefined {
@@ -191,7 +197,7 @@ export class BotClient extends CandidService {
     }
 
     public get initiator(): string | undefined {
-        return this.command?.initiator;
+        return apiOptional(this.command?.initiator, this.#principalBytesToString);
     }
 
     createTextMessage(text: string): Promise<TextMessage> {

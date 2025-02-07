@@ -135,13 +135,24 @@
         },
         {
           "type": "object",
-          "description": "A parameter representing a number.",
+          "description": "A parameter representing an integer.",
           "properties": {
-            "NumberParam": {
-              "$ref": "#/definitions/NumberParam"
+            "IntegerParam": {
+              "$ref": "#/definitions/IntegerParam"
             }
           },
-          "required": ["NumberParam"],
+          "required": ["IntegerParam"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "A parameter representing a decimal.",
+          "properties": {
+            "DecimalParam": {
+              "$ref": "#/definitions/DecimalParam"
+            }
+          },
+          "required": ["DecimalParam"],
           "additionalProperties": false
         }
       ]
@@ -169,24 +180,47 @@
       "required": ["min_length", "max_length", "choices"],
       "additionalProperties": false
     },
-    "NumberParam": {
+    "IntegerParam": {
       "type": "object",
-      "description": "Number parameter constraints and choices",
+      "description": "Integer parameter constraints and choices",
       "properties": {
         "min_length": {
           "type": "integer",
-          "description": "Minimum allowed value for the number parameter.",
+          "description": "Minimum allowed value for the integer parameter.",
           "minimum": 0
         },
         "max_length": {
           "type": "integer",
-          "description": "Maximum allowed value for the number parameter.",
+          "description": "Maximum allowed value for the integer parameter.",
           "minimum": 0
         },
         "choices": {
           "type": "array",
-          "description": "List of predefined choices for the number parameter.",
-          "items": { "$ref": "#/definitions/SlashCommandOptionChoiceU16" }
+          "description": "List of predefined choices for the integer parameter.",
+          "items": { "$ref": "#/definitions/SlashCommandOptionChoiceI128" }
+        }
+      },
+      "required": ["min_length", "max_length", "choices"],
+      "additionalProperties": false
+    },
+    "DecimalParam": {
+      "type": "object",
+      "description": "Decimal parameter constraints and choices",
+      "properties": {
+        "min_length": {
+          "type": "number",
+          "description": "Minimum allowed value for the decimal parameter.",
+          "minimum": 0
+        },
+        "max_length": {
+          "type": "number",
+          "description": "Maximum allowed value for the decimal parameter.",
+          "minimum": 0
+        },
+        "choices": {
+          "type": "array",
+          "description": "List of predefined choices for the decimal parameter.",
+          "items": { "$ref": "#/definitions/SlashCommandOptionChoiceF64" }
         }
       },
       "required": ["min_length", "max_length", "choices"],
@@ -212,9 +246,9 @@
       "required": ["name", "value"],
       "additionalProperties": false
     },
-    "SlashCommandOptionChoiceU16": {
+    "SlashCommandOptionChoiceI128": {
       "type": "object",
-      "description": "A choice for a number parameter.",
+      "description": "A choice for an integer parameter.",
       "properties": {
         "name": {
           "type": "string",
@@ -224,6 +258,25 @@
         },
         "value": {
           "type": "integer",
+          "description": "The value of the choice.",
+          "minimum": 0
+        }
+      },
+      "required": ["name", "value"],
+      "additionalProperties": false
+    },
+    "SlashCommandOptionChoiceF64": {
+      "type": "object",
+      "description": "A choice for a decimal parameter.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the choice.",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "value": {
+          "type": "number",
           "description": "The value of the choice.",
           "minimum": 0
         }
