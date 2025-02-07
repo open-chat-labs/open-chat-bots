@@ -38,25 +38,9 @@ export default function schema(_: Request, res: Response) {
             placeholder: "Enter an integer",
             param_type: {
               IntegerParam: {
-                min_value: 1,
+                min_value: -100,
                 max_value: 100,
                 choices: [],
-              },
-            },
-          },
-          {
-            name: "int_two",
-            required: true,
-            description: "Second integer argument",
-            placeholder: "Enter an integer",
-            param_type: {
-              IntegerParam: {
-                min_value: 1,
-                max_value: 100,
-                choices: [
-                  { name: "One", value: 1 },
-                  { name: "Two", value: 2 },
-                ],
               },
             },
           },
@@ -67,25 +51,9 @@ export default function schema(_: Request, res: Response) {
             placeholder: "Enter a decimal",
             param_type: {
               DecimalParam: {
-                min_value: 1,
+                min_value: -100,
                 max_value: 100,
                 choices: [],
-              },
-            },
-          },
-          {
-            name: "dec_two",
-            required: true,
-            description: "Second decimal argument",
-            placeholder: "Enter a decimal",
-            param_type: {
-              DecimalParam: {
-                min_value: 1,
-                max_value: 100,
-                choices: [
-                  { name: "One", value: 1.5 },
-                  { name: "Two", value: 2.8 },
-                ],
               },
             },
           },
