@@ -30,7 +30,66 @@ export default function schema(_: Request, res: Response) {
           ...emptyPermissions,
           message: ["Text"],
         },
-        params: [],
+        params: [
+          {
+            name: "int_one",
+            required: true,
+            description: "First integer argument",
+            placeholder: "Enter an integer",
+            param_type: {
+              IntegerParam: {
+                min_value: 1,
+                max_value: 100,
+                choices: [],
+              },
+            },
+          },
+          {
+            name: "int_two",
+            required: true,
+            description: "Second integer argument",
+            placeholder: "Enter an integer",
+            param_type: {
+              IntegerParam: {
+                min_value: 1,
+                max_value: 100,
+                choices: [
+                  { name: "One", value: 1 },
+                  { name: "Two", value: 2 },
+                ],
+              },
+            },
+          },
+          {
+            name: "dec_one",
+            required: true,
+            description: "First decimal argument",
+            placeholder: "Enter a decimal",
+            param_type: {
+              DecimalParam: {
+                min_value: 1,
+                max_value: 100,
+                choices: [],
+              },
+            },
+          },
+          {
+            name: "dec_two",
+            required: true,
+            description: "Second decimal argument",
+            placeholder: "Enter a decimal",
+            param_type: {
+              DecimalParam: {
+                min_value: 1,
+                max_value: 100,
+                choices: [
+                  { name: "One", value: 1.5 },
+                  { name: "Two", value: 2.8 },
+                ],
+              },
+            },
+          },
+        ],
       },
       {
         name: "poll",
