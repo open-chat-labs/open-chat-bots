@@ -4,7 +4,6 @@ pub mod get_definition;
 pub mod http_request;
 pub mod lifecycle;
 pub mod memory;
-pub mod metrics;
 pub mod rng;
 pub mod state;
 pub mod updates;

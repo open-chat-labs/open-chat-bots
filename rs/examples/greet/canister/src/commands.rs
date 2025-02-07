@@ -6,6 +6,7 @@ use oc_bots_sdk::{
 };
 use oc_bots_sdk_canister::env::now;
 
+pub mod fractal;
 pub mod greet;
 pub mod joke;
 
@@ -25,6 +26,10 @@ pub async fn execute_command(jwt: &str) -> CommandResponse {
     };
 
     let result = match context.command().name.as_str() {
+        "fractal" => match fractal::parse_arguments(context.command()) {
+            Ok((r, i)) => fractal::execute(context, r, i),
+            Err(error) => return CommandResponse::BadRequest(error),
+        },
         "greet" => greet::execute(context),
         "joke" => joke::execute(context),
         _ => return CommandResponse::BadRequest(BadRequest::CommandNotFound),

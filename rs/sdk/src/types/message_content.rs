@@ -1,4 +1,5 @@
 use super::TimestampMillis;
+use crate::utils::serialize_u128;
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 
@@ -29,6 +30,7 @@ pub struct ImageContent {
     pub width: u32,
     pub height: u32,
     pub thumbnail_data: ThumbnailData,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub caption: Option<String>,
     pub mime_type: String,
     pub blob_reference: Option<BlobReference>,
@@ -99,5 +101,6 @@ pub struct ThumbnailData(pub String);
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct BlobReference {
     pub canister_id: Principal,
+    #[serde(serialize_with = "serialize_u128")]
     pub blob_id: u128,
 }
