@@ -8,3 +8,8 @@ export { BotClient } from "./clients/bot_client";
 BigInt.prototype.toJSON = function () {
     return this.toString();
 };
+
+//@ts-ignore
+Uint8Array.prototype.toJSON = function () {
+    return Array.from(this);
+};

@@ -53208,7 +53208,7 @@ class Message {
             id: __classPrivateFieldGet$5(this, _Message_contextMessageId, "f") ?? 0n,
             content: this.content,
             finalised: __classPrivateFieldGet$5(this, _Message_finalised, "f"),
-            blockLevelMarkdown: __classPrivateFieldGet$5(this, _Message_blockLevelMarkdown, "f"),
+            block_level_markdown: __classPrivateFieldGet$5(this, _Message_blockLevelMarkdown, "f"),
         };
     }
     toInputArgs(auth) {

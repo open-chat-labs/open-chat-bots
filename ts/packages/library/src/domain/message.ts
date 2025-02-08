@@ -16,7 +16,7 @@ export type MessageResponse = {
     id: bigint;
     content: MessageContent;
     finalised: boolean;
-    blockLevelMarkdown: boolean;
+    block_level_markdown: boolean;
 };
 
 export class Message {
@@ -61,7 +61,7 @@ export class Message {
             id: this.#contextMessageId ?? 0n,
             content: this.content,
             finalised: this.#finalised,
-            blockLevelMarkdown: this.#blockLevelMarkdown,
+            block_level_markdown: this.#blockLevelMarkdown,
         };
     }
 

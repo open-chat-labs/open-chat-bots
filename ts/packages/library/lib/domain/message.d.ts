@@ -4,7 +4,7 @@ export type MessageResponse = {
     id: bigint;
     content: MessageContent;
     finalised: boolean;
-    blockLevelMarkdown: boolean;
+    block_level_markdown: boolean;
 };
 export declare class Message {
     #private;
