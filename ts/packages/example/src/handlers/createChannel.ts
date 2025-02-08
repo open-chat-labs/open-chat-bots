@@ -56,6 +56,6 @@ export default async function createChannel(req: Request, res: Response) {
     console.log("Successfully created channel", resp.Success.channel_id);
     res.sendStatus(200);
   } else {
-    res.send(500).json(resp);
+    res.status(500).json(resp);
   }
 }

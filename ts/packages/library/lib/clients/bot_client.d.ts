@@ -1,6 +1,6 @@
 import { HttpAgent } from "@dfinity/agent";
 import { CandidService } from "../utils/candidService";
-import { LocalUserIndexBotSendMessageResponse as BotSendMessageResponse, LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse, type BotActionScope, type Chat, BotCommandArg, BotCommand } from "../typebox/typebox";
+import { LocalUserIndexBotSendMessageResponse as BotSendMessageResponse, LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse, LocalUserIndexBotDeleteChannelResponse as BotDeleteChannelResponse, type BotActionScope, type Chat, BotCommandArg, BotCommand } from "../typebox/typebox";
 import { FileMessage, ImageMessage, PollMessage, TextMessage, type AuthToken, type BotClientConfig, type Message, type BotActionChatScope, type BotActionCommunityScope } from "../domain";
 import type { Channel } from "../domain/channel";
 export declare class BotClient extends CandidService {
@@ -9,6 +9,7 @@ export declare class BotClient extends CandidService {
     get command(): BotCommand | undefined;
     sendMessage(message: Message): Promise<BotSendMessageResponse>;
     createChannel(channel: Channel): Promise<BotCreateChannelResponse>;
+    deleteChannel(channelId: bigint): Promise<BotDeleteChannelResponse>;
     get scope(): BotActionScope;
     get chatScope(): BotActionChatScope | undefined;
     get communityScope(): BotActionCommunityScope | undefined;

@@ -21,7 +21,7 @@ export default function schema(_: Request, res: Response) {
       },
     },
     description:
-      "This is a demonstration bot which runs various commands against the Spotify API.",
+      "This is a demonstration bot which demonstrates a variety of different approaches and techniques that bot developers can use.",
     commands: [
       {
         name: "numbers",

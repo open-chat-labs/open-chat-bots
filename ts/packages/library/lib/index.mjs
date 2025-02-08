@@ -46405,11 +46405,11 @@ Type.Union([
         InternalError: Type.String(),
     }),
 ]);
-Type.Object({
+const LocalUserIndexBotDeleteChannelArgs = Type.Object({
     channel_id: ChannelId,
     auth_token: AuthToken,
 });
-Type.Union([
+const LocalUserIndexBotDeleteChannelResponse = Type.Union([
     Type.Literal("Success"),
     Type.Literal("ChannelNotFound"),
     Type.Object({
@@ -52116,6 +52116,12 @@ class BotGatewayClient extends MsgpackCanisterAgent {
             throw err;
         });
     }
+    deleteChannel(channelId, auth) {
+        return this.executeMsgpackUpdate("bot_delete_channel", { channel_id: channelId, auth_token: apiAuthToken(auth) }, identity, LocalUserIndexBotDeleteChannelArgs, LocalUserIndexBotDeleteChannelResponse).catch((err) => {
+            console.error("Call to bot_delete_channel failed with: ", JSON.stringify(err));
+            throw err;
+        });
+    }
 }
 
 var sha3 = {exports: {}};
@@ -53166,6 +53172,9 @@ class BotClient extends CandidService {
     }
     createChannel(channel) {
         return __classPrivateFieldGet$5(this, _BotClient_botService, "f").createChannel(channel, __classPrivateFieldGet$5(this, _BotClient_auth, "f"));
+    }
+    deleteChannel(channelId) {
+        return __classPrivateFieldGet$5(this, _BotClient_botService, "f").deleteChannel(channelId, __classPrivateFieldGet$5(this, _BotClient_auth, "f"));
     }
     get scope() {
         return __classPrivateFieldGet$5(this, _BotClient_decoded, "f").scope;

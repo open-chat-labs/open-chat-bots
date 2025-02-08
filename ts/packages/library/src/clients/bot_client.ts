@@ -6,6 +6,7 @@ import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
 import {
     LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
     LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
+    LocalUserIndexBotDeleteChannelResponse as BotDeleteChannelResponse,
     type BotActionScope,
     type Chat,
     BotCommandArg,
@@ -120,6 +121,10 @@ export class BotClient extends CandidService {
 
     public createChannel(channel: Channel): Promise<BotCreateChannelResponse> {
         return this.#botService.createChannel(channel, this.#auth);
+    }
+
+    public deleteChannel(channelId: bigint): Promise<BotDeleteChannelResponse> {
+        return this.#botService.deleteChannel(channelId, this.#auth);
     }
 
     public get scope(): BotActionScope {

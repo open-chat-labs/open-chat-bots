@@ -2,8 +2,10 @@ import { HttpAgent } from "@dfinity/agent";
 import type { AuthToken, BotClientConfig, Message } from "../../domain";
 import type { Channel } from "../../domain/channel";
 import { MsgpackCanisterAgent } from "../canisterAgent/msgpack";
-import { identity } from "../../mapping";
+import { apiAuthToken, identity } from "../../mapping";
 import {
+    LocalUserIndexBotDeleteChannelArgs as BotDeleteChannelArgs,
+    LocalUserIndexBotDeleteChannelResponse as BotDeleteChannelResponse,
     LocalUserIndexBotSendMessageArgs as BotSendMessageArgs,
     LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
     LocalUserIndexBotCreateChannelArgs as BotCreateChannelArgs,
@@ -41,6 +43,19 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
             BotCreateChannelResponse,
         ).catch((err) => {
             console.error("Call to bot_create_channel failed with: ", JSON.stringify(err));
+            throw err;
+        });
+    }
+
+    deleteChannel(channelId: bigint, auth: AuthToken): Promise<BotDeleteChannelResponse> {
+        return this.executeMsgpackUpdate(
+            "bot_delete_channel",
+            { channel_id: channelId, auth_token: apiAuthToken(auth) },
+            identity,
+            BotDeleteChannelArgs,
+            BotDeleteChannelResponse,
+        ).catch((err) => {
+            console.error("Call to bot_delete_channel failed with: ", JSON.stringify(err));
             throw err;
         });
     }
