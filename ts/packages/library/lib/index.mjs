@@ -43485,6 +43485,9 @@ function apiOptional(domain, mapper) {
 function identity(a) {
     return a;
 }
+function principalBytesToString(bytes) {
+    return Principal$1.fromUint8Array(bytes).toString();
+}
 function principalStringToBytes(principal) {
     return Principal$1.fromText(principal).toUint8Array();
 }
@@ -46003,7 +46006,7 @@ const StorageIndexAllocationBucketSuccessResult = Type.Object({
     bytes_used_after_upload: Type.BigInt(),
     projected_allowance: StorageIndexProjectedAllowance,
 });
-Type.Union([
+const StorageIndexAllocationBucketResponse = Type.Union([
     Type.Object({
         Success: StorageIndexAllocationBucketSuccessResult,
     }),
@@ -46013,7 +46016,7 @@ Type.Union([
     Type.Literal("UserNotFound"),
     Type.Literal("BucketUnavailable"),
 ]);
-Type.Object({
+const StorageIndexAllocationBucketArgs = Type.Object({
     file_hash: Type.Tuple([
         Type.Number(),
         Type.Number(),
@@ -47241,7 +47244,7 @@ Type.Union([
     }),
     Type.Literal("NotFound"),
 ]);
-Type.Union([
+const StorageBucketUploadChunkResponse = Type.Union([
     Type.Literal("Success"),
     Type.Literal("AllowanceExceeded"),
     Type.Literal("FileAlreadyExists"),
@@ -47255,7 +47258,7 @@ Type.Union([
     Type.Literal("InvalidFileId"),
     Type.Literal("UserNotFound"),
 ]);
-Type.Object({
+const StorageBucketUploadChunkArgs = Type.Object({
     file_id: Type.BigInt(),
     hash: Type.Tuple([
         Type.Number(),
@@ -52791,217 +52794,35 @@ function random128() {
     return (bytes[0] << BigInt(64)) + bytes[1];
 }
 
-const idlFactory$1 = ({ IDL }) => {
-  const CanisterId = IDL.Principal;
-  const AddBucketCanisterArgs = IDL.Record({ 'canister_id' : CanisterId });
-  const AddBucketCanisterResponse = IDL.Variant({
-    'BucketAlreadyAdded' : IDL.Null,
-    'Success' : IDL.Null,
-    'InternalError' : IDL.Text,
-  });
-  const UserId = CanisterId;
-  const UserConfig = IDL.Record({
-    'byte_limit' : IDL.Nat64,
-    'user_id' : UserId,
-  });
-  const AddOrUpdateUsersArgs = IDL.Record({ 'users' : IDL.Vec(UserConfig) });
-  const AddOrUpdateUsersResponse = IDL.Variant({ 'Success' : IDL.Null });
-  const Hash = IDL.Vec(IDL.Nat8);
-  const AllocatedBucketArgs = IDL.Record({
-    'file_hash' : Hash,
-    'file_size' : IDL.Nat64,
-    'file_id_seed' : IDL.Opt(IDL.Nat),
-  });
-  const ProjectedAllowance = IDL.Record({
-    'bytes_used_after_operation' : IDL.Nat64,
-    'byte_limit' : IDL.Nat64,
-    'bytes_used_after_upload' : IDL.Nat64,
-    'bytes_used' : IDL.Nat64,
-  });
-  const FileId = IDL.Nat;
-  const AllocatedBucketSuccessResult = IDL.Record({
-    'byte_limit' : IDL.Nat64,
-    'canister_id' : CanisterId,
-    'bytes_used_after_upload' : IDL.Nat64,
-    'bytes_used' : IDL.Nat64,
-    'projected_allowance' : ProjectedAllowance,
-    'chunk_size' : IDL.Nat32,
-    'file_id' : FileId,
-  });
-  const AllocatedBucketResponse = IDL.Variant({
-    'Success' : AllocatedBucketSuccessResult,
-    'AllowanceExceeded' : ProjectedAllowance,
-    'UserNotFound' : IDL.Null,
-    'BucketUnavailable' : IDL.Null,
-  });
-  const CanForwardArgs = IDL.Record({
-    'file_hash' : Hash,
-    'file_size' : IDL.Nat64,
-  });
-  const CanForwardResponse = IDL.Variant({
-    'Success' : ProjectedAllowance,
-    'AllowanceExceeded' : ProjectedAllowance,
-    'UserNotFound' : IDL.Null,
-  });
-  const AccessorId = IDL.Principal;
-  const RemoveAccessorArgs = IDL.Record({ 'accessor_id' : AccessorId });
-  const RemoveAccessorResponse = IDL.Variant({ 'Success' : IDL.Null });
-  const RemoveUserArgs = IDL.Record({ 'user_id' : UserId });
-  const RemoveUserResponse = IDL.Variant({ 'Success' : IDL.Null });
-  const SetBucketFullArgs = IDL.Record({
-    'full' : IDL.Bool,
-    'bucket' : CanisterId,
-  });
-  const SetBucketFullResponse = IDL.Variant({ 'Success' : IDL.Null });
-  const UserArgs = IDL.Record({});
-  const UserRecord = IDL.Record({
-    'byte_limit' : IDL.Nat64,
-    'bytes_used' : IDL.Nat64,
-  });
-  const UserResponse = IDL.Variant({
-    'Success' : UserRecord,
-    'UserNotFound' : IDL.Null,
-  });
-  return IDL.Service({
-    'add_bucket_canister' : IDL.Func(
-        [AddBucketCanisterArgs],
-        [AddBucketCanisterResponse],
-        [],
-      ),
-    'add_or_update_users' : IDL.Func(
-        [AddOrUpdateUsersArgs],
-        [AddOrUpdateUsersResponse],
-        [],
-      ),
-    'allocated_bucket_v2' : IDL.Func(
-        [AllocatedBucketArgs],
-        [AllocatedBucketResponse],
-        ['query'],
-      ),
-    'can_forward' : IDL.Func([CanForwardArgs], [CanForwardResponse], ['query']),
-    'remove_accessor' : IDL.Func(
-        [RemoveAccessorArgs],
-        [RemoveAccessorResponse],
-        [],
-      ),
-    'remove_user' : IDL.Func([RemoveUserArgs], [RemoveUserResponse], []),
-    'set_bucket_full' : IDL.Func(
-        [SetBucketFullArgs],
-        [SetBucketFullResponse],
-        [],
-      ),
-    'user' : IDL.Func([UserArgs], [UserResponse], ['query']),
-  });
-};
-
-class StorageIndexClient extends CandidService {
+class StorageIndexClient extends MsgpackCanisterAgent {
     constructor(agent, canisterId) {
-        super();
-        this.service = CandidService.createServiceClient(idlFactory$1, canisterId, agent);
+        super(agent, canisterId);
     }
     allocatedBucket(fileHash, fileSize, fileIdSeed) {
-        return CandidService.handleResponse(this.service.allocated_bucket_v2({
-            file_hash: fileHash,
+        return this.executeMsgpackQuery("allocated_bucket_v2", {
+            file_hash: Array.from(fileHash),
             file_size: fileSize,
-            file_id_seed: fileIdSeed === undefined ? [] : [fileIdSeed],
-        }), (resp) => resp);
+            file_id_seed: fileIdSeed,
+        }, (resp) => resp, StorageIndexAllocationBucketArgs, StorageIndexAllocationBucketResponse);
     }
 }
 
-const idlFactory = ({ IDL }) => {
-  const FileId = IDL.Nat;
-  const DeleteFileArgs = IDL.Record({ 'file_id' : FileId });
-  const DeleteFileResponse = IDL.Variant({
-    'NotFound' : IDL.Null,
-    'NotAuthorized' : IDL.Null,
-    'Success' : IDL.Null,
-  });
-  const DeleteFilesArgs = IDL.Record({ 'file_ids' : IDL.Vec(FileId) });
-  const DeleteFileFailureReason = IDL.Variant({
-    'NotFound' : IDL.Null,
-    'NotAuthorized' : IDL.Null,
-  });
-  const DeleteFileFailure = IDL.Record({
-    'reason' : DeleteFileFailureReason,
-    'file_id' : FileId,
-  });
-  const DeleteFilesResponse = IDL.Record({
-    'failures' : IDL.Vec(DeleteFileFailure),
-    'success' : IDL.Vec(FileId),
-  });
-  const FileInfoArgs = IDL.Record({ 'file_id' : FileId });
-  const Hash = IDL.Vec(IDL.Nat8);
-  const FileInfoSuccessResult = IDL.Record({
-    'is_owner' : IDL.Bool,
-    'file_hash' : Hash,
-    'file_size' : IDL.Nat64,
-  });
-  const FileInfoResponse = IDL.Variant({
-    'NotFound' : IDL.Null,
-    'Success' : FileInfoSuccessResult,
-  });
-  const AccessorId = IDL.Principal;
-  const ForwardFileArgs = IDL.Record({
-    'accessors' : IDL.Vec(AccessorId),
-    'file_id' : FileId,
-  });
-  const ForwardFileResponse = IDL.Variant({
-    'NotFound' : IDL.Null,
-    'NotAuthorized' : IDL.Null,
-    'Success' : FileId,
-  });
-  const TimestampMillis = IDL.Nat64;
-  const UploadChunkArgs = IDL.Record({
-    'accessors' : IDL.Vec(AccessorId),
-    'chunk_index' : IDL.Nat32,
-    'hash' : Hash,
-    'mime_type' : IDL.Text,
-    'total_size' : IDL.Nat64,
-    'bytes' : IDL.Vec(IDL.Nat8),
-    'expiry' : IDL.Opt(TimestampMillis),
-    'chunk_size' : IDL.Nat32,
-    'file_id' : FileId,
-  });
-  const UploadChunkResponse = IDL.Variant({
-    'ChunkAlreadyExists' : IDL.Null,
-    'Full' : IDL.Null,
-    'ChunkSizeMismatch' : IDL.Null,
-    'FileTooBig' : IDL.Null,
-    'ChunkIndexTooHigh' : IDL.Null,
-    'Success' : IDL.Null,
-    'FileExpired' : IDL.Null,
-    'HashMismatch' : IDL.Null,
-    'FileAlreadyExists' : IDL.Null,
-    'AllowanceExceeded' : IDL.Null,
-    'InvalidFileId' : IDL.Null,
-    'UserNotFound' : IDL.Null,
-  });
-  return IDL.Service({
-    'delete_file' : IDL.Func([DeleteFileArgs], [DeleteFileResponse], []),
-    'delete_files' : IDL.Func([DeleteFilesArgs], [DeleteFilesResponse], []),
-    'file_info' : IDL.Func([FileInfoArgs], [FileInfoResponse], ['query']),
-    'forward_file' : IDL.Func([ForwardFileArgs], [ForwardFileResponse], []),
-    'upload_chunk_v2' : IDL.Func([UploadChunkArgs], [UploadChunkResponse], []),
-  });
-};
-
-class StorageBucketClient extends CandidService {
+class StorageBucketClient extends MsgpackCanisterAgent {
     constructor(agent, canisterId) {
-        super();
-        this.service = CandidService.createServiceClient(idlFactory, canisterId, agent);
+        super(agent, canisterId);
     }
     uploadChunk(fileId, hash, mimeType, accessors, totalSize, chunkSize, chunkIndex, bytes, expiryTimestampMillis) {
-        return CandidService.handleResponse(this.service.upload_chunk_v2({
-            accessors,
+        return this.executeMsgpackUpdate("upload_chunk_v2", {
+            accessors: accessors.map(principalStringToBytes),
             chunk_index: chunkIndex,
             file_id: fileId,
-            hash,
+            hash: Array.from(hash),
             mime_type: mimeType,
             total_size: totalSize,
             bytes,
             chunk_size: chunkSize,
-            expiry: expiryTimestampMillis !== undefined ? [expiryTimestampMillis] : [],
-        }), (resp) => resp);
+            expiry: expiryTimestampMillis,
+        }, (resp) => resp, StorageBucketUploadChunkArgs, StorageBucketUploadChunkResponse);
     }
 }
 
@@ -53012,8 +52833,7 @@ class DataClient extends EventTarget {
         this.storageIndexClient = new StorageIndexClient(agent, config.openStorageCanisterId);
     }
     async uploadData(accessorCanisterIds, mimeType, data) {
-        const accessorIds = accessorCanisterIds.map((c) => Principal$1.fromText(c));
-        const response = await this.uploadFile(mimeType, accessorIds, data);
+        const response = await this.uploadFile(mimeType, accessorCanisterIds, data);
         return this.extractBlobReference(response);
     }
     extractBlobReference(response) {
@@ -53026,11 +52846,10 @@ class DataClient extends EventTarget {
         const hash = new Uint8Array(hashBytes(bytes));
         const fileSize = bytes.byteLength;
         const allocatedBucketResponse = await this.storageIndexClient.allocatedBucket(hash, BigInt(fileSize), random128());
-        if (!("Success" in allocatedBucketResponse)) {
-            // TODO make this better!
+        if (!(typeof allocatedBucketResponse === "object" && "Success" in allocatedBucketResponse)) {
             throw new Error(JSON.stringify(allocatedBucketResponse));
         }
-        const bucketCanisterId = allocatedBucketResponse.Success.canister_id.toString();
+        const bucketCanisterId = principalBytesToString(allocatedBucketResponse.Success.canister_id);
         const fileId = allocatedBucketResponse.Success.file_id;
         const chunkSize = allocatedBucketResponse.Success.chunk_size;
         const chunkCount = Math.ceil(fileSize / chunkSize);
@@ -53045,7 +52864,7 @@ class DataClient extends EventTarget {
             while (attempt++ < 5) {
                 try {
                     const chunkResponse = await bucketClient.uploadChunk(fileId, hash, mimeType, accessors, BigInt(fileSize), chunkSize, chunkIndex, chunkBytes, expiryTimestampMillis);
-                    if ("Success" in chunkResponse) {
+                    if (chunkResponse === "Success") {
                         chunksCompleted++;
                         return;
                     }
@@ -53571,6 +53390,10 @@ class BadRequestError extends Error {
 //@ts-ignore
 BigInt.prototype.toJSON = function () {
     return this.toString();
+};
+//@ts-ignore
+Uint8Array.prototype.toJSON = function () {
+    return Array.from(this);
 };
 
 export { BadRequestError, BotClient, BotClientFactory, Channel, FileMessage, ImageMessage, Message, PollMessage, TextMessage, accessTokenExpired, accessTokenInvalid, accessTokenNotFound, argumentsInvalid, commandNotFound, tooManyRequests };

@@ -1,17 +1,17 @@
 import type { HttpAgent } from "@dfinity/agent";
-import { Principal } from "@dfinity/principal";
 import { sha3_256 } from "js-sha3";
 import { random128 } from "../../utils/rng";
-import type { ProjectedAllowance } from "../storageIndex/candid/types";
 import { StorageIndexClient } from "../storageIndex/storageIndex.client";
 import { StorageBucketClient } from "../storageBucket/storageBucket.client";
 import type { BlobReference, BotClientConfig } from "../../domain";
+import type { StorageIndexProjectedAllowance } from "../../typebox/typebox";
+import { principalBytesToString } from "../../mapping";
 
 export type UploadFileResponse = {
     canisterId: string;
     fileId: bigint;
     pathPrefix: string;
-    projectedAllowance: ProjectedAllowance;
+    projectedAllowance: StorageIndexProjectedAllowance;
 };
 
 export class DataClient extends EventTarget {
@@ -30,8 +30,7 @@ export class DataClient extends EventTarget {
         mimeType: string,
         data: Uint8Array,
     ): Promise<BlobReference> {
-        const accessorIds = accessorCanisterIds.map((c) => Principal.fromText(c));
-        const response = await this.uploadFile(mimeType, accessorIds, data);
+        const response = await this.uploadFile(mimeType, accessorCanisterIds, data);
         return this.extractBlobReference(response);
     }
 
@@ -44,7 +43,7 @@ export class DataClient extends EventTarget {
 
     private async uploadFile(
         mimeType: string,
-        accessors: Array<Principal>,
+        accessors: string[],
         bytes: ArrayBuffer,
         expiryTimestampMillis?: bigint,
     ): Promise<UploadFileResponse> {
@@ -57,12 +56,15 @@ export class DataClient extends EventTarget {
             random128(),
         );
 
-        if (!("Success" in allocatedBucketResponse)) {
-            // TODO make this better!
+        if (
+            !(typeof allocatedBucketResponse === "object" && "Success" in allocatedBucketResponse)
+        ) {
             throw new Error(JSON.stringify(allocatedBucketResponse));
         }
 
-        const bucketCanisterId = allocatedBucketResponse.Success.canister_id.toString();
+        const bucketCanisterId = principalBytesToString(
+            allocatedBucketResponse.Success.canister_id,
+        );
         const fileId = allocatedBucketResponse.Success.file_id;
         const chunkSize = allocatedBucketResponse.Success.chunk_size;
         const chunkCount = Math.ceil(fileSize / chunkSize);
@@ -92,7 +94,7 @@ export class DataClient extends EventTarget {
                         expiryTimestampMillis,
                     );
 
-                    if ("Success" in chunkResponse) {
+                    if (chunkResponse === "Success") {
                         chunksCompleted++;
                         return;
                     }

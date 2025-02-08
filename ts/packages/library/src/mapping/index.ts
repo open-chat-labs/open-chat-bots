@@ -1,6 +1,5 @@
 import { Principal } from "@dfinity/principal";
 import type { BlobReference, AuthToken } from "../domain";
-import type {} from "../services/bot_gateway/candid/types";
 import type { AccessGate, AccessGateConfig } from "../domain/access";
 import type { GroupPermissions, MessagePermissions, PermissionRole } from "../domain/permissions";
 import type {

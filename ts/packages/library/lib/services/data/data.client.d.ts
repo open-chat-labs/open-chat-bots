@@ -1,11 +1,11 @@
 import type { HttpAgent } from "@dfinity/agent";
-import type { ProjectedAllowance } from "../storageIndex/candid/types";
 import type { BlobReference, BotClientConfig } from "../../domain";
+import type { StorageIndexProjectedAllowance } from "../../typebox/typebox";
 export type UploadFileResponse = {
     canisterId: string;
     fileId: bigint;
     pathPrefix: string;
-    projectedAllowance: ProjectedAllowance;
+    projectedAllowance: StorageIndexProjectedAllowance;
 };
 export declare class DataClient extends EventTarget {
     private agent;

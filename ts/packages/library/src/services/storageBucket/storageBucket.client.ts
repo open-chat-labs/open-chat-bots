@@ -1,49 +1,43 @@
 import type { HttpAgent } from "@dfinity/agent";
-import type { Principal } from "@dfinity/principal";
+import { MsgpackCanisterAgent } from "../canisterAgent/msgpack";
 import {
-    idlFactory,
-    type CandidUploadChunkResponse,
-    type StorageBucketService,
-} from "./candid/idl";
-import { CandidService } from "../../utils/candidService";
+    StorageBucketUploadChunkArgs,
+    StorageBucketUploadChunkResponse,
+} from "../../typebox/typebox";
+import { principalStringToBytes } from "../../mapping";
 
-export class StorageBucketClient extends CandidService {
-    private service: StorageBucketService;
-
+export class StorageBucketClient extends MsgpackCanisterAgent {
     constructor(agent: HttpAgent, canisterId: string) {
-        super();
-
-        this.service = CandidService.createServiceClient<StorageBucketService>(
-            idlFactory,
-            canisterId,
-            agent,
-        );
+        super(agent, canisterId);
     }
 
     uploadChunk(
         fileId: bigint,
         hash: Uint8Array,
         mimeType: string,
-        accessors: Array<Principal>,
+        accessors: string[],
         totalSize: bigint,
         chunkSize: number,
         chunkIndex: number,
         bytes: Uint8Array,
         expiryTimestampMillis: bigint | undefined,
-    ): Promise<CandidUploadChunkResponse> {
-        return CandidService.handleResponse(
-            this.service.upload_chunk_v2({
-                accessors,
+    ): Promise<StorageBucketUploadChunkResponse> {
+        return this.executeMsgpackUpdate(
+            "upload_chunk_v2",
+            {
+                accessors: accessors.map(principalStringToBytes),
                 chunk_index: chunkIndex,
                 file_id: fileId,
-                hash,
+                hash: Array.from(hash) as typeof StorageBucketUploadChunkArgs.hash,
                 mime_type: mimeType,
                 total_size: totalSize,
                 bytes,
                 chunk_size: chunkSize,
-                expiry: expiryTimestampMillis !== undefined ? [expiryTimestampMillis] : [],
-            }),
+                expiry: expiryTimestampMillis,
+            },
             (resp) => resp,
+            StorageBucketUploadChunkArgs,
+            StorageBucketUploadChunkResponse,
         );
     }
 }

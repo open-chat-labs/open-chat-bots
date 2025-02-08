@@ -1,9 +1,7 @@
 import type { HttpAgent } from "@dfinity/agent";
-import type { Principal } from "@dfinity/principal";
-import { type CandidUploadChunkResponse } from "./candid/idl";
-import { CandidService } from "../../utils/candidService";
-export declare class StorageBucketClient extends CandidService {
-    private service;
+import { MsgpackCanisterAgent } from "../canisterAgent/msgpack";
+import { StorageBucketUploadChunkResponse } from "../../typebox/typebox";
+export declare class StorageBucketClient extends MsgpackCanisterAgent {
     constructor(agent: HttpAgent, canisterId: string);
-    uploadChunk(fileId: bigint, hash: Uint8Array, mimeType: string, accessors: Array<Principal>, totalSize: bigint, chunkSize: number, chunkIndex: number, bytes: Uint8Array, expiryTimestampMillis: bigint | undefined): Promise<CandidUploadChunkResponse>;
+    uploadChunk(fileId: bigint, hash: Uint8Array, mimeType: string, accessors: string[], totalSize: bigint, chunkSize: number, chunkIndex: number, bytes: Uint8Array, expiryTimestampMillis: bigint | undefined): Promise<StorageBucketUploadChunkResponse>;
 }

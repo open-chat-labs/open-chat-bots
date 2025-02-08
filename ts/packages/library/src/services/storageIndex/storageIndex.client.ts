@@ -1,36 +1,32 @@
 import type { HttpAgent } from "@dfinity/agent";
+import { MsgpackCanisterAgent } from "../canisterAgent/msgpack";
 import {
-    idlFactory,
-    type CandidAllocatedBucketResponse,
-    type StorageIndexService,
-} from "./candid/idl";
-import { CandidService } from "../../utils/candidService";
+    StorageIndexAllocationBucketArgs,
+    StorageIndexAllocationBucketResponse,
+} from "../../typebox/typebox";
 
-export class StorageIndexClient extends CandidService {
-    private service: StorageIndexService;
-
+export class StorageIndexClient extends MsgpackCanisterAgent {
     constructor(agent: HttpAgent, canisterId: string) {
-        super();
-
-        this.service = CandidService.createServiceClient<StorageIndexService>(
-            idlFactory,
-            canisterId,
-            agent,
-        );
+        super(agent, canisterId);
     }
 
     allocatedBucket(
         fileHash: Uint8Array,
         fileSize: bigint,
         fileIdSeed: bigint | undefined,
-    ): Promise<CandidAllocatedBucketResponse> {
-        return CandidService.handleResponse(
-            this.service.allocated_bucket_v2({
-                file_hash: fileHash,
+    ): Promise<StorageIndexAllocationBucketResponse> {
+        return this.executeMsgpackQuery(
+            "allocated_bucket_v2",
+            {
+                file_hash: Array.from(
+                    fileHash,
+                ) as typeof StorageIndexAllocationBucketArgs.file_hash,
                 file_size: fileSize,
-                file_id_seed: fileIdSeed === undefined ? [] : [fileIdSeed],
-            }),
+                file_id_seed: fileIdSeed,
+            },
             (resp) => resp,
+            StorageIndexAllocationBucketArgs,
+            StorageIndexAllocationBucketResponse,
         );
     }
 }
