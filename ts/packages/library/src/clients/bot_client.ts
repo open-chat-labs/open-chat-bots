@@ -1,7 +1,6 @@
 import jwt from "jsonwebtoken";
 import { BadRequestError } from "../utils/error_response";
 import { HttpAgent } from "@dfinity/agent";
-import { CandidService } from "../utils/candidService";
 import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
 import {
     LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
@@ -31,7 +30,7 @@ import {
 import type { Channel } from "../domain/channel";
 import { apiOptional } from "../mapping";
 
-export class BotClient extends CandidService {
+export class BotClient {
     #botService: BotGatewayClient;
     #auth: AuthToken;
     #decoded: DecodedPayload;
@@ -39,7 +38,6 @@ export class BotClient extends CandidService {
     #agent: HttpAgent;
 
     constructor(agent: HttpAgent, env: BotClientConfig, auth: AuthToken) {
-        super();
         this.#auth = auth;
         this.#env = env;
         this.#agent = agent;
