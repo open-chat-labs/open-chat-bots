@@ -20,7 +20,9 @@ ic-cdk-timers = { workspace = true }
 ic-http-certification = { workspace = true }
 ic_principal = { workspace = true }
 ic-stable-structures = { workspace = true }
+image = { workspace = true }
 itertools = { workspace = true }
+num-complex = { workspace = true }
 rand = { workspace = true }
 rmp-serde = { workspace = true }
 serde = { workspace = true }

@@ -1,9 +1,8 @@
+use crate::rng;
 use candid::Principal;
 use oc_bots_sdk_canister::env;
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::HashMap};
-
-use crate::rng;
 
 thread_local! {
     static STATE: RefCell<Option<State>> = RefCell::default();
@@ -15,10 +14,8 @@ pub struct State {
     administrator: Principal,
     rng_seed: [u8; 32],
     jokes: HashMap<u32, String>,
-    #[serde(default)]
-    jokes_sent: u32,
-    #[serde(default)]
-    greets_sent: u32,
+    blobs: HashMap<u128, Blob>,
+    metrics: Metrics,
 }
 
 const STATE_ALREADY_INITIALIZED: &str = "State has already been initialized";
@@ -52,12 +49,12 @@ impl State {
             oc_public_key,
             administrator,
             jokes: HashMap::new(),
+            blobs: HashMap::new(),
+            metrics: Metrics::default(),
             // Note this is not cryptographically secure which is fine for picking a random joke.
             // To get a cryptographically secure seed use the async function:
             // `ic_cdk::api::management_canister::main::raw_rand()`
             rng_seed: env::entropy(),
-            jokes_sent: 0,
-            greets_sent: 0,
         }
     }
 
@@ -81,11 +78,15 @@ impl State {
     }
 
     pub fn increment_jokes_sent(&mut self) {
-        self.jokes_sent += 1;
+        self.metrics.jokes_sent += 1;
     }
 
     pub fn increment_greets_sent(&mut self) {
-        self.greets_sent += 1;
+        self.metrics.greets_sent += 1;
+    }
+
+    pub fn increment_fractals_sent(&mut self) {
+        self.metrics.fractals_sent += 1;
     }
 
     pub fn oc_public_key(&self) -> &str {
@@ -109,16 +110,22 @@ impl State {
         self.jokes[&index].clone()
     }
 
+    pub fn store_blob(&mut self, blob: Blob) -> u128 {
+        let id = rng::gen();
+        self.blobs.insert(id, blob);
+        id
+    }
+
+    pub fn get_blob(&self, id: u128) -> Option<&Blob> {
+        self.blobs.get(&id)
+    }
+
     pub fn joke_count(&self) -> u32 {
         self.jokes.len() as u32
     }
 
-    pub fn jokes_sent(&self) -> u32 {
-        self.jokes_sent
-    }
-
-    pub fn greets_sent(&self) -> u32 {
-        self.greets_sent
+    pub fn metrics(&self) -> &Metrics {
+        &self.metrics
     }
 }
 
@@ -128,4 +135,18 @@ pub enum AuthResult {
     LinkExpired,
     CodeIncorrect,
     LinkInvalid(String),
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Blob {
+    pub mime_type: String,
+    pub data: Vec<u8>,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+pub struct Metrics {
+    pub joke_count: u32,
+    pub jokes_sent: u32,
+    pub greets_sent: u32,
+    pub fractals_sent: u32,
 }

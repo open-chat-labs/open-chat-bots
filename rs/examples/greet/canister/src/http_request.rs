@@ -1,5 +1,6 @@
 use crate::commands::execute_command;
-use crate::{get_definition::get_definition, metrics::get_metrics};
+use crate::get_definition::get_definition;
+use crate::state;
 use ic_cdk::{query, update};
 use ic_http_certification::{HttpRequest, HttpResponse};
 use oc_bots_sdk::api::CommandResponse;
@@ -11,8 +12,32 @@ fn http_request(request: HttpRequest) -> HttpResponse {
     if request.method.eq_ignore_ascii_case("GET") {
         if let Ok(path) = request.get_path() {
             if path == "/metrics" {
-                let body = to_json(&get_metrics());
+                let body = state::read(|state| to_json(state.metrics()));
                 return text_response(200, body);
+            }
+
+            if path.starts_with("/blobs/") {
+                let Ok(blob_id) = path.trim_start_matches("/blobs/").parse::<u128>() else {
+                    return not_found();
+                };
+
+                let Some((mime_type, body)) = state::read(|state| {
+                    state
+                        .get_blob(blob_id)
+                        .map(|blob| (blob.mime_type.clone(), blob.data.to_vec()))
+                }) else {
+                    return not_found();
+                };
+
+                return HttpResponse {
+                    status_code: 200,
+                    headers: vec![
+                        ("content-type".to_string(), mime_type),
+                        ("content-length".to_string(), body.len().to_string()),
+                    ],
+                    body,
+                    upgrade: None,
+                };
             }
         }
 

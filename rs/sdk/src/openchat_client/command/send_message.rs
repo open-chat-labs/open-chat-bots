@@ -47,6 +47,7 @@ impl<R: Runtime + Send + Sync + 'static> SendMessageBuilder<R> {
             id: message_id,
             content: args.content.clone(),
             finalised: args.finalised,
+            block_level_markdown: args.block_level_markdown,
         };
 
         runtime.spawn(async move {

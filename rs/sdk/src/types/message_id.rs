@@ -1,4 +1,4 @@
-use serde::{Deserialize, Deserializer, Serializer};
+use serde::{Deserialize, Deserializer};
 use std::str::FromStr;
 
 pub type MessageId = u64;
@@ -20,16 +20,5 @@ impl From<MessageIdIntOrString> for MessageId {
             MessageIdIntOrString::Int(i) => i,
             MessageIdIntOrString::String(s) => u64::from_str(&s).unwrap(),
         }
-    }
-}
-
-pub fn serialize_message_id<S>(message_id: &MessageId, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    if serializer.is_human_readable() {
-        serializer.serialize_str(&message_id.to_string())
-    } else {
-        serializer.serialize_u64(*message_id)
     }
 }

@@ -1,4 +1,5 @@
 use super::TimestampMillis;
+use crate::utils::{serialize_principal_as_bytes, serialize_u128};
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 
@@ -29,8 +30,10 @@ pub struct ImageContent {
     pub width: u32,
     pub height: u32,
     pub thumbnail_data: ThumbnailData,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub caption: Option<String>,
     pub mime_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub blob_reference: Option<BlobReference>,
 }
 
@@ -44,6 +47,7 @@ pub struct GiphyImageVariant {
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct GiphyContent {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub caption: Option<String>,
     pub title: String,
     pub desktop: GiphyImageVariant,
@@ -55,25 +59,32 @@ pub struct VideoContent {
     pub width: u32,
     pub height: u32,
     pub thumbnail_data: ThumbnailData,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub caption: Option<String>,
     pub mime_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub image_blob_reference: Option<BlobReference>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub video_blob_reference: Option<BlobReference>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct AudioContent {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub caption: Option<String>,
     pub mime_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub blob_reference: Option<BlobReference>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct FileContent {
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub caption: Option<String>,
     pub mime_type: String,
     pub file_size: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub blob_reference: Option<BlobReference>,
 }
 
@@ -84,8 +95,10 @@ pub struct PollContent {
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct PollConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
     pub options: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub end_date: Option<TimestampMillis>,
     pub anonymous: bool,
     pub show_votes_before_end_date: bool,
@@ -98,6 +111,8 @@ pub struct ThumbnailData(pub String);
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct BlobReference {
+    #[serde(serialize_with = "serialize_principal_as_bytes")]
     pub canister_id: Principal,
+    #[serde(serialize_with = "serialize_u128")]
     pub blob_id: u128,
 }

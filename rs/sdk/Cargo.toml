@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 candid = { workspace = true }
 ct-codecs = { workspace = true }
+dataurl = { workspace = true }
+image = { workspace = true }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 rand = { workspace = true }
 serde = { workspace = true }
