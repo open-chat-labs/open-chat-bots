@@ -23,10 +23,12 @@ export default async function (req: WithBotClient, res: Response) {
     const token = await getSpotifyAccessToken();
     const item = await searchSpotifyArtists(token, artist);
     const url = item.external_urls.spotify;
+    console.log("Spotify result: ", item, url);
 
-    const finalMsg = await client.createTextMessage(url);
+    const finalMsg = (await client.createTextMessage(url)).setFinalised(true);
     client
       .sendMessage(finalMsg)
+      .then((resp) => console.log("Response from send message: ", resp))
       .catch((err) => console.error("sendTextMessage failed with: ", err));
   }
 }
