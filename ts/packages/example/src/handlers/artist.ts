@@ -23,7 +23,6 @@ export default async function (req: WithBotClient, res: Response) {
     const token = await getSpotifyAccessToken();
     const item = await searchSpotifyArtists(token, artist);
     const url = item.external_urls.spotify;
-    console.log("Spotify result: ", item, url);
 
     const finalMsg = (await client.createTextMessage(url)).setFinalised(true);
     client
