@@ -1,6 +1,6 @@
 {
     "name": "@open-ic/openchat-botclient-ts",
-    "version": "1.0.18",
+    "version": "1.0.19",
     "description": "A client library for OpenChat bots to interact with the OpenChat backend",
     "main": "lib/index.cjs",
     "module": "lib/index.mjs",

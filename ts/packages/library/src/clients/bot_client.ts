@@ -90,6 +90,8 @@ export class BotClient {
                 return this.scope.Chat.chat.Group.toString();
             } else if ("Channel" in this.scope.Chat.chat) {
                 return this.scope.Chat.chat.Channel[0].toString();
+            } else if ("Direct" in this.scope.Chat.chat) {
+                return this.scope.Chat.chat.Direct.toString();
             }
         }
         return "";
