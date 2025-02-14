@@ -22,7 +22,8 @@ impl Command {
     }
 
     pub fn arg<T: TryFrom<CommandArgValue>>(&self, name: &str) -> T {
-        self.maybe_arg(name).expect("unexpected argument type")
+        self.maybe_arg(name)
+            .expect("Argument missing or unexpected type")
     }
 }
 
