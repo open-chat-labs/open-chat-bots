@@ -76,8 +76,7 @@ impl HttpRouter {
     }
 }
 
-pub type AsyncHandler =
-    Box<dyn Fn(Request) -> Box<dyn Future<Output = Response> + Unpin> + Send + Sync>;
+pub type AsyncHandler = fn(Request) -> Box<dyn Future<Output = Response> + Unpin>;
 
 struct Route {
     path_expr: String,
