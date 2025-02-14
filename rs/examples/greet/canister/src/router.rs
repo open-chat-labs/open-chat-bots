@@ -10,15 +10,15 @@ mod metrics;
 static ROUTER: LazyLock<HttpRouter> = LazyLock::new(|| {
     HttpRouter::default()
         .route("/execute_command", HttpMethod::POST, |request| {
-            Box::new(Box::pin(commands::execute(request)))
+            Box::pin(commands::execute(request))
         })
         .route("/metrics", HttpMethod::GET, |request| {
-            Box::new(Box::pin(metrics::get(request)))
+            Box::pin(metrics::get(request))
         })
         .route("/blobs/*", HttpMethod::GET, |request| {
-            Box::new(Box::pin(blobs::get(request)))
+            Box::pin(blobs::get(request))
         })
-        .fallback(|request| Box::new(Box::pin(definition::get(request))))
+        .fallback(|request| Box::pin(definition::get(request)))
 });
 
 pub async fn handle(request: HttpRequest, query: bool) -> HttpResponse {

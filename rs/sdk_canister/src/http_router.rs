@@ -1,5 +1,6 @@
 use ic_http_certification::{HttpRequest, HttpResponse};
 use serde::Serialize;
+use std::pin::Pin;
 use std::{future::Future, str::FromStr};
 
 #[derive(Default)]
@@ -76,7 +77,7 @@ impl HttpRouter {
     }
 }
 
-pub type AsyncHandler = fn(Request) -> Box<dyn Future<Output = Response> + Unpin>;
+pub type AsyncHandler = fn(Request) -> Pin<Box<dyn Future<Output = Response>>>;
 
 struct Route {
     path_expr: String,
