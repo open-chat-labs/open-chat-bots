@@ -60,6 +60,29 @@ export default function schema(_: Request, res: Response) {
         ],
       },
       {
+        name: "prompt",
+        description: "Send a prompt to ChatGPT",
+        permissions: {
+          ...emptyPermissions,
+          message: ["Text"],
+        },
+        params: [
+          {
+            name: "prompt",
+            required: true,
+            description: "The prompt to send into the LLM",
+            placeholder: "How can I help you?",
+            param_type: {
+              StringParam: {
+                min_length: 1,
+                max_length: 1000,
+                choices: [],
+              },
+            },
+          },
+        ],
+      },
+      {
         name: "poll",
         description: "Send a random poll",
         permissions: {
