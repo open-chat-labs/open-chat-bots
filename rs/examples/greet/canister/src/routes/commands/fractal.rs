@@ -13,7 +13,7 @@ use std::collections::HashSet;
 use std::io::Cursor;
 use std::sync::LazyLock;
 
-static DEFINITION: LazyLock<SlashCommandDefinition> = LazyLock::new(Fractal::schema);
+static DEFINITION: LazyLock<SlashCommandDefinition> = LazyLock::new(Fractal::definition);
 
 pub struct Fractal;
 
@@ -129,7 +129,7 @@ impl Fractal {
         Ok(bytes)
     }
 
-    fn schema() -> SlashCommandDefinition {
+    fn definition() -> SlashCommandDefinition {
         SlashCommandDefinition {
             name: "fractal".to_string(),
             description: Some("This will generate a Julia fractal based on the provided input values. Find some examples here: https://paulbourke.net/fractals/juliaset/".to_string()),

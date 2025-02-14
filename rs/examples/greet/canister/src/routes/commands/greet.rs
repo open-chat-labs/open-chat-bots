@@ -9,7 +9,7 @@ use oc_bots_sdk_canister::CanisterRuntime;
 use std::collections::HashSet;
 use std::sync::LazyLock;
 
-static DEFINITION: LazyLock<SlashCommandDefinition> = LazyLock::new(Greet::schema);
+static DEFINITION: LazyLock<SlashCommandDefinition> = LazyLock::new(Greet::definition);
 
 pub struct Greet;
 
@@ -47,7 +47,7 @@ impl Command<CanisterRuntime> for Greet {
 }
 
 impl Greet {
-    fn schema() -> SlashCommandDefinition {
+    fn definition() -> SlashCommandDefinition {
         SlashCommandDefinition {
             name: "greet".to_string(),
             description: Some("This will greet the caller".to_string()),
