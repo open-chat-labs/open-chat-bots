@@ -27,6 +27,12 @@ impl Debug for UserId {
     }
 }
 
+impl From<Principal> for UserId {
+    fn from(principal: Principal) -> Self {
+        UserId(principal)
+    }
+}
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum AuthToken {
     Jwt(String),

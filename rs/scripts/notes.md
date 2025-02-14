@@ -12,3 +12,5 @@ dfx canister install --mode upgrade greet_bot --argument '(record { oc_public_ke
 
 // Bot endpoint looks like this (replace with your canister id)
 http://gc5gl-leaaa-aaaaa-qaara-cai.localhost:8080/
+
+Investigate what KongSwap are doing with TT integration
