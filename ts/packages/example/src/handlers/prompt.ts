@@ -8,7 +8,7 @@ const openai = new OpenAI({ apiKey: process.env.OC_API_KEY! });
 
 async function askOpenAI(question: string) {
   const completion = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model: "gpt-4o-mini",
     store: true,
     messages: [{ role: "user", content: question }],
   });
