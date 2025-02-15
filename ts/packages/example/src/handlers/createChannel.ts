@@ -52,8 +52,8 @@ export default async function createChannel(req: Request, res: Response) {
       .setHistoryVisibleToNewJoiners(false)
   );
 
-  if (typeof resp === "object" && "Success" in resp) {
-    console.log("Successfully created channel", resp.Success.channel_id);
+  if (resp.kind === "success") {
+    console.log("Successfully created channel", resp.channelId);
     res.sendStatus(200);
   } else {
     res.status(500).json(resp);
