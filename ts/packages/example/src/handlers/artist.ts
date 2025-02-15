@@ -27,7 +27,6 @@ export default async function (req: WithBotClient, res: Response) {
     const finalMsg = (await client.createTextMessage(url)).setFinalised(true);
     client
       .sendMessage(finalMsg)
-      .then((resp) => console.log("Response from send message: ", resp))
-      .catch((err) => console.error("sendTextMessage failed with: ", err));
+      .catch((err) => console.error("sendMessage failed with: ", err));
   }
 }

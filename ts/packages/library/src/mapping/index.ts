@@ -1,7 +1,16 @@
 import { Principal } from "@dfinity/principal";
-import type { BlobReference, AuthToken } from "../domain";
-import type { AccessGate, AccessGateConfig } from "../domain/access";
-import type { GroupPermissions, MessagePermissions, PermissionRole } from "../domain/permissions";
+import type {
+    BlobReference,
+    AuthToken,
+    SendMessageResponse,
+    AccessGate,
+    AccessGateConfig,
+    GroupPermissions,
+    MessagePermissions,
+    PermissionRole,
+    CreateChannelResponse,
+    DeleteChannelResponse,
+} from "../domain";
 import type {
     AuthToken as ApiAuthToken,
     BlobReference as ApiBlobReference,
@@ -11,7 +20,90 @@ import type {
     MessagePermissions as ApiMessagePermissions,
     GroupPermissionRole as ApiPermissionRole,
     GroupPermissions as ApiGroupPermissions,
+    LocalUserIndexBotDeleteChannelResponse as BotDeleteChannelResponse,
+    LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
+    LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
 } from "../typebox/typebox";
+
+function nullish<T>(val?: T | null | undefined): T | undefined {
+    if (val == null) return undefined;
+    return val;
+}
+
+export function sendMessageResponse(api: BotSendMessageResponse): SendMessageResponse {
+    if (typeof api === "object") {
+        if ("Success" in api) {
+            return {
+                kind: "success",
+                messageId: api.Success.message_id,
+                eventIndex: api.Success.event_index,
+                messageIndex: api.Success.message_index,
+                timestamp: api.Success.timestamp,
+                expiresAt: nullish(api.Success.expires_at),
+            };
+        }
+        if ("FailedAuthentication" in api) {
+            return { kind: "failed_authentication" };
+        } else if ("InvalidRequest" in api) {
+            return { kind: "invalid_request" };
+        } else if ("C2CError" in api) {
+            return { kind: "server_error" };
+        }
+    } else if (api === "Frozen") {
+        return { kind: "frozen" };
+    } else if (api === "MessageAlreadyFinalised") {
+        return { kind: "message_already_finalized" };
+    } else if (api === "NotAuthorized") {
+        return { kind: "not_authorized" };
+    } else if (api === "ThreadNotFound") {
+        return { kind: "thread_not_found" };
+    }
+    throw new Error(`Unknown BotSendMessageResponseReceived: ${api}`);
+}
+
+export function createChannelResponse(api: BotCreateChannelResponse): CreateChannelResponse {
+    if (typeof api === "object") {
+        if ("Success" in api) {
+            return {
+                kind: "success",
+                channelId: api.Success.channel_id,
+            };
+        }
+        if ("FailedAuthentication" in api) {
+            return { kind: "failed_authentication" };
+        } else if ("InvalidRequest" in api) {
+            return { kind: "invalid_request" };
+        } else if ("C2CError" in api) {
+            return { kind: "server_error" };
+        }
+    } else if (api === "Frozen") {
+        return { kind: "frozen" };
+    } else if (api === "NotAuthorized") {
+        return { kind: "not_authorized" };
+    }
+    throw new Error(`Unknown BotCreateChannelResponseReceived: ${api}`);
+}
+
+export function deleteChannelResponse(api: BotDeleteChannelResponse): DeleteChannelResponse {
+    if (typeof api === "object") {
+        if ("FailedAuthentication" in api) {
+            return { kind: "failed_authentication" };
+        } else if ("InvalidRequest" in api) {
+            return { kind: "invalid_request" };
+        } else if ("C2CError" in api) {
+            return { kind: "server_error" };
+        }
+    } else if (api === "Success") {
+        return { kind: "success" };
+    } else if (api === "ChannelNotFound") {
+        return { kind: "channel_not_found" };
+    } else if (api === "Frozen") {
+        return { kind: "frozen" };
+    } else if (api === "NotAuthorized") {
+        return { kind: "not_authorized" };
+    }
+    throw new Error(`Unknown BotDeleteChannelResponseReceived: ${api}`);
+}
 
 export function apiAuthToken(auth: AuthToken): ApiAuthToken {
     switch (auth.kind) {
