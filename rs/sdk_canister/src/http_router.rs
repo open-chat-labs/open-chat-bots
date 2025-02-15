@@ -14,13 +14,13 @@ impl HttpRouter {
         self.routes.push(Route {
             path_expr: path_expr.to_string(),
             method,
-            handler: BoxedHandler(Box::new(MakeErasedHandler::new(handler))),
+            handler: handler.into(),
         });
         self
     }
 
     pub fn fallback<H: Handler>(mut self, handler: H) -> Self {
-        self.fallback = Some(BoxedHandler(Box::new(MakeErasedHandler::new(handler))));
+        self.fallback = Some(handler.into());
         self
     }
 
@@ -84,6 +84,12 @@ pub trait Handler: Clone + Send + Sync + Sized + 'static {
 }
 
 struct BoxedHandler(Box<dyn ErasedHandler>);
+
+impl<H: Handler> From<H> for BoxedHandler {
+    fn from(value: H) -> Self {
+        BoxedHandler(Box::new(MakeErasedHandler::new(value)))
+    }
+}
 
 trait ErasedHandler: Send + Sync {
     fn call(&self, request: Request) -> Pin<Box<dyn Future<Output = Response>>>;
