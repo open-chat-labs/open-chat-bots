@@ -24,7 +24,7 @@ export default async function (req: WithBotClient, res: Response) {
     const item = await searchSpotifyArtists(token, artist);
     const url = item.external_urls.spotify;
 
-    const finalMsg = await client.createTextMessage(url);
+    const finalMsg = (await client.createTextMessage(url)).setFinalised(true);
     client
       .sendMessage(finalMsg)
       .catch((err) => console.error("sendMessage failed with: ", err));
