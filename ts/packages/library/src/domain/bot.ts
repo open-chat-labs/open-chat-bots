@@ -1,4 +1,10 @@
-import type { BotActionScope, BotCommand, BotPermissions, Chat } from "../typebox/typebox";
+import type {
+    BotActionScope,
+    BotCommand,
+    BotPermissions,
+    Chat,
+    AccessTokenScope,
+} from "../typebox/typebox";
 
 export type DecodedJwt = {
     kind: "jwt";
@@ -15,7 +21,7 @@ export type DecodedApiKey = {
     kind: "api_key";
     gateway: string;
     bot_id: string;
-    scope: BotActionScope;
+    scope: AccessTokenScope;
     secret: string;
 };
 
