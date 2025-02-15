@@ -27,6 +27,6 @@ export default async function (req: WithBotClient, res: Response) {
     const finalMsg = await client.createTextMessage(url);
     client
       .sendMessage(finalMsg)
-      .catch((err) => console.error("sendTextMessage failed with: ", err));
+      .catch((err) => console.error("sendMessage failed with: ", err));
   }
 }

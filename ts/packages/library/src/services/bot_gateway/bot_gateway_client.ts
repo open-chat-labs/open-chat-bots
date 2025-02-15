@@ -1,14 +1,26 @@
 import { HttpAgent } from "@dfinity/agent";
-import type { AuthToken, BotClientConfig, Message } from "../../domain";
+import type {
+    AuthToken,
+    BotClientConfig,
+    Message,
+    SendMessageResponse,
+    CreateChannelResponse,
+    DeleteChannelResponse,
+} from "../../domain";
 import type { Channel } from "../../domain/channel";
 import { MsgpackCanisterAgent } from "../canisterAgent/msgpack";
-import { apiAuthToken, identity } from "../../mapping";
+import {
+    apiAuthToken,
+    sendMessageResponse,
+    createChannelResponse,
+    deleteChannelResponse,
+} from "../../mapping";
 import {
     LocalUserIndexBotDeleteChannelArgs as BotDeleteChannelArgs,
-    LocalUserIndexBotDeleteChannelResponse as BotDeleteChannelResponse,
     LocalUserIndexBotSendMessageArgs as BotSendMessageArgs,
-    LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
     LocalUserIndexBotCreateChannelArgs as BotCreateChannelArgs,
+    LocalUserIndexBotDeleteChannelResponse as BotDeleteChannelResponse,
+    LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
     LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
 } from "../../typebox/typebox";
 
@@ -21,11 +33,11 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
         super(agent, canisterId);
     }
 
-    sendMessage(message: Message, auth: AuthToken): Promise<BotSendMessageResponse> {
+    sendMessage(message: Message, auth: AuthToken): Promise<SendMessageResponse> {
         return this.executeMsgpackUpdate(
             "bot_send_message",
             message.toInputArgs(auth),
-            identity,
+            sendMessageResponse,
             BotSendMessageArgs,
             BotSendMessageResponse,
         ).catch((err) => {
@@ -34,11 +46,11 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
         });
     }
 
-    createChannel(channel: Channel, auth: AuthToken): Promise<BotCreateChannelResponse> {
+    createChannel(channel: Channel, auth: AuthToken): Promise<CreateChannelResponse> {
         return this.executeMsgpackUpdate(
             "bot_create_channel",
             channel.toInputArgs(auth),
-            identity,
+            createChannelResponse,
             BotCreateChannelArgs,
             BotCreateChannelResponse,
         ).catch((err) => {
@@ -47,11 +59,11 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
         });
     }
 
-    deleteChannel(channelId: bigint, auth: AuthToken): Promise<BotDeleteChannelResponse> {
+    deleteChannel(channelId: bigint, auth: AuthToken): Promise<DeleteChannelResponse> {
         return this.executeMsgpackUpdate(
             "bot_delete_channel",
             { channel_id: channelId, auth_token: apiAuthToken(auth) },
-            identity,
+            deleteChannelResponse,
             BotDeleteChannelArgs,
             BotDeleteChannelResponse,
         ).catch((err) => {
