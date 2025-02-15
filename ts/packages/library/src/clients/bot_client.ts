@@ -6,18 +6,17 @@ import {
     LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
     LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
     LocalUserIndexBotDeleteChannelResponse as BotDeleteChannelResponse,
-    type BotActionScope,
     type Chat,
     BotCommandArg,
     BotCommand,
 } from "../typebox/typebox";
 import { DataClient } from "../services/data/data.client";
-import { Principal } from "@dfinity/principal";
 import {
     FileMessage,
     ImageMessage,
     PollMessage,
     TextMessage,
+    type BotActionScope,
     type AuthToken,
     type BotClientConfig,
     type DecodedApiKey,
@@ -28,7 +27,7 @@ import {
     type BotActionCommunityScope,
 } from "../domain";
 import type { Channel } from "../domain/channel";
-import { apiOptional } from "../mapping";
+import { apiOptional, principalBytesToString } from "../mapping";
 
 export class BotClient {
     #botService: BotGatewayClient;
@@ -95,10 +94,6 @@ export class BotClient {
             }
         }
         return "";
-    }
-
-    #principalBytesToString(bytes: Uint8Array): string {
-        return Principal.fromUint8Array(bytes).toString();
     }
 
     #hasCommand(decoded: DecodedPayload): decoded is DecodedJwt {
@@ -172,7 +167,7 @@ export class BotClient {
     public userArg(name: string): string | undefined {
         const arg = this.#namedArg(name);
         return arg !== undefined && "User" in arg.value
-            ? this.#principalBytesToString(arg.value.User)
+            ? principalBytesToString(arg.value.User)
             : undefined;
     }
 
@@ -202,7 +197,7 @@ export class BotClient {
     }
 
     public get initiator(): string | undefined {
-        return apiOptional(this.command?.initiator, this.#principalBytesToString);
+        return apiOptional(this.command?.initiator, principalBytesToString);
     }
 
     createTextMessage(text: string): Promise<TextMessage> {

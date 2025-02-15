@@ -188,10 +188,18 @@ export function identity<A>(a: A): A {
     return a;
 }
 
-export function principalBytesToString(bytes: Uint8Array): string {
-    return Principal.fromUint8Array(bytes).toString();
-}
-
 export function principalStringToBytes(principal: string): Uint8Array {
     return Principal.fromText(principal).toUint8Array();
+}
+
+export function consolidateBytes(bytes: Uint8Array | number[]): Uint8Array {
+    return Array.isArray(bytes) ? new Uint8Array(bytes) : bytes;
+}
+
+export function principalBytesToString(value: Uint8Array | number[] | string): string {
+    // When serialized to JSON principals become strings, in all other cases they are serialized as byte arrays
+    if (typeof value === "string") {
+        return value;
+    }
+    return Principal.fromUint8Array(consolidateBytes(value)).toString();
 }

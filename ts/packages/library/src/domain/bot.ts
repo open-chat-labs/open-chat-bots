@@ -1,10 +1,4 @@
-import type {
-    BotActionScope,
-    BotCommand,
-    BotPermissions,
-    Chat,
-    AccessTokenScope,
-} from "../typebox/typebox";
+import type { BotCommand, BotPermissions, Chat } from "../typebox/typebox";
 
 export type DecodedJwt = {
     kind: "jwt";
@@ -21,7 +15,7 @@ export type DecodedApiKey = {
     kind: "api_key";
     gateway: string;
     bot_id: string;
-    scope: AccessTokenScope;
+    scope: BotActionScope;
     secret: string;
 };
 
@@ -31,9 +25,11 @@ export type BotActionChatScope = {
     Chat: {
         chat: Chat;
         thread?: number;
-        message_id: bigint;
+        message_id?: bigint;
     };
 };
+
+export type BotActionScope = BotActionChatScope | BotActionCommunityScope;
 
 export type BotActionCommunityScope = {
     Community: {
