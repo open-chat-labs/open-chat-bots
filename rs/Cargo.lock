@@ -632,6 +632,7 @@ dependencies = [
 name = "dice_bot"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "axum",
  "clap 4.5.26",
  "dotenv",
@@ -824,21 +825,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "futures"
-version = "0.3.31"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65bc07b1a8bc7c85c5f2e110c476c7389b4554ba72af57d8445ea63a576b0876"
-dependencies = [
- "futures-channel",
- "futures-core",
- "futures-executor",
- "futures-io",
- "futures-sink",
- "futures-task",
- "futures-util",
-]
-
-[[package]]
 name = "futures-channel"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -853,17 +839,6 @@ name = "futures-core"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05f29059c0c2090612e8d742178b0580d2dc940c837851ad723096f87af6663e"
-
-[[package]]
-name = "futures-executor"
-version = "0.3.31"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e28d1d997f585e54aebc3f97d39e72338912123a67330d723fdbb564d646c9f"
-dependencies = [
- "futures-core",
- "futures-task",
- "futures-util",
-]
 
 [[package]]
 name = "futures-io"
@@ -900,7 +875,6 @@ version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9fa08315bb612088cc391249efdc3bc77536f16c91f6cf495e6fbe85b20a4a81"
 dependencies = [
- "futures-channel",
  "futures-core",
  "futures-io",
  "futures-macro",
@@ -946,11 +920,11 @@ checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
 name = "greet_bot_canister"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "candid",
  "getrandom",
  "http 1.2.0",
  "ic-cdk",
- "ic-cdk-timers",
  "ic-http-certification",
  "ic-stable-structures",
  "ic_principal",
@@ -962,7 +936,6 @@ dependencies = [
  "rand",
  "rmp-serde",
  "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -1230,20 +1203,6 @@ dependencies = [
  "serde",
  "serde_tokenstream",
  "syn 2.0.96",
-]
-
-[[package]]
-name = "ic-cdk-timers"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb8fd812a9e26f6aa00594546f8fbf4d4853f39c3ba794c8ff11ecf86fd3c9e4"
-dependencies = [
- "futures",
- "ic-cdk",
- "ic0",
- "serde",
- "serde_bytes",
- "slotmap",
 ]
 
 [[package]]
@@ -1734,6 +1693,7 @@ dependencies = [
 name = "oc_bots_sdk"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "candid",
  "ct-codecs",
  "dataurl",
@@ -1750,7 +1710,10 @@ version = "0.1.0"
 dependencies = [
  "candid",
  "ic-cdk",
+ "ic-http-certification",
  "oc_bots_sdk",
+ "serde",
+ "serde_json",
  "sha2 0.10.8",
 ]
 
@@ -2415,15 +2378,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f92a496fb766b417c996b9c5e57daf2f7ad3b0bebe1ccfca4856390e3d3bb67"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "slotmap"
-version = "1.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbff4acf519f630b3a3ddcfaea6c06b42174d9a44bc70c620e9ed1649d58b82a"
-dependencies = [
- "version_check",
 ]
 
 [[package]]

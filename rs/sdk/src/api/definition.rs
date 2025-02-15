@@ -5,13 +5,13 @@ use std::collections::HashSet;
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct BotDefinition {
     pub description: String,
-    pub commands: Vec<SlashCommandSchema>,
+    pub commands: Vec<SlashCommandDefinition>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub autonomous_config: Option<AutonomousConfig>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct SlashCommandSchema {
+pub struct SlashCommandDefinition {
     pub name: String,
     pub description: Option<String>,
     pub placeholder: Option<String>,

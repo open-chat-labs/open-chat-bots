@@ -4,8 +4,11 @@ use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::Router;
 use clap::Parser;
-use oc_bots_sdk::api::BotDefinition;
-use oc_bots_sdk::OpenChatClient;
+use commands::coin::Coin;
+use commands::roll::Roll;
+use oc_bots_sdk::api::{BotDefinition, CommandResponse};
+use oc_bots_sdk::{CommandHandler, OpenChatClient};
+use oc_bots_sdk_offchain::env;
 use oc_bots_sdk_offchain::AgentRuntime;
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
@@ -22,17 +25,25 @@ async fn main() {
     let oc_public_key = dotenv::var("OC_PUBLIC_KEY").expect("OC_PUBLIC_KEY not set");
 
     let agent = oc_bots_sdk_offchain::build_agent(ic_url, &config.pem_file).await;
+
+    let oc_client = Arc::new(OpenChatClient::new(AgentRuntime::new(
+        agent,
+        tokio::runtime::Runtime::new().unwrap(),
+    )));
+
+    let commands = CommandHandler::new(oc_client.clone())
+        .register(Box::new(Coin))
+        .register(Box::new(Roll));
+
     let app_state = AppState {
-        oc_client: OpenChatClient::new(AgentRuntime::new(
-            agent,
-            tokio::runtime::Runtime::new().unwrap(),
-        )),
+        oc_client,
         oc_public_key,
+        commands,
     };
 
     let routes = Router::new()
         .route("/execute_command", post(execute_command))
-        .route("/", get(bot_definition_as_string()))
+        .route("/", get(bot_definition))
         .layer(CorsLayer::permissive())
         .with_state(Arc::new(app_state));
 
@@ -44,30 +55,43 @@ async fn main() {
 }
 
 async fn execute_command(State(state): State<Arc<AppState>>, jwt: String) -> (StatusCode, Bytes) {
-    match commands::execute_command(jwt, &state.oc_client, &state.oc_public_key).await {
-        Ok(message) => (
-            StatusCode::OK,
-            Bytes::from(serde_json::to_vec(&message).unwrap()),
+    match state
+        .commands
+        .execute(&jwt, &state.oc_public_key, env::now())
+        .await
+    {
+        CommandResponse::Success(r) => {
+            (StatusCode::OK, Bytes::from(serde_json::to_vec(&r).unwrap()))
+        }
+        CommandResponse::BadRequest(r) => (
+            StatusCode::BAD_REQUEST,
+            Bytes::from(serde_json::to_vec(&r).unwrap()),
         ),
-        Err(error) => (StatusCode::BAD_REQUEST, Bytes::from(format!("{error:?}"))),
+        CommandResponse::InternalError(err) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Bytes::from(format!("{err:?}")),
+        ),
     }
 }
 
-fn bot_definition_as_string() -> String {
-    serde_json::to_string(&bot_definition()).unwrap()
-}
-
-fn bot_definition() -> BotDefinition {
-    BotDefinition {
+async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> (StatusCode, Bytes) {
+    let definition = BotDefinition {
         description: "Use this bot to roll dice or toss coins".to_string(),
-        commands: vec![commands::coin::schema(), commands::roll::schema()],
+        commands: state.commands.definitions(),
         autonomous_config: None,
-    }
+    };
+
+    (
+        StatusCode::OK,
+        Bytes::from(serde_json::to_vec(&definition).unwrap()),
+    )
 }
 
 struct AppState {
-    oc_client: OpenChatClient<AgentRuntime>,
+    #[allow(dead_code)]
+    oc_client: Arc<OpenChatClient<AgentRuntime>>,
     oc_public_key: String,
+    commands: CommandHandler<AgentRuntime>,
 }
 
 #[derive(Parser, Debug)]

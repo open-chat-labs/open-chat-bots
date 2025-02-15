@@ -20,7 +20,7 @@
     "express-rate-limit": "^7.5.0",
     "jsonwebtoken": "^9.0.2",
     "node-fetch": "^3.3.2",
-    "openai": "^4.73.0",
+    "openai": "^4.85.1",
     "sharp": "^0.33.5"
   },
   "devDependencies": {

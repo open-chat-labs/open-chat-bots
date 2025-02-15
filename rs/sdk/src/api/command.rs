@@ -11,8 +11,19 @@ pub struct Command {
 }
 
 impl Command {
-    pub fn get_arg(&self, name: &str) -> Option<&CommandArg> {
-        self.args.iter().find(|arg| arg.name == name)
+    pub fn maybe_arg<T: TryFrom<CommandArgValue>>(&self, name: &str) -> Option<T> {
+        let value = self
+            .args
+            .iter()
+            .find(|arg| arg.name == name)
+            .map(|a| a.value.clone())?;
+
+        T::try_from(value).ok()
+    }
+
+    pub fn arg<T: TryFrom<CommandArgValue>>(&self, name: &str) -> T {
+        self.maybe_arg(name)
+            .expect("Argument missing or unexpected type")
     }
 }
 
@@ -73,6 +84,131 @@ impl CommandArgValue {
     }
 }
 
+impl TryFrom<CommandArgValue> for String {
+    type Error = ();
+
+    fn try_from(value: CommandArgValue) -> Result<Self, Self::Error> {
+        value.as_string().map(|s| s.to_string()).ok_or(())
+    }
+}
+
+impl TryFrom<CommandArgValue> for i64 {
+    type Error = ();
+
+    fn try_from(value: CommandArgValue) -> Result<Self, Self::Error> {
+        value.as_integer().ok_or(())
+    }
+}
+
+impl TryFrom<CommandArgValue> for i32 {
+    type Error = ();
+
+    fn try_from(value: CommandArgValue) -> Result<Self, Self::Error> {
+        value
+            .as_integer()
+            .and_then(|r| i32::try_from(r).ok())
+            .ok_or(())
+    }
+}
+
+impl TryFrom<CommandArgValue> for i16 {
+    type Error = ();
+
+    fn try_from(value: CommandArgValue) -> Result<Self, Self::Error> {
+        value
+            .as_integer()
+            .and_then(|r| i16::try_from(r).ok())
+            .ok_or(())
+    }
+}
+
+impl TryFrom<CommandArgValue> for i8 {
+    type Error = ();
+
+    fn try_from(value: CommandArgValue) -> Result<Self, Self::Error> {
+        value
+            .as_integer()
+            .and_then(|r| i8::try_from(r).ok())
+            .ok_or(())
+    }
+}
+
+impl TryFrom<CommandArgValue> for u64 {
+    type Error = ();
+
+    fn try_from(value: CommandArgValue) -> Result<Self, Self::Error> {
+        value
+            .as_integer()
+            .and_then(|r| u64::try_from(r).ok())
+            .ok_or(())
+    }
+}
+
+impl TryFrom<CommandArgValue> for u32 {
+    type Error = ();
+
+    fn try_from(value: CommandArgValue) -> Result<Self, Self::Error> {
+        value
+            .as_integer()
+            .and_then(|r| u32::try_from(r).ok())
+            .ok_or(())
+    }
+}
+
+impl TryFrom<CommandArgValue> for u16 {
+    type Error = ();
+
+    fn try_from(value: CommandArgValue) -> Result<Self, Self::Error> {
+        value
+            .as_integer()
+            .and_then(|r| u16::try_from(r).ok())
+            .ok_or(())
+    }
+}
+
+impl TryFrom<CommandArgValue> for u8 {
+    type Error = ();
+
+    fn try_from(value: CommandArgValue) -> Result<Self, Self::Error> {
+        value
+            .as_integer()
+            .and_then(|r| u8::try_from(r).ok())
+            .ok_or(())
+    }
+}
+
+impl TryFrom<CommandArgValue> for f64 {
+    type Error = ();
+
+    fn try_from(value: CommandArgValue) -> Result<Self, Self::Error> {
+        value.as_decimal().ok_or(())
+    }
+}
+
+impl TryFrom<CommandArgValue> for f32 {
+    type Error = ();
+
+    fn try_from(value: CommandArgValue) -> Result<Self, Self::Error> {
+        value.as_decimal().map(|r| r as f32).ok_or(())
+    }
+}
+
+impl TryFrom<CommandArgValue> for bool {
+    type Error = ();
+
+    fn try_from(value: CommandArgValue) -> Result<Self, Self::Error> {
+        value.as_bool().ok_or(())
+    }
+}
+
+impl TryFrom<CommandArgValue> for UserId {
+    type Error = ();
+
+    fn try_from(value: CommandArgValue) -> Result<Self, Self::Error> {
+        value.as_user().ok_or(())
+    }
+}
+
 #[allow(clippy::large_enum_variant)]
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum CommandResponse {
@@ -106,7 +242,7 @@ pub enum BadRequest {
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum InternalError {
-    Invalid(String),
+    CommandError(String),
     CanisterError(CanisterError),
     C2CError(i32, String),
 }
