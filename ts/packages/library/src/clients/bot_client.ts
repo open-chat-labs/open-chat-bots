@@ -2,15 +2,7 @@ import jwt from "jsonwebtoken";
 import { BadRequestError } from "../utils/error_response";
 import { HttpAgent } from "@dfinity/agent";
 import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
-import {
-    LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
-    LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
-    LocalUserIndexBotDeleteChannelResponse as BotDeleteChannelResponse,
-    type BotActionScope,
-    type Chat,
-    BotCommandArg,
-    BotCommand,
-} from "../typebox/typebox";
+import { type BotActionScope, type Chat, BotCommandArg, BotCommand } from "../typebox/typebox";
 import { DataClient } from "../services/data/data.client";
 import { Principal } from "@dfinity/principal";
 import {
@@ -26,6 +18,9 @@ import {
     type Message,
     type BotActionChatScope,
     type BotActionCommunityScope,
+    type SendMessageResponse,
+    type CreateChannelResponse,
+    type DeleteChannelResponse,
 } from "../domain";
 import type { Channel } from "../domain/channel";
 import { apiOptional } from "../mapping";
@@ -115,16 +110,31 @@ export class BotClient {
         }
     }
 
-    public sendMessage(message: Message): Promise<BotSendMessageResponse> {
-        return this.#botService.sendMessage(message, this.#auth);
+    public sendMessage(message: Message): Promise<SendMessageResponse> {
+        return this.#botService.sendMessage(message, this.#auth).then((resp) => {
+            if (resp.kind !== "success") {
+                console.error("OpenChat botClient.sendMessage failed with: ", resp);
+            }
+            return resp;
+        });
     }
 
-    public createChannel(channel: Channel): Promise<BotCreateChannelResponse> {
-        return this.#botService.createChannel(channel, this.#auth);
+    public createChannel(channel: Channel): Promise<CreateChannelResponse> {
+        return this.#botService.createChannel(channel, this.#auth).then((resp) => {
+            if (resp.kind !== "success") {
+                console.error("OpenChat botClient.createChannel failed with: ", resp);
+            }
+            return resp;
+        });
     }
 
-    public deleteChannel(channelId: bigint): Promise<BotDeleteChannelResponse> {
-        return this.#botService.deleteChannel(channelId, this.#auth);
+    public deleteChannel(channelId: bigint): Promise<DeleteChannelResponse> {
+        return this.#botService.deleteChannel(channelId, this.#auth).then((resp) => {
+            if (resp.kind !== "success") {
+                console.error("OpenChat botClient.deleteChannel failed with: ", resp);
+            }
+            return resp;
+        });
     }
 
     public get scope(): BotActionScope {

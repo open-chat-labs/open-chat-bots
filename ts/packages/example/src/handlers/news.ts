@@ -11,7 +11,7 @@ type NewsSummary = {
 };
 
 async function scrapeBBCNews(): Promise<NewsSummary[]> {
-  const url = "https://www.bbc.com/news";
+  const url = "https://www.bbc.co.uk/news";
 
   try {
     const response = await fetch(url);
@@ -25,13 +25,13 @@ async function scrapeBBCNews(): Promise<NewsSummary[]> {
 
     $("h3")
       .slice(0, MAX_ARTICLES)
-      .each((_, element) => {
+      .each((i, element) => {
         const title = $(element).text();
         const link = $(element).find("a").attr("href");
         if (link && !link.startsWith("http")) {
           newsSummaries.push({
             title,
-            link: `https://www.bbc.com${link}`,
+            link: `https://www.bbc.co.uk${link}`,
           });
         } else if (link) {
           newsSummaries.push({ title, link });

@@ -14,6 +14,8 @@ import song from "./song";
 import image from "./image";
 import file from "./file";
 import news from "./news";
+import prompt from "./prompt";
+import imagine from "./imagine";
 import start_ping from "./start_ping";
 import stop_ping from "./stop_ping";
 import { WithBotClient } from "../types";
@@ -33,6 +35,10 @@ export default function executeCommand(req: Request, res: Response) {
   console.log("Command: ", client.commandName, client.commandArgs);
 
   switch (client.commandName) {
+    case "prompt":
+      return prompt(req, res);
+    case "imagine":
+      return imagine(req, res);
     case "numbers":
       return numbers(req, res);
     case "poll":

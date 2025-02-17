@@ -38,21 +38,20 @@ async function processImage(filePath: string) {
 
 export default async function image(req: WithBotClient, res: Response) {
   const client = req.botClient;
-  const placeholder = (
-    await client.createTextMessage("Uploading image ...")
-  ).setFinalised(false);
-
-  client.sendMessage(placeholder);
-
-  res.status(200).json(success(placeholder));
-
   const filePath = path.join(__dirname, "..", "..", "picture.png");
   const { uint8Array, width, height, format } = await processImage(filePath);
-
-  client
-    .createImageMessage(uint8Array, `image/${format}`, width, height)
-    .then((imgMsg) =>
-      client.sendMessage(imgMsg.setCaption("This is a test image message"))
+  const imgMsg = (
+    await client.createImageMessage(
+      uint8Array,
+      `image/${format}`,
+      width,
+      height
     )
+  )
+    .setCaption("This is a test image")
+    .setFinalised(true);
+  res.status(200).json(success(imgMsg));
+  client
+    .sendMessage(imgMsg)
     .catch((err) => console.log("sendImageMessage failed with: ", err));
 }
