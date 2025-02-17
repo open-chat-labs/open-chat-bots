@@ -214,6 +214,7 @@ impl TryFrom<CommandArgValue> for UserId {
 pub enum CommandResponse {
     Success(SuccessResult),
     BadRequest(BadRequest),
+    TooManyRequests,
     InternalError(InternalError),
 }
 

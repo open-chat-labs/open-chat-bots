@@ -1,6 +1,6 @@
-use crate::api::{SendMessageArgs, SendMessageResponse};
-use crate::openchat_client::api_key::OpenChatClientForApiKey;
-use crate::types::{AuthToken, CallResult, ChannelId, MessageContent, MessageId};
+use crate::api::send_message;
+use crate::openchat_client_factory::api_key::OpenChatClientForApiKey;
+use crate::types::{CallResult, ChannelId, MessageContent, MessageId};
 use crate::Runtime;
 
 pub struct SendMessageBuilder<R> {
@@ -14,21 +14,26 @@ pub struct SendMessageBuilder<R> {
 
 impl<R: Runtime + Send + Sync + 'static> SendMessageBuilder<R> {
     pub fn new(client: OpenChatClientForApiKey<R>, content: MessageContent) -> Self {
+        let channel_id = client.context.channel_id();
         Self {
             client,
             content,
-            channel_id: None,
+            channel_id,
             message_id: None,
             block_level_markdown: false,
             finalised: true,
         }
     }
 
+    // This only takes effect for community scope
     pub fn with_channel_id(mut self, channel_id: ChannelId) -> Self {
-        self.channel_id = Some(channel_id);
+        if self.channel_id.is_none() {
+            self.channel_id = Some(channel_id);
+        }
         self
     }
 
+    // If this is not set then OpenChat will generate a new message id
     pub fn with_message_id(mut self, message_id: MessageId) -> Self {
         self.message_id = Some(message_id);
         self
@@ -45,41 +50,45 @@ impl<R: Runtime + Send + Sync + 'static> SendMessageBuilder<R> {
     }
 
     pub fn execute<
-        F: FnOnce(SendMessageArgs, CallResult<(SendMessageResponse,)>) + Send + Sync + 'static,
+        F: FnOnce(send_message::Args, CallResult<send_message::Response>) + Send + Sync + 'static,
     >(
         self,
         on_response: F,
     ) {
         let runtime = self.client.runtime.clone();
         let runtime_clone = self.client.runtime.clone();
-        let bot_api_gateway = self.client.context.bot_api_gateway();
+        let bot_api_gateway = self.client.context.api_gateway;
         let args = self.into_args();
 
         runtime.spawn(async move {
             let response = runtime_clone
                 .send_message(bot_api_gateway, args.clone())
-                .await;
+                .await
+                .map(|(r,)| r);
 
             on_response(args, response);
         });
     }
 
-    pub async fn execute_async(self) -> CallResult<(SendMessageResponse,)> {
+    pub async fn execute_async(self) -> CallResult<send_message::Response> {
         let runtime = self.client.runtime.clone();
-        let bot_api_gateway = self.client.context.bot_api_gateway();
+        let bot_api_gateway = self.client.context.api_gateway;
         let args = self.into_args();
 
-        runtime.send_message(bot_api_gateway, args).await
+        runtime
+            .send_message(bot_api_gateway, args)
+            .await
+            .map(|(r,)| r)
     }
 
-    fn into_args(self) -> SendMessageArgs {
-        SendMessageArgs {
+    fn into_args(self) -> send_message::Args {
+        send_message::Args {
             content: self.content,
             channel_id: self.channel_id,
             message_id: self.message_id,
             block_level_markdown: self.block_level_markdown,
             finalised: self.finalised,
-            auth_token: AuthToken::Jwt(self.client.context.into_jwt()),
+            auth_token: self.client.context.token,
         }
     }
 }

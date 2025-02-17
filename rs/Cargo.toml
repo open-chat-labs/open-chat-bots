@@ -12,6 +12,7 @@ resolver = "2"
 [workspace.dependencies]
 async-trait = "0.1.74"
 axum = "0.8.1"
+base64 = "0.22.1"
 candid = "0.10.10"
 clap = "4.5.4"
 ct-codecs = "1.1.1"

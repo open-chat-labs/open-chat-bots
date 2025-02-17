@@ -1,4 +1,4 @@
-use crate::openchat_client::command::send_message::SendMessageBuilder;
+use crate::openchat_client_factory::command::send_message::SendMessageBuilder;
 use crate::types::{BotCommandContext, MessageContent, TextContent};
 use crate::Runtime;
 use std::sync::Arc;

@@ -1,6 +1,7 @@
-use crate::api::{Message, SendMessageArgs, SendMessageResponse};
-use crate::openchat_client::command::OpenChatClientForCommand;
-use crate::types::{AuthToken, CallResult, MessageContent};
+use crate::api::send_message;
+use crate::api::Message;
+use crate::openchat_client_factory::command::OpenChatClientForCommand;
+use crate::types::{CallResult, MessageContent};
 use crate::Runtime;
 
 pub struct SendMessageBuilder<R> {
@@ -31,15 +32,15 @@ impl<R: Runtime + Send + Sync + 'static> SendMessageBuilder<R> {
     }
 
     pub fn execute<
-        F: FnOnce(SendMessageArgs, CallResult<(SendMessageResponse,)>) + Send + Sync + 'static,
+        F: FnOnce(send_message::Args, CallResult<send_message::Response>) + Send + Sync + 'static,
     >(
         self,
         on_response: F,
     ) -> Message {
         let runtime = self.client.runtime.clone();
         let runtime_clone = self.client.runtime.clone();
-        let bot_api_gateway = self.client.context.bot_api_gateway();
-        let message_id = self.client.context.chat_scope().unwrap().message_id;
+        let bot_api_gateway = self.client.context.api_gateway;
+        let message_id = self.client.context.scope.message_id().unwrap();
 
         let args = self.into_args();
 
@@ -53,7 +54,8 @@ impl<R: Runtime + Send + Sync + 'static> SendMessageBuilder<R> {
         runtime.spawn(async move {
             let response = runtime_clone
                 .send_message(bot_api_gateway, args.clone())
-                .await;
+                .await
+                .map(|(r,)| r);
 
             on_response(args, response);
         });
@@ -61,22 +63,25 @@ impl<R: Runtime + Send + Sync + 'static> SendMessageBuilder<R> {
         message
     }
 
-    pub async fn execute_async(self) -> CallResult<(SendMessageResponse,)> {
+    pub async fn execute_async(self) -> CallResult<send_message::Response> {
         let runtime = self.client.runtime.clone();
-        let bot_api_gateway = self.client.context.bot_api_gateway();
+        let bot_api_gateway = self.client.context.api_gateway;
         let args = self.into_args();
 
-        runtime.send_message(bot_api_gateway, args).await
+        runtime
+            .send_message(bot_api_gateway, args)
+            .await
+            .map(|(r,)| r)
     }
 
-    fn into_args(self) -> SendMessageArgs {
-        SendMessageArgs {
+    fn into_args(self) -> send_message::Args {
+        send_message::Args {
             content: self.content,
             channel_id: None,
             message_id: None,
             block_level_markdown: self.block_level_markdown,
             finalised: self.finalised,
-            auth_token: AuthToken::Jwt(self.client.context.into_jwt()),
+            auth_token: self.client.context.token,
         }
     }
 }

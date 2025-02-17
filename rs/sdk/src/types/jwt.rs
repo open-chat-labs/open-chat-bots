@@ -1,8 +1,10 @@
-use super::{AccessTokenScope, BotActionScope, BotPermissions, CanisterId, UserId};
-use crate::api::Command;
+use super::{CanisterId, Chat, MessageId, MessageIndex, UserId};
+use crate::api::{BotPermissions, Command};
+use crate::types::deserialize_message_id;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug)]
 pub enum TokenError {
     Invalid(String),
     Expired,
@@ -23,4 +25,38 @@ pub struct BotActionByApiKeyClaims {
     pub bot: UserId,
     pub scope: AccessTokenScope,
     pub granted_permissions: BotPermissions,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub enum BotActionScope {
+    Chat(BotActionChatDetails),
+    Community(BotActionCommunityDetails),
+}
+
+impl BotActionScope {
+    pub fn message_id(&self) -> Option<MessageId> {
+        match self {
+            BotActionScope::Chat(details) => Some(details.message_id),
+            BotActionScope::Community(_) => None,
+        }
+    }
+}
+
+#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+pub enum AccessTokenScope {
+    Chat(Chat),
+    Community(CanisterId),
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct BotActionChatDetails {
+    pub chat: Chat,
+    pub thread_root_message_index: Option<MessageIndex>,
+    #[serde(deserialize_with = "deserialize_message_id")]
+    pub message_id: MessageId,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct BotActionCommunityDetails {
+    pub community_id: CanisterId,
 }

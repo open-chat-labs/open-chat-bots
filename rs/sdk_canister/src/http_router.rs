@@ -94,6 +94,15 @@ pub struct Request {
     pub body: Vec<u8>,
 }
 
+impl Request {
+    pub fn get_header(&self, name: &str) -> Option<&str> {
+        self.headers
+            .iter()
+            .find(|(header_name, _)| header_name.eq_ignore_ascii_case(name))
+            .map(|(_, value)| value.as_str())
+    }
+}
+
 impl From<HttpRequest> for Request {
     fn from(value: HttpRequest) -> Self {
         Request {
