@@ -18,9 +18,9 @@ use std::sync::LazyLock;
 
 static COMMANDS: LazyLock<CommandHandler<CanisterRuntime>> = LazyLock::new(|| {
     CommandHandler::new(OPENCHAT_CLIENT.clone())
-        .register(Box::new(Greet))
-        .register(Box::new(Joke))
-        .register(Box::new(Fractal))
+        .register(Greet)
+        .register(Joke)
+        .register(Fractal)
 });
 
 pub fn definitions() -> Vec<SlashCommandDefinition> {

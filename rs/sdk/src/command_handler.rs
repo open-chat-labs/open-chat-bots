@@ -23,8 +23,9 @@ impl<R> CommandHandler<R> {
         }
     }
 
-    pub fn register(mut self, command: Box<dyn Command<R>>) -> Self {
-        self.commands.insert(command.name().to_string(), command);
+    pub fn register<C: Command<R> + 'static>(mut self, command: C) -> Self {
+        self.commands
+            .insert(command.name().to_string(), Box::new(command));
         self
     }
 

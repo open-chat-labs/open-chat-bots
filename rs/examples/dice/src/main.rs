@@ -32,8 +32,8 @@ async fn main() {
     )));
 
     let commands = CommandHandler::new(oc_client.clone())
-        .register(Box::new(Coin))
-        .register(Box::new(Roll));
+        .register(Coin)
+        .register(Roll);
 
     let app_state = AppState {
         oc_client,

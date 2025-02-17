@@ -7,19 +7,15 @@ mod commands;
 mod definition;
 mod metrics;
 
-static ROUTER: LazyLock<HttpRouter> = LazyLock::new(|| {
+static ROUTER: LazyLock<HttpRouter> = LazyLock::new(init_router);
+
+fn init_router() -> HttpRouter {
     HttpRouter::default()
-        .route("/execute_command", HttpMethod::POST, |request| {
-            Box::pin(commands::execute(request))
-        })
-        .route("/metrics", HttpMethod::GET, |request| {
-            Box::pin(metrics::get(request))
-        })
-        .route("/blobs/*", HttpMethod::GET, |request| {
-            Box::pin(blobs::get(request))
-        })
-        .fallback(|request| Box::pin(definition::get(request)))
-});
+        .route("/execute_command", HttpMethod::POST, commands::execute)
+        .route("/metrics", HttpMethod::GET, metrics::get)
+        .route("/blobs/*", HttpMethod::GET, blobs::get)
+        .fallback(definition::get)
+}
 
 pub async fn handle(request: HttpRequest, query: bool) -> HttpResponse {
     ROUTER.handle(request, query).await
