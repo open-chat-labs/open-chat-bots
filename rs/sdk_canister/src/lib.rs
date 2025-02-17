@@ -1,3 +1,4 @@
+mod async_handler;
 mod canister_runtime;
 pub mod env;
 mod http_router;
