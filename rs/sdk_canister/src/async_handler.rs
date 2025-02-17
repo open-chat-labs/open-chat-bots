@@ -2,7 +2,7 @@ use std::future::Future;
 use std::ops::Deref;
 use std::pin::Pin;
 
-/**
+/*
 This module converts generic `AsyncHandler` instances to non-generic `BoxedHandler` instances.
 This allows users to provide their own functions or closures, but then have the internal code act
 on non-generic types.
