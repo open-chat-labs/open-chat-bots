@@ -1,15 +1,14 @@
 mod async_handler;
 mod canister_runtime;
 pub mod env;
+mod http_api_key_helper;
 pub mod http_command_handler;
-mod http_response_mappers;
 mod http_router;
-pub mod webhook_handler;
 
 pub use http_router::*;
 
 pub use canister_runtime::CanisterRuntime;
-pub use http_response_mappers::*;
+pub use http_api_key_helper::*;
 use oc_bots_sdk::OpenChatClientFactory;
 use std::sync::{Arc, LazyLock};
 
