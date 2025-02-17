@@ -1,26 +1,31 @@
+use crate::async_handler::{AsyncHandler, BoxedHandler};
 use ic_http_certification::{HttpRequest, HttpResponse};
 use serde::Serialize;
-use std::pin::Pin;
-use std::{future::Future, str::FromStr};
+use std::str::FromStr;
 
 #[derive(Default)]
 pub struct HttpRouter {
     routes: Vec<Route>,
-    fallback: Option<BoxedHandler>,
+    fallback: Option<BoxedHandler<Request, Response>>,
 }
 
 impl HttpRouter {
-    pub fn route<H: Handler>(mut self, path_expr: &str, method: HttpMethod, handler: H) -> Self {
+    pub fn route<H: AsyncHandler<Request, Response>>(
+        mut self,
+        path_expr: &str,
+        method: HttpMethod,
+        handler: H,
+    ) -> Self {
         self.routes.push(Route {
             path_expr: path_expr.to_string(),
             method,
-            handler: handler.into(),
+            handler: BoxedHandler::new(handler),
         });
         self
     }
 
-    pub fn fallback<H: Handler>(mut self, handler: H) -> Self {
-        self.fallback = Some(handler.into());
+    pub fn fallback<H: AsyncHandler<Request, Response>>(mut self, handler: H) -> Self {
+        self.fallback = Some(BoxedHandler::new(handler));
         self
     }
 
@@ -46,9 +51,9 @@ impl HttpRouter {
             .iter()
             .find(|route| Self::does_route_match(route, &lower_path, method))
         {
-            route.handler.0.call(request).await
+            route.handler.call(request).await
         } else if let Some(fallback) = &self.fallback {
-            fallback.0.call(request).await
+            fallback.call(request).await
         } else {
             Response::not_found()
         }
@@ -77,56 +82,10 @@ impl HttpRouter {
     }
 }
 
-pub trait Handler: Clone + Send + Sync + Sized + 'static {
-    type Future: Future<Output = Response> + Send + 'static;
-
-    fn call(self, request: Request) -> Self::Future;
-}
-
-struct BoxedHandler(Box<dyn ErasedHandler>);
-
-impl<H: Handler> From<H> for BoxedHandler {
-    fn from(value: H) -> Self {
-        BoxedHandler(Box::new(MakeErasedHandler::new(value)))
-    }
-}
-
-trait ErasedHandler: Send + Sync {
-    fn call(&self, request: Request) -> Pin<Box<dyn Future<Output = Response>>>;
-}
-
-struct MakeErasedHandler<H> {
-    handler: H,
-}
-
-impl<H> MakeErasedHandler<H> {
-    fn new(handler: H) -> Self {
-        Self { handler }
-    }
-}
-
-impl<H: Handler> ErasedHandler for MakeErasedHandler<H> {
-    fn call(&self, request: Request) -> Pin<Box<dyn Future<Output = Response>>> {
-        Box::pin(self.handler.clone().call(request))
-    }
-}
-
-impl<F, Fut> Handler for F
-where
-    F: Fn(Request) -> Fut + Clone + Send + Sync + 'static,
-    Fut: Future<Output = Response> + Send,
-{
-    type Future = Pin<Box<dyn Future<Output = Response> + Send>>;
-
-    fn call(self, request: Request) -> Self::Future {
-        Box::pin(async move { self.clone()(request).await })
-    }
-}
-
 struct Route {
     path_expr: String,
     method: HttpMethod,
-    handler: BoxedHandler,
+    handler: BoxedHandler<Request, Response>,
 }
 
 pub struct Request {
