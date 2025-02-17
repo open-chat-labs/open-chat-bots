@@ -6,7 +6,7 @@ pub(crate) struct BoxedHandler<Req, Res>(Box<dyn ErasedHandler<Req, Res>>);
 
 impl<Req, Res> BoxedHandler<Req, Res> {
     pub(crate) fn new<H: AsyncHandler<Req, Res>>(handler: H) -> Self {
-        Self(Box::new(MakeErasedHandler::new(handler)))
+        Self(Box::new(ErasedHandlerImpl::new(handler)))
     }
 }
 
@@ -14,17 +14,17 @@ pub(crate) trait ErasedHandler<Req, Res>: Send + Sync {
     fn call(&self, request: Req) -> Pin<Box<dyn Future<Output = Res>>>;
 }
 
-struct MakeErasedHandler<H> {
+struct ErasedHandlerImpl<H> {
     handler: H,
 }
 
-impl<H> MakeErasedHandler<H> {
+impl<H> ErasedHandlerImpl<H> {
     fn new(handler: H) -> Self {
         Self { handler }
     }
 }
 
-impl<H: AsyncHandler<Req, Res>, Req, Res> ErasedHandler<Req, Res> for MakeErasedHandler<H> {
+impl<H: AsyncHandler<Req, Res>, Req, Res> ErasedHandler<Req, Res> for ErasedHandlerImpl<H> {
     fn call(&self, request: Req) -> Pin<Box<dyn Future<Output = Res>>> {
         Box::pin(self.handler.clone().call(request))
     }
