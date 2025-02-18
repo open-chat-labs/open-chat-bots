@@ -1,19 +1,25 @@
-use oc_bots_sdk::{api::BadRequest, types::BotApiKeyContext};
-use oc_bots_sdk_canister::map_create_channel_response;
-use oc_bots_sdk_canister::Request as HttpRequest;
-use oc_bots_sdk_canister::Response as HttpResponse;
+use oc_bots_sdk::api::create_channel;
+use oc_bots_sdk::types::AuthToken;
+use oc_bots_sdk_canister::HttpRequest;
+use oc_bots_sdk_canister::HttpResponse;
 use oc_bots_sdk_canister::OPENCHAT_CLIENT_FACTORY;
 
 #[derive(serde::Deserialize)]
 struct Args {
     channel_name: String,
     is_public: bool,
+    auth_token: AuthToken,
 }
 
-pub async fn execute(request: HttpRequest, context: BotApiKeyContext) -> HttpResponse {
-    let args: Args = match serde_json::from_slice(&request.body) {
+pub async fn execute(request: HttpRequest) -> HttpResponse {
+    let args: Args = match super::extract_args(&request) {
         Ok(args) => args,
-        Err(_) => return HttpResponse::json(400, &BadRequest::ArgsInvalid),
+        Err(response) => return response,
+    };
+
+    let context = match super::extract_context(args.auth_token) {
+        Ok(cxt) => cxt,
+        Err(response) => return response,
     };
 
     let response = OPENCHAT_CLIENT_FACTORY
@@ -23,5 +29,11 @@ pub async fn execute(request: HttpRequest, context: BotApiKeyContext) -> HttpRes
         .execute_async()
         .await;
 
-    map_create_channel_response(response)
+    match response {
+        Ok(create_channel::Response::Success(result)) => {
+            HttpResponse::text(200, result.channel_id.to_string())
+        }
+        Err((code, message)) => HttpResponse::text(500, format!("{}: {}", code, message)),
+        other => HttpResponse::text(500, format!("{:?}", other)),
+    }
 }

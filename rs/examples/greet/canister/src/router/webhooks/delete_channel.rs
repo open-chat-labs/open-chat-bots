@@ -1,19 +1,25 @@
+use oc_bots_sdk::api::delete_channel;
+use oc_bots_sdk::types::AuthToken;
 use oc_bots_sdk::types::ChannelId;
-use oc_bots_sdk::{api::BadRequest, types::BotApiKeyContext};
-use oc_bots_sdk_canister::map_delete_channel_response;
-use oc_bots_sdk_canister::Request as HttpRequest;
-use oc_bots_sdk_canister::Response as HttpResponse;
+use oc_bots_sdk_canister::HttpRequest;
+use oc_bots_sdk_canister::HttpResponse;
 use oc_bots_sdk_canister::OPENCHAT_CLIENT_FACTORY;
 
 #[derive(serde::Deserialize)]
 struct Args {
     channel_id: ChannelId,
+    auth_token: AuthToken,
 }
 
-pub async fn execute(request: HttpRequest, context: BotApiKeyContext) -> HttpResponse {
-    let args: Args = match serde_json::from_slice(&request.body) {
+pub async fn execute(request: HttpRequest) -> HttpResponse {
+    let args: Args = match super::extract_args(&request) {
         Ok(args) => args,
-        Err(_) => return HttpResponse::json(400, &BadRequest::ArgsInvalid),
+        Err(response) => return response,
+    };
+
+    let context = match super::extract_context(args.auth_token) {
+        Ok(cxt) => cxt,
+        Err(response) => return response,
     };
 
     let response = OPENCHAT_CLIENT_FACTORY
@@ -23,5 +29,9 @@ pub async fn execute(request: HttpRequest, context: BotApiKeyContext) -> HttpRes
         .execute_async()
         .await;
 
-    map_delete_channel_response(response)
+    match response {
+        Ok(delete_channel::Response::Success) => HttpResponse::status(200),
+        Err((code, message)) => HttpResponse::text(500, format!("{}: {}", code, message)),
+        other => HttpResponse::text(500, format!("{:?}", other)),
+    }
 }

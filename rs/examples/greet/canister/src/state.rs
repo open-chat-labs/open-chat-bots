@@ -65,6 +65,7 @@ impl State {
                 inserted += 1;
             }
         }
+        self.metrics.joke_count += inserted;
         inserted
     }
 

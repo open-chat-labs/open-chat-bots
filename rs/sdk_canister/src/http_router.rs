@@ -1,16 +1,17 @@
 use crate::async_handler::{AsyncHandler, BoxedHandler};
-use ic_http_certification::{HttpRequest, HttpResponse};
+use ic_http_certification::HttpRequest as CanisterHttpRequest;
+use ic_http_certification::HttpResponse as CanisterHttpResponse;
 use serde::Serialize;
 use std::str::FromStr;
 
 #[derive(Default)]
 pub struct HttpRouter {
     routes: Vec<Route>,
-    fallback: Option<BoxedHandler<Request, Response>>,
+    fallback: Option<BoxedHandler<HttpRequest, HttpResponse>>,
 }
 
 impl HttpRouter {
-    pub fn route<H: AsyncHandler<Request, Response>>(
+    pub fn route<H: AsyncHandler<HttpRequest, HttpResponse>>(
         mut self,
         path_expr: &str,
         method: HttpMethod,
@@ -24,26 +25,26 @@ impl HttpRouter {
         self
     }
 
-    pub fn fallback<H: AsyncHandler<Request, Response>>(mut self, handler: H) -> Self {
+    pub fn fallback<H: AsyncHandler<HttpRequest, HttpResponse>>(mut self, handler: H) -> Self {
         self.fallback = Some(BoxedHandler::new(handler));
         self
     }
 
-    pub async fn handle(&self, request: HttpRequest, query: bool) -> HttpResponse {
+    pub async fn handle(&self, request: CanisterHttpRequest, query: bool) -> CanisterHttpResponse {
         let Ok(method) = request.method.parse() else {
-            return Response::method_not_allowed().into();
+            return HttpResponse::method_not_allowed().into();
         };
 
         if query && method == HttpMethod::POST {
             return HttpRouter::upgrade();
         } else if !query && method != HttpMethod::POST {
-            return Response::method_not_allowed().into();
+            return HttpResponse::method_not_allowed().into();
         }
 
         (self.handle_inner(method, request.into()).await).into()
     }
 
-    async fn handle_inner(&self, method: HttpMethod, request: Request) -> Response {
+    async fn handle_inner(&self, method: HttpMethod, request: HttpRequest) -> HttpResponse {
         let lower_path = request.path.to_lowercase();
 
         if let Some(route) = self
@@ -55,7 +56,7 @@ impl HttpRouter {
         } else if let Some(fallback) = &self.fallback {
             fallback.call(request).await
         } else {
-            Response::not_found()
+            HttpResponse::not_found()
         }
     }
 
@@ -69,8 +70,8 @@ impl HttpRouter {
             .map_or_else(|| path == path_expr, |prefix| path.starts_with(prefix))
     }
 
-    fn upgrade() -> HttpResponse {
-        HttpResponse {
+    fn upgrade() -> CanisterHttpResponse {
+        CanisterHttpResponse {
             status_code: 200,
             headers: vec![
                 ("Access-Control-Allow-Origin".to_string(), "*".to_string()),
@@ -85,16 +86,16 @@ impl HttpRouter {
 struct Route {
     path_expr: String,
     method: HttpMethod,
-    handler: BoxedHandler<Request, Response>,
+    handler: BoxedHandler<HttpRequest, HttpResponse>,
 }
 
-pub struct Request {
+pub struct HttpRequest {
     pub path: String,
     pub headers: Vec<(String, String)>,
     pub body: Vec<u8>,
 }
 
-impl Request {
+impl HttpRequest {
     pub fn get_header(&self, name: &str) -> Option<&str> {
         self.headers
             .iter()
@@ -103,9 +104,9 @@ impl Request {
     }
 }
 
-impl From<HttpRequest> for Request {
-    fn from(value: HttpRequest) -> Self {
-        Request {
+impl From<CanisterHttpRequest> for HttpRequest {
+    fn from(value: CanisterHttpRequest) -> Self {
+        HttpRequest {
             path: value.get_path().unwrap_or_default(),
             headers: value.headers,
             body: value.body,
@@ -113,15 +114,15 @@ impl From<HttpRequest> for Request {
     }
 }
 
-pub struct Response {
+pub struct HttpResponse {
     pub status_code: u16,
     pub headers: Vec<(String, String)>,
     pub body: Vec<u8>,
 }
 
-impl Response {
-    pub fn new(status_code: u16, body: Vec<u8>, mime_type: &str) -> Response {
-        Response {
+impl HttpResponse {
+    pub fn new(status_code: u16, body: Vec<u8>, mime_type: &str) -> HttpResponse {
+        HttpResponse {
             status_code,
             headers: vec![
                 ("content-type".to_string(), mime_type.to_string()),
@@ -133,7 +134,7 @@ impl Response {
         }
     }
 
-    pub fn json<T>(status_code: u16, value: &T) -> Response
+    pub fn json<T>(status_code: u16, value: &T) -> HttpResponse
     where
         T: ?Sized + Serialize,
     {
@@ -144,7 +145,7 @@ impl Response {
         )
     }
 
-    pub fn text(status_code: u16, text: String) -> Response {
+    pub fn text(status_code: u16, text: String) -> HttpResponse {
         Self::new(status_code, text.into_bytes(), "text/plain")
     }
 
@@ -165,9 +166,9 @@ impl Response {
     }
 }
 
-impl From<Response> for HttpResponse {
-    fn from(value: Response) -> Self {
-        HttpResponse {
+impl From<HttpResponse> for CanisterHttpResponse {
+    fn from(value: HttpResponse) -> Self {
+        CanisterHttpResponse {
             status_code: value.status_code,
             headers: value.headers,
             body: value.body,

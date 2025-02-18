@@ -12,7 +12,7 @@ use oc_bots_sdk_canister::env::now;
 use oc_bots_sdk_canister::http_command_handler;
 use oc_bots_sdk_canister::CanisterRuntime;
 use oc_bots_sdk_canister::OPENCHAT_CLIENT_FACTORY;
-use oc_bots_sdk_canister::{Request, Response};
+use oc_bots_sdk_canister::{HttpRequest, HttpResponse};
 use std::sync::LazyLock;
 
 static COMMANDS: LazyLock<CommandHandler<CanisterRuntime>> = LazyLock::new(|| {
@@ -26,7 +26,7 @@ pub fn definitions() -> Vec<SlashCommandDefinition> {
     COMMANDS.definitions()
 }
 
-pub async fn execute(request: Request) -> Response {
+pub async fn execute(request: HttpRequest) -> HttpResponse {
     let public_key = state::read(|state| state.oc_public_key().to_string());
     let now = now();
 
