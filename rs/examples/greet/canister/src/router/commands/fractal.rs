@@ -1,14 +1,16 @@
 use crate::state;
 use crate::state::Blob;
 use async_trait::async_trait;
+use oc_bots_sdk::api::command_handler::Command;
 use oc_bots_sdk::api::{
     BotPermissions, DecimalParam, MessagePermission, SlashCommandDefinition, SlashCommandParam,
     SlashCommandParamType, SuccessResult,
 };
-use oc_bots_sdk::api_gateway::actions::send_message;
+use oc_bots_sdk::create_thumbnail;
+use oc_bots_sdk::oc_api::actions::send_message;
+use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::MessageContent;
 use oc_bots_sdk::types::{BlobReference, BotCommandContext, ImageContent};
-use oc_bots_sdk::{create_thumbnail, Command, OpenChatClientFactory};
 use oc_bots_sdk_canister::{env, CanisterRuntime};
 use std::collections::HashSet;
 use std::io::Cursor;
@@ -27,7 +29,7 @@ impl Command<CanisterRuntime> for Fractal {
     async fn execute(
         &self,
         cxt: BotCommandContext,
-        oc_client_factory: &OpenChatClientFactory<CanisterRuntime>,
+        oc_client_factory: &ClientFactory<CanisterRuntime>,
     ) -> Result<SuccessResult, String> {
         let r = cxt.command.arg("real");
         let i = cxt.command.arg("imaginary");

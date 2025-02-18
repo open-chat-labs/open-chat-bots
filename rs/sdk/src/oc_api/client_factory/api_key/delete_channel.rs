@@ -1,17 +1,17 @@
-use super::OpenChatClientForApiKey;
-use crate::api_gateway::actions::delete_channel::*;
-use crate::api_gateway::actions::ActionArgsBuilder;
+use super::ClientForApiKey;
+use crate::oc_api::actions::delete_channel::*;
+use crate::oc_api::actions::ActionArgsBuilder;
 use crate::types::{CanisterId, ChannelId};
 use crate::Runtime;
 use std::sync::Arc;
 
 pub struct DeleteChannelBuilder<R> {
-    client: OpenChatClientForApiKey<R>,
+    client: ClientForApiKey<R>,
     channel_id: ChannelId,
 }
 
 impl<R: Runtime> DeleteChannelBuilder<R> {
-    pub fn new(client: OpenChatClientForApiKey<R>, channel_id: ChannelId) -> Self {
+    pub fn new(client: ClientForApiKey<R>, channel_id: ChannelId) -> Self {
         DeleteChannelBuilder { client, channel_id }
     }
 }

@@ -6,8 +6,8 @@ use axum::Router;
 use clap::Parser;
 use commands::coin::Coin;
 use commands::roll::Roll;
-use oc_bots_sdk::api::{BotDefinition, CommandResponse};
-use oc_bots_sdk::{CommandHandler, OpenChatClientFactory};
+use oc_bots_sdk::api::{BotDefinition, CommandHandler, CommandResponse};
+use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk_offchain::env;
 use oc_bots_sdk_offchain::AgentRuntime;
 use std::sync::Arc;
@@ -26,7 +26,7 @@ async fn main() {
 
     let agent = oc_bots_sdk_offchain::build_agent(ic_url, &config.pem_file).await;
 
-    let oc_client_factory = Arc::new(OpenChatClientFactory::new(AgentRuntime::new(
+    let oc_client_factory = Arc::new(ClientFactory::new(AgentRuntime::new(
         agent,
         tokio::runtime::Runtime::new().unwrap(),
     )));
@@ -90,7 +90,7 @@ async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> (S
 
 struct AppState {
     #[allow(dead_code)]
-    oc_client_factory: Arc<OpenChatClientFactory<AgentRuntime>>,
+    oc_client_factory: Arc<ClientFactory<AgentRuntime>>,
     oc_public_key: String,
     commands: CommandHandler<AgentRuntime>,
 }

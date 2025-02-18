@@ -1,26 +1,44 @@
-use crate::api::Message;
-use crate::api_gateway::actions::send_message::*;
-use crate::api_gateway::actions::ActionArgsBuilder;
-use crate::openchat_client_factory::command::OpenChatClientForCommand;
-use crate::types::{CallResult, CanisterId, MessageContent};
+use crate::oc_api::actions::send_message::*;
+use crate::oc_api::actions::ActionArgsBuilder;
+use crate::oc_api::client_factory::api_key::ClientForApiKey;
+use crate::types::{CanisterId, ChannelId, MessageContent, MessageId};
 use crate::Runtime;
 use std::sync::Arc;
 
 pub struct SendMessageBuilder<R> {
-    client: OpenChatClientForCommand<R>,
+    client: ClientForApiKey<R>,
     content: MessageContent,
+    channel_id: Option<ChannelId>,
+    message_id: Option<MessageId>,
     block_level_markdown: bool,
     finalised: bool,
 }
 
 impl<R: Runtime> SendMessageBuilder<R> {
-    pub fn new(client: OpenChatClientForCommand<R>, content: MessageContent) -> Self {
+    pub fn new(client: ClientForApiKey<R>, content: MessageContent) -> Self {
+        let channel_id = client.context.channel_id();
         Self {
             client,
             content,
+            channel_id,
+            message_id: None,
             block_level_markdown: false,
             finalised: true,
         }
+    }
+
+    // This only takes effect for community scope
+    pub fn with_channel_id(mut self, channel_id: ChannelId) -> Self {
+        if self.channel_id.is_none() {
+            self.channel_id = Some(channel_id);
+        }
+        self
+    }
+
+    // If this is not set then OpenChat will generate a new message id
+    pub fn with_message_id(mut self, message_id: MessageId) -> Self {
+        self.message_id = Some(message_id);
+        self
     }
 
     pub fn with_block_level_markdown(mut self, block_level_markdown: bool) -> Self {
@@ -31,22 +49,6 @@ impl<R: Runtime> SendMessageBuilder<R> {
     pub fn with_finalised(mut self, finalised: bool) -> Self {
         self.finalised = finalised;
         self
-    }
-
-    pub fn execute_then_return_message<
-        F: FnOnce(Args, CallResult<Response>) + Send + Sync + 'static,
-    >(
-        self,
-        on_response: F,
-    ) -> Message {
-        let message = Message {
-            id: self.client.context.scope.message_id().unwrap(),
-            content: self.content.clone(),
-            finalised: self.finalised,
-            block_level_markdown: self.block_level_markdown,
-        };
-        self.execute(on_response);
-        message
     }
 }
 
@@ -64,8 +66,8 @@ impl<R: Runtime> ActionArgsBuilder<R> for SendMessageBuilder<R> {
     fn into_args(self) -> Args {
         Args {
             content: self.content,
-            channel_id: None,
-            message_id: None,
+            channel_id: self.channel_id,
+            message_id: self.message_id,
             block_level_markdown: self.block_level_markdown,
             finalised: self.finalised,
             auth_token: self.client.context.token,

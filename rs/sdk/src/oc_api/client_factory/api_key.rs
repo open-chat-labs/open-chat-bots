@@ -1,4 +1,4 @@
-use crate::openchat_client_factory::api_key::send_message::SendMessageBuilder;
+use crate::oc_api::client_factory::api_key::send_message::SendMessageBuilder;
 use crate::types::{BotApiKeyContext, ChannelId, MessageContent};
 use crate::Runtime;
 use create_channel::CreateChannelBuilder;
@@ -9,14 +9,14 @@ mod create_channel;
 mod delete_channel;
 mod send_message;
 
-pub struct OpenChatClientForApiKey<R> {
+pub struct ClientForApiKey<R> {
     runtime: Arc<R>,
     context: BotApiKeyContext,
 }
 
-impl<R: Runtime> OpenChatClientForApiKey<R> {
+impl<R: Runtime> ClientForApiKey<R> {
     pub fn new(runtime: Arc<R>, context: BotApiKeyContext) -> Self {
-        OpenChatClientForApiKey { runtime, context }
+        ClientForApiKey { runtime, context }
     }
 
     pub fn send_message(self, content: MessageContent) -> SendMessageBuilder<R> {

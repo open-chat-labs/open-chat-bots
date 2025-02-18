@@ -1,22 +1,19 @@
+use crate::api::{
+    BadRequest, CommandArg, CommandArgValue, CommandResponse, InternalError,
+    SlashCommandDefinition, SlashCommandParam, SlashCommandParamType, SuccessResult,
+};
+use crate::oc_api::client_factory::ClientFactory;
+use crate::types::{BotCommandContext, TimestampMillis, TokenError};
 use async_trait::async_trait;
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{
-    api::{
-        BadRequest, CommandArg, CommandArgValue, CommandResponse, InternalError,
-        SlashCommandDefinition, SlashCommandParam, SlashCommandParamType, SuccessResult,
-    },
-    types::{BotCommandContext, TimestampMillis, TokenError},
-    OpenChatClientFactory,
-};
-
 pub struct CommandHandler<R> {
     commands: HashMap<String, Box<dyn Command<R>>>,
-    oc_client_factory: Arc<OpenChatClientFactory<R>>,
+    oc_client_factory: Arc<ClientFactory<R>>,
 }
 
 impl<R> CommandHandler<R> {
-    pub fn new(oc_client_factory: Arc<OpenChatClientFactory<R>>) -> CommandHandler<R> {
+    pub fn new(oc_client_factory: Arc<ClientFactory<R>>) -> CommandHandler<R> {
         Self {
             commands: HashMap::new(),
             oc_client_factory,
@@ -86,7 +83,7 @@ pub trait Command<R>: Send + Sync {
     async fn execute(
         &self,
         context: BotCommandContext,
-        oc_client_factory: &OpenChatClientFactory<R>,
+        oc_client_factory: &ClientFactory<R>,
     ) -> Result<SuccessResult, String>;
 
     fn name(&self) -> &str {

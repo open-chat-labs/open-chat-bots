@@ -1,10 +1,11 @@
 use async_trait::async_trait;
+use oc_bots_sdk::api::command_handler::Command;
 use oc_bots_sdk::api::{
     BotPermissions, IntegerParam, MessagePermission, SlashCommandDefinition, SlashCommandParam,
     SlashCommandParamType, SuccessResult,
 };
+use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::BotCommandContext;
-use oc_bots_sdk::{Command, OpenChatClientFactory};
 use oc_bots_sdk_offchain::AgentRuntime;
 use rand::random;
 use std::{collections::HashSet, sync::LazyLock};
@@ -22,7 +23,7 @@ impl Command<AgentRuntime> for Coin {
     async fn execute(
         &self,
         cxt: BotCommandContext,
-        oc_client_factory: &OpenChatClientFactory<AgentRuntime>,
+        oc_client_factory: &ClientFactory<AgentRuntime>,
     ) -> Result<SuccessResult, String> {
         let count = cxt.command.maybe_arg("count").unwrap_or(1);
 

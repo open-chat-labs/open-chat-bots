@@ -1,9 +1,10 @@
 use crate::state;
 use async_trait::async_trait;
+use oc_bots_sdk::api::command_handler::Command;
 use oc_bots_sdk::api::{BotPermissions, MessagePermission, SlashCommandDefinition, SuccessResult};
-use oc_bots_sdk::api_gateway::actions::send_message;
+use oc_bots_sdk::oc_api::actions::send_message;
+use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::BotCommandContext;
-use oc_bots_sdk::{Command, OpenChatClientFactory};
 use oc_bots_sdk_canister::CanisterRuntime;
 use std::collections::HashSet;
 use std::sync::LazyLock;
@@ -21,7 +22,7 @@ impl Command<CanisterRuntime> for Greet {
     async fn execute(
         &self,
         cxt: BotCommandContext,
-        oc_client_factory: &OpenChatClientFactory<CanisterRuntime>,
+        oc_client_factory: &ClientFactory<CanisterRuntime>,
     ) -> Result<SuccessResult, String> {
         let user_id = cxt.command.initiator;
         let text = format!("hello @UserId({user_id})");

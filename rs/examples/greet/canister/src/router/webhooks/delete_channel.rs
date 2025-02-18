@@ -1,4 +1,4 @@
-use oc_bots_sdk::api_gateway::actions::{delete_channel, ActionArgsBuilder};
+use oc_bots_sdk::oc_api::actions::{delete_channel, ActionArgsBuilder};
 use oc_bots_sdk::types::{AuthToken, ChannelId};
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
 

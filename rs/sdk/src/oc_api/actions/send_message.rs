@@ -1,4 +1,4 @@
-use crate::api_gateway::actions::ActionDef;
+use crate::oc_api::actions::ActionDef;
 use crate::types::{
     AuthToken, ChannelId, EventIndex, MessageContent, MessageId, MessageIndex, TimestampMillis,
 };

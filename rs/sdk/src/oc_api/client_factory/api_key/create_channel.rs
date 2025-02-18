@@ -1,12 +1,12 @@
-use super::OpenChatClientForApiKey;
-use crate::api_gateway::actions::create_channel::*;
-use crate::api_gateway::actions::ActionArgsBuilder;
+use super::ClientForApiKey;
+use crate::oc_api::actions::create_channel::*;
+use crate::oc_api::actions::ActionArgsBuilder;
 use crate::types::{AccessGateConfig, CanisterId, Document, GroupPermissions, Milliseconds, Rules};
 use crate::Runtime;
 use std::sync::Arc;
 
 pub struct CreateChannelBuilder<R> {
-    client: OpenChatClientForApiKey<R>,
+    client: ClientForApiKey<R>,
     name: String,
     is_public: bool,
     description: String,
@@ -21,7 +21,7 @@ pub struct CreateChannelBuilder<R> {
 }
 
 impl<R: Runtime> CreateChannelBuilder<R> {
-    pub fn new(client: OpenChatClientForApiKey<R>, name: String, is_public: bool) -> Self {
+    pub fn new(client: ClientForApiKey<R>, name: String, is_public: bool) -> Self {
         CreateChannelBuilder {
             client,
             name,
