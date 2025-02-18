@@ -2,9 +2,8 @@ import jwt from "jsonwebtoken";
 import { BadRequestError } from "../utils/error_response";
 import { HttpAgent } from "@dfinity/agent";
 import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
-import { type BotActionScope, type Chat, BotCommandArg, BotCommand } from "../typebox/typebox";
+import { BotCommandArg, BotCommand } from "../typebox/typebox";
 import { DataClient } from "../services/data/data.client";
-import { Principal } from "@dfinity/principal";
 import {
     FileMessage,
     ImageMessage,
@@ -16,14 +15,25 @@ import {
     type DecodedJwt,
     type DecodedPayload,
     type Message,
-    type BotActionChatScope,
-    type BotActionCommunityScope,
     type SendMessageResponse,
     type CreateChannelResponse,
     type DeleteChannelResponse,
+    type MergedActionScope,
+    type MergedActionChatScope,
+    type MergedActionCommunityScope,
+    type ChatIdentifier,
+    type RawApiKey,
+    type RawCommandJwt,
+    type RawApiKeyJwt,
 } from "../domain";
 import type { Channel } from "../domain/channel";
-import { apiOptional } from "../mapping";
+import {
+    apiOptional,
+    mapApiKey,
+    mapApiKeyJwt,
+    mapCommandJwt,
+    principalBytesToString,
+} from "../mapping";
 
 export class BotClient {
     #botService: BotGatewayClient;
@@ -40,8 +50,11 @@ export class BotClient {
             case "api_key":
                 this.#decoded = this.#decodeApiKey(this.#auth.token);
                 break;
-            case "jwt":
-                this.#decoded = this.#decodeJwt(this.#auth.token);
+            case "command_jwt":
+                this.#decoded = this.#decodeCommandJwt(this.#auth.token);
+                break;
+            case "api_jwt":
+                this.#decoded = this.#decodeApiKeyJwt(this.#auth.token);
                 break;
         }
         this.#botService = new BotGatewayClient(this.#botApiGateway, agent, env);
@@ -60,15 +73,31 @@ export class BotClient {
         const buffer = Buffer.from(apiKey, "base64");
         const decoded = buffer.toString("utf-8");
         const json = JSON.parse(decoded);
-        return { ...json, kind: "api_key" } as DecodedApiKey;
+        return mapApiKey(json as RawApiKey);
     }
 
-    #decodeJwt(token: string): DecodedJwt {
+    #decodeCommandJwt(token: string): DecodedJwt {
         const publicKey = this.#env.openchatPublicKey.replace(/\\n/g, "\n");
         try {
             const decoded = jwt.verify(token, publicKey, { algorithms: ["ES256"] });
             if (typeof decoded !== "string") {
-                return { ...decoded, kind: "jwt" } as DecodedJwt;
+                return mapCommandJwt(decoded as RawCommandJwt);
+            } else {
+                console.error(`Unable to decode jwt`, token);
+                throw new BadRequestError("AccessTokenInvalid");
+            }
+        } catch (err) {
+            console.error(`Unable to decode jwt`, err, token);
+            throw new BadRequestError("AccessTokenInvalid");
+        }
+    }
+
+    #decodeApiKeyJwt(token: string): DecodedJwt {
+        const publicKey = this.#env.openchatPublicKey.replace(/\\n/g, "\n");
+        try {
+            const decoded = jwt.verify(token, publicKey, { algorithms: ["ES256"] });
+            if (typeof decoded !== "string") {
+                return mapApiKeyJwt(decoded as RawApiKeyJwt);
             } else {
                 console.error(`Unable to decode jwt`, token);
                 throw new BadRequestError("AccessTokenInvalid");
@@ -81,19 +110,16 @@ export class BotClient {
 
     #extractCanisterFromChat() {
         if (isChatScope(this.scope)) {
-            if ("Group" in this.scope.Chat.chat) {
-                return this.scope.Chat.chat.Group.toString();
-            } else if ("Channel" in this.scope.Chat.chat) {
-                return this.scope.Chat.chat.Channel[0].toString();
-            } else if ("Direct" in this.scope.Chat.chat) {
-                return this.scope.Chat.chat.Direct.toString();
+            switch (this.scope.chat.kind) {
+                case "group_chat":
+                    return this.scope.chat.groupId;
+                case "channel":
+                    return this.scope.chat.communityId;
+                case "direct_chat":
+                    return this.scope.chat.userId;
             }
         }
         return "";
-    }
-
-    #principalBytesToString(bytes: Uint8Array): string {
-        return Principal.fromUint8Array(bytes).toString();
     }
 
     #hasCommand(decoded: DecodedPayload): decoded is DecodedJwt {
@@ -137,25 +163,25 @@ export class BotClient {
         });
     }
 
-    public get scope(): BotActionScope {
+    public get scope(): MergedActionScope {
         return this.#decoded.scope;
     }
 
-    public get chatScope(): BotActionChatScope | undefined {
+    public get chatScope(): MergedActionChatScope | undefined {
         if (isChatScope(this.scope)) {
             return this.scope;
         }
     }
 
-    public get communityScope(): BotActionCommunityScope | undefined {
+    public get communityScope(): MergedActionCommunityScope | undefined {
         if (isCommunityScope(this.scope)) {
             return this.scope;
         }
     }
 
     public get messageId(): bigint | undefined {
-        if (isChatScope(this.scope) && this.scope.Chat.message_id !== undefined) {
-            return BigInt(this.scope.Chat.message_id);
+        if (isChatScope(this.scope) && this.scope.messageId !== undefined) {
+            return BigInt(this.scope.messageId);
         }
     }
 
@@ -182,16 +208,16 @@ export class BotClient {
     public userArg(name: string): string | undefined {
         const arg = this.#namedArg(name);
         return arg !== undefined && "User" in arg.value
-            ? this.#principalBytesToString(arg.value.User)
+            ? principalBytesToString(arg.value.User)
             : undefined;
     }
 
     public get threadRootMessageId(): number | undefined | null {
-        return this.chatScope?.Chat?.thread;
+        return this.chatScope?.thread;
     }
 
-    public get chatId(): Chat | undefined {
-        return this.chatScope?.Chat?.chat;
+    public get chatId(): ChatIdentifier | undefined {
+        return this.chatScope?.chat;
     }
 
     public get botId(): string {
@@ -212,7 +238,7 @@ export class BotClient {
     }
 
     public get initiator(): string | undefined {
-        return apiOptional(this.command?.initiator, this.#principalBytesToString);
+        return apiOptional(this.command?.initiator, principalBytesToString);
     }
 
     createTextMessage(text: string): Promise<TextMessage> {
@@ -266,10 +292,10 @@ export class BotClient {
     }
 }
 
-export function isChatScope(scope: BotActionScope): scope is BotActionChatScope {
-    return "Chat" in scope;
+export function isChatScope(scope: MergedActionScope): scope is MergedActionChatScope {
+    return scope.kind === "chat";
 }
 
-export function isCommunityScope(scope: BotActionScope): scope is BotActionCommunityScope {
-    return "Community" in scope;
+export function isCommunityScope(scope: MergedActionScope): scope is MergedActionCommunityScope {
+    return scope.kind === "community";
 }

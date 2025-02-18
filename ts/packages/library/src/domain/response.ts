@@ -16,7 +16,7 @@ export type DeleteChannelFailure =
 
 export type CreateChannelSuccess = {
     kind: "success";
-    channelId: bigint;
+    channelId: number;
 };
 
 export type CreateChannelFailure =

@@ -10,6 +10,15 @@ import type {
     PermissionRole,
     CreateChannelResponse,
     DeleteChannelResponse,
+    DecodedApiKey,
+    RawApiKey,
+    ApiKeyActionScope,
+    MergedActionScope,
+    ChatIdentifier,
+    RawCommandJwt,
+    DecodedJwt,
+    CommandActionScope,
+    RawApiKeyJwt,
 } from "../domain";
 import type {
     AuthToken as ApiAuthToken,
@@ -23,11 +32,96 @@ import type {
     LocalUserIndexBotDeleteChannelResponse as BotDeleteChannelResponse,
     LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
     LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
+    Chat,
 } from "../typebox/typebox";
+import { toBigInt32, toBigInt64 } from "../utils/bigint";
 
 function nullish<T>(val?: T | null | undefined): T | undefined {
     if (val == null) return undefined;
     return val;
+}
+
+export function mapApiKeyJwt(api: RawApiKeyJwt): DecodedJwt {
+    return {
+        ...api,
+        kind: "jwt",
+        scope: mapApiKeyScope(api.scope),
+    };
+}
+
+export function mapCommandJwt(api: RawCommandJwt): DecodedJwt {
+    return {
+        ...api,
+        kind: "jwt",
+        scope: mapCommandScope(api.scope),
+    };
+}
+
+export function mapApiKey(api: RawApiKey): DecodedApiKey {
+    return {
+        kind: "api_key",
+        gateway: api.gateway,
+        bot_id: api.bot_id,
+        scope: mapApiKeyScope(api.scope),
+        secret: api.secret,
+    };
+}
+
+export function mapCommandScope(api: CommandActionScope): MergedActionScope {
+    if ("Chat" in api) {
+        return {
+            kind: "chat",
+            chat: mapChatIdentifier(api.Chat.chat),
+            thread: api.Chat.thread,
+            messageId: api.Chat.message_id ? toBigInt64(api.Chat.message_id) : undefined,
+        };
+    }
+    if ("Community" in api) {
+        return {
+            kind: "community",
+            communityId: {
+                kind: "community",
+                communityId: principalBytesToString(api.Community.community_id),
+            },
+        };
+    }
+    throw new Error(`Unexpected ApiKeyActionScope: ${api}`);
+}
+
+export function mapApiKeyScope(api: ApiKeyActionScope): MergedActionScope {
+    if ("Chat" in api) {
+        return {
+            kind: "chat",
+            chat: mapChatIdentifier(api.Chat),
+        };
+    }
+    if ("Community" in api) {
+        return {
+            kind: "community",
+            communityId: {
+                kind: "community",
+                communityId: principalBytesToString(api.Community.community_id),
+            },
+        };
+    }
+    throw new Error(`Unexpected ApiKeyActionScope: ${api}`);
+}
+
+export function mapChatIdentifier(api: Chat): ChatIdentifier {
+    if ("Group" in api) {
+        return { kind: "group_chat", groupId: principalBytesToString(api.Group) };
+    }
+    if ("Direct" in api) {
+        return { kind: "direct_chat", userId: principalBytesToString(api.Direct) };
+    }
+    if ("Channel" in api) {
+        return {
+            kind: "channel",
+            communityId: principalBytesToString(api.Channel[0]),
+            channelId: Number(toBigInt32(api.Channel[1])),
+        };
+    }
+    throw new Error(`Unexpected Chat type received: ${api}`);
 }
 
 export function sendMessageResponse(api: BotSendMessageResponse): SendMessageResponse {
@@ -35,7 +129,7 @@ export function sendMessageResponse(api: BotSendMessageResponse): SendMessageRes
         if ("Success" in api) {
             return {
                 kind: "success",
-                messageId: api.Success.message_id,
+                messageId: toBigInt64(api.Success.message_id),
                 eventIndex: api.Success.event_index,
                 messageIndex: api.Success.message_index,
                 timestamp: api.Success.timestamp,
@@ -66,7 +160,7 @@ export function createChannelResponse(api: BotCreateChannelResponse): CreateChan
         if ("Success" in api) {
             return {
                 kind: "success",
-                channelId: api.Success.channel_id,
+                channelId: Number(toBigInt32(api.Success.channel_id)),
             };
         }
         if ("FailedAuthentication" in api) {
@@ -111,7 +205,7 @@ export function apiAuthToken(auth: AuthToken): ApiAuthToken {
             return {
                 ApiKey: auth.token,
             };
-        case "jwt":
+        default:
             return {
                 Jwt: auth.token,
             };
@@ -280,10 +374,18 @@ export function identity<A>(a: A): A {
     return a;
 }
 
-export function principalBytesToString(bytes: Uint8Array): string {
-    return Principal.fromUint8Array(bytes).toString();
-}
-
 export function principalStringToBytes(principal: string): Uint8Array {
     return Principal.fromText(principal).toUint8Array();
+}
+
+export function consolidateBytes(bytes: Uint8Array | number[]): Uint8Array {
+    return Array.isArray(bytes) ? new Uint8Array(bytes) : bytes;
+}
+
+export function principalBytesToString(value: Uint8Array | number[] | string): string {
+    // When serialized to JSON principals become strings, in all other cases they are serialized as byte arrays
+    if (typeof value === "string") {
+        return value;
+    }
+    return Principal.fromUint8Array(consolidateBytes(value)).toString();
 }

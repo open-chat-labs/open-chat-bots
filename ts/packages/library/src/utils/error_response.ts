@@ -1,9 +1,4 @@
-export type BadRequest =
-    | "AccessTokenNotFound"
-    | "AccessTokenInvalid"
-    | "AccessTokenExpired"
-    | "CommandNotFound"
-    | "ArgsInvalid";
+import type { BadRequest } from "./badrequest";
 
 export function argumentsInvalid(): BadRequest {
     return "ArgsInvalid";

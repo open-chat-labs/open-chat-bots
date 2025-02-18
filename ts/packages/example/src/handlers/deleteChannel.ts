@@ -15,7 +15,7 @@ export default async function deleteChannel(req: Request, res: Response) {
   const channelId = BigInt(req.body);
   const resp = await client.deleteChannel(channelId);
 
-  if (resp === "Success") {
+  if (resp.kind === "success") {
     console.log("Successfully deleted channel", channelId);
     res.sendStatus(200);
   } else {

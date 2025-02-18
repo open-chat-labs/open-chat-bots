@@ -13,7 +13,9 @@ import { WithBotClient } from "../types";
 export function createCommandChatClient(factory: BotClientFactory) {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      (req as WithBotClient).botClient = factory.createClientFromJwt(req.body);
+      (req as WithBotClient).botClient = factory.createClientFromCommandJwt(
+        req.body
+      );
       console.log("Bot client created");
       next();
     } catch (err: any) {
@@ -39,6 +41,25 @@ export function createApiChatClient(factory: BotClientFactory) {
         console.log("Bot client created");
         next();
       }
+    } catch (err: any) {
+      console.log("Error creating bot client: ", err);
+      if (err instanceof BadRequestError) {
+        res.status(400).send(err.message);
+      } else {
+        res.status(500).send(err.message);
+      }
+    }
+  };
+}
+
+export function createApiChatClientWithJwt(factory: BotClientFactory) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    try {
+      (req as WithBotClient).botClient = factory.createClientFromApiKeyJwt(
+        req.body
+      );
+      console.log("Bot client created");
+      next();
     } catch (err: any) {
       console.log("Error creating bot client: ", err);
       if (err instanceof BadRequestError) {

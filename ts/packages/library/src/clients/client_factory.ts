@@ -56,7 +56,11 @@ export class BotClientFactory {
         return new BotClient(this.#agent, this.env, { kind: "api_key", token: apiKey });
     }
 
-    createClientFromJwt(jwt: string): BotClient {
-        return new BotClient(this.#agent, this.env, { kind: "jwt", token: jwt });
+    createClientFromCommandJwt(jwt: string): BotClient {
+        return new BotClient(this.#agent, this.env, { kind: "command_jwt", token: jwt });
+    }
+
+    createClientFromApiKeyJwt(jwt: string): BotClient {
+        return new BotClient(this.#agent, this.env, { kind: "api_jwt", token: jwt });
     }
 }

@@ -24,7 +24,20 @@
       "description": "Configuration for the bot's autonomous behaviour"
     }
   },
-  "required": ["description", "commands"],
+  "anyOf": [
+    {
+      "required": ["autonomous_config"]
+    },
+    {
+      "minProperties": 1,
+      "properties": {
+        "commands": {
+          "minItems": 1
+        }
+      }
+    }
+  ],
+  "required": ["description"],
   "additionalProperties": false,
   "definitions": {
     "AutonomousConfig": {
@@ -63,6 +76,10 @@
           "description": "A brief description of what the slash command does.",
           "minLength": 5,
           "maxLength": 500
+        },
+        "ownerOnly": {
+          "type": "boolean",
+          "description": "Set to true if the command should only be executable by the owner of the installed context."
         },
         "params": {
           "type": "array",
