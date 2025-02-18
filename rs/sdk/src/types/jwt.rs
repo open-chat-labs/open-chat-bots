@@ -1,6 +1,5 @@
 use super::{CanisterId, Chat, MessageId, MessageIndex, UserId};
 use crate::api::{BotPermissions, Command};
-use crate::types::deserialize_message_id;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
@@ -52,7 +51,6 @@ pub enum AccessTokenScope {
 pub struct BotActionChatDetails {
     pub chat: Chat,
     pub thread_root_message_index: Option<MessageIndex>,
-    #[serde(deserialize_with = "deserialize_message_id")]
     pub message_id: MessageId,
 }
 
