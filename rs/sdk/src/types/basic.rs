@@ -12,6 +12,9 @@ pub type Nanoseconds = u64;
 pub type TimestampMillis = u64;
 pub type TimestampNanos = u64;
 
+pub type CallResult<T> = Result<T, CallError>;
+pub type CallError = (i32, String);
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Copy)]
 pub struct UserId(CanisterId);
 
@@ -44,4 +47,26 @@ pub enum Chat {
     Direct(CanisterId),
     Group(CanisterId),
     Channel(CanisterId, ChannelId),
+}
+
+impl Chat {
+    pub fn channel_id(&self) -> Option<ChannelId> {
+        match self {
+            Chat::Channel(_, channel_id) => Some(*channel_id),
+            _ => None,
+        }
+    }
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
+pub struct Rules {
+    pub text: String,
+    pub enabled: bool,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct Document {
+    pub id: u128,
+    pub mime_type: String,
+    pub data: Vec<u8>,
 }

@@ -7,7 +7,7 @@ use clap::Parser;
 use commands::coin::Coin;
 use commands::roll::Roll;
 use oc_bots_sdk::api::{BotDefinition, CommandResponse};
-use oc_bots_sdk::{CommandHandler, OpenChatClient};
+use oc_bots_sdk::{CommandHandler, OpenChatClientFactory};
 use oc_bots_sdk_offchain::env;
 use oc_bots_sdk_offchain::AgentRuntime;
 use std::sync::Arc;
@@ -26,17 +26,17 @@ async fn main() {
 
     let agent = oc_bots_sdk_offchain::build_agent(ic_url, &config.pem_file).await;
 
-    let oc_client = Arc::new(OpenChatClient::new(AgentRuntime::new(
+    let oc_client_factory = Arc::new(OpenChatClientFactory::new(AgentRuntime::new(
         agent,
         tokio::runtime::Runtime::new().unwrap(),
     )));
 
-    let commands = CommandHandler::new(oc_client.clone())
+    let commands = CommandHandler::new(oc_client_factory.clone())
         .register(Coin)
         .register(Roll);
 
     let app_state = AppState {
-        oc_client,
+        oc_client_factory,
         oc_public_key,
         commands,
     };
@@ -71,6 +71,7 @@ async fn execute_command(State(state): State<Arc<AppState>>, jwt: String) -> (St
             StatusCode::INTERNAL_SERVER_ERROR,
             Bytes::from(format!("{err:?}")),
         ),
+        CommandResponse::TooManyRequests => (StatusCode::TOO_MANY_REQUESTS, Bytes::new()),
     }
 }
 
@@ -89,7 +90,7 @@ async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> (S
 
 struct AppState {
     #[allow(dead_code)]
-    oc_client: Arc<OpenChatClient<AgentRuntime>>,
+    oc_client_factory: Arc<OpenChatClientFactory<AgentRuntime>>,
     oc_public_key: String,
     commands: CommandHandler<AgentRuntime>,
 }

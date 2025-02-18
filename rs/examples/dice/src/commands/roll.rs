@@ -5,7 +5,7 @@ use oc_bots_sdk::{
         SlashCommandParamType, SuccessResult,
     },
     types::BotCommandContext,
-    Command, OpenChatClient,
+    Command, OpenChatClientFactory,
 };
 use oc_bots_sdk_offchain::AgentRuntime;
 use rand::{thread_rng, Rng};
@@ -23,11 +23,11 @@ impl Command<AgentRuntime> for Roll {
 
     async fn execute(
         &self,
-        context: BotCommandContext,
-        oc_client: &OpenChatClient<AgentRuntime>,
+        cxt: BotCommandContext,
+        oc_client_factory: &OpenChatClientFactory<AgentRuntime>,
     ) -> Result<SuccessResult, String> {
-        let sides = context.command().maybe_arg("sides").unwrap_or(6);
-        let count = context.command().maybe_arg("count").unwrap_or(1);
+        let sides = cxt.command.maybe_arg("sides").unwrap_or(6);
+        let count = cxt.command.maybe_arg("count").unwrap_or(1);
 
         let mut text = String::new();
         for i in 0..count {
@@ -39,8 +39,8 @@ impl Command<AgentRuntime> for Roll {
         }
 
         // Send the message to OpenChat but don't wait for the response
-        let message = oc_client
-            .with_command_context(context)
+        let message = oc_client_factory
+            .build_command_client(cxt)
             .send_text_message(text)
             .execute(|_, _| ());
 

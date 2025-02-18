@@ -5,7 +5,7 @@ use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct SendMessageArgs {
+pub struct Args {
     pub channel_id: Option<ChannelId>,
     pub message_id: Option<MessageId>,
     pub content: MessageContent,
@@ -15,8 +15,8 @@ pub struct SendMessageArgs {
 }
 
 #[derive(CandidType, Serialize, Deserialize, Debug)]
-pub enum SendMessageResponse {
-    Success(SendMessageSuccessResult),
+pub enum Response {
+    Success(SuccessResult),
     InvalidRequest(String),
     NotAuthorized,
     Frozen,
@@ -26,7 +26,7 @@ pub enum SendMessageResponse {
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct SendMessageSuccessResult {
+pub struct SuccessResult {
     pub message_id: MessageId,
     pub event_index: EventIndex,
     pub message_index: MessageIndex,

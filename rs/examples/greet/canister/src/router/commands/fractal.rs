@@ -2,12 +2,12 @@ use crate::state;
 use crate::state::Blob;
 use async_trait::async_trait;
 use oc_bots_sdk::api::{
-    BotPermissions, DecimalParam, MessagePermission, SendMessageResponse, SlashCommandDefinition,
+    send_message, BotPermissions, DecimalParam, MessagePermission, SlashCommandDefinition,
     SlashCommandParam, SlashCommandParamType, SuccessResult,
 };
 use oc_bots_sdk::types::MessageContent;
 use oc_bots_sdk::types::{BlobReference, BotCommandContext, ImageContent};
-use oc_bots_sdk::{create_thumbnail, Command, OpenChatClient};
+use oc_bots_sdk::{create_thumbnail, Command, OpenChatClientFactory};
 use oc_bots_sdk_canister::{env, CanisterRuntime};
 use std::collections::HashSet;
 use std::io::Cursor;
@@ -25,13 +25,11 @@ impl Command<CanisterRuntime> for Fractal {
 
     async fn execute(
         &self,
-        context: BotCommandContext,
-        oc_client: &OpenChatClient<CanisterRuntime>,
+        cxt: BotCommandContext,
+        oc_client_factory: &OpenChatClientFactory<CanisterRuntime>,
     ) -> Result<SuccessResult, String> {
-        let command = context.command();
-
-        let r = command.arg("real");
-        let i = command.arg("imaginary");
+        let r = cxt.command.arg("real");
+        let i = cxt.command.arg("imaginary");
 
         let width = 400;
         let height = 400;
@@ -66,11 +64,11 @@ impl Command<CanisterRuntime> for Fractal {
         };
 
         // Send the message to OpenChat but don't wait for the response
-        let message = oc_client
-            .with_command_context(context)
+        let message = oc_client_factory
+            .build_command_client(cxt)
             .send_message(MessageContent::Image(content))
             .execute(|args, response| match response {
-                Ok(result) if matches!(result.0, SendMessageResponse::Success(_)) => {
+                Ok(send_message::Response::Success(_)) => {
                     state::mutate(|state| state.increment_fractals_sent());
                 }
                 error => {

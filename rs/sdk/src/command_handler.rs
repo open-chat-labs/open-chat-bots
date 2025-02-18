@@ -7,19 +7,19 @@ use crate::{
         SlashCommandDefinition, SlashCommandParam, SlashCommandParamType, SuccessResult,
     },
     types::{BotCommandContext, TimestampMillis, TokenError},
-    OpenChatClient,
+    OpenChatClientFactory,
 };
 
 pub struct CommandHandler<R> {
     commands: HashMap<String, Box<dyn Command<R>>>,
-    oc_client: Arc<OpenChatClient<R>>,
+    oc_client_factory: Arc<OpenChatClientFactory<R>>,
 }
 
 impl<R> CommandHandler<R> {
-    pub fn new(oc_client: Arc<OpenChatClient<R>>) -> CommandHandler<R> {
+    pub fn new(oc_client_factory: Arc<OpenChatClientFactory<R>>) -> CommandHandler<R> {
         Self {
             commands: HashMap::new(),
-            oc_client,
+            oc_client_factory,
         }
     }
 
@@ -60,15 +60,17 @@ impl<R> CommandHandler<R> {
             }
         };
 
-        let Some(command) = self.get(context.command().name.as_str()) else {
+        let Some(command_handler) = self.get(context.command.name.as_str()) else {
             return CommandResponse::BadRequest(BadRequest::CommandNotFound);
         };
 
-        if !command.check_args(&context.command().args) {
+        if !command_handler.check_args(&context.command.args) {
             return CommandResponse::BadRequest(BadRequest::ArgsInvalid);
         }
 
-        let result = command.execute(context, &self.oc_client).await;
+        let result = command_handler
+            .execute(context, &self.oc_client_factory)
+            .await;
 
         match result {
             Ok(success) => CommandResponse::Success(success),
@@ -84,7 +86,7 @@ pub trait Command<R>: Send + Sync {
     async fn execute(
         &self,
         context: BotCommandContext,
-        oc_client: &OpenChatClient<R>,
+        oc_client_factory: &OpenChatClientFactory<R>,
     ) -> Result<SuccessResult, String>;
 
     fn name(&self) -> &str {

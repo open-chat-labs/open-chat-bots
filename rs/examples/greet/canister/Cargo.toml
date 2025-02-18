@@ -26,3 +26,4 @@ num-complex = { workspace = true }
 rand = { workspace = true }
 rmp-serde = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
