@@ -23,7 +23,6 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
     };
 
     let response = OPENCHAT_CLIENT_FACTORY
-        .clone()
         .build_api_key_client(context)
         .create_channel(args.channel_name, args.is_public)
         .execute_async()
