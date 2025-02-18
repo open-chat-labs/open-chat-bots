@@ -1,5 +1,5 @@
+use crate::actions::send_message::*;
 use crate::actions::ActionArgsBuilder;
-use crate::api::send_message;
 use crate::openchat_client_factory::api_key::OpenChatClientForApiKey;
 use crate::types::{CanisterId, ChannelId, MessageContent, MessageId};
 use crate::Runtime;
@@ -53,8 +53,7 @@ impl<R: Runtime> SendMessageBuilder<R> {
 }
 
 impl<R: Runtime> ActionArgsBuilder<R> for SendMessageBuilder<R> {
-    type ActionArgs = send_message::Args;
-    type ActionResponse = send_message::Response;
+    type Action = SendMessageAction;
 
     fn runtime(&self) -> Arc<R> {
         self.client.runtime.clone()
@@ -64,12 +63,8 @@ impl<R: Runtime> ActionArgsBuilder<R> for SendMessageBuilder<R> {
         self.client.context.api_gateway
     }
 
-    fn method_name(&self) -> &str {
-        "bot_send_message"
-    }
-
-    fn into_args(self) -> Self::ActionArgs {
-        send_message::Args {
+    fn into_args(self) -> Args {
+        Args {
             content: self.content,
             channel_id: self.channel_id,
             message_id: self.message_id,

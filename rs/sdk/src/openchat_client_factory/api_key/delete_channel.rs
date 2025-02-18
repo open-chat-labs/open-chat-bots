@@ -1,6 +1,6 @@
 use super::OpenChatClientForApiKey;
+use crate::actions::delete_channel::*;
 use crate::actions::ActionArgsBuilder;
-use crate::api::delete_channel;
 use crate::types::{CanisterId, ChannelId};
 use crate::Runtime;
 use std::sync::Arc;
@@ -17,8 +17,7 @@ impl<R: Runtime> DeleteChannelBuilder<R> {
 }
 
 impl<R: Runtime> ActionArgsBuilder<R> for DeleteChannelBuilder<R> {
-    type ActionArgs = delete_channel::Args;
-    type ActionResponse = delete_channel::Response;
+    type Action = DeleteChannelAction;
 
     fn runtime(&self) -> Arc<R> {
         self.client.runtime.clone()
@@ -28,12 +27,8 @@ impl<R: Runtime> ActionArgsBuilder<R> for DeleteChannelBuilder<R> {
         self.client.context.api_gateway
     }
 
-    fn method_name(&self) -> &str {
-        "bot_delete_channel"
-    }
-
-    fn into_args(self) -> Self::ActionArgs {
-        delete_channel::Args {
+    fn into_args(self) -> Args {
+        Args {
             auth_token: self.client.context.token,
             channel_id: self.channel_id,
         }

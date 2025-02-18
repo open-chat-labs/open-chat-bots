@@ -1,8 +1,20 @@
+use crate::actions::ActionDef;
 use crate::types::{
     AuthToken, ChannelId, EventIndex, MessageContent, MessageId, MessageIndex, TimestampMillis,
 };
-use candid::CandidType;
-use serde::{Deserialize, Serialize};
+use candid::{CandidType, Deserialize};
+use serde::Serialize;
+
+pub struct SendMessageAction;
+
+impl ActionDef for SendMessageAction {
+    type Args = Args;
+    type Response = Response;
+
+    fn method_name() -> &'static str {
+        "bot_send_message"
+    }
+}
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Args {

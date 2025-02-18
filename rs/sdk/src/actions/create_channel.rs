@@ -1,8 +1,20 @@
+use crate::actions::ActionDef;
 use crate::types::{
     AccessGateConfig, AuthToken, ChannelId, Document, GroupPermissions, Milliseconds, Rules,
 };
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
+
+pub struct CreateChannelAction;
+
+impl ActionDef for CreateChannelAction {
+    type Args = Args;
+    type Response = Response;
+
+    fn method_name() -> &'static str {
+        "bot_create_channel"
+    }
+}
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Args {

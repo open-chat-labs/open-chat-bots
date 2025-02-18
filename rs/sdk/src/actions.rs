@@ -5,20 +5,33 @@ use serde::de::DeserializeOwned;
 use std::future::Future;
 use std::sync::Arc;
 
+pub mod create_channel;
+pub mod delete_channel;
+pub mod send_message;
+
+pub trait ActionDef {
+    type Args: CandidType + Clone + Send + 'static;
+    type Response: CandidType + DeserializeOwned;
+
+    fn method_name() -> &'static str;
+}
+
 pub trait ActionArgsBuilder<R: Runtime>: Sized {
-    type ActionArgs: CandidType + Clone + Send + 'static;
-    type ActionResponse: CandidType + DeserializeOwned;
+    type Action: ActionDef;
 
     fn runtime(&self) -> Arc<R>;
 
     fn bot_api_gateway(&self) -> CanisterId;
 
-    fn method_name(&self) -> &str;
-
-    fn into_args(self) -> Self::ActionArgs;
+    fn into_args(self) -> <Self::Action as ActionDef>::Args;
 
     fn execute<
-        F: FnOnce(Self::ActionArgs, CallResult<Self::ActionResponse>) + Send + Sync + 'static,
+        F: FnOnce(
+                <Self::Action as ActionDef>::Args,
+                CallResult<<Self::Action as ActionDef>::Response>,
+            ) + Send
+            + Sync
+            + 'static,
     >(
         self,
         on_response: F,
@@ -26,12 +39,12 @@ pub trait ActionArgsBuilder<R: Runtime>: Sized {
         let runtime = self.runtime();
         let runtime_clone = runtime.clone();
         let bot_api_gateway = self.bot_api_gateway();
-        let method_name = self.method_name().to_string();
+        let method_name = Self::Action::method_name();
         let args = self.into_args();
 
         runtime.spawn(async move {
             let response = runtime_clone
-                .call_canister(bot_api_gateway, &method_name, (args.clone(),))
+                .call_canister(bot_api_gateway, method_name, (args.clone(),))
                 .await
                 .map(|(r,)| r);
 
@@ -39,15 +52,17 @@ pub trait ActionArgsBuilder<R: Runtime>: Sized {
         });
     }
 
-    fn execute_async(self) -> impl Future<Output = CallResult<Self::ActionResponse>> + Send {
+    fn execute_async(
+        self,
+    ) -> impl Future<Output = CallResult<<Self::Action as ActionDef>::Response>> + Send {
         let runtime = self.runtime();
         let bot_api_gateway = self.bot_api_gateway();
-        let method_name = self.method_name().to_string();
+        let method_name = Self::Action::method_name();
         let args = self.into_args();
 
         async move {
             runtime
-                .call_canister(bot_api_gateway, &method_name, (args,))
+                .call_canister(bot_api_gateway, method_name, (args,))
                 .await
                 .map(|(r,)| r)
         }

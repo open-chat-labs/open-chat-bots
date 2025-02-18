@@ -1,6 +1,6 @@
 use super::OpenChatClientForApiKey;
+use crate::actions::create_channel::*;
 use crate::actions::ActionArgsBuilder;
-use crate::api::create_channel;
 use crate::types::{AccessGateConfig, CanisterId, Document, GroupPermissions, Milliseconds, Rules};
 use crate::Runtime;
 use std::sync::Arc;
@@ -91,8 +91,7 @@ impl<R: Runtime> CreateChannelBuilder<R> {
 }
 
 impl<R: Runtime> ActionArgsBuilder<R> for CreateChannelBuilder<R> {
-    type ActionArgs = create_channel::Args;
-    type ActionResponse = create_channel::Response;
+    type Action = CreateChannelAction;
 
     fn runtime(&self) -> Arc<R> {
         self.client.runtime.clone()
@@ -102,12 +101,8 @@ impl<R: Runtime> ActionArgsBuilder<R> for CreateChannelBuilder<R> {
         self.client.context.api_gateway
     }
 
-    fn method_name(&self) -> &str {
-        "bot_create_channel"
-    }
-
-    fn into_args(self) -> create_channel::Args {
-        create_channel::Args {
+    fn into_args(self) -> Args {
+        Args {
             auth_token: self.client.context.token,
             name: self.name,
             is_public: self.is_public,

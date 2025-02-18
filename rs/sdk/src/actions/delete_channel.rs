@@ -1,6 +1,18 @@
+use crate::actions::ActionDef;
 use crate::types::{AuthToken, ChannelId};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
+
+pub struct DeleteChannelAction;
+
+impl ActionDef for DeleteChannelAction {
+    type Args = Args;
+    type Response = Response;
+
+    fn method_name() -> &'static str {
+        "bot_delete_channel"
+    }
+}
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Args {

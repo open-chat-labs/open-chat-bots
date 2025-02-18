@@ -2,12 +2,12 @@ use crate::state;
 use crate::state::Blob;
 use async_trait::async_trait;
 use oc_bots_sdk::api::{
-    send_message, BotPermissions, DecimalParam, MessagePermission, SlashCommandDefinition,
-    SlashCommandParam, SlashCommandParamType, SuccessResult,
+    BotPermissions, DecimalParam, MessagePermission, SlashCommandDefinition, SlashCommandParam,
+    SlashCommandParamType, SuccessResult,
 };
 use oc_bots_sdk::types::MessageContent;
 use oc_bots_sdk::types::{BlobReference, BotCommandContext, ImageContent};
-use oc_bots_sdk::{create_thumbnail, Command, OpenChatClientFactory};
+use oc_bots_sdk::{create_thumbnail, send_message, Command, OpenChatClientFactory};
 use oc_bots_sdk_canister::{env, CanisterRuntime};
 use std::collections::HashSet;
 use std::io::Cursor;

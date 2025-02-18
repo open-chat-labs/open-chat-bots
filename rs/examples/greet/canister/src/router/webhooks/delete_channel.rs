@@ -1,6 +1,5 @@
-use oc_bots_sdk::api::delete_channel;
 use oc_bots_sdk::types::{AuthToken, ChannelId};
-use oc_bots_sdk::ActionArgsBuilder;
+use oc_bots_sdk::{delete_channel, ActionArgsBuilder};
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
 
 #[derive(serde::Deserialize)]

@@ -1,10 +1,8 @@
 use crate::state;
 use async_trait::async_trait;
-use oc_bots_sdk::api::{
-    send_message, BotPermissions, MessagePermission, SlashCommandDefinition, SuccessResult,
-};
+use oc_bots_sdk::api::{BotPermissions, MessagePermission, SlashCommandDefinition, SuccessResult};
 use oc_bots_sdk::types::BotCommandContext;
-use oc_bots_sdk::{Command, OpenChatClientFactory};
+use oc_bots_sdk::{send_message, Command, OpenChatClientFactory};
 use oc_bots_sdk_canister::CanisterRuntime;
 use std::collections::HashSet;
 use std::sync::LazyLock;

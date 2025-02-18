@@ -1,6 +1,7 @@
 use crate::actions::ActionArgsBuilder;
-use crate::api::{send_message, Message};
+use crate::api::Message;
 use crate::openchat_client_factory::command::OpenChatClientForCommand;
+use crate::send_message::*;
 use crate::types::{CallResult, CanisterId, MessageContent};
 use crate::Runtime;
 use std::sync::Arc;
@@ -33,7 +34,7 @@ impl<R: Runtime> SendMessageBuilder<R> {
     }
 
     pub fn execute_then_return_message<
-        F: FnOnce(send_message::Args, CallResult<send_message::Response>) + Send + Sync + 'static,
+        F: FnOnce(Args, CallResult<Response>) + Send + Sync + 'static,
     >(
         self,
         on_response: F,
@@ -50,8 +51,7 @@ impl<R: Runtime> SendMessageBuilder<R> {
 }
 
 impl<R: Runtime> ActionArgsBuilder<R> for SendMessageBuilder<R> {
-    type ActionArgs = send_message::Args;
-    type ActionResponse = send_message::Response;
+    type Action = SendMessageAction;
 
     fn runtime(&self) -> Arc<R> {
         self.client.runtime.clone()
@@ -61,12 +61,8 @@ impl<R: Runtime> ActionArgsBuilder<R> for SendMessageBuilder<R> {
         self.client.context.api_gateway
     }
 
-    fn method_name(&self) -> &str {
-        "bot_send_message"
-    }
-
-    fn into_args(self) -> send_message::Args {
-        send_message::Args {
+    fn into_args(self) -> Args {
+        Args {
             content: self.content,
             channel_id: None,
             message_id: None,

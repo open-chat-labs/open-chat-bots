@@ -1,5 +1,6 @@
 mod actions;
 pub mod api;
+mod api_gateway;
 mod command_handler;
 mod openchat_client_factory;
 mod runtime;
