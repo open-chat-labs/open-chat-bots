@@ -1,5 +1,5 @@
 use super::TimestampMillis;
-use crate::utils::{serialize_principal_as_bytes, serialize_u128};
+use crate::utils::{serialize_large_uint, serialize_principal_as_bytes};
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 
@@ -113,6 +113,6 @@ pub struct ThumbnailData(pub String);
 pub struct BlobReference {
     #[serde(serialize_with = "serialize_principal_as_bytes")]
     pub canister_id: Principal,
-    #[serde(serialize_with = "serialize_u128")]
+    #[serde(serialize_with = "serialize_large_uint")]
     pub blob_id: u128,
 }

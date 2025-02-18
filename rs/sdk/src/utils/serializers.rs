@@ -1,12 +1,18 @@
 use candid::Principal;
 use serde::Serializer;
 
-pub fn serialize_u128<T: Into<u128> + Copy, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MAX_SAFE_INTEGER
+const MAX_SAFE_INTEGER: u128 = 9007199254740991u128;
+
+pub fn serialize_large_uint<T: Into<u128> + Copy, S>(
+    value: &T,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
     let value_u128 = (*value).into();
-    if value_u128 > u32::MAX as u128 && serializer.is_human_readable() {
+    if value_u128 > MAX_SAFE_INTEGER && serializer.is_human_readable() {
         serializer.serialize_str(&value_u128.to_string())
     } else {
         serializer.serialize_u128(value_u128)

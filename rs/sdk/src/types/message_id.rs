@@ -1,4 +1,4 @@
-use crate::utils::serialize_u128;
+use crate::utils::serialize_large_uint;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
@@ -7,7 +7,7 @@ use std::str::FromStr;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Copy, Hash)]
 #[serde(from = "MessageIdIntOrString")]
-pub struct MessageId(#[serde(serialize_with = "serialize_u128")] u64);
+pub struct MessageId(#[serde(serialize_with = "serialize_large_uint")] u64);
 
 #[derive(Deserialize)]
 #[serde(untagged)]
