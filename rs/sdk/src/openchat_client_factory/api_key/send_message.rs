@@ -12,7 +12,7 @@ pub struct SendMessageBuilder<R> {
     finalised: bool,
 }
 
-impl<R: Runtime + Send + Sync + 'static> SendMessageBuilder<R> {
+impl<R: Runtime> SendMessageBuilder<R> {
     pub fn new(client: OpenChatClientForApiKey<R>, content: MessageContent) -> Self {
         let channel_id = client.context.channel_id();
         Self {

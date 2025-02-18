@@ -10,7 +10,7 @@ pub struct OpenChatClientForCommand<R> {
     context: BotCommandContext,
 }
 
-impl<R: Runtime + Send + Sync + 'static> OpenChatClientForCommand<R> {
+impl<R: Runtime> OpenChatClientForCommand<R> {
     pub fn new(runtime: Arc<R>, context: BotCommandContext) -> Self {
         OpenChatClientForCommand { runtime, context }
     }

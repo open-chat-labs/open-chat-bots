@@ -3,7 +3,7 @@ use crate::types::{CallResult, CanisterId, TimestampMillis};
 use candid::utils::{ArgumentDecoder, ArgumentEncoder};
 use std::future::Future;
 
-pub trait Runtime {
+pub trait Runtime: Send + Sync + 'static {
     fn call_canister<A: ArgumentEncoder + Send, R: for<'a> ArgumentDecoder<'a>>(
         &self,
         canister_id: CanisterId,

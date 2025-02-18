@@ -11,7 +11,7 @@ pub struct SendMessageBuilder<R> {
     finalised: bool,
 }
 
-impl<R: Runtime + Send + Sync + 'static> SendMessageBuilder<R> {
+impl<R: Runtime> SendMessageBuilder<R> {
     pub fn new(client: OpenChatClientForCommand<R>, content: MessageContent) -> Self {
         Self {
             client,

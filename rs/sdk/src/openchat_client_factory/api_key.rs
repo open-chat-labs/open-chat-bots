@@ -15,7 +15,7 @@ pub struct OpenChatClientForApiKey<R> {
     context: BotApiKeyContext,
 }
 
-impl<R: Runtime + Send + Sync + 'static> OpenChatClientForApiKey<R> {
+impl<R: Runtime> OpenChatClientForApiKey<R> {
     pub fn new(runtime: Arc<R>, context: BotApiKeyContext) -> Self {
         OpenChatClientForApiKey { runtime, context }
     }

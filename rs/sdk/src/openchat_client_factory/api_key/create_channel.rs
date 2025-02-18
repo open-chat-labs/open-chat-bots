@@ -21,7 +21,7 @@ pub struct CreateChannelBuilder<R> {
     external_url: Option<String>,
 }
 
-impl<R: Runtime + Send + Sync + 'static> CreateChannelBuilder<R> {
+impl<R: Runtime> CreateChannelBuilder<R> {
     pub fn new(client: OpenChatClientForApiKey<R>, name: String, is_public: bool) -> Self {
         CreateChannelBuilder {
             client,

@@ -11,7 +11,7 @@ pub struct OpenChatClientFactory<R> {
     runtime: Arc<R>,
 }
 
-impl<R: Runtime + Send + Sync + 'static> OpenChatClientFactory<R> {
+impl<R: Runtime> OpenChatClientFactory<R> {
     pub fn new(runtime: R) -> Self {
         Self {
             runtime: Arc::new(runtime),

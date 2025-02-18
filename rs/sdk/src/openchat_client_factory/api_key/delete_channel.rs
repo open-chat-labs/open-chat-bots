@@ -11,7 +11,7 @@ pub struct DeleteChannelBuilder<R> {
     channel_id: ChannelId,
 }
 
-impl<R: Runtime + Send + Sync + 'static> DeleteChannelBuilder<R> {
+impl<R: Runtime> DeleteChannelBuilder<R> {
     pub fn new(client: OpenChatClientForApiKey<R>, channel_id: ChannelId) -> Self {
         DeleteChannelBuilder { client, channel_id }
     }
