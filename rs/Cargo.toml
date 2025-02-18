@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "examples/dice",
+    "examples/discord",
     "examples/greet/canister",
     "examples/greet/loader",
     "sdk",
@@ -10,7 +11,7 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-async-trait = "0.1.74"
+async-trait = "0.1.86"
 axum = "0.8.1"
 base64 = "0.22.1"
 candid = "0.10.10"
@@ -21,7 +22,7 @@ dotenv = "0.15.0"
 getrandom = { version = "0.2.15", features = ["custom"] }
 hmac-sha256 = { version = "1.1.7", features = ["traits010"] }
 http = "1.1.0"
-ic-agent = "0.39.1"
+ic-agent = "0.39.3"
 ic-cdk = "0.17.0"
 ic-cdk-timers = "0.11.0"
 ic-http-certification = "2.5.0"
@@ -33,8 +34,8 @@ num-complex = "0.4.6"
 p256 = { version = "0.13.2" }
 rand = "0.8.5"
 rmp-serde = "1.3.0"
-serde = "1.0.216"
-serde_json = "1.0.128"
+serde = "1.0.217"
+serde_json = "1.0.138"
 sha2 = "0.10.8"
 tokio = "1.37.0"
 tower-http = "0.6.2"
