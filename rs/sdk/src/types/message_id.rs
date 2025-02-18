@@ -1,31 +1,19 @@
+use crate::utils::serialize_u128;
 use candid::CandidType;
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 use std::str::FromStr;
 
-#[derive(CandidType, Deserialize, Clone, Copy, Hash)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Hash)]
 #[serde(from = "MessageIdIntOrString")]
-pub struct MessageId(u64);
+pub struct MessageId(#[serde(serialize_with = "serialize_u128")] u64);
 
 #[derive(Deserialize)]
 #[serde(untagged)]
 enum MessageIdIntOrString {
     Int(u64),
     String(String),
-}
-
-impl Serialize for MessageId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        if self.0 > u32::MAX as u64 && serializer.is_human_readable() {
-            serializer.serialize_str(&self.0.to_string())
-        } else {
-            serializer.serialize_u64(self.0)
-        }
-    }
 }
 
 impl Deref for MessageId {

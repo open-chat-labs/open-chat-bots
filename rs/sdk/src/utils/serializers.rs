@@ -1,25 +1,15 @@
 use candid::Principal;
 use serde::Serializer;
 
-pub fn serialize_u64<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
+pub fn serialize_u128<T: Into<u128> + Copy, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    if serializer.is_human_readable() {
-        serializer.serialize_str(&value.to_string())
+    let value_u128 = (*value).into();
+    if value_u128 > u32::MAX as u128 && serializer.is_human_readable() {
+        serializer.serialize_str(&value_u128.to_string())
     } else {
-        serializer.serialize_u64(*value)
-    }
-}
-
-pub fn serialize_u128<S>(value: &u128, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    if serializer.is_human_readable() {
-        serializer.serialize_str(&value.to_string())
-    } else {
-        serializer.serialize_u128(*value)
+        serializer.serialize_u128(value_u128)
     }
 }
 
