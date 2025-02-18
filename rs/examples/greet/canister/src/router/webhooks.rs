@@ -3,7 +3,7 @@ mod delete_channel;
 mod send_message;
 use crate::state;
 use oc_bots_sdk::types::{AuthToken, BotApiKeyContext};
-use oc_bots_sdk_canister::{api_key_context, env, HttpRequest, HttpResponse};
+use oc_bots_sdk_canister::{env, HttpRequest, HttpResponse};
 use serde::Deserialize;
 
 pub async fn execute(request: HttpRequest) -> HttpResponse {
@@ -26,6 +26,6 @@ fn extract_context(auth_token: AuthToken) -> Result<BotApiKeyContext, HttpRespon
     let public_key = state::read(|state| state.oc_public_key().to_string());
     let now = env::now();
 
-    api_key_context::extract(auth_token, &public_key, now)
-        .map_err(|err| HttpResponse::text(400, format!("Invalid auth token: {err:?}")))
+    BotApiKeyContext::parse(auth_token, &public_key, now)
+        .map_err(|err| HttpResponse::text(400, format!("{err:?}")))
 }

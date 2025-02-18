@@ -50,6 +50,17 @@ pub struct BotApiKeyContext {
 }
 
 impl BotApiKeyContext {
+    pub fn parse(
+        auth_token: AuthToken,
+        public_key: &str,
+        now: TimestampMillis,
+    ) -> Result<Self, TokenError> {
+        match auth_token {
+            AuthToken::Jwt(jwt) => BotApiKeyContext::parse_jwt(jwt, public_key, now),
+            AuthToken::ApiKey(api_key) => BotApiKeyContext::parse_api_key(api_key),
+        }
+    }
+
     pub fn parse_jwt(
         jwt: String,
         public_key: &str,
