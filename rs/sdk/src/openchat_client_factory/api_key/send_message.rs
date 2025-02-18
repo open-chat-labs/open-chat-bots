@@ -1,5 +1,5 @@
-use crate::actions::send_message::*;
-use crate::actions::ActionArgsBuilder;
+use crate::api_gateway::actions::send_message::*;
+use crate::api_gateway::actions::ActionArgsBuilder;
 use crate::openchat_client_factory::api_key::OpenChatClientForApiKey;
 use crate::types::{CanisterId, ChannelId, MessageContent, MessageId};
 use crate::Runtime;

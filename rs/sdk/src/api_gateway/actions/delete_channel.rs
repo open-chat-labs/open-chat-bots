@@ -1,4 +1,4 @@
-use crate::actions::ActionDef;
+use crate::api_gateway::actions::ActionDef;
 use crate::types::{AuthToken, ChannelId};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};

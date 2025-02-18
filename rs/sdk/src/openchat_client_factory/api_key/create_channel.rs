@@ -1,6 +1,6 @@
 use super::OpenChatClientForApiKey;
-use crate::actions::create_channel::*;
-use crate::actions::ActionArgsBuilder;
+use crate::api_gateway::actions::create_channel::*;
+use crate::api_gateway::actions::ActionArgsBuilder;
 use crate::types::{AccessGateConfig, CanisterId, Document, GroupPermissions, Milliseconds, Rules};
 use crate::Runtime;
 use std::sync::Arc;

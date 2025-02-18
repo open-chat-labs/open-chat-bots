@@ -1,4 +1,4 @@
-use crate::actions::ActionDef;
+use crate::api_gateway::actions::ActionDef;
 use crate::types::{
     AccessGateConfig, AuthToken, ChannelId, Document, GroupPermissions, Milliseconds, Rules,
 };

@@ -1,6 +1,6 @@
 use super::OpenChatClientForApiKey;
-use crate::actions::delete_channel::*;
-use crate::actions::ActionArgsBuilder;
+use crate::api_gateway::actions::delete_channel::*;
+use crate::api_gateway::actions::ActionArgsBuilder;
 use crate::types::{CanisterId, ChannelId};
 use crate::Runtime;
 use std::sync::Arc;

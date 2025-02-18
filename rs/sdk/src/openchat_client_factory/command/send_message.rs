@@ -1,7 +1,7 @@
-use crate::actions::ActionArgsBuilder;
 use crate::api::Message;
+use crate::api_gateway::actions::send_message::*;
+use crate::api_gateway::actions::ActionArgsBuilder;
 use crate::openchat_client_factory::command::OpenChatClientForCommand;
-use crate::send_message::*;
 use crate::types::{CallResult, CanisterId, MessageContent};
 use crate::Runtime;
 use std::sync::Arc;

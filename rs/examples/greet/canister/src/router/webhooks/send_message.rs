@@ -1,5 +1,5 @@
+use oc_bots_sdk::api_gateway::actions::{send_message, ActionArgsBuilder};
 use oc_bots_sdk::types::{AuthToken, MessageContent, TextContent};
-use oc_bots_sdk::{send_message, ActionArgsBuilder};
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
 
 #[derive(serde::Deserialize)]

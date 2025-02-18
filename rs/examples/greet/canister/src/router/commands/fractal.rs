@@ -5,9 +5,10 @@ use oc_bots_sdk::api::{
     BotPermissions, DecimalParam, MessagePermission, SlashCommandDefinition, SlashCommandParam,
     SlashCommandParamType, SuccessResult,
 };
+use oc_bots_sdk::api_gateway::actions::send_message;
 use oc_bots_sdk::types::MessageContent;
 use oc_bots_sdk::types::{BlobReference, BotCommandContext, ImageContent};
-use oc_bots_sdk::{create_thumbnail, send_message, Command, OpenChatClientFactory};
+use oc_bots_sdk::{create_thumbnail, Command, OpenChatClientFactory};
 use oc_bots_sdk_canister::{env, CanisterRuntime};
 use std::collections::HashSet;
 use std::io::Cursor;
