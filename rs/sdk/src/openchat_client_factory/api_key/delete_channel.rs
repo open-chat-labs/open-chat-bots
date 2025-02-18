@@ -1,10 +1,9 @@
-use crate::{
-    api::delete_channel,
-    types::{CallResult, ChannelId},
-    Runtime,
-};
-
 use super::OpenChatClientForApiKey;
+use crate::actions::ActionArgsBuilder;
+use crate::api::delete_channel;
+use crate::types::{CanisterId, ChannelId};
+use crate::Runtime;
+use std::sync::Arc;
 
 pub struct DeleteChannelBuilder<R> {
     client: OpenChatClientForApiKey<R>,
@@ -15,40 +14,25 @@ impl<R: Runtime> DeleteChannelBuilder<R> {
     pub fn new(client: OpenChatClientForApiKey<R>, channel_id: ChannelId) -> Self {
         DeleteChannelBuilder { client, channel_id }
     }
+}
 
-    pub fn execute<
-        F: FnOnce(delete_channel::Args, CallResult<delete_channel::Response>) + Send + Sync + 'static,
-    >(
-        self,
-        on_response: F,
-    ) {
-        let runtime = self.client.runtime.clone();
-        let runtime_clone = self.client.runtime.clone();
-        let bot_api_gateway = self.client.context.api_gateway;
-        let args = self.into_args();
+impl<R: Runtime> ActionArgsBuilder<R> for DeleteChannelBuilder<R> {
+    type ActionArgs = delete_channel::Args;
+    type ActionResponse = delete_channel::Response;
 
-        runtime.spawn(async move {
-            let response = runtime_clone
-                .delete_channel(bot_api_gateway, args.clone())
-                .await
-                .map(|(r,)| r);
-
-            on_response(args, response);
-        });
+    fn runtime(&self) -> Arc<R> {
+        self.client.runtime.clone()
     }
 
-    pub async fn execute_async(self) -> CallResult<delete_channel::Response> {
-        let runtime = self.client.runtime.clone();
-        let bot_api_gateway = self.client.context.api_gateway;
-        let args = self.into_args();
-
-        runtime
-            .delete_channel(bot_api_gateway, args)
-            .await
-            .map(|(r,)| r)
+    fn bot_api_gateway(&self) -> CanisterId {
+        self.client.context.api_gateway
     }
 
-    fn into_args(self) -> delete_channel::Args {
+    fn method_name(&self) -> &str {
+        "bot_delete_channel"
+    }
+
+    fn into_args(self) -> Self::ActionArgs {
         delete_channel::Args {
             auth_token: self.client.context.token,
             channel_id: self.channel_id,

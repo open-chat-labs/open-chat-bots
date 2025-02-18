@@ -1,10 +1,9 @@
-use crate::{
-    api::create_channel,
-    types::{AccessGateConfig, CallResult, Document, GroupPermissions, Milliseconds, Rules},
-    Runtime,
-};
-
 use super::OpenChatClientForApiKey;
+use crate::actions::ActionArgsBuilder;
+use crate::api::create_channel;
+use crate::types::{AccessGateConfig, CanisterId, Document, GroupPermissions, Milliseconds, Rules};
+use crate::Runtime;
+use std::sync::Arc;
 
 pub struct CreateChannelBuilder<R> {
     client: OpenChatClientForApiKey<R>,
@@ -89,37 +88,22 @@ impl<R: Runtime> CreateChannelBuilder<R> {
         self.external_url = Some(external_url);
         self
     }
+}
 
-    pub fn execute<
-        F: FnOnce(create_channel::Args, CallResult<create_channel::Response>) + Send + Sync + 'static,
-    >(
-        self,
-        on_response: F,
-    ) {
-        let runtime = self.client.runtime.clone();
-        let runtime_clone = self.client.runtime.clone();
-        let bot_api_gateway = self.client.context.api_gateway;
-        let args = self.into_args();
+impl<R: Runtime> ActionArgsBuilder<R> for CreateChannelBuilder<R> {
+    type ActionArgs = create_channel::Args;
+    type ActionResponse = create_channel::Response;
 
-        runtime.spawn(async move {
-            let response = runtime_clone
-                .create_channel(bot_api_gateway, args.clone())
-                .await
-                .map(|(r,)| r);
-
-            on_response(args, response);
-        });
+    fn runtime(&self) -> Arc<R> {
+        self.client.runtime.clone()
     }
 
-    pub async fn execute_async(self) -> CallResult<create_channel::Response> {
-        let runtime = self.client.runtime.clone();
-        let bot_api_gateway = self.client.context.api_gateway;
-        let args = self.into_args();
+    fn bot_api_gateway(&self) -> CanisterId {
+        self.client.context.api_gateway
+    }
 
-        runtime
-            .create_channel(bot_api_gateway, args)
-            .await
-            .map(|(r,)| r)
+    fn method_name(&self) -> &str {
+        "bot_create_channel"
     }
 
     fn into_args(self) -> create_channel::Args {

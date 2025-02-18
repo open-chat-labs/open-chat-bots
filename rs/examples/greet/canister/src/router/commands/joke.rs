@@ -30,7 +30,7 @@ impl Command<CanisterRuntime> for Joke {
         let message = oc_client_factory
             .build_command_client(cxt)
             .send_text_message(text)
-            .execute(|args, response| match response {
+            .execute_then_return_message(|args, response| match response {
                 Ok(send_message::Response::Success(_)) => {
                     state::mutate(|state| state.increment_jokes_sent());
                 }

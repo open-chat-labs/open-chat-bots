@@ -1,9 +1,8 @@
-use create_channel::CreateChannelBuilder;
-use delete_channel::DeleteChannelBuilder;
-
 use crate::openchat_client_factory::api_key::send_message::SendMessageBuilder;
 use crate::types::{BotApiKeyContext, ChannelId, MessageContent};
 use crate::Runtime;
+use create_channel::CreateChannelBuilder;
+use delete_channel::DeleteChannelBuilder;
 use std::sync::Arc;
 
 mod create_channel;

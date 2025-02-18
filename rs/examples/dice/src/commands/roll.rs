@@ -1,12 +1,10 @@
 use async_trait::async_trait;
-use oc_bots_sdk::{
-    api::{
-        BotPermissions, IntegerParam, MessagePermission, SlashCommandDefinition, SlashCommandParam,
-        SlashCommandParamType, SuccessResult,
-    },
-    types::BotCommandContext,
-    Command, OpenChatClientFactory,
+use oc_bots_sdk::api::{
+    BotPermissions, IntegerParam, MessagePermission, SlashCommandDefinition, SlashCommandParam,
+    SlashCommandParamType, SuccessResult,
 };
+use oc_bots_sdk::types::BotCommandContext;
+use oc_bots_sdk::{Command, OpenChatClientFactory};
 use oc_bots_sdk_offchain::AgentRuntime;
 use rand::{thread_rng, Rng};
 use std::{collections::HashSet, sync::LazyLock};
@@ -42,7 +40,7 @@ impl Command<AgentRuntime> for Roll {
         let message = oc_client_factory
             .build_command_client(cxt)
             .send_text_message(text)
-            .execute(|_, _| ());
+            .execute_then_return_message(|_, _| ());
 
         Ok(SuccessResult {
             message: Some(message),

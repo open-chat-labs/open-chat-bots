@@ -1,8 +1,9 @@
-use crate::api::send_message;
-use crate::api::Message;
+use crate::actions::ActionArgsBuilder;
+use crate::api::{send_message, Message};
 use crate::openchat_client_factory::command::OpenChatClientForCommand;
-use crate::types::{CallResult, MessageContent};
+use crate::types::{CallResult, CanisterId, MessageContent};
 use crate::Runtime;
+use std::sync::Arc;
 
 pub struct SendMessageBuilder<R> {
     client: OpenChatClientForCommand<R>,
@@ -31,47 +32,37 @@ impl<R: Runtime> SendMessageBuilder<R> {
         self
     }
 
-    pub fn execute<
+    pub fn execute_then_return_message<
         F: FnOnce(send_message::Args, CallResult<send_message::Response>) + Send + Sync + 'static,
     >(
         self,
         on_response: F,
     ) -> Message {
-        let runtime = self.client.runtime.clone();
-        let runtime_clone = self.client.runtime.clone();
-        let bot_api_gateway = self.client.context.api_gateway;
-        let message_id = self.client.context.scope.message_id().unwrap();
-
-        let args = self.into_args();
-
         let message = Message {
-            id: message_id,
-            content: args.content.clone(),
-            finalised: args.finalised,
-            block_level_markdown: args.block_level_markdown,
+            id: self.client.context.scope.message_id().unwrap(),
+            content: self.content.clone(),
+            finalised: self.finalised,
+            block_level_markdown: self.block_level_markdown,
         };
-
-        runtime.spawn(async move {
-            let response = runtime_clone
-                .send_message(bot_api_gateway, args.clone())
-                .await
-                .map(|(r,)| r);
-
-            on_response(args, response);
-        });
-
+        self.execute(on_response);
         message
     }
+}
 
-    pub async fn execute_async(self) -> CallResult<send_message::Response> {
-        let runtime = self.client.runtime.clone();
-        let bot_api_gateway = self.client.context.api_gateway;
-        let args = self.into_args();
+impl<R: Runtime> ActionArgsBuilder<R> for SendMessageBuilder<R> {
+    type ActionArgs = send_message::Args;
+    type ActionResponse = send_message::Response;
 
-        runtime
-            .send_message(bot_api_gateway, args)
-            .await
-            .map(|(r,)| r)
+    fn runtime(&self) -> Arc<R> {
+        self.client.runtime.clone()
+    }
+
+    fn bot_api_gateway(&self) -> CanisterId {
+        self.client.context.api_gateway
+    }
+
+    fn method_name(&self) -> &str {
+        "bot_send_message"
     }
 
     fn into_args(self) -> send_message::Args {

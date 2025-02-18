@@ -1,7 +1,9 @@
+use crate::actions::ActionArgsBuilder;
 use crate::api::send_message;
 use crate::openchat_client_factory::api_key::OpenChatClientForApiKey;
-use crate::types::{CallResult, ChannelId, MessageContent, MessageId};
+use crate::types::{CanisterId, ChannelId, MessageContent, MessageId};
 use crate::Runtime;
+use std::sync::Arc;
 
 pub struct SendMessageBuilder<R> {
     client: OpenChatClientForApiKey<R>,
@@ -48,40 +50,25 @@ impl<R: Runtime> SendMessageBuilder<R> {
         self.finalised = finalised;
         self
     }
+}
 
-    pub fn execute<
-        F: FnOnce(send_message::Args, CallResult<send_message::Response>) + Send + Sync + 'static,
-    >(
-        self,
-        on_response: F,
-    ) {
-        let runtime = self.client.runtime.clone();
-        let runtime_clone = self.client.runtime.clone();
-        let bot_api_gateway = self.client.context.api_gateway;
-        let args = self.into_args();
+impl<R: Runtime> ActionArgsBuilder<R> for SendMessageBuilder<R> {
+    type ActionArgs = send_message::Args;
+    type ActionResponse = send_message::Response;
 
-        runtime.spawn(async move {
-            let response = runtime_clone
-                .send_message(bot_api_gateway, args.clone())
-                .await
-                .map(|(r,)| r);
-
-            on_response(args, response);
-        });
+    fn runtime(&self) -> Arc<R> {
+        self.client.runtime.clone()
     }
 
-    pub async fn execute_async(self) -> CallResult<send_message::Response> {
-        let runtime = self.client.runtime.clone();
-        let bot_api_gateway = self.client.context.api_gateway;
-        let args = self.into_args();
-
-        runtime
-            .send_message(bot_api_gateway, args)
-            .await
-            .map(|(r,)| r)
+    fn bot_api_gateway(&self) -> CanisterId {
+        self.client.context.api_gateway
     }
 
-    fn into_args(self) -> send_message::Args {
+    fn method_name(&self) -> &str {
+        "bot_send_message"
+    }
+
+    fn into_args(self) -> Self::ActionArgs {
         send_message::Args {
             content: self.content,
             channel_id: self.channel_id,

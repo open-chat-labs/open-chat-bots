@@ -1,8 +1,7 @@
 use oc_bots_sdk::api::create_channel;
 use oc_bots_sdk::types::AuthToken;
-use oc_bots_sdk_canister::HttpRequest;
-use oc_bots_sdk_canister::HttpResponse;
-use oc_bots_sdk_canister::OPENCHAT_CLIENT_FACTORY;
+use oc_bots_sdk::ActionArgsBuilder;
+use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
 
 #[derive(serde::Deserialize)]
 struct Args {

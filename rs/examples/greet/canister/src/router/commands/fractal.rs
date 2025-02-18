@@ -67,7 +67,7 @@ impl Command<CanisterRuntime> for Fractal {
         let message = oc_client_factory
             .build_command_client(cxt)
             .send_message(MessageContent::Image(content))
-            .execute(|args, response| match response {
+            .execute_then_return_message(|args, response| match response {
                 Ok(send_message::Response::Success(_)) => {
                     state::mutate(|state| state.increment_fractals_sent());
                 }
