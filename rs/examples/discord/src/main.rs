@@ -55,11 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Run bots in their respective threads
     let (ds_res, oc_res) = tokio::join!(
-        // Start discord bot to respond to commands and capture events
-        tokio::spawn(async move {
-            return discord_client.start().await;
-        }),
-        // Start OpenChat bot, which responds to commands
+        tokio::spawn(async move { discord_client.start().await }),
         tokio::spawn(async move {
             crate::openchat::start_openchat_bot(
                 Arc::new(openchat_client),
