@@ -85,7 +85,7 @@ impl BotState {
             .read()
             .await
             .get(&channel_id)
-            .map(|status| status.clone())
+            .cloned()
     }
 
     pub async fn set_token_for_oc_channel(
@@ -105,7 +105,7 @@ impl BotState {
             .read()
             .await
             .get(&channel_id)
-            .map(|token| token.clone())
+            .cloned()
     }
 
     /// Restore previously saved state
@@ -138,9 +138,9 @@ impl BotState {
                 let decryption_key = Key::<Aes256Gcm>::from_slice(&key);
                 let (nonce_arr, ciphered_data) = persisted_data.split_at(12);
                 let nonce = Nonce::from_slice(nonce_arr);
-                let cipher = Aes256Gcm::new(&decryption_key);
+                let cipher = Aes256Gcm::new(decryption_key);
                 cipher
-                    .decrypt(&nonce, ciphered_data.as_ref())
+                    .decrypt(nonce, ciphered_data.as_ref())
                     .map_err(BotError::FailedToDecryptState)?
             } else {
                 persisted_data
@@ -199,7 +199,7 @@ impl BotState {
         Ok(if let Some(AesKey(encryption_key)) = &self.aes_key {
             // Encrypted data if key was provided!
             let key = Key::<Aes256Gcm>::from_slice(encryption_key.as_slice());
-            let cipher = Aes256Gcm::new(&key);
+            let cipher = Aes256Gcm::new(key);
             let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
             let ciphered_data = cipher
                 .encrypt(&nonce, serialised_data.as_ref())
@@ -223,21 +223,26 @@ mod test {
     use super::*;
     use fs::remove_file;
     use poise::serenity_prelude::ChannelId;
-    use std::error::Error;
+    use std::{env, error::Error};
 
     #[tokio::test]
     async fn state_is_encrypted() -> Result<(), Box<dyn Error>> {
+        print!("LOC === {:?}", env::current_dir()?);
+
         // This data would be deserialised from the config
         let key = b"-this-is-very-silly--32-bit-key-";
-        let store_path = "./../target/unit_tests/store.db".to_string();
+        let store_path_str = "../../target/unit_tests/store.db".to_string();
+        let store_path = std::path::Path::new(store_path_str.as_str());
 
         // Clean up from previous tests
-        remove_file(store_path.clone())?;
+        if store_path.exists() {
+            remove_file(store_path)?;
+        }
 
         // Init state and modify it!
         let state = BotState::builder()
             .with_encryption_key(Some(AesKey(key.to_vec())))
-            .with_store_path(Some(store_path.clone()))
+            .with_store_path(Some(store_path_str.clone()))
             .build()
             .await?;
 
@@ -258,7 +263,7 @@ mod test {
         // Initialise a new value, and expect the state to be restored!
         let new_state = BotState::builder()
             .with_encryption_key(Some(AesKey(key.to_vec())))
-            .with_store_path(Some(store_path.clone()))
+            .with_store_path(Some(store_path_str.clone()))
             .build()
             .await?;
 

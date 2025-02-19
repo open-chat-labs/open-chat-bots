@@ -42,29 +42,28 @@ pub async fn status(ctx: Context<'_>) -> Result<(), Error> {
         .state
         .get_status_for_ds_channel(ctx.channel_id())
         .await;
-    let msg = (|| match channel_status {
-        Some(status) => {
-            match status {
-                ChannelStatus::TokenNotSet => {
-                    format!("OpenChat token is not set! Please use the `/set_oc_token` command to set it.")
-                }
-                ChannelStatus::Operational => {
-                    format!("OC token is set for this channel!")
-                }
-                ChannelStatus::ProxyFailed(reason) => {
-                    format!(
-                        "OC token is set for this channel, but proxy failed: {}",
-                        reason
-                    )
-                }
+    let process_status = || match channel_status {
+        Some(status) => match status {
+            ChannelStatus::TokenNotSet => {
+                "OpenChat token is not set! Please use the `/set_oc_token` command to set it."
+                    .to_string()
             }
-        }
-        None => {
-            format!("I don't have a status for you yet, bot hasn't been used.")
-        }
-    })();
+            ChannelStatus::Operational => "OC token is set for this channel!".to_string(),
+            ChannelStatus::ProxyFailed(reason) => {
+                format!(
+                    "OC token is set for this channel, but proxy failed: {}",
+                    reason
+                )
+            }
+        },
+        None => "I don't have a status for you yet, bot hasn't been used.".to_string(),
+    };
 
-    ctx.send(poise::CreateReply::default().ephemeral(true).content(msg))
-        .await?;
+    ctx.send(
+        poise::CreateReply::default()
+            .ephemeral(true)
+            .content(process_status()),
+    )
+    .await?;
     Ok(())
 }

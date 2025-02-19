@@ -1,8 +1,9 @@
 use async_trait::async_trait;
+use oc_bots_sdk::api::command_handler::Command;
+use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::{
     api::{BotPermissions, MessagePermission, SlashCommandDefinition, SuccessResult},
     types::BotCommandContext,
-    Command, OpenChatClientFactory,
 };
 use oc_bots_sdk_offchain::AgentRuntime;
 use std::{collections::HashSet, sync::LazyLock};
@@ -21,7 +22,7 @@ impl Command<AgentRuntime> for Status {
     async fn execute(
         &self,
         ctx: BotCommandContext,
-        oc_client_factory: &OpenChatClientFactory<AgentRuntime>,
+        oc_client_factory: &ClientFactory<AgentRuntime>,
     ) -> Result<SuccessResult, String> {
         // TODO return status for the bot, i.e. if its current channel is
         //      receiving messages from a discord channel, or what that channel
@@ -30,7 +31,7 @@ impl Command<AgentRuntime> for Status {
         let message = oc_client_factory
             .build_command_client(ctx)
             .send_text_message("[TODO]".to_string())
-            .execute(|_, _| ());
+            .execute_then_return_message(|_, _| ());
 
         Ok(SuccessResult {
             message: Some(message),

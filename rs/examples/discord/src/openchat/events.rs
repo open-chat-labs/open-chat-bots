@@ -1,8 +1,9 @@
 use crate::config::OpenChatConfig;
 use crate::errors::BotError;
 use crate::openchat::types::RelayMessage;
+use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
+use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::{AuthToken, BotApiKeyContext, MessageContent, TextContent};
-use oc_bots_sdk::OpenChatClientFactory;
 use oc_bots_sdk_offchain::env;
 use oc_bots_sdk_offchain::AgentRuntime;
 use std::sync::Arc;
@@ -10,7 +11,7 @@ use tokio::sync::mpsc::Receiver;
 use tracing::{error, info};
 
 pub async fn handle_openchat_events(
-    oc_client: Arc<OpenChatClientFactory<AgentRuntime>>,
+    oc_client: Arc<ClientFactory<AgentRuntime>>,
     oc_config: OpenChatConfig,
     mut rx: Receiver<RelayMessage>,
 ) -> Result<(), BotError> {

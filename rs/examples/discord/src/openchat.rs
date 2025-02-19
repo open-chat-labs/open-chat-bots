@@ -10,8 +10,9 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::Router;
+use oc_bots_sdk::api::command_handler::CommandHandler;
 use oc_bots_sdk::api::{BotDefinition, CommandResponse, MessagePermission};
-use oc_bots_sdk::{CommandHandler, OpenChatClientFactory};
+use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk_offchain::{env, AgentRuntime};
 use std::collections::HashSet;
 use std::net::{Ipv4Addr, SocketAddr};
@@ -37,7 +38,7 @@ pub async fn init_openchat_client(
     .await;
 
     // Init client factory!
-    let oc_client_factory = Arc::new(OpenChatClientFactory::new(AgentRuntime::new(
+    let oc_client_factory = Arc::new(ClientFactory::new(AgentRuntime::new(
         oc_agent,
         tokio::runtime::Runtime::new().map_err(BotError::FailedOpenChatClientInit)?,
     )));
@@ -66,7 +67,7 @@ pub async fn start_openchat_bot(
     let thread_client = data.oc_client.clone();
     let thread_config = data.oc_config.clone();
     let oc_events = tokio::spawn(async move {
-        return events::handle_openchat_events(thread_client, thread_config, rx).await;
+        events::handle_openchat_events(thread_client, thread_config, rx).await
     });
 
     // OC bot setup!

@@ -40,7 +40,7 @@ async fn proxy_message(
         // Attachments will hold any image/video/other that is sent with a message.
         // We are filtering out messages with no content and attachments.
         // TODO allow attachments to be sent to OpenChat
-        if new_message.content.is_empty() && new_message.attachments.len() > 0 {
+        if new_message.content.is_empty() && !new_message.attachments.is_empty() {
             warn!(
                 new_message.author.name,
                 "Unsupported messsage type - attachments are not yet handled!"
@@ -85,7 +85,7 @@ async fn proxy_message(
         // This is just for fun!
         if new_message.content.to_lowercase().contains("ping") {
             new_message
-                .reply(ctx, format!("You've mentioned a ping! Here's a pong!"))
+                .reply(ctx, "You've mentioned a ping! Here's a pong!")
                 .await?;
         }
     }

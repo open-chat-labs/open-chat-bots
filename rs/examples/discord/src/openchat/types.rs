@@ -1,5 +1,6 @@
 use crate::{config::OpenChatConfig, state::BotState};
-use oc_bots_sdk::{CommandHandler, OpenChatClientFactory};
+use oc_bots_sdk::api::command_handler::CommandHandler;
+use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk_offchain::AgentRuntime;
 use poise::serenity_prelude as serenity;
 use serde::{Deserialize, Serialize};
@@ -12,7 +13,7 @@ pub struct OcToken(pub String);
 // Data available across commands invocations
 #[derive(Clone)]
 pub struct OcData {
-    pub oc_client: Arc<OpenChatClientFactory<AgentRuntime>>,
+    pub oc_client: Arc<ClientFactory<AgentRuntime>>,
     pub oc_config: OpenChatConfig,
     pub commands: Arc<CommandHandler<AgentRuntime>>,
     pub state: Arc<BotState>,
@@ -20,7 +21,7 @@ pub struct OcData {
 
 impl OcData {
     pub fn new(
-        oc_client: Arc<OpenChatClientFactory<AgentRuntime>>,
+        oc_client: Arc<ClientFactory<AgentRuntime>>,
         oc_config: OpenChatConfig,
         commands: CommandHandler<AgentRuntime>,
         state: Arc<BotState>,

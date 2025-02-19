@@ -10,8 +10,6 @@ use serde_valid::Validate;
 use state::AesKey;
 use std::sync::Arc;
 use tokio::sync::mpsc::channel;
-use tracing;
-use tracing_subscriber;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -37,7 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Init state!
     let state = Arc::new(
         state::BotState::builder()
-            .with_encryption_key(config.system.store_encryption_key.map(|ek| AesKey(ek)))
+            .with_encryption_key(config.system.store_encryption_key.map(AesKey))
             .with_store_path(config.system.store_path)
             .build()
             .await?,
@@ -63,12 +61,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }),
         // Start OpenChat bot, which responds to commands
         tokio::spawn(async move {
-            return crate::openchat::start_openchat_bot(
+            crate::openchat::start_openchat_bot(
                 Arc::new(openchat_client),
                 config.openchat.bot.port,
                 rx,
             )
-            .await;
+            .await
         }),
     );
 
