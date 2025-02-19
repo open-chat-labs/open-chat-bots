@@ -1,0 +1,24 @@
+[package]
+name = "discord-bot"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aes-gcm = "0.10.3"
+async-trait = { workspace = true }
+axum = { workspace = true }
+dotenv = { workspace = true }
+ic-agent = { workspace = true }
+oc_bots_sdk = { path = "../../sdk" }
+oc_bots_sdk_offchain = { path = "../../sdk_offchain" }
+poise = "0.6.1"
+serde = { workspace = true }
+serde_bytes = "0.11.15"
+serde_json = { workspace = true }
+serde_valid = "1.0.5"
+thiserror = "2.0.11"
+tokio = { version = "1.43.0", features = ["rt-multi-thread", "tracing"] }
+toml = "0.8.20"
+tower-http = { version = "0.6.2", features = ["cors"] }
+tracing = "0.1.41"
+tracing-subscriber = { workspace = true }

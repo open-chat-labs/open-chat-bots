@@ -1,0 +1,16 @@
+# Logs
+logs/
+*.log
+
+# Output directories
+dist/
+build/
+target/
+
+# Temporary files
+tmp/
+temp/
+
+*.pem
+config.toml
+bot_store.db
