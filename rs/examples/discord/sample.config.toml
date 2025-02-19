@@ -1,9 +1,5 @@
 [discord]
-# Discord bot's app id and public key.
-app_id = "your-app-id-here"
-public_key = "your-app-public-key-here"
-
-# The token is used to authenticate the bot with the Discord API. Probably best
+# This token is used to authenticate the bot with the Discord API. Probably best
 # not to commit to version control!
 token = "your-discord-app-token"
 
@@ -12,9 +8,9 @@ token = "your-discord-app-token"
 # you are operating. Again this only varies by the target IC environment.
 ic_url = "http://localhost:8080"
 
-# Key used by OpenChat to sign the issued JWT. This value can be obtained from
-# the OC UI, by visiting User Profile -> Advanced, and then clicking on the
-# "Bot client config" button.
+# Public pair of the key used by OpenChat to sign the issued JWT. This value
+# can be obtained from the OC UI, by visiting User Profile -> Advanced, and
+# then clicking on the "Bot client config" button.
 public_key = "openchat-publick-key-used-to-sign-jwt"
 
 [openchat.bot]
@@ -22,34 +18,29 @@ public_key = "openchat-publick-key-used-to-sign-jwt"
 port = 13456
 
 # Private key for the bot, used for bot identification when bots are used
-# off-chain. For on chain bots, they would get their principal from the OC.
-# This file can be generated for a bot by running:
+# off-chain. On chain bots would get their principal from the OC during registration.
+# Private pem key can be generated for a bot by running:
 #
 #```
 # openssl ecparam -genkey -name secp256k1 -out private_key.pem
 #```
 private_key_path = "./private_key.pem"
 
-# Principal generated from the private key! The script to generate the principal
-# value is available in this repository at: `ts/packages/library/scripts/report_principal.js`
-principal = "principal-for-your-bot"
-
 [system]
 # [optional]
-# You may save your current bot state to disk into a file. Value represented
-# in code with a type, will be serialised using serde, and put into a file.
-# The extension - or no extension - of you file is up to your choice.
-# Note: If not provided state will not be saved!
+# You may save your current bot state to disk into a file. Persistent parts of
+# the state will be serialised using serde, and saved within a file on the fs.
+# Naming of the file, and its extension (or none), is arbitrary.
+# Note: If store path is not provided state will not be saved!
 store_path = "path/to/store/on/disk.db"
 
 # [optional]
 # Key used to encrypt the state of the bot when saved to a file. State will
-# contain some API keys that could be considered a sensitive information, and
-# therefore we could use some scurity in that aspect.
+# contain OC API keys that could be considered a sensitive information, and
+# therefore may benefit from encryption.
 # Note: If not provided, state will not be encrypted when saved to file.
 store_encryption_key = "key-must-be-32-bit-value-to-work"
 
 # Set the appropriate log level you'd like to record. Logs are recorded by the
-# `tracing` crate, please refer to its docs for more info about the available
-# levels.
+# `tracing` crate. Alowed values: trace, debug, info, warn, error.
 log_level = "info"
