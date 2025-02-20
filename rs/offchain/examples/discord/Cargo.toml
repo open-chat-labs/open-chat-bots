@@ -9,8 +9,8 @@ async-trait = { workspace = true }
 axum = { workspace = true }
 dotenv = { workspace = true }
 ic-agent = { workspace = true }
-oc_bots_sdk = { path = "../../sdk" }
-oc_bots_sdk_offchain = { path = "../../sdk_offchain" }
+oc_bots_sdk = { path = "../../../sdk" }
+oc_bots_sdk_offchain = { path = "../../sdk" }
 poise = "0.6.1"
 serde = { workspace = true }
 serde_bytes = "0.11.15"

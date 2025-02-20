@@ -8,5 +8,5 @@ edition = "2021"
 [dependencies]
 candid = { workspace = true }
 ic-agent = { workspace = true }
-oc_bots_sdk = { path = "../sdk" }
+oc_bots_sdk = { path = "../../sdk" }
 tokio = { workspace = true, features = ["rt"] }
