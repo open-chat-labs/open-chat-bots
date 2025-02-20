@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-oc_bots_sdk_offchain = { path = "../../../sdk_offchain" }
+oc_bots_sdk_offchain = { path = "../../../../offchain/sdk" }
 candid = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 csv = "1.3.1"

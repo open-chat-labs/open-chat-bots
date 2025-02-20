@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use oc_bots_sdk::api::command_handler::Command;
 use oc_bots_sdk::api::{
-    BotPermissions, IntegerParam, MessagePermission, SlashCommandDefinition, SlashCommandParam,
-    SlashCommandParamType, SuccessResult,
+    BotCommandDefinition, BotCommandParam, BotCommandParamType, BotPermissions, IntegerParam,
+    MessagePermission, SuccessResult,
 };
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::BotCommandContext;
@@ -10,13 +10,13 @@ use oc_bots_sdk_offchain::AgentRuntime;
 use rand::random;
 use std::{collections::HashSet, sync::LazyLock};
 
-static DEFINITION: LazyLock<SlashCommandDefinition> = LazyLock::new(Coin::definition);
+static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Coin::definition);
 
 pub struct Coin;
 
 #[async_trait]
 impl Command<AgentRuntime> for Coin {
-    fn definition(&self) -> &SlashCommandDefinition {
+    fn definition(&self) -> &BotCommandDefinition {
         &DEFINITION
     }
 
@@ -50,17 +50,17 @@ impl Command<AgentRuntime> for Coin {
 }
 
 impl Coin {
-    fn definition() -> SlashCommandDefinition {
-        SlashCommandDefinition {
+    fn definition() -> BotCommandDefinition {
+        BotCommandDefinition {
             name: "coin".to_string(),
             description: Some("Let's toss some coins!".to_string()),
             placeholder: Some("Tossing...".to_string()),
-            params: vec![SlashCommandParam {
+            params: vec![BotCommandParam {
                 name: "count".to_string(),
                 description: Some("The number of coins to toss".to_string()),
                 placeholder: Some("1".to_string()),
                 required: false,
-                param_type: SlashCommandParamType::IntegerParam(IntegerParam {
+                param_type: BotCommandParamType::IntegerParam(IntegerParam {
                     min_value: 1,
                     max_value: 10,
                     choices: Vec::new(),
@@ -70,6 +70,7 @@ impl Coin {
                 message: HashSet::from_iter([MessagePermission::Text]),
                 ..Default::default()
             },
+            default_role: None,
         }
     }
 }

@@ -11,8 +11,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 async-trait = { workspace = true }
-oc_bots_sdk = { path = "../../../sdk" }
-oc_bots_sdk_canister = { path = "../../../sdk_canister" }
+oc_bots_sdk = { path = "../../../../sdk" }
+oc_bots_sdk_canister = { path = "../../../sdk" }
 candid = { workspace = true }
 getrandom = { workspace = true }
 http = { workspace = true }

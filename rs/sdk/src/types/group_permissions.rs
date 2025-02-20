@@ -48,3 +48,12 @@ pub struct CustomPermission {
     pub subtype: String,
     pub role: GroupPermissionRole,
 }
+
+#[derive(CandidType, Serialize, Deserialize, Copy, Clone, Debug, Default)]
+pub enum GroupRole {
+    Owner,
+    Admin,
+    Moderator,
+    #[default]
+    Participant,
+}

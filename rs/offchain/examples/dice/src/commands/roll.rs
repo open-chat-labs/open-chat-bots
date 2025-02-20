@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use oc_bots_sdk::api::command_handler::Command;
 use oc_bots_sdk::api::{
-    BotPermissions, IntegerParam, MessagePermission, SlashCommandDefinition, SlashCommandParam,
-    SlashCommandParamType, SuccessResult,
+    BotCommandDefinition, BotCommandParam, BotCommandParamType, BotPermissions, IntegerParam,
+    MessagePermission, SuccessResult,
 };
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::BotCommandContext;
@@ -10,13 +10,13 @@ use oc_bots_sdk_offchain::AgentRuntime;
 use rand::{thread_rng, Rng};
 use std::{collections::HashSet, sync::LazyLock};
 
-static DEFINITION: LazyLock<SlashCommandDefinition> = LazyLock::new(Roll::definition);
+static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Roll::definition);
 
 pub struct Roll;
 
 #[async_trait]
 impl Command<AgentRuntime> for Roll {
-    fn definition(&self) -> &SlashCommandDefinition {
+    fn definition(&self) -> &BotCommandDefinition {
         &DEFINITION
     }
 
@@ -50,29 +50,29 @@ impl Command<AgentRuntime> for Roll {
 }
 
 impl Roll {
-    fn definition() -> SlashCommandDefinition {
-        SlashCommandDefinition {
+    fn definition() -> BotCommandDefinition {
+        BotCommandDefinition {
             name: "roll".to_string(),
             description: Some("Let's roll some dice!".to_string()),
             placeholder: Some("Rolling...".to_string()),
             params: vec![
-                SlashCommandParam {
+                BotCommandParam {
                     name: "sides".to_string(),
                     description: Some("The number of sides on each die".to_string()),
                     placeholder: Some("6".to_string()),
                     required: false,
-                    param_type: SlashCommandParamType::IntegerParam(IntegerParam {
+                    param_type: BotCommandParamType::IntegerParam(IntegerParam {
                         min_value: 1,
                         max_value: 1_000_000_000,
                         choices: Vec::new(),
                     }),
                 },
-                SlashCommandParam {
+                BotCommandParam {
                     name: "count".to_string(),
                     description: Some("The number of dice to roll".to_string()),
                     placeholder: Some("1".to_string()),
                     required: false,
-                    param_type: SlashCommandParamType::IntegerParam(IntegerParam {
+                    param_type: BotCommandParamType::IntegerParam(IntegerParam {
                         min_value: 1,
                         max_value: 10,
                         choices: Vec::new(),
@@ -83,6 +83,7 @@ impl Roll {
                 message: HashSet::from_iter([MessagePermission::Text]),
                 ..Default::default()
             },
+            default_role: None,
         }
     }
 }

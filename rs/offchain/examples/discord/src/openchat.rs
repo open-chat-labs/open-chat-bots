@@ -124,6 +124,7 @@ async fn bot_definition(State(oc_data): State<Arc<OcData>>, _body: String) -> (S
                 message: HashSet::from([MessagePermission::Text]),
                 ..Default::default()
             },
+            sync_api_key: false,
         }),
     };
 

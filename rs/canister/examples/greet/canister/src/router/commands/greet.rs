@@ -1,7 +1,7 @@
 use crate::state;
 use async_trait::async_trait;
 use oc_bots_sdk::api::command_handler::Command;
-use oc_bots_sdk::api::{BotPermissions, MessagePermission, SlashCommandDefinition, SuccessResult};
+use oc_bots_sdk::api::{BotCommandDefinition, BotPermissions, MessagePermission, SuccessResult};
 use oc_bots_sdk::oc_api::actions::send_message;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::BotCommandContext;
@@ -9,13 +9,13 @@ use oc_bots_sdk_canister::CanisterRuntime;
 use std::collections::HashSet;
 use std::sync::LazyLock;
 
-static DEFINITION: LazyLock<SlashCommandDefinition> = LazyLock::new(Greet::definition);
+static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Greet::definition);
 
 pub struct Greet;
 
 #[async_trait]
 impl Command<CanisterRuntime> for Greet {
-    fn definition(&self) -> &SlashCommandDefinition {
+    fn definition(&self) -> &BotCommandDefinition {
         &DEFINITION
     }
 
@@ -47,17 +47,17 @@ impl Command<CanisterRuntime> for Greet {
 }
 
 impl Greet {
-    fn definition() -> SlashCommandDefinition {
-        SlashCommandDefinition {
+    fn definition() -> BotCommandDefinition {
+        BotCommandDefinition {
             name: "greet".to_string(),
             description: Some("This will greet the caller".to_string()),
             placeholder: Some("Please wait".to_string()),
             params: vec![],
             permissions: BotPermissions {
-                community: HashSet::new(),
-                chat: HashSet::new(),
                 message: HashSet::from_iter([MessagePermission::Text]),
+                ..Default::default()
             },
+            default_role: None,
         }
     }
 }
