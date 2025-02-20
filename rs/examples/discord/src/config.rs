@@ -21,8 +21,6 @@ impl Config {
 
 #[derive(Clone, Deserialize, Debug)]
 pub struct DiscordConfig {
-    pub app_id: String,
-    pub public_key: String,
     pub token: String,
 }
 
@@ -37,7 +35,6 @@ pub struct OpenChatConfig {
 pub struct OpenChatBotConfig {
     pub port: u16,
     pub private_key_path: String,
-    pub principal: String,
 }
 
 #[derive(Clone, Deserialize, Debug, Validate)]

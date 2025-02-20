@@ -50,6 +50,8 @@ async fn proxy_message(
 
         // Get OC destination channel token!
         let channel_id = new_message.channel_id;
+        // State is shared, so tokens can also be accessed on the other side
+        // of the tx/rx channel.
         let oc_token = data.state.get_token_for_oc_channel(channel_id).await;
 
         debug!("Relaying message :: {:?}", new_message);
@@ -61,16 +63,17 @@ async fn proxy_message(
                 .send(RelayMessage::from_message(new_message.clone(), token))
                 .await;
 
-            // TODO: a recovery mechanism?
-            if let Err(e) = res {
+            let channel_status = if let Err(e) = res {
+                // TODO: a recovery mechanism?
                 error!("Failed to send message to OC :: {}", e);
-                data.state
-                    .set_status_for_ds_channel(
-                        channel_id,
-                        ChannelStatus::ProxyFailed("Failed to send message to OC".to_string()),
-                    )
-                    .await?;
-            }
+                ChannelStatus::ProxyFailed("Failed to send message to OC".to_string())
+            } else {
+                ChannelStatus::Operational
+            };
+
+            data.state
+                .set_status_for_ds_channel(channel_id, channel_status)
+                .await?;
         } else {
             // TODO figure out how to get channel name
             info!(
@@ -83,7 +86,9 @@ async fn proxy_message(
         }
 
         // This is just for fun!
-        if new_message.content.to_lowercase().contains("ping") {
+        let msg = new_message.content.clone().to_lowercase();
+        let words: Vec<&str> = msg.split_whitespace().collect();
+        if words.contains(&"ping") {
             new_message
                 .reply(ctx, "You've mentioned a ping! Here's a pong!")
                 .await?;

@@ -10,13 +10,15 @@ A combination of an `OpenChat` and a `Discord` `bot` used to relay messages from
 
 To use this bot right now you can register it within [Discord's developers portal](https://discord.com/developers/applications). Select the **"New Application"** button in the top right corner, and follow the prompts until your app is created.
 
-Once your app is created, under the **"General Information"** you'll find your app ID and public key, and various URL values you may set. It is important **NOT** to set _interactions endpoint url_; since our bot uses WebSockets for communication with Discord servers, setting the interactions url may prevent any data from reaching our bot.
+Once your app is created, under the **"General Information"** you'll find your app ID and public key, and various URL values you may set. It is important **NOT** to set _interactions endpoint url_; since our bot uses WebSockets for communication with Discord servers, setting the interactions url may prevent any data from reaching the bot.
 
 Within the **"Installation"** section you'll find default installation contexts. We'd encourage you to set this up to your preferences; our test settings were to use User and Guild context, with bot scope in the Guild context and "Send Message" permission.
 
 Next, go to the **"Bot"** section for your app, and there you can generate an access token for your bot - make sure you record this value, and keep it secure; do not commit it to version control. The bot consumes this value via `config.toml`, how exactly this value is injected into the config should depend on your deployment process.
 
-Also, while here, make sure to turn on the _Message Content Intent_ which should allow the bot to receive the message content in most messages. One thing to note here is that this setting will make a bot subject to review and approval, once the bot reaches 100+ servers.
+Also, while there, make sure to turn on the _Message Content Intent_ which should allow the bot to receive the message content in most messages. One thing to note here is that this setting will make a bot subject to review and approval, once the bot reaches 100+ servers.
+
+**To add the bot to your server** - go back to the **Installation** section from the menu. There you will find a Discord provided install link (or you may register your own), which you can then copy/paste into your browser address bar, and follow the _Add App_ flow.
 
 ### As a user
 
@@ -46,7 +48,7 @@ Since this is also an autonomous bot, it can send messages directly to OC withou
 - If you've not added a bot to your channel yet, click _Add bots_,
 - Otherwise find the bot in list, and click to generate API key.
 
-Kep the API key secure, it's a secret!
+Keep the API key secure, it's a secret!
 
 ## How to run
 
