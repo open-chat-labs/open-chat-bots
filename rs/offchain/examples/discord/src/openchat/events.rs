@@ -36,7 +36,7 @@ pub async fn handle_openchat_events(
                 .attachments
                 .into_iter()
                 .filter_map(|attach| {
-                    let content_type = attach.content_type.unwrap_or(String::new());
+                    let content_type = attach.content_type.unwrap_or_default();
                     if content_type.starts_with("image/") {
                         Some(format!(
                             "🔗 [{}: {}]({})",
