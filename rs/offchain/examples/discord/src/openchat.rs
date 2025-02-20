@@ -14,6 +14,7 @@ use oc_bots_sdk::api::command_handler::CommandHandler;
 use oc_bots_sdk::api::{BotDefinition, CommandResponse, MessagePermission};
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk_offchain::{env, AgentRuntime};
+use poise::serenity_prelude::Message;
 use std::collections::HashSet;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
@@ -61,14 +62,12 @@ pub async fn init_openchat_client(
 pub async fn start_openchat_bot(
     data: Arc<OcData>,
     port: u16,
-    rx: Receiver<RelayMessage>,
+    rx: Receiver<Message>,
 ) -> Result<(), BotError> {
     // Start listening for messages comming from the Discord bot
-    let thread_client = data.oc_client.clone();
-    let thread_config = data.oc_config.clone();
-    let oc_events = tokio::spawn(async move {
-        events::handle_openchat_events(thread_client, thread_config, rx).await
-    });
+    let thread_data = data.clone();
+    let oc_events =
+        tokio::spawn(async move { events::handle_openchat_events(thread_data, rx).await });
 
     // OC bot setup!
     let routes = Router::new()
