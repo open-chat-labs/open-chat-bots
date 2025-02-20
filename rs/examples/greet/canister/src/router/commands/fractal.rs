@@ -3,8 +3,8 @@ use crate::state::Blob;
 use async_trait::async_trait;
 use oc_bots_sdk::api::command_handler::Command;
 use oc_bots_sdk::api::{
-    BotPermissions, DecimalParam, MessagePermission, SlashCommandDefinition, SlashCommandParam,
-    SlashCommandParamType, SuccessResult,
+    BotCommandDefinition, BotCommandParam, BotCommandParamType, BotPermissions, DecimalParam,
+    MessagePermission, SuccessResult,
 };
 use oc_bots_sdk::create_thumbnail;
 use oc_bots_sdk::oc_api::actions::send_message;
@@ -16,13 +16,13 @@ use std::collections::HashSet;
 use std::io::Cursor;
 use std::sync::LazyLock;
 
-static DEFINITION: LazyLock<SlashCommandDefinition> = LazyLock::new(Fractal::definition);
+static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Fractal::definition);
 
 pub struct Fractal;
 
 #[async_trait]
 impl Command<CanisterRuntime> for Fractal {
-    fn definition(&self) -> &SlashCommandDefinition {
+    fn definition(&self) -> &BotCommandDefinition {
         &DEFINITION
     }
 
@@ -130,29 +130,29 @@ impl Fractal {
         Ok(bytes)
     }
 
-    fn definition() -> SlashCommandDefinition {
-        SlashCommandDefinition {
+    fn definition() -> BotCommandDefinition {
+        BotCommandDefinition {
             name: "fractal".to_string(),
             description: Some("This will generate a Julia fractal based on the provided input values. Find some examples here: https://paulbourke.net/fractals/juliaset/".to_string()),
             placeholder: Some("Please wait".to_string()),
             params: vec![
-                SlashCommandParam {
+                BotCommandParam {
                     name: "real".to_string(),
                     description: Some("The real part of the complex number input".to_string()),
                     placeholder: Some("Enter the real part e.g. -0.4".to_string()), 
                     required: true,
-                    param_type: SlashCommandParamType::DecimalParam(DecimalParam {
+                    param_type: BotCommandParamType::DecimalParam(DecimalParam {
                         min_value: -1.0,
                         max_value: 1.0,
                         choices: vec![],
                     }),
                 },
-                SlashCommandParam {
+                BotCommandParam {
                     name: "imaginary".to_string(),
                     description: Some("The imaginary part of the complex number input".to_string()),
                     placeholder: Some("Enter the imaginary part e.g. 0.6".to_string()), 
                     required: true,
-                    param_type: SlashCommandParamType::DecimalParam(DecimalParam {
+                    param_type: BotCommandParamType::DecimalParam(DecimalParam {
                         min_value: -1.0,
                         max_value: 1.0,
                         choices: vec![],
@@ -160,10 +160,10 @@ impl Fractal {
                 },
             ],
             permissions: BotPermissions {
-                community: HashSet::new(),
-                chat: HashSet::new(),
-                message: HashSet::from_iter([MessagePermission::Image]),
+                message: HashSet::from_iter([MessagePermission::Text]),
+                ..Default::default()
             },
+            default_role: None,
         }
     }
 }

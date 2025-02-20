@@ -21,6 +21,7 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
                     chat: HashSet::new(),
                     message: HashSet::from_iter(vec![MessagePermission::Text]),
                 },
+                sync_api_key: false,
             }),
         },
     )
