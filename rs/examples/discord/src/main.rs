@@ -56,14 +56,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Run bots in their respective threads
     let (ds_res, oc_res) = tokio::join!(
         tokio::spawn(async move { discord_client.start().await }),
-        tokio::spawn(async move {
-            crate::openchat::start_openchat_bot(
-                Arc::new(openchat_client),
-                config.openchat.bot.port,
-                rx,
-            )
-            .await
-        }),
+        tokio::spawn(crate::openchat::start_openchat_bot(
+            Arc::new(openchat_client),
+            config.openchat.bot.port,
+            rx,
+        )),
     );
 
     let _ = ds_res.expect("Discord bot failed!");
