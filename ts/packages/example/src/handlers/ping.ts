@@ -6,19 +6,36 @@ import { BotClientFactory } from "@open-ic/openchat-botclient-ts";
 export class Ping {
   #timer: NodeJS.Timeout | undefined = undefined;
   #interval = 5000;
+  #apiKeys = new Set<string>();
 
-  constructor(private factory: BotClientFactory, private apiKey: string) {}
+  constructor(private factory: BotClientFactory) {
+    this.start();
+  }
 
-  start() {
-    clearInterval(this.#timer);
-    this.#timer = setInterval(async () => {
-      const client = await this.factory.createClientFromApiKey(this.apiKey);
+  async #pingScope(apiKey: string) {
+    const client = this.factory.createClientFromApiKey(apiKey);
+    if (client.scope.kind === "community") {
+      console.log("We can't send a text message to a community - skipping key");
+    } else {
       const msg = await client.createTextMessage(
         `Ping at ${new Date().toLocaleTimeString()}`
       );
       client
         .sendMessage(msg)
-        .catch((err) => console.error("Couldn't call ping"));
+        .catch((err) => console.error("Couldn't call ping", err));
+    }
+  }
+
+  setApiKey(apiKey: string) {
+    this.#apiKeys.add(apiKey);
+  }
+
+  start() {
+    clearInterval(this.#timer);
+    this.#timer = setInterval(async () => {
+      this.#apiKeys.forEach((apiKey) => {
+        this.#pingScope(apiKey);
+      });
     }, this.#interval);
   }
 
@@ -33,6 +50,5 @@ export const ping = new Ping(
     icHost: process.env.IC_HOST!,
     identityPrivateKey: process.env.IDENTITY_PRIVATE!,
     openStorageCanisterId: process.env.STORAGE_INDEX_CANISTER!,
-  }),
-  process.env.OC_API_KEY!
+  })
 );

@@ -6,9 +6,11 @@ import { WithBotClient } from "../types";
 export default async function (req: WithBotClient, res: Response) {
   const client = req.botClient;
 
-  const msg = (await client.createTextMessage("Stop pinging ...")).setFinalised(
-    true
-  );
+  const msg = (
+    await client.createTextMessage(
+      "Unsubscribing from autonomous behaviour ..."
+    )
+  ).setFinalised(true);
 
   client
     .sendMessage(msg)

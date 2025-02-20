@@ -82,7 +82,7 @@ export type CommandActionScope = CommandActionChatScope | CommandActionCommunity
 
 export type CommandActionCommunityScope = {
     Community: {
-        community_id: Uint8Array;
+        community_id: string;
     };
 };
 

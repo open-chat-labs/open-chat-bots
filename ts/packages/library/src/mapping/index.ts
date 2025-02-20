@@ -100,7 +100,7 @@ export function mapApiKeyScope(api: ApiKeyActionScope): MergedActionScope {
             kind: "community",
             communityId: {
                 kind: "community",
-                communityId: principalBytesToString(api.Community.community_id),
+                communityId: api.Community.community_id,
             },
         };
     }

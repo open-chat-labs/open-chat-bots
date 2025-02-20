@@ -5,7 +5,9 @@ import { WithBotClient } from "../types";
 
 export default async function (req: WithBotClient, res: Response) {
   const client = req.botClient;
-  const msg = await client.createTextMessage("Starting to ping ...");
+  const msg = await client.createTextMessage(
+    "Subscribing to autonomous behaviour..."
+  );
 
   client
     .sendMessage(msg)

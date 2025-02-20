@@ -5,7 +5,7 @@ import sharp from "sharp";
 
 import OpenAI from "openai";
 import { argumentsInvalid } from "@open-ic/openchat-botclient-ts";
-const openai = new OpenAI({ apiKey: process.env.OC_API_KEY! });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
 export async function resizeImage(data: Uint8Array | undefined) {
   if (data === undefined) return data;
