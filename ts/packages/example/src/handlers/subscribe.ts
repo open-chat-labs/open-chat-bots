@@ -5,9 +5,9 @@ import { WithBotClient } from "../types";
 
 export default async function (req: WithBotClient, res: Response) {
   const client = req.botClient;
-  const msg = await client.createTextMessage(
-    "Subscribing to autonomous behaviour..."
-  );
+  const msg = (
+    await client.createTextMessage("Subscribing to autonomous behaviour...")
+  ).setFinalised(false);
 
   client
     .sendMessage(msg)
@@ -17,5 +17,19 @@ export default async function (req: WithBotClient, res: Response) {
 
   res.status(200).json(success(msg));
 
-  ping.start();
+  if (!ping.subscribe(client.scope)) {
+    const notSubscribed = (
+      await client.createTextMessage(
+        "We do not currently have an api key for this context"
+      )
+    ).setFinalised(true);
+    client.sendMessage(notSubscribed);
+  } else {
+    const subscribed = (
+      await client.createTextMessage("Subscribed to autonomous behaviour!")
+    ).setFinalised(true);
+    client
+      .sendMessage(subscribed)
+      .catch((err) => console.log("sendMessage failed with: ", err));
+  }
 }

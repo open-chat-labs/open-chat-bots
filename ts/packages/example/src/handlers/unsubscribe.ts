@@ -12,6 +12,8 @@ export default async function (req: WithBotClient, res: Response) {
     )
   ).setFinalised(true);
 
+  ping.unsubscribe(client.scope);
+
   client
     .sendMessage(msg)
     .catch((err: unknown) =>
@@ -19,6 +21,4 @@ export default async function (req: WithBotClient, res: Response) {
     );
 
   res.status(200).json(success(msg));
-
-  ping.stop();
 }

@@ -33,7 +33,6 @@ export default function executeCommand(req: Request, res: Response) {
     return;
   }
   const client = req.botClient;
-  console.log("Command: ", client.commandName, client.commandArgs);
 
   switch (client.commandName) {
     case "sync_api_key":

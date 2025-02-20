@@ -11,7 +11,6 @@ import {
     TextMessage,
     type AuthToken,
     type BotClientConfig,
-    type DecodedApiKey,
     type DecodedJwt,
     type DecodedPayload,
     type Message,
@@ -22,18 +21,12 @@ import {
     type MergedActionChatScope,
     type MergedActionCommunityScope,
     type ChatIdentifier,
-    type RawApiKey,
     type RawCommandJwt,
     type RawApiKeyJwt,
 } from "../domain";
 import type { Channel } from "../domain/channel";
-import {
-    apiOptional,
-    mapApiKey,
-    mapApiKeyJwt,
-    mapCommandJwt,
-    principalBytesToString,
-} from "../mapping";
+import { apiOptional, mapApiKeyJwt, mapCommandJwt, principalBytesToString } from "../mapping";
+import { decodeApiKey } from "../utils/decoding";
 
 export class BotClient {
     #botService: BotGatewayClient;
@@ -48,7 +41,7 @@ export class BotClient {
         this.#agent = agent;
         switch (this.#auth.kind) {
             case "api_key":
-                this.#decoded = this.#decodeApiKey(this.#auth.token);
+                this.#decoded = decodeApiKey(this.#auth.token);
                 break;
             case "command_jwt":
                 this.#decoded = this.#decodeCommandJwt(this.#auth.token);
@@ -69,11 +62,8 @@ export class BotClient {
         }
     }
 
-    #decodeApiKey(apiKey: string): DecodedApiKey {
-        const buffer = Buffer.from(apiKey, "base64");
-        const decoded = buffer.toString("utf-8");
-        const json = JSON.parse(decoded);
-        return mapApiKey(json as RawApiKey);
+    decodeApiKeyScope(apiKey: string): MergedActionScope {
+        return decodeApiKey(apiKey).scope;
     }
 
     #decodeCommandJwt(token: string): DecodedJwt {
