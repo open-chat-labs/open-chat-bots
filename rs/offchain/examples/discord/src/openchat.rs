@@ -76,7 +76,7 @@ pub async fn start_openchat_bot(
         .layer(CorsLayer::permissive())
         .with_state(data);
 
-    let socket_addr = SocketAddr::new(Ipv4Addr::LOCALHOST.into(), port);
+    let socket_addr = SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), port);
     let listener = tokio::net::TcpListener::bind(socket_addr)
         .await
         .map_err(BotError::FailedToStartOcServer)?;
