@@ -39,7 +39,6 @@ pub struct OpenChatBotConfig {
 
 #[derive(Clone, Deserialize, Debug, Validate)]
 pub struct SystemConfig {
-    #[serde(default)]
     pub store_path: Option<String>,
     // ...
     #[serde(with = "serde_bytes", default)]
