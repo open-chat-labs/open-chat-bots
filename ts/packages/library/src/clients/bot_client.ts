@@ -11,7 +11,6 @@ import {
     TextMessage,
     type AuthToken,
     type BotClientConfig,
-    type DecodedApiKey,
     type DecodedJwt,
     type DecodedPayload,
     type Message,
@@ -22,18 +21,12 @@ import {
     type MergedActionChatScope,
     type MergedActionCommunityScope,
     type ChatIdentifier,
-    type RawApiKey,
     type RawCommandJwt,
     type RawApiKeyJwt,
 } from "../domain";
 import type { Channel } from "../domain/channel";
-import {
-    apiOptional,
-    mapApiKey,
-    mapApiKeyJwt,
-    mapCommandJwt,
-    principalBytesToString,
-} from "../mapping";
+import { apiOptional, mapApiKeyJwt, mapCommandJwt, principalBytesToString } from "../mapping";
+import { decodeApiKey } from "../utils/decoding";
 
 export class BotClient {
     #botService: BotGatewayClient;
@@ -48,7 +41,7 @@ export class BotClient {
         this.#agent = agent;
         switch (this.#auth.kind) {
             case "api_key":
-                this.#decoded = this.#decodeApiKey(this.#auth.token);
+                this.#decoded = decodeApiKey(this.#auth.token);
                 break;
             case "command_jwt":
                 this.#decoded = this.#decodeCommandJwt(this.#auth.token);
@@ -61,19 +54,11 @@ export class BotClient {
     }
 
     get #botApiGateway(): string {
-        switch (this.#decoded.kind) {
-            case "api_key":
-                return this.#decoded.gateway;
-            case "jwt":
-                return this.#decoded.bot_api_gateway;
-        }
+        return this.#decoded.bot_api_gateway;
     }
 
-    #decodeApiKey(apiKey: string): DecodedApiKey {
-        const buffer = Buffer.from(apiKey, "base64");
-        const decoded = buffer.toString("utf-8");
-        const json = JSON.parse(decoded);
-        return mapApiKey(json as RawApiKey);
+    decodeApiKeyScope(apiKey: string): MergedActionScope {
+        return decodeApiKey(apiKey).scope;
     }
 
     #decodeCommandJwt(token: string): DecodedJwt {
@@ -109,15 +94,8 @@ export class BotClient {
     }
 
     #extractCanisterFromChat() {
-        if (isChatScope(this.scope)) {
-            switch (this.scope.chat.kind) {
-                case "group_chat":
-                    return this.scope.chat.groupId;
-                case "channel":
-                    return this.scope.chat.communityId;
-                case "direct_chat":
-                    return this.scope.chat.userId;
-            }
+        if (this.scope.isChatScope()) {
+            return this.scope.chat.canisterId();
         }
         return "";
     }
@@ -168,19 +146,19 @@ export class BotClient {
     }
 
     public get chatScope(): MergedActionChatScope | undefined {
-        if (isChatScope(this.scope)) {
+        if (this.scope.isChatScope()) {
             return this.scope;
         }
     }
 
     public get communityScope(): MergedActionCommunityScope | undefined {
-        if (isCommunityScope(this.scope)) {
+        if (this.scope.isCommunityScope()) {
             return this.scope;
         }
     }
 
     public get messageId(): bigint | undefined {
-        if (isChatScope(this.scope) && this.scope.messageId !== undefined) {
+        if (this.scope.isChatScope() && this.scope.messageId !== undefined) {
             return BigInt(this.scope.messageId);
         }
     }
@@ -221,12 +199,7 @@ export class BotClient {
     }
 
     public get botId(): string {
-        switch (this.#decoded.kind) {
-            case "api_key":
-                return this.#decoded.bot_id;
-            case "jwt":
-                return this.#decoded.bot;
-        }
+        return this.#decoded.bot;
     }
 
     public get commandArgs(): BotCommandArg[] {
@@ -290,12 +263,4 @@ export class BotClient {
             ).setContextMessageId<FileMessage>(this.messageId);
         });
     }
-}
-
-export function isChatScope(scope: MergedActionScope): scope is MergedActionChatScope {
-    return scope.kind === "chat";
-}
-
-export function isCommunityScope(scope: MergedActionScope): scope is MergedActionCommunityScope {
-    return scope.kind === "community";
 }

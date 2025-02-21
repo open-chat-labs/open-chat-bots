@@ -5,3 +5,5 @@ export * from "./message";
 export * from "./permissions";
 export * from "./response";
 export * from "./identifiers";
+export * from "./scopeMap";
+export * from "./scope";

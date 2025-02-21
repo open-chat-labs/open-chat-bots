@@ -5,7 +5,14 @@ import { WithBotClient } from "../types";
 
 export default async function (req: WithBotClient, res: Response) {
   const client = req.botClient;
-  const msg = await client.createTextMessage("Starting to ping ...");
+
+  const msg = (
+    await client.createTextMessage(
+      "Unsubscribing from autonomous behaviour ..."
+    )
+  ).setFinalised(true);
+
+  ping.unsubscribe(client.scope);
 
   client
     .sendMessage(msg)
@@ -14,6 +21,4 @@ export default async function (req: WithBotClient, res: Response) {
     );
 
   res.status(200).json(success(msg));
-
-  ping.start();
 }
