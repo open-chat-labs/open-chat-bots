@@ -99,15 +99,8 @@ export class BotClient {
     }
 
     #extractCanisterFromChat() {
-        if (isChatScope(this.scope)) {
-            switch (this.scope.chat.kind) {
-                case "group_chat":
-                    return this.scope.chat.groupId;
-                case "channel":
-                    return this.scope.chat.communityId;
-                case "direct_chat":
-                    return this.scope.chat.userId;
-            }
+        if (this.scope.isChatScope()) {
+            return this.scope.chat.canisterId();
         }
         return "";
     }
@@ -158,19 +151,19 @@ export class BotClient {
     }
 
     public get chatScope(): MergedActionChatScope | undefined {
-        if (isChatScope(this.scope)) {
+        if (this.scope.isChatScope()) {
             return this.scope;
         }
     }
 
     public get communityScope(): MergedActionCommunityScope | undefined {
-        if (isCommunityScope(this.scope)) {
+        if (this.scope.isCommunityScope()) {
             return this.scope;
         }
     }
 
     public get messageId(): bigint | undefined {
-        if (isChatScope(this.scope) && this.scope.messageId !== undefined) {
+        if (this.scope.isChatScope() && this.scope.messageId !== undefined) {
             return BigInt(this.scope.messageId);
         }
     }
@@ -280,12 +273,4 @@ export class BotClient {
             ).setContextMessageId<FileMessage>(this.messageId);
         });
     }
-}
-
-export function isChatScope(scope: MergedActionScope): scope is MergedActionChatScope {
-    return scope.kind === "chat";
-}
-
-export function isCommunityScope(scope: MergedActionScope): scope is MergedActionCommunityScope {
-    return scope.kind === "community";
 }

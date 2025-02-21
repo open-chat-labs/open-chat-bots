@@ -1,5 +1,6 @@
 import type { BotCommand, BotPermissions, Chat } from "../typebox/typebox";
-import type { ChatIdentifier, CommunityIdentifier } from "./identifiers";
+// import type { ChatIdentifier, CommunityIdentifier } from "./identifiers";
+import type { MergedActionScope } from "./scope";
 
 export type DecodedJwt = {
     kind: "jwt";
@@ -46,19 +47,19 @@ export type RawApiKey = {
     secret: string;
 };
 
-export type MergedActionScope = MergedActionChatScope | MergedActionCommunityScope;
+// export type MergedActionScope = MergedActionChatScope | MergedActionCommunityScope;
 
-export type MergedActionChatScope = {
-    kind: "chat";
-    chat: ChatIdentifier;
-    thread?: number;
-    messageId?: bigint;
-};
+// export type MergedActionChatScope = {
+//     kind: "chat";
+//     chat: ChatIdentifier;
+//     thread?: number;
+//     messageId?: bigint;
+// };
 
-export type MergedActionCommunityScope = {
-    kind: "community";
-    communityId: CommunityIdentifier;
-};
+// export type MergedActionCommunityScope = {
+//     kind: "community";
+//     communityId: CommunityIdentifier;
+// };
 
 export type DecodedPayload = DecodedApiKey | DecodedJwt;
 
@@ -81,9 +82,7 @@ export type CommandActionChatScope = {
 export type CommandActionScope = CommandActionChatScope | CommandActionCommunityScope;
 
 export type CommandActionCommunityScope = {
-    Community: {
-        community_id: string;
-    };
+    Community: string;
 };
 
 export type BotCommandUserValue = {

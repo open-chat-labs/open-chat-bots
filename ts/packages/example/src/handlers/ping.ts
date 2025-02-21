@@ -11,38 +11,51 @@ export class Ping {
   #timer: NodeJS.Timeout | undefined = undefined;
   #interval = 5000;
   #apiKeys = new ActionScopeToApiKeyMap();
-  #subscriptions = new Set<string>();
+  #subscriptions = new Map<string, Set<string>>();
 
   constructor(private factory: BotClientFactory) {
     this.start();
   }
 
-  async #pingScope(apiKey: string) {
+  async #pingScope(apiKey: string, scope: MergedActionScope) {
     const client = this.factory.createClientFromApiKey(apiKey);
-    if (client.scope.kind === "community") {
-      console.log("We can't send a text message to a community - skipping key");
-    } else {
-      const msg = await client.createTextMessage(
-        `Ping at ${new Date().toLocaleTimeString()}`
-      );
-      client
-        .sendMessage(msg)
-        .then((resp) => {
-          if (resp.kind === "not_authorized") {
-            // this key is probably revoked so let's remove the subscription
-            this.#apiKeys.delete(client.scope);
-            this.unsubscribe(client.scope);
-          }
-          return resp;
-        })
-        .catch((err) => console.error("Couldn't call ping", err));
+    const msg = await client.createTextMessage(
+      `Ping at ${new Date().toLocaleTimeString()}`
+    );
+
+    if (client.scope.isCommunityScope()) {
+      if (
+        scope.isChatScope() &&
+        scope.chat.isChannel() &&
+        scope.chat.communityId === client.scope.communityId.communityId
+      ) {
+        msg.setChannelId(scope.chat.channelId);
+      } else {
+        console.log(
+          "We can't send a text message to a community - skipping key"
+        );
+        return;
+      }
     }
+    client
+      .sendMessage(msg)
+      .then((resp) => {
+        if (resp.kind === "not_authorized") {
+          // this key is probably revoked so let's remove the subscription
+          this.#apiKeys.delete(client.scope);
+          this.unsubscribe(client.scope);
+        }
+        return resp;
+      })
+      .catch((err) => console.error("Couldn't call ping", err));
   }
 
   subscribe(scope: MergedActionScope): boolean {
     const key = this.#apiKeys.get(scope);
     if (key) {
-      this.#subscriptions.add(key);
+      const current = this.#subscriptions.get(key) ?? new Set();
+      current.add(scope.toString());
+      this.#subscriptions.set(key, current);
       return true;
     }
     return false;
@@ -55,7 +68,14 @@ export class Ping {
   unsubscribe(scope: MergedActionScope): boolean {
     const key = this.#apiKeys.get(scope);
     if (key) {
-      this.#subscriptions.delete(key);
+      const current = this.#subscriptions.get(key);
+      if (current) {
+        current.delete(scope.toString());
+        this.#subscriptions.set(key, current);
+        if (current.size === 0) {
+          this.#subscriptions.delete(key);
+        }
+      }
       return true;
     }
     return false;
@@ -64,8 +84,10 @@ export class Ping {
   start() {
     clearInterval(this.#timer);
     this.#timer = setInterval(async () => {
-      this.#subscriptions.forEach((apiKey) => {
-        this.#pingScope(apiKey);
+      this.#subscriptions.forEach((scopes, apiKey) => {
+        scopes.forEach((scope) => {
+          this.#pingScope(apiKey, MergedActionScope.fromString(scope));
+        });
       });
     }, this.#interval);
   }
