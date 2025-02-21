@@ -8,10 +8,6 @@ import {
 
 /**
  * This class makes it easy to maintain a map between MergedBotActionScopes and ApiKeys
- *
- * Problem - we might have more than one key that matches a particular scope e.g. a channel scope can be matched by a channel key or a community key
- * In this case `has` should return true in either case, `get` should return the key in either case. In the channel case, what do we do if we have
- * bot keys? Perhaps we return the most specific key i.e. the channel key
  */
 export class ActionScopeToApiKeyMap {
     #map: Map<string, string>;
