@@ -2,7 +2,7 @@ use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-use crate::types::GroupRole;
+use crate::types::ChatRole;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct BotDefinition {
@@ -19,7 +19,7 @@ pub struct BotCommandDefinition {
     pub placeholder: Option<String>,
     pub params: Vec<BotCommandParam>,
     pub permissions: BotPermissions,
-    pub default_role: Option<GroupRole>,
+    pub default_role: Option<ChatRole>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
@@ -76,7 +76,7 @@ pub struct BotCommandOptionChoice<T> {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
 pub struct BotPermissions {
     pub community: HashSet<CommunityPermission>,
-    pub chat: HashSet<GroupPermission>,
+    pub chat: HashSet<ChatPermission>,
     pub message: HashSet<MessagePermission>,
 }
 
@@ -92,7 +92,7 @@ pub enum CommunityPermission {
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum GroupPermission {
+pub enum ChatPermission {
     ChangeRoles,
     UpdateGroup,
     AddMembers,
