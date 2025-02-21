@@ -54,12 +54,7 @@ export class BotClient {
     }
 
     get #botApiGateway(): string {
-        switch (this.#decoded.kind) {
-            case "api_key":
-                return this.#decoded.gateway;
-            case "jwt":
-                return this.#decoded.bot_api_gateway;
-        }
+        return this.#decoded.bot_api_gateway;
     }
 
     decodeApiKeyScope(apiKey: string): MergedActionScope {
@@ -204,12 +199,7 @@ export class BotClient {
     }
 
     public get botId(): string {
-        switch (this.#decoded.kind) {
-            case "api_key":
-                return this.#decoded.bot_id;
-            case "jwt":
-                return this.#decoded.bot;
-        }
+        return this.#decoded.bot;
     }
 
     public get commandArgs(): BotCommandArg[] {

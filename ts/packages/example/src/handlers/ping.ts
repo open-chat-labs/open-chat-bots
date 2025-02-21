@@ -51,11 +51,11 @@ export class Ping {
   }
 
   subscribe(scope: MergedActionScope): boolean {
-    const key = this.#apiKeys.get(scope);
-    if (key) {
-      const current = this.#subscriptions.get(key) ?? new Set();
+    const key = this.#apiKeys.getAndDecode(scope);
+    if (key && key.hasMessagePermission("Text")) {
+      const current = this.#subscriptions.get(key.encoded) ?? new Set();
       current.add(scope.toString());
-      this.#subscriptions.set(key, current);
+      this.#subscriptions.set(key.encoded, current);
       return true;
     }
     return false;

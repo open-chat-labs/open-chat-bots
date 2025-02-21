@@ -10,7 +10,7 @@ import {
     type PermissionRole,
     type CreateChannelResponse,
     type DeleteChannelResponse,
-    type DecodedApiKey,
+    DecodedApiKey,
     type RawApiKey,
     type ApiKeyActionScope,
     type MergedActionScope,
@@ -63,14 +63,14 @@ export function mapCommandJwt(api: RawCommandJwt): DecodedJwt {
     };
 }
 
-export function mapApiKey(api: RawApiKey): DecodedApiKey {
-    return {
-        kind: "api_key",
-        gateway: api.gateway,
-        bot_id: api.bot_id,
-        scope: mapApiKeyScope(api.scope),
-        secret: api.secret,
-    };
+export function mapApiKey(apiKey: string, json: RawApiKey): DecodedApiKey {
+    return new DecodedApiKey(
+        apiKey,
+        json.gateway,
+        json.bot_id,
+        mapApiKeyScope(json.scope),
+        json.permissions,
+    );
 }
 
 export function mapCommandScope(api: CommandActionScope): MergedActionScope {
