@@ -103,7 +103,7 @@ mod tests {
             log_level = \"info\"
         ";
 
-        let parsed: Config = toml::from_str(&config)?;
+        let parsed: Config = toml::from_str(config)?;
 
         assert_eq!(parsed.discord.token, "not-a-real-token".to_string());
         assert_eq!(parsed.openchat.ic_url, "http://localhost:8080".to_string());
@@ -140,7 +140,7 @@ mod tests {
             store_encryption_key = \"-this-is-a-valid-32-bit-enc-key-\"
         ";
 
-        let parsed: Config = toml::from_str(&config)?;
+        let parsed: Config = toml::from_str(config)?;
 
         assert_eq!(parsed.system.store_path, Some("path/to/store".to_string()));
         assert_eq!(
@@ -168,7 +168,7 @@ mod tests {
             store_encryption_key = \"-this-is-a-valid-32-bit-enc-key-\"
         ";
 
-        let parsed: Config = toml::from_str(&config)?;
+        let parsed: Config = toml::from_str(config)?;
 
         assert!(parsed.system.validate().is_ok());
 
@@ -192,7 +192,7 @@ mod tests {
             store_encryption_key = \"-this-is-definitelly-not-a-valid-32-bit-enc-key-\"
         ";
 
-        let parsed: Config = toml::from_str(&config_with_invalid_enc_key)?;
+        let parsed: Config = toml::from_str(config_with_invalid_enc_key)?;
 
         assert!(parsed.system.validate().is_err());
 
