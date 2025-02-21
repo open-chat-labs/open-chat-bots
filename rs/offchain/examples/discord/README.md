@@ -52,7 +52,7 @@ Keep the API key secure, it's a secret!
 
 ## How to run
 
-For the _Discord_ bot to start up properly you will need a `config.toml`. The easies way to set it up is to copy the `exmaples/discord/sample.config.toml` from the repository, and modify it.
+For the _Discord_ bot to start up properly you will need a `config.toml`. The easiest way to set it up is to copy the `exmaples/discord/sample.config.toml` from the repository, and modify it.
 
 Once you have the configuration file all set up, place its path into your `rs/.env` file to tell the bot where to find it:
 ```

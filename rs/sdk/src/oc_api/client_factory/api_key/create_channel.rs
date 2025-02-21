@@ -1,7 +1,7 @@
 use super::ClientForApiKey;
 use crate::oc_api::actions::create_channel::*;
 use crate::oc_api::actions::ActionArgsBuilder;
-use crate::types::{AccessGateConfig, CanisterId, Document, GroupPermissions, Milliseconds, Rules};
+use crate::types::{AccessGateConfig, CanisterId, ChatPermissions, Document, Milliseconds, Rules};
 use crate::Runtime;
 use std::sync::Arc;
 
@@ -14,7 +14,7 @@ pub struct CreateChannelBuilder<R> {
     avatar: Option<Document>,
     history_visible_to_new_joiners: bool,
     messages_visible_to_non_members: bool,
-    permissions: Option<GroupPermissions>,
+    permissions: Option<ChatPermissions>,
     events_ttl: Option<Milliseconds>,
     gate_config: Option<AccessGateConfig>,
     external_url: Option<String>,
@@ -69,7 +69,7 @@ impl<R: Runtime> CreateChannelBuilder<R> {
         self
     }
 
-    pub fn with_permissions(mut self, permissions: GroupPermissions) -> Self {
+    pub fn with_permissions(mut self, permissions: ChatPermissions) -> Self {
         self.permissions = Some(permissions);
         self
     }
