@@ -1,10 +1,8 @@
 use async_trait::async_trait;
-use oc_bots_sdk::api::command_handler::Command;
+use oc_bots_sdk::api::command::{CommandHandler, SuccessResult};
+use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
-use oc_bots_sdk::{
-    api::{BotCommandDefinition, BotPermissions, MessagePermission, SuccessResult},
-    types::BotCommandContext,
-};
+use oc_bots_sdk::types::BotCommandContext;
 use oc_bots_sdk_offchain::AgentRuntime;
 use std::{collections::HashSet, sync::LazyLock};
 
@@ -14,7 +12,7 @@ static STATUS_DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Status:
 pub struct Status;
 
 #[async_trait]
-impl Command<AgentRuntime> for Status {
+impl CommandHandler<AgentRuntime> for Status {
     fn definition(&self) -> &BotCommandDefinition {
         &STATUS_DEFINITION
     }

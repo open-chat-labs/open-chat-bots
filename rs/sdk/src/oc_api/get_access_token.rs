@@ -1,4 +1,4 @@
-use crate::api::Command;
+use crate::api::command::Command;
 use crate::types::{BotActionScope, UserId};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};

@@ -1,4 +1,4 @@
-use crate::api::Message;
+use crate::api::command::Message;
 use crate::oc_api::actions::send_message::*;
 use crate::oc_api::actions::ActionArgsBuilder;
 use crate::oc_api::client_factory::command::ClientForCommand;

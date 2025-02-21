@@ -1,8 +1,8 @@
+use crate::types::ChatRole;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
-use crate::types::ChatRole;
+pub use crate::types::{BotPermissions, ChatPermission, CommunityPermission, MessagePermission};
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct BotDefinition {
@@ -71,51 +71,4 @@ pub struct DecimalParam {
 pub struct BotCommandOptionChoice<T> {
     pub name: String,
     pub value: T,
-}
-
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
-pub struct BotPermissions {
-    pub community: HashSet<CommunityPermission>,
-    pub chat: HashSet<ChatPermission>,
-    pub message: HashSet<MessagePermission>,
-}
-
-#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum CommunityPermission {
-    ChangeRoles,
-    UpdateDetails,
-    InviteUsers,
-    RemoveMembers,
-    CreatePublicChannel,
-    CreatePrivateChannel,
-    ManageUserGroups,
-}
-
-#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum ChatPermission {
-    ChangeRoles,
-    UpdateGroup,
-    AddMembers,
-    InviteUsers,
-    RemoveMembers,
-    DeleteMessages,
-    PinMessages,
-    ReactToMessages,
-    MentionAllMembers,
-    StartVideoCall,
-}
-
-#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum MessagePermission {
-    Text,
-    Image,
-    Video,
-    Audio,
-    File,
-    Poll,
-    Crypto,
-    Giphy,
-    Prize,
-    P2pSwap,
-    VideoCall,
 }

@@ -1,7 +1,3 @@
-pub mod commands;
-pub mod events;
-pub mod types;
-
 use crate::config::OpenChatConfig;
 use crate::errors::BotError;
 use crate::state::BotState;
@@ -10,8 +6,8 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::Router;
-use oc_bots_sdk::api::command_handler::CommandHandler;
-use oc_bots_sdk::api::{BotDefinition, CommandResponse, MessagePermission};
+use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
+use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk_offchain::{env, AgentRuntime};
 use poise::serenity_prelude::Message;
@@ -21,8 +17,11 @@ use std::sync::Arc;
 use tokio::sync::mpsc::Receiver;
 use tower_http::cors::CorsLayer;
 use tracing::info;
-
 pub use types::*;
+
+pub mod commands;
+pub mod events;
+pub mod types;
 
 // Init OC client
 //
@@ -45,7 +44,8 @@ pub async fn init_openchat_client(
     )));
 
     // Register commands!
-    let commands = CommandHandler::new(oc_client_factory.clone()).register(commands::Status);
+    let commands =
+        CommandHandlerRegistry::new(oc_client_factory.clone()).register(commands::Status);
 
     // Init data required for OC side of things
     Ok(OcData::new(
@@ -118,8 +118,8 @@ async fn bot_definition(State(oc_data): State<Arc<OcData>>, _body: String) -> (S
     let definition = BotDefinition {
         description: "Bot for proxying messages from Discord to OpenChat".to_string(),
         commands: oc_data.commands.definitions(),
-        autonomous_config: Some(oc_bots_sdk::api::AutonomousConfig {
-            permissions: oc_bots_sdk::api::BotPermissions {
+        autonomous_config: Some(AutonomousConfig {
+            permissions: BotPermissions {
                 message: HashSet::from([MessagePermission::Text]),
                 ..Default::default()
             },

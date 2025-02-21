@@ -1,11 +1,11 @@
 use crate::{CanisterRuntime, HttpRequest, HttpResponse};
-use oc_bots_sdk::api::{BadRequest, CommandHandler, CommandResponse};
+use oc_bots_sdk::api::command::{BadRequest, CommandHandlerRegistry, CommandResponse};
 use oc_bots_sdk::types::TimestampMillis;
 use std::str;
 
 pub async fn execute(
     request: HttpRequest,
-    command_handler: &CommandHandler<CanisterRuntime>,
+    command_handler: &CommandHandlerRegistry<CanisterRuntime>,
     public_key: &str,
     now: TimestampMillis,
 ) -> HttpResponse {

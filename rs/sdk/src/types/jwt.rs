@@ -1,5 +1,5 @@
-use super::{CanisterId, Chat, MessageId, MessageIndex, UserId};
-use crate::api::{BotPermissions, Command};
+use super::{BotPermissions, CanisterId, Chat, MessageId, MessageIndex, UserId};
+use crate::api::command::Command;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 

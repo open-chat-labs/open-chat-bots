@@ -1,9 +1,6 @@
 use async_trait::async_trait;
-use oc_bots_sdk::api::command_handler::Command;
-use oc_bots_sdk::api::{
-    BotCommandDefinition, BotCommandParam, BotCommandParamType, BotPermissions, IntegerParam,
-    MessagePermission, SuccessResult,
-};
+use oc_bots_sdk::api::command::{CommandHandler, SuccessResult};
+use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::BotCommandContext;
 use oc_bots_sdk_offchain::AgentRuntime;
@@ -15,7 +12,7 @@ static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Roll::definiti
 pub struct Roll;
 
 #[async_trait]
-impl Command<AgentRuntime> for Roll {
+impl CommandHandler<AgentRuntime> for Roll {
     fn definition(&self) -> &BotCommandDefinition {
         &DEFINITION
     }
