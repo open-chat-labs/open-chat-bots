@@ -1,6 +1,8 @@
+use crate::bitflags::{decode_from_bitflags, encode_as_bitflags};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::hash::Hash;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
 pub struct BotPermissions {
@@ -21,6 +23,29 @@ pub enum CommunityPermission {
     ManageUserGroups = 6,
 }
 
+impl From<CommunityPermission> for u8 {
+    fn from(value: CommunityPermission) -> Self {
+        value as u8
+    }
+}
+
+impl TryFrom<u8> for CommunityPermission {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(CommunityPermission::ChangeRoles),
+            1 => Ok(CommunityPermission::UpdateDetails),
+            2 => Ok(CommunityPermission::InviteUsers),
+            3 => Ok(CommunityPermission::RemoveMembers),
+            4 => Ok(CommunityPermission::CreatePublicChannel),
+            5 => Ok(CommunityPermission::CreatePrivateChannel),
+            6 => Ok(CommunityPermission::ManageUserGroups),
+            _ => Err(()),
+        }
+    }
+}
+
 #[repr(u8)]
 #[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ChatPermission {
@@ -34,6 +59,32 @@ pub enum ChatPermission {
     ReactToMessages = 7,
     MentionAllMembers = 8,
     StartVideoCall = 9,
+}
+
+impl From<ChatPermission> for u8 {
+    fn from(value: ChatPermission) -> Self {
+        value as u8
+    }
+}
+
+impl TryFrom<u8> for ChatPermission {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(ChatPermission::ChangeRoles),
+            1 => Ok(ChatPermission::UpdateGroup),
+            2 => Ok(ChatPermission::AddMembers),
+            3 => Ok(ChatPermission::InviteUsers),
+            4 => Ok(ChatPermission::RemoveMembers),
+            5 => Ok(ChatPermission::DeleteMessages),
+            6 => Ok(ChatPermission::PinMessages),
+            7 => Ok(ChatPermission::ReactToMessages),
+            8 => Ok(ChatPermission::MentionAllMembers),
+            9 => Ok(ChatPermission::StartVideoCall),
+            _ => Err(()),
+        }
+    }
 }
 
 #[repr(u8)]
@@ -50,6 +101,33 @@ pub enum MessagePermission {
     Prize = 8,
     P2pSwap = 9,
     VideoCall = 10,
+}
+
+impl From<MessagePermission> for u8 {
+    fn from(value: MessagePermission) -> Self {
+        value as u8
+    }
+}
+
+impl TryFrom<u8> for MessagePermission {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(MessagePermission::Text),
+            1 => Ok(MessagePermission::Image),
+            2 => Ok(MessagePermission::Video),
+            3 => Ok(MessagePermission::Audio),
+            4 => Ok(MessagePermission::File),
+            5 => Ok(MessagePermission::Poll),
+            6 => Ok(MessagePermission::Crypto),
+            7 => Ok(MessagePermission::Giphy),
+            8 => Ok(MessagePermission::Prize),
+            9 => Ok(MessagePermission::P2pSwap),
+            10 => Ok(MessagePermission::VideoCall),
+            _ => Err(()),
+        }
+    }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -107,4 +185,57 @@ pub enum ChatRole {
     Moderator,
     #[default]
     Participant,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct EncodedBotPermissions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    community: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    chat: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    message: Option<u32>,
+}
+
+impl From<BotPermissions> for EncodedBotPermissions {
+    fn from(value: BotPermissions) -> Self {
+        (&value).into()
+    }
+}
+
+impl From<&BotPermissions> for EncodedBotPermissions {
+    fn from(permissions: &BotPermissions) -> Self {
+        fn encode<T: Into<u8> + Copy>(field: &HashSet<T>) -> Option<u32> {
+            if field.is_empty() {
+                None
+            } else {
+                Some(encode_as_bitflags(field.iter().map(|v| (*v).into())))
+            }
+        }
+
+        EncodedBotPermissions {
+            community: encode(&permissions.community),
+            chat: encode(&permissions.chat),
+            message: encode(&permissions.message),
+        }
+    }
+}
+
+impl From<&EncodedBotPermissions> for BotPermissions {
+    fn from(permissions: &EncodedBotPermissions) -> Self {
+        fn decode<T: TryFrom<u8> + Copy + Eq + Hash>(field: Option<u32>) -> HashSet<T> {
+            field
+                .map(decode_from_bitflags)
+                .unwrap_or_default()
+                .into_iter()
+                .filter_map(|v| v.try_into().ok())
+                .collect()
+        }
+
+        BotPermissions {
+            community: decode(permissions.community),
+            chat: decode(permissions.chat),
+            message: decode(permissions.message),
+        }
+    }
 }

@@ -1,4 +1,5 @@
 pub mod base64;
+pub mod bitflags;
 mod image;
 pub mod jwt;
 mod serializers;
