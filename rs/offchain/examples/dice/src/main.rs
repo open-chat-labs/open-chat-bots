@@ -6,7 +6,8 @@ use axum::Router;
 use clap::Parser;
 use commands::coin::Coin;
 use commands::roll::Roll;
-use oc_bots_sdk::api::{BotDefinition, CommandHandler, CommandResponse};
+use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
+use oc_bots_sdk::api::definition::BotDefinition;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk_offchain::env;
 use oc_bots_sdk_offchain::AgentRuntime;
@@ -31,7 +32,7 @@ async fn main() {
         tokio::runtime::Runtime::new().unwrap(),
     )));
 
-    let commands = CommandHandler::new(oc_client_factory.clone())
+    let commands = CommandHandlerRegistry::new(oc_client_factory.clone())
         .register(Coin)
         .register(Roll);
 
@@ -92,7 +93,7 @@ struct AppState {
     #[allow(dead_code)]
     oc_client_factory: Arc<ClientFactory<AgentRuntime>>,
     oc_public_key: String,
-    commands: CommandHandler<AgentRuntime>,
+    commands: CommandHandlerRegistry<AgentRuntime>,
 }
 
 #[derive(Parser, Debug)]

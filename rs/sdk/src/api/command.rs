@@ -2,6 +2,10 @@ use crate::types::{MessageContent, MessageId, UserId};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
+mod command_handler;
+
+pub use command_handler::{CommandHandler, CommandHandlerRegistry};
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Command {
     pub name: String,

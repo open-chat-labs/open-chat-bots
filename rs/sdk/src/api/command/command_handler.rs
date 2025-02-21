@@ -1,32 +1,30 @@
-use crate::api::{
-    BadRequest, BotCommandDefinition, BotCommandParam, BotCommandParamType, CommandArg,
-    CommandArgValue, CommandResponse, InternalError, SuccessResult,
-};
+use crate::api::command::*;
+use crate::api::definition::{BotCommandDefinition, BotCommandParam, BotCommandParamType};
 use crate::oc_api::client_factory::ClientFactory;
 use crate::types::{BotCommandContext, TimestampMillis, TokenError};
 use async_trait::async_trait;
 use std::{collections::HashMap, sync::Arc};
 
-pub struct CommandHandler<R> {
-    commands: HashMap<String, Box<dyn Command<R>>>,
+pub struct CommandHandlerRegistry<R> {
+    commands: HashMap<String, Box<dyn CommandHandler<R>>>,
     oc_client_factory: Arc<ClientFactory<R>>,
 }
 
-impl<R> CommandHandler<R> {
-    pub fn new(oc_client_factory: Arc<ClientFactory<R>>) -> CommandHandler<R> {
+impl<R> CommandHandlerRegistry<R> {
+    pub fn new(oc_client_factory: Arc<ClientFactory<R>>) -> CommandHandlerRegistry<R> {
         Self {
             commands: HashMap::new(),
             oc_client_factory,
         }
     }
 
-    pub fn register<C: Command<R> + 'static>(mut self, command: C) -> Self {
+    pub fn register<C: CommandHandler<R> + 'static>(mut self, command: C) -> Self {
         self.commands
             .insert(command.name().to_string(), Box::new(command));
         self
     }
 
-    pub fn get(&self, name: &str) -> Option<&dyn Command<R>> {
+    pub fn get(&self, name: &str) -> Option<&dyn CommandHandler<R>> {
         self.commands.get(name).map(|v| &**v)
     }
 
@@ -77,7 +75,7 @@ impl<R> CommandHandler<R> {
 }
 
 #[async_trait]
-pub trait Command<R>: Send + Sync {
+pub trait CommandHandler<R>: Send + Sync {
     fn definition(&self) -> &BotCommandDefinition;
 
     async fn execute(

@@ -1,7 +1,7 @@
 use crate::state;
 use async_trait::async_trait;
-use oc_bots_sdk::api::command_handler::Command;
-use oc_bots_sdk::api::{BotCommandDefinition, BotPermissions, MessagePermission, SuccessResult};
+use oc_bots_sdk::api::command::{CommandHandler, SuccessResult};
+use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::actions::send_message;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::BotCommandContext;
@@ -14,7 +14,7 @@ static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Joke::definiti
 pub struct Joke;
 
 #[async_trait]
-impl Command<CanisterRuntime> for Joke {
+impl CommandHandler<CanisterRuntime> for Joke {
     fn definition(&self) -> &BotCommandDefinition {
         &DEFINITION
     }

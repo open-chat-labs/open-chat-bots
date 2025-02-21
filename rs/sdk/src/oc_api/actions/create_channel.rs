@@ -1,6 +1,6 @@
 use crate::oc_api::actions::ActionDef;
 use crate::types::{
-    AccessGateConfig, AuthToken, ChannelId, Document, GroupPermissions, Milliseconds, Rules,
+    AccessGateConfig, AuthToken, ChannelId, ChatPermissions, Document, Milliseconds, Rules,
 };
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
@@ -25,7 +25,7 @@ pub struct Args {
     pub avatar: Option<Document>,
     pub history_visible_to_new_joiners: bool,
     pub messages_visible_to_non_members: bool,
-    pub permissions: Option<GroupPermissions>,
+    pub permissions: Option<ChatPermissions>,
     pub events_ttl: Option<Milliseconds>,
     pub gate_config: Option<AccessGateConfig>,
     pub external_url: Option<String>,

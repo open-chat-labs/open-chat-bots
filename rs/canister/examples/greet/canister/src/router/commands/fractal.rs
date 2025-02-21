@@ -1,11 +1,8 @@
 use crate::state;
 use crate::state::Blob;
 use async_trait::async_trait;
-use oc_bots_sdk::api::command_handler::Command;
-use oc_bots_sdk::api::{
-    BotCommandDefinition, BotCommandParam, BotCommandParamType, BotPermissions, DecimalParam,
-    MessagePermission, SuccessResult,
-};
+use oc_bots_sdk::api::command::{CommandHandler, SuccessResult};
+use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::create_thumbnail;
 use oc_bots_sdk::oc_api::actions::send_message;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
@@ -21,7 +18,7 @@ static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Fractal::defin
 pub struct Fractal;
 
 #[async_trait]
-impl Command<CanisterRuntime> for Fractal {
+impl CommandHandler<CanisterRuntime> for Fractal {
     fn definition(&self) -> &BotCommandDefinition {
         &DEFINITION
     }

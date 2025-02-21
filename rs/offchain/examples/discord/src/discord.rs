@@ -6,15 +6,15 @@ use crate::config::DiscordConfig;
 use crate::discord::commands as discord_commands;
 use crate::discord::events::event_handler;
 use crate::errors::BotError;
-use crate::openchat::RelayMessage;
 use crate::state::BotState;
 use poise::serenity_prelude as serenity;
+use serenity::Message;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 use tracing::info;
 
 pub struct LocalData {
-    pub tx: Sender<RelayMessage>,
+    pub tx: Sender<Message>,
     pub state: Arc<BotState>,
 }
 
@@ -32,7 +32,7 @@ pub type FrameworkContext<'a> = poise::FrameworkContext<'a, LocalData, Error>;
 pub async fn init_discord_client(
     config: &DiscordConfig,
     state: Arc<BotState>,
-    tx: Sender<RelayMessage>,
+    tx: Sender<Message>,
 ) -> Result<serenity::Client, BotError> {
     let local_data = LocalData { tx, state };
 

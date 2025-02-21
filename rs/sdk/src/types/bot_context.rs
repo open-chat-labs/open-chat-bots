@@ -1,10 +1,10 @@
-use super::{AuthToken, BotApiKeyToken, CanisterId, ChannelId, Chat};
-use crate::api::{BotPermissions, Command};
+use crate::api::command::Command;
 use crate::jwt;
 use crate::jwt::Claims;
 use crate::types::{
-    AccessTokenScope, BotActionByApiKeyClaims, BotActionByCommandClaims, BotActionScope,
-    TimestampMillis, TokenError, UserId,
+    AccessTokenScope, AuthToken, BotActionByApiKeyClaims, BotActionByCommandClaims, BotActionScope,
+    BotApiKeyToken, BotPermissions, CanisterId, ChannelId, Chat, TimestampMillis, TokenError,
+    UserId,
 };
 use crate::utils::base64;
 
