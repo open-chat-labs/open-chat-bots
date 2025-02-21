@@ -1,12 +1,12 @@
 [workspace]
 members = [
-    "examples/dice",
-    "examples/discord",
-    "examples/greet/canister",
-    "examples/greet/loader",
+    "canister/examples/greet/canister",
+    "canister/examples/greet/loader",
+    "canister/sdk",
+    "offchain/examples/dice",
+    "offchain/examples/discord",
+    "offchain/sdk",
     "sdk",
-    "sdk_canister",
-    "sdk_offchain",
 ]
 resolver = "2"
 

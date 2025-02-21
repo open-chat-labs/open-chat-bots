@@ -6,7 +6,7 @@ use crate::state;
 use fractal::Fractal;
 use greet::Greet;
 use joke::Joke;
-use oc_bots_sdk::api::{CommandHandler, SlashCommandDefinition};
+use oc_bots_sdk::api::{BotCommandDefinition, CommandHandler};
 use oc_bots_sdk_canister::env::now;
 use oc_bots_sdk_canister::http_command_handler;
 use oc_bots_sdk_canister::CanisterRuntime;
@@ -21,7 +21,7 @@ static COMMANDS: LazyLock<CommandHandler<CanisterRuntime>> = LazyLock::new(|| {
         .register(Fractal)
 });
 
-pub fn definitions() -> Vec<SlashCommandDefinition> {
+pub fn definitions() -> Vec<BotCommandDefinition> {
     COMMANDS.definitions()
 }
 

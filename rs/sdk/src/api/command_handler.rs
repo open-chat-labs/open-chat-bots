@@ -1,6 +1,6 @@
 use crate::api::{
-    BadRequest, CommandArg, CommandArgValue, CommandResponse, InternalError,
-    SlashCommandDefinition, SlashCommandParam, SlashCommandParamType, SuccessResult,
+    BadRequest, BotCommandDefinition, BotCommandParam, BotCommandParamType, CommandArg,
+    CommandArgValue, CommandResponse, InternalError, SuccessResult,
 };
 use crate::oc_api::client_factory::ClientFactory;
 use crate::types::{BotCommandContext, TimestampMillis, TokenError};
@@ -30,7 +30,7 @@ impl<R> CommandHandler<R> {
         self.commands.get(name).map(|v| &**v)
     }
 
-    pub fn definitions(&self) -> Vec<SlashCommandDefinition> {
+    pub fn definitions(&self) -> Vec<BotCommandDefinition> {
         self.commands
             .values()
             .map(|c| c.definition().clone())
@@ -78,7 +78,7 @@ impl<R> CommandHandler<R> {
 
 #[async_trait]
 pub trait Command<R>: Send + Sync {
-    fn definition(&self) -> &SlashCommandDefinition;
+    fn definition(&self) -> &BotCommandDefinition;
 
     async fn execute(
         &self,
@@ -95,7 +95,7 @@ pub trait Command<R>: Send + Sync {
     }
 }
 
-fn check_args_internal(args: &[CommandArg], params: &[SlashCommandParam]) -> bool {
+fn check_args_internal(args: &[CommandArg], params: &[BotCommandParam]) -> bool {
     if args.len() > params.len() {
         return false;
     }
@@ -110,7 +110,7 @@ fn check_args_internal(args: &[CommandArg], params: &[SlashCommandParam]) -> boo
         };
 
         match &p.param_type {
-            SlashCommandParamType::StringParam(t) => {
+            BotCommandParamType::StringParam(t) => {
                 let Some(value) = arg.value.as_string() else {
                     return false;
                 };
@@ -127,7 +127,7 @@ fn check_args_internal(args: &[CommandArg], params: &[SlashCommandParam]) -> boo
                     return false;
                 }
             }
-            SlashCommandParamType::IntegerParam(t) => {
+            BotCommandParamType::IntegerParam(t) => {
                 let Some(value) = arg.value.as_integer() else {
                     return false;
                 };
@@ -144,7 +144,7 @@ fn check_args_internal(args: &[CommandArg], params: &[SlashCommandParam]) -> boo
                     return false;
                 }
             }
-            SlashCommandParamType::DecimalParam(t) => {
+            BotCommandParamType::DecimalParam(t) => {
                 let Some(value) = arg.value.as_decimal() else {
                     return false;
                 };
@@ -161,12 +161,12 @@ fn check_args_internal(args: &[CommandArg], params: &[SlashCommandParam]) -> boo
                     return false;
                 }
             }
-            SlashCommandParamType::BooleanParam => {
+            BotCommandParamType::BooleanParam => {
                 if !matches!(arg.value, CommandArgValue::Boolean(_)) {
                     return false;
                 }
             }
-            SlashCommandParamType::UserParam => {
+            BotCommandParamType::UserParam => {
                 if !matches!(arg.value, CommandArgValue::User(_)) {
                     return false;
                 }

@@ -2,20 +2,20 @@ use async_trait::async_trait;
 use oc_bots_sdk::api::command_handler::Command;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::{
-    api::{BotPermissions, MessagePermission, SlashCommandDefinition, SuccessResult},
+    api::{BotCommandDefinition, BotPermissions, MessagePermission, SuccessResult},
     types::BotCommandContext,
 };
 use oc_bots_sdk_offchain::AgentRuntime;
 use std::{collections::HashSet, sync::LazyLock};
 
 // Status command
-static STATUS_DEFINITION: LazyLock<SlashCommandDefinition> = LazyLock::new(Status::definition);
+static STATUS_DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Status::definition);
 
 pub struct Status;
 
 #[async_trait]
 impl Command<AgentRuntime> for Status {
-    fn definition(&self) -> &SlashCommandDefinition {
+    fn definition(&self) -> &BotCommandDefinition {
         &STATUS_DEFINITION
     }
 
@@ -40,8 +40,8 @@ impl Command<AgentRuntime> for Status {
 }
 
 impl Status {
-    fn definition() -> SlashCommandDefinition {
-        SlashCommandDefinition {
+    fn definition() -> BotCommandDefinition {
+        BotCommandDefinition {
             name: "status".to_string(),
             description: Some("Returns status of the bot".to_string()),
             placeholder: None,
@@ -50,6 +50,7 @@ impl Status {
                 message: HashSet::from_iter([MessagePermission::Text]),
                 ..Default::default()
             },
+            default_role: None,
         }
     }
 }
