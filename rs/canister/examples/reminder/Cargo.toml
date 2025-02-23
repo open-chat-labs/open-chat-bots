@@ -1,5 +1,5 @@
 [package]
-name = "greet_bot"
+name = "reminder_bot"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,19 +11,18 @@ crate-type = ["cdylib"]
 
 [dependencies]
 async-trait = { workspace = true }
-oc_bots_sdk = { path = "../../../../sdk" }
-oc_bots_sdk_canister = { path = "../../../sdk" }
 candid = { workspace = true }
-getrandom = { workspace = true }
+chrono = { workspace = true, default-features = false, features = ["alloc"] }
+cron = { workspace = true }
+english-to-cron = { workspace = true }
+getrandom = { version = "0.2.15", features = ["custom"] }
 http = { workspace = true }
 ic-cdk = { workspace = true }
 ic-http-certification = { workspace = true }
 ic_principal = { workspace = true }
 ic-stable-structures = { workspace = true }
-image = { workspace = true }
-itertools = { workspace = true }
-num-complex = { workspace = true }
-rand = { workspace = true }
+oc_bots_sdk = { path = "../../../sdk" }
+oc_bots_sdk_canister = { path = "../../sdk" }
 rmp-serde = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
+truncrate = { workspace = true }

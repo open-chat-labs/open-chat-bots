@@ -1,19 +1,19 @@
-use crate::state;
 use async_trait::async_trait;
 use oc_bots_sdk::api::command::{CommandHandler, SuccessResult};
-use oc_bots_sdk::api::definition::*;
-use oc_bots_sdk::oc_api::actions::send_message;
+use oc_bots_sdk::api::definition::BotCommandDefinition;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
-use oc_bots_sdk::types::BotCommandContext;
+use oc_bots_sdk::types::{BotCommandContext, BotCommandScope, BotPermissions, ChatRole};
 use oc_bots_sdk_canister::CanisterRuntime;
 use std::sync::LazyLock;
 
-static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Joke::definition);
+use crate::state;
 
-pub struct Joke;
+static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(List::definition);
+
+pub struct List;
 
 #[async_trait]
-impl CommandHandler<CanisterRuntime> for Joke {
+impl CommandHandler<CanisterRuntime> for List {
     fn definition(&self) -> &BotCommandDefinition {
         &DEFINITION
     }
@@ -23,16 +23,27 @@ impl CommandHandler<CanisterRuntime> for Joke {
         cxt: BotCommandContext,
         oc_client_factory: &ClientFactory<CanisterRuntime>,
     ) -> Result<SuccessResult, String> {
-        let text = state::read(|state| state.get_random_joke());
+        let list = state::mutate(|state| {
+            // Extract the chat
+            let BotCommandScope::Chat(chat_scope) = &cxt.scope else {
+                return Err("This command can only be used in a chat".to_string());
+            };
+
+            Ok(state.reminders.list(&chat_scope.chat))
+        })?;
+
+        let mut text = String::new();
+        for reminder in list {
+            text.push_str(&format!("{}\n", reminder.to_text()));
+        }
 
         // Send the message to OpenChat but don't wait for the response
         let message = oc_client_factory
             .build_command_client(cxt)
             .send_text_message(text)
+            .for_initiator_only()
             .execute_then_return_message(|args, response| match response {
-                Ok(send_message::Response::Success(_)) => {
-                    state::mutate(|state| state.increment_jokes_sent());
-                }
+                Ok(_) => (),
                 error => {
                     ic_cdk::println!("send_text_message: {args:?}, {error:?}");
                 }
@@ -44,15 +55,15 @@ impl CommandHandler<CanisterRuntime> for Joke {
     }
 }
 
-impl Joke {
+impl List {
     fn definition() -> BotCommandDefinition {
         BotCommandDefinition {
-            name: "joke".to_string(),
-            description: Some("This will send a random joke".to_string()),
-            placeholder: Some("Thinking of a joke...".to_string()),
+            name: "list".to_string(),
+            description: Some("List the reminders set in this chat with their IDs".to_string()),
+            placeholder: None,
             params: vec![],
             permissions: BotPermissions::text_only(),
-            default_role: None,
+            default_role: Some(ChatRole::Admin),
         }
     }
 }

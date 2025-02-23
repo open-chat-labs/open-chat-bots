@@ -11,6 +11,7 @@ pub struct SendMessageBuilder<R> {
     content: MessageContent,
     block_level_markdown: bool,
     finalised: bool,
+    initiator_only: bool,
 }
 
 impl<R: Runtime> SendMessageBuilder<R> {
@@ -20,6 +21,7 @@ impl<R: Runtime> SendMessageBuilder<R> {
             content,
             block_level_markdown: false,
             finalised: true,
+            initiator_only: false,
         }
     }
 
@@ -30,6 +32,11 @@ impl<R: Runtime> SendMessageBuilder<R> {
 
     pub fn with_finalised(mut self, finalised: bool) -> Self {
         self.finalised = finalised;
+        self
+    }
+
+    pub fn for_initiator_only(mut self) -> Self {
+        self.initiator_only = true;
         self
     }
 
@@ -44,6 +51,7 @@ impl<R: Runtime> SendMessageBuilder<R> {
             content: self.content.clone(),
             finalised: self.finalised,
             block_level_markdown: self.block_level_markdown,
+            initiator_only: self.initiator_only,
         };
         self.execute(on_response);
         message

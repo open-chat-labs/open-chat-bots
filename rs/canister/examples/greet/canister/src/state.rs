@@ -130,14 +130,6 @@ impl State {
     }
 }
 
-pub enum AuthResult {
-    Success,
-    RequiresUpgrade,
-    LinkExpired,
-    CodeIncorrect,
-    LinkInvalid(String),
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct Blob {
     pub mime_type: String,

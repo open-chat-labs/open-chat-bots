@@ -2,7 +2,7 @@ use crate::api::command::Command;
 use crate::jwt;
 use crate::jwt::Claims;
 use crate::types::{
-    AccessTokenScope, AuthToken, BotActionByApiKeyClaims, BotActionByCommandClaims, BotActionScope,
+    ActionScope, AuthToken, BotActionByApiKeyClaims, BotActionByCommandClaims, BotCommandScope,
     BotApiKeyToken, BotPermissions, CanisterId, ChannelId, Chat, TimestampMillis, TokenError,
     UserId,
 };
@@ -14,7 +14,7 @@ pub struct BotCommandContext {
     pub bot_id: UserId,
     pub api_gateway: CanisterId,
     pub command: Command,
-    pub scope: BotActionScope,
+    pub scope: BotCommandScope,
     pub granted_permissions: BotPermissions,
 }
 
@@ -45,7 +45,7 @@ pub struct BotApiKeyContext {
     pub token: AuthToken,
     pub bot_id: UserId,
     pub api_gateway: CanisterId,
-    pub scope: AccessTokenScope,
+    pub scope: ActionScope,
     pub granted_permissions: Option<BotPermissions>,
 }
 
@@ -99,7 +99,7 @@ impl BotApiKeyContext {
 
     pub fn channel_id(&self) -> Option<ChannelId> {
         match self.scope {
-            AccessTokenScope::Chat(Chat::Channel(_, channel_id)) => Some(channel_id),
+            ActionScope::Chat(Chat::Channel(_, channel_id)) => Some(channel_id),
             _ => None,
         }
     }

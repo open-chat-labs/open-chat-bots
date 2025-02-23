@@ -1,5 +1,5 @@
 use crate::api::command::Command;
-use crate::types::{BotActionScope, UserId};
+use crate::types::{BotCommandScope, UserId};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
@@ -20,5 +20,5 @@ pub enum GetAccessTokenResponse {
 pub struct BotActionByCommandArgs {
     pub bot_id: UserId,
     pub command: Command,
-    pub scope: BotActionScope,
+    pub scope: BotCommandScope,
 }

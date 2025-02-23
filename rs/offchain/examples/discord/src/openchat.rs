@@ -11,7 +11,6 @@ use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk_offchain::{env, AgentRuntime};
 use poise::serenity_prelude::Message;
-use std::collections::HashSet;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use tokio::sync::mpsc::Receiver;
@@ -119,10 +118,7 @@ async fn bot_definition(State(oc_data): State<Arc<OcData>>, _body: String) -> (S
         description: "Bot for proxying messages from Discord to OpenChat".to_string(),
         commands: oc_data.commands.definitions(),
         autonomous_config: Some(AutonomousConfig {
-            permissions: BotPermissions {
-                message: HashSet::from([MessagePermission::Text]),
-                ..Default::default()
-            },
+            permissions: BotPermissions::text_only(),
             sync_api_key: false,
         }),
     };

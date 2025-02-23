@@ -5,7 +5,7 @@ use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::BotCommandContext;
 use oc_bots_sdk_offchain::AgentRuntime;
 use rand::random;
-use std::{collections::HashSet, sync::LazyLock};
+use std::sync::LazyLock;
 
 static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Coin::definition);
 
@@ -63,10 +63,7 @@ impl Coin {
                     choices: Vec::new(),
                 }),
             }],
-            permissions: BotPermissions {
-                message: HashSet::from_iter([MessagePermission::Text]),
-                ..Default::default()
-            },
+            permissions: BotPermissions::text_only(),
             default_role: None,
         }
     }
