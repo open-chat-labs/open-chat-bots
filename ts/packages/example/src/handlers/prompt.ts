@@ -4,7 +4,7 @@ import { success } from "./success";
 
 import OpenAI from "openai";
 import { argumentsInvalid } from "@open-ic/openchat-botclient-ts";
-const openai = new OpenAI({ apiKey: process.env.OC_API_KEY! });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
 async function askOpenAI(question: string) {
   const completion = await openai.chat.completions.create({

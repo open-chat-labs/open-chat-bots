@@ -307,6 +307,15 @@ export const GroupGenerateBotApiKeyResponse = Type.Union([
     Type.Literal("NotAuthorized"),
 ]);
 
+export type GroupApiKeyResponse = Static<typeof GroupApiKeyResponse>;
+export const GroupApiKeyResponse = Type.Union([
+    Type.Object({
+        Success: Type.String(),
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("NotFound"),
+]);
+
 export type GroupRegisterProposalVoteV2Response = Static<
     typeof GroupRegisterProposalVoteV2Response
 >;
@@ -496,67 +505,73 @@ export const UserTokenSwapStatusTokenSwapStatus = Type.Object({
     started: Type.BigInt(),
     icrc2: Type.Boolean(),
     auto_withdrawals: Type.Boolean(),
-    deposit_account: Type.Union([
-        Type.Object({
-            Ok: Type.Null(),
-        }),
-        Type.Object({
-            Err: Type.String(),
-        }),
-        Type.Null(),
-    ]),
-    transfer: Type.Union([
-        Type.Object({
-            Ok: Type.BigInt(),
-        }),
-        Type.Object({
-            Err: Type.String(),
-        }),
-        Type.Null(),
-    ]),
-    transfer_or_approval: Type.Union([
-        Type.Object({
-            Ok: Type.BigInt(),
-        }),
-        Type.Object({
-            Err: Type.String(),
-        }),
-        Type.Null(),
-    ]),
-    notify_dex: Type.Union([
-        Type.Object({
-            Ok: Type.Null(),
-        }),
-        Type.Object({
-            Err: Type.String(),
-        }),
-        Type.Null(),
-    ]),
-    amount_swapped: Type.Union([
-        Type.Object({
-            Ok: Type.Union([
-                Type.Object({
-                    Ok: Type.BigInt(),
-                }),
-                Type.Object({
-                    Err: Type.String(),
-                }),
-            ]),
-        }),
-        Type.Object({
-            Err: Type.String(),
-        }),
-        Type.Null(),
-    ]),
-    withdraw_from_dex: Type.Union([
-        Type.Object({
-            Ok: Type.BigInt(),
-        }),
-        Type.Object({
-            Err: Type.String(),
-        }),
-        Type.Null(),
-    ]),
+    deposit_account: Type.Optional(
+        Type.Union([
+            Type.Object({
+                Ok: Type.Null(),
+            }),
+            Type.Object({
+                Err: Type.String(),
+            }),
+        ]),
+    ),
+    transfer: Type.Optional(
+        Type.Union([
+            Type.Object({
+                Ok: Type.BigInt(),
+            }),
+            Type.Object({
+                Err: Type.String(),
+            }),
+        ]),
+    ),
+    transfer_or_approval: Type.Optional(
+        Type.Union([
+            Type.Object({
+                Ok: Type.BigInt(),
+            }),
+            Type.Object({
+                Err: Type.String(),
+            }),
+        ]),
+    ),
+    notify_dex: Type.Optional(
+        Type.Union([
+            Type.Object({
+                Ok: Type.Null(),
+            }),
+            Type.Object({
+                Err: Type.String(),
+            }),
+        ]),
+    ),
+    amount_swapped: Type.Optional(
+        Type.Union([
+            Type.Object({
+                Ok: Type.Union([
+                    Type.Object({
+                        Ok: Type.BigInt(),
+                    }),
+                    Type.Object({
+                        Err: Type.String(),
+                    }),
+                ]),
+            }),
+            Type.Object({
+                Err: Type.String(),
+            }),
+        ]),
+    ),
+    withdraw_from_dex: Type.Optional(
+        Type.Union([
+            Type.Object({
+                Ok: Type.BigInt(),
+            }),
+            Type.Object({
+                Err: Type.String(),
+            }),
+        ]),
+    ),
     success: Type.Optional(Type.Boolean()),
 });
 
@@ -615,6 +630,14 @@ export const UserPinChatResponse = Type.Union([
     Type.Literal("ChatNotFound"),
 ]);
 
+export type UserCachedBtcAddressResponse = Static<typeof UserCachedBtcAddressResponse>;
+export const UserCachedBtcAddressResponse = Type.Union([
+    Type.Object({
+        Success: Type.String(),
+    }),
+    Type.Literal("NotFound"),
+]);
+
 export type UserDeleteDirectChatResponse = Static<typeof UserDeleteDirectChatResponse>;
 export const UserDeleteDirectChatResponse = Type.Union([
     Type.Literal("Success"),
@@ -655,24 +678,20 @@ export const UserLeaveGroupResponse = Type.Union([
     }),
 ]);
 
-export type UserGenerateBotApiKeySuccessResult = Static<typeof UserGenerateBotApiKeySuccessResult>;
-export const UserGenerateBotApiKeySuccessResult = Type.Object({
-    api_key: Type.String(),
-});
-
-export type UserGenerateBotApiKeyResponse = Static<typeof UserGenerateBotApiKeyResponse>;
-export const UserGenerateBotApiKeyResponse = Type.Union([
-    Type.Object({
-        Success: UserGenerateBotApiKeySuccessResult,
-    }),
-    Type.Literal("BotNotFound"),
-    Type.Literal("NotAuthorized"),
-]);
-
 export type UserMuteNotificationsResponse = Static<typeof UserMuteNotificationsResponse>;
 export const UserMuteNotificationsResponse = Type.Union([
     Type.Literal("Success"),
     Type.Literal("ChatNotFound"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+
+export type UserBtcAddressResponse = Static<typeof UserBtcAddressResponse>;
+export const UserBtcAddressResponse = Type.Union([
+    Type.Object({
+        Success: Type.String(),
+    }),
     Type.Object({
         InternalError: Type.String(),
     }),
@@ -757,16 +776,30 @@ export const UserPublicProfilePublicProfile = Type.Object({
     created: Type.BigInt(),
 });
 
+export type UserRetrieveBtcResponse = Static<typeof UserRetrieveBtcResponse>;
+export const UserRetrieveBtcResponse = Type.Union([
+    Type.Object({
+        Success: Type.BigInt(),
+    }),
+    Type.Object({
+        ApproveError: Type.String(),
+    }),
+    Type.Object({
+        RetrieveBtcError: Type.String(),
+    }),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
+
+export type UserRetrieveBtcArgs = Static<typeof UserRetrieveBtcArgs>;
+export const UserRetrieveBtcArgs = Type.Object({
+    amount: Type.BigInt(),
+    address: Type.String(),
+});
+
 export type UserMarkReadResponse = Static<typeof UserMarkReadResponse>;
 export const UserMarkReadResponse = Type.Literal("Success");
-
-export type UserUpdateBotResponse = Static<typeof UserUpdateBotResponse>;
-export const UserUpdateBotResponse = Type.Union([
-    Type.Literal("Success"),
-    Type.Literal("UserSuspended"),
-    Type.Literal("NotAuthorized"),
-    Type.Literal("NotFound"),
-]);
 
 export type UserLeaveCommunityResponse = Static<typeof UserLeaveCommunityResponse>;
 export const UserLeaveCommunityResponse = Type.Union([
@@ -915,12 +948,6 @@ export const ReferralStatus = Type.Union([
 export type VoteOperation = Static<typeof VoteOperation>;
 export const VoteOperation = Type.Union([Type.Literal("RegisterVote"), Type.Literal("DeleteVote")]);
 
-export type SlashCommandOptionChoiceString = Static<typeof SlashCommandOptionChoiceString>;
-export const SlashCommandOptionChoiceString = Type.Object({
-    name: Type.String(),
-    value: Type.String(),
-});
-
 export type SuspensionAction = Static<typeof SuspensionAction>;
 export const SuspensionAction = Type.Union([
     Type.Object({
@@ -945,6 +972,12 @@ export const GroupPermission = Type.Union([
     Type.Literal("StartVideoCall"),
 ]);
 
+export type BotCommandOptionChoiceF64 = Static<typeof BotCommandOptionChoiceF64>;
+export const BotCommandOptionChoiceF64 = Type.Object({
+    name: Type.String(),
+    value: Type.Number(),
+});
+
 export type SwapStatusErrorCancelled = Static<typeof SwapStatusErrorCancelled>;
 export const SwapStatusErrorCancelled = Type.Object({
     token0_txn_out: Type.Optional(Type.BigInt()),
@@ -964,7 +997,11 @@ export const CommunityRole = Type.Union([
 ]);
 
 export type ExchangeId = Static<typeof ExchangeId>;
-export const ExchangeId = Type.Union([Type.Literal("ICPSwap"), Type.Literal("KongSwap")]);
+export const ExchangeId = Type.Union([
+    Type.Literal("ICPSwap"),
+    Type.Literal("Sonic"),
+    Type.Literal("KongSwap"),
+]);
 
 export type ProposalDecisionStatus = Static<typeof ProposalDecisionStatus>;
 export const ProposalDecisionStatus = Type.Union([
@@ -1101,12 +1138,6 @@ export const MessagePermission = Type.Union([
     Type.Literal("VideoCall"),
 ]);
 
-export type SlashCommandOptionChoiceI128 = Static<typeof SlashCommandOptionChoiceI128>;
-export const SlashCommandOptionChoiceI128 = Type.Object({
-    name: Type.String(),
-    value: Type.BigInt(),
-});
-
 export type VideoCall = Static<typeof VideoCall>;
 export const VideoCall = Type.Object({
     message_index: MessageIndex,
@@ -1130,13 +1161,6 @@ export const AuthToken = Type.Union([
         ApiKey: Type.String(),
     }),
 ]);
-
-export type StringParam = Static<typeof StringParam>;
-export const StringParam = Type.Object({
-    min_length: Type.Number(),
-    max_length: Type.Number(),
-    choices: Type.Array(SlashCommandOptionChoiceString),
-});
 
 export type ChannelId = Static<typeof ChannelId>;
 export const ChannelId = Type.BigInt();
@@ -1472,6 +1496,12 @@ export const CryptoAccountNNS = Type.Union([
     }),
 ]);
 
+export type BotCommandOptionChoiceI128 = Static<typeof BotCommandOptionChoiceI128>;
+export const BotCommandOptionChoiceI128 = Type.Object({
+    name: Type.String(),
+    value: Type.BigInt(),
+});
+
 export type CommunityId = Static<typeof CommunityId>;
 export const CommunityId = TSPrincipal;
 
@@ -1524,6 +1554,23 @@ export const TransferFromError = Type.Union([
         }),
     }),
 ]);
+
+export type ChannelMessageTipped = Static<typeof ChannelMessageTipped>;
+export const ChannelMessageTipped = Type.Object({
+    ci: CommunityId,
+    chi: ChannelId,
+    tr: Type.Optional(MessageIndex),
+    m: MessageIndex,
+    e: EventIndex,
+    cn: Type.String(),
+    chn: Type.String(),
+    ti: UserId,
+    tn: Type.String(),
+    td: Type.Optional(Type.String()),
+    t: Type.String(),
+    ca: Type.Optional(Type.BigInt()),
+    cha: Type.Optional(Type.BigInt()),
+});
 
 export type MessageMatch = Static<typeof MessageMatch>;
 export const MessageMatch = Type.Object({
@@ -1718,18 +1765,19 @@ export const MessageId = Type.BigInt();
 export type AutonomousConfig = Static<typeof AutonomousConfig>;
 export const AutonomousConfig = Type.Object({
     permissions: BotPermissions,
-});
-
-export type SlashCommandOptionChoiceF64 = Static<typeof SlashCommandOptionChoiceF64>;
-export const SlashCommandOptionChoiceF64 = Type.Object({
-    name: Type.String(),
-    value: Type.Number(),
+    sync_api_key: Type.Boolean(),
 });
 
 export type UsersBlocked = Static<typeof UsersBlocked>;
 export const UsersBlocked = Type.Object({
     user_ids: Type.Array(UserId),
     blocked_by: UserId,
+});
+
+export type BotCommandOptionChoiceString = Static<typeof BotCommandOptionChoiceString>;
+export const BotCommandOptionChoiceString = Type.Object({
+    name: Type.String(),
+    value: Type.String(),
 });
 
 export type CommunityMember = Static<typeof CommunityMember>;
@@ -1804,7 +1852,7 @@ export type DecimalParam = Static<typeof DecimalParam>;
 export const DecimalParam = Type.Object({
     min_value: Type.Number(),
     max_value: Type.Number(),
-    choices: Type.Array(SlashCommandOptionChoiceF64),
+    choices: Type.Array(BotCommandOptionChoiceF64),
 });
 
 export type DiamondMembershipStatus = Static<typeof DiamondMembershipStatus>;
@@ -1831,6 +1879,15 @@ export const Tally = Type.Object({
     no: Type.BigInt(),
     total: Type.BigInt(),
     timestamp: Type.BigInt(),
+});
+
+export type CryptoTransferDetails = Static<typeof CryptoTransferDetails>;
+export const CryptoTransferDetails = Type.Object({
+    r: UserId,
+    u: Type.Optional(Type.String()),
+    l: TSPrincipal,
+    s: Type.String(),
+    a: Type.BigInt(),
 });
 
 export type DiamondMembershipFeesByDuration = Static<typeof DiamondMembershipFeesByDuration>;
@@ -3587,6 +3644,22 @@ export const CommunityChangeChannelRoleResponse = Type.Union([
     Type.Literal("UserLapsed"),
 ]);
 
+export type CommunityApiKeyResponse = Static<typeof CommunityApiKeyResponse>;
+export const CommunityApiKeyResponse = Type.Union([
+    Type.Object({
+        Success: Type.String(),
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Literal("NotFound"),
+    Type.Literal("ChannelNotFound"),
+]);
+
+export type CommunityApiKeyArgs = Static<typeof CommunityApiKeyArgs>;
+export const CommunityApiKeyArgs = Type.Object({
+    bot_id: UserId,
+    channel_id: Type.Optional(ChannelId),
+});
+
 export type CommunityDeclineInvitationArgs = Static<typeof CommunityDeclineInvitationArgs>;
 export const CommunityDeclineInvitationArgs = Type.Object({
     channel_id: Type.Optional(ChannelId),
@@ -4470,6 +4543,11 @@ export const GroupGenerateBotApiKeyArgs = Type.Object({
     requested_permissions: BotPermissions,
 });
 
+export type GroupApiKeyArgs = Static<typeof GroupApiKeyArgs>;
+export const GroupApiKeyArgs = Type.Object({
+    bot_id: UserId,
+});
+
 export type GroupMessagesByMessageIndexArgs = Static<typeof GroupMessagesByMessageIndexArgs>;
 export const GroupMessagesByMessageIndexArgs = Type.Object({
     thread_root_message_index: Type.Optional(MessageIndex),
@@ -4842,12 +4920,6 @@ export const UserWalletConfig = Type.Union([
     }),
 ]);
 
-export type UserGenerateBotApiKeyArgs = Static<typeof UserGenerateBotApiKeyArgs>;
-export const UserGenerateBotApiKeyArgs = Type.Object({
-    bot_id: UserId,
-    requested_permissions: BotPermissions,
-});
-
 export type UserSetBioResponse = Static<typeof UserSetBioResponse>;
 export const UserSetBioResponse = Type.Union([
     Type.Literal("Success"),
@@ -5091,12 +5163,6 @@ export const UserEventsArgs = Type.Object({
     latest_known_update: Type.Optional(Type.BigInt()),
 });
 
-export type UserUpdateBotArgs = Static<typeof UserUpdateBotArgs>;
-export const UserUpdateBotArgs = Type.Object({
-    bot_id: UserId,
-    granted_permissions: BotPermissions,
-});
-
 export type UserLeaveCommunityArgs = Static<typeof UserLeaveCommunityArgs>;
 export const UserLeaveCommunityArgs = Type.Object({
     community_id: CommunityId,
@@ -5126,6 +5192,18 @@ export const UserReportMessageArgs = Type.Object({
 export type UserConfigureWalletArgs = Static<typeof UserConfigureWalletArgs>;
 export const UserConfigureWalletArgs = Type.Object({
     config: UserWalletConfig,
+});
+
+export type DirectReactionAddedNotification = Static<typeof DirectReactionAddedNotification>;
+export const DirectReactionAddedNotification = Type.Object({
+    t: UserId,
+    tr: Type.Optional(MessageIndex),
+    m: MessageIndex,
+    e: EventIndex,
+    u: Type.String(),
+    d: Type.Optional(Type.String()),
+    r: Reaction,
+    a: Type.Optional(Type.BigInt()),
 });
 
 export type PaymentGate = Static<typeof PaymentGate>;
@@ -5256,6 +5334,18 @@ export const UserSummary = Type.Object({
     is_unique_person: Type.Boolean(),
 });
 
+export type DirectMessageTipped = Static<typeof DirectMessageTipped>;
+export const DirectMessageTipped = Type.Object({
+    ti: UserId,
+    tr: Type.Optional(MessageIndex),
+    m: MessageIndex,
+    e: EventIndex,
+    u: Type.String(),
+    d: Type.Optional(Type.String()),
+    t: Type.String(),
+    a: Type.Optional(Type.BigInt()),
+});
+
 export type MessagePermissions = Static<typeof MessagePermissions>;
 export const MessagePermissions = Type.Object({
     default: GroupPermissionRole,
@@ -5295,7 +5385,7 @@ export type IntegerParam = Static<typeof IntegerParam>;
 export const IntegerParam = Type.Object({
     min_value: Type.BigInt(),
     max_value: Type.BigInt(),
-    choices: Type.Array(SlashCommandOptionChoiceI128),
+    choices: Type.Array(BotCommandOptionChoiceI128),
 });
 
 export type VerifiedCredentialGate = Static<typeof VerifiedCredentialGate>;
@@ -5341,6 +5431,13 @@ export const PublicApiKeyDetails = Type.Object({
 export type BotActionCommunityDetails = Static<typeof BotActionCommunityDetails>;
 export const BotActionCommunityDetails = Type.Object({
     community_id: CommunityId,
+});
+
+export type BotGroupDetails = Static<typeof BotGroupDetails>;
+export const BotGroupDetails = Type.Object({
+    user_id: UserId,
+    added_by: UserId,
+    permissions: BotPermissions,
 });
 
 export type SwapStatusErrorReserved = Static<typeof SwapStatusErrorReserved>;
@@ -5474,13 +5571,6 @@ export const P2PSwapCompleted = Type.Object({
     token1_txn_out: Type.BigInt(),
 });
 
-export type InstalledBotDetails = Static<typeof InstalledBotDetails>;
-export const InstalledBotDetails = Type.Object({
-    user_id: UserId,
-    added_by: UserId,
-    permissions: BotPermissions,
-});
-
 export type UserSummaryStable = Static<typeof UserSummaryStable>;
 export const UserSummaryStable = Type.Object({
     username: Type.String(),
@@ -5490,6 +5580,13 @@ export const UserSummaryStable = Type.Object({
     suspended: Type.Boolean(),
     diamond_membership_status: DiamondMembershipStatus,
     is_unique_person: Type.Boolean(),
+});
+
+export type StringParam = Static<typeof StringParam>;
+export const StringParam = Type.Object({
+    min_length: Type.Number(),
+    max_length: Type.Number(),
+    choices: Type.Array(BotCommandOptionChoiceString),
 });
 
 export type GroupInviteCodeChanged = Static<typeof GroupInviteCodeChanged>;
@@ -5610,6 +5707,21 @@ export const MessageUnpinned = Type.Object({
     message_index: MessageIndex,
     unpinned_by: UserId,
     due_to_message_deleted: Type.Boolean(),
+});
+
+export type DirectMessageNotification = Static<typeof DirectMessageNotification>;
+export const DirectMessageNotification = Type.Object({
+    s: UserId,
+    tr: Type.Optional(MessageIndex),
+    m: MessageIndex,
+    e: EventIndex,
+    sn: Type.String(),
+    sd: Type.Optional(Type.String()),
+    ty: Type.String(),
+    tx: Type.Optional(Type.String()),
+    i: Type.Optional(Type.String()),
+    a: Type.Optional(Type.BigInt()),
+    ct: Type.Optional(CryptoTransferDetails),
 });
 
 export type CompletedCryptoTransactionNNS = Static<typeof CompletedCryptoTransactionNNS>;
@@ -5748,6 +5860,37 @@ export const FailedCryptoTransactionICRC2 = Type.Object({
     error_message: Type.String(),
 });
 
+export type GroupReactionAddedNotification = Static<typeof GroupReactionAddedNotification>;
+export const GroupReactionAddedNotification = Type.Object({
+    c: ChatId,
+    tr: Type.Optional(MessageIndex),
+    m: MessageIndex,
+    e: EventIndex,
+    g: Type.String(),
+    a: UserId,
+    n: Type.String(),
+    d: Type.Optional(Type.String()),
+    r: Reaction,
+    av: Type.Optional(Type.BigInt()),
+});
+
+export type ChannelReactionAddedNotification = Static<typeof ChannelReactionAddedNotification>;
+export const ChannelReactionAddedNotification = Type.Object({
+    ci: CommunityId,
+    chi: ChannelId,
+    tr: Type.Optional(MessageIndex),
+    m: MessageIndex,
+    e: EventIndex,
+    cn: Type.String(),
+    chn: Type.String(),
+    a: UserId,
+    an: Type.String(),
+    ad: Type.Optional(Type.String()),
+    r: Reaction,
+    ca: Type.Optional(Type.BigInt()),
+    cha: Type.Optional(Type.BigInt()),
+});
+
 export type UsersInvited = Static<typeof UsersInvited>;
 export const UsersInvited = Type.Object({
     user_ids: Type.Array(UserId),
@@ -5859,6 +6002,19 @@ export const MemberJoined = Type.Object({
     invited_by: Type.Optional(UserId),
 });
 
+export type AddedToChannelNotification = Static<typeof AddedToChannelNotification>;
+export const AddedToChannelNotification = Type.Object({
+    ci: CommunityId,
+    cn: Type.String(),
+    chi: ChannelId,
+    chn: Type.String(),
+    a: UserId,
+    an: Type.String(),
+    ad: Type.Optional(Type.String()),
+    ca: Type.Optional(Type.BigInt()),
+    cha: Type.Optional(Type.BigInt()),
+});
+
 export type AudioContent = Static<typeof AudioContent>;
 export const AudioContent = Type.Object({
     caption: Type.Optional(Type.String()),
@@ -5908,7 +6064,7 @@ export const SelectedGroupUpdates = Type.Object({
     latest_event_index: EventIndex,
     members_added_or_updated: Type.Array(GroupMember),
     members_removed: Type.Array(UserId),
-    bots_added_or_updated: Type.Array(InstalledBotDetails),
+    bots_added_or_updated: Type.Array(BotGroupDetails),
     bots_removed: Type.Array(UserId),
     api_keys_generated: Type.Array(PublicApiKeyDetails),
     blocked_users_added: Type.Array(UserId),
@@ -5926,9 +6082,6 @@ export const BotInstallationLocation = Type.Union([
     }),
     Type.Object({
         Group: ChatId,
-    }),
-    Type.Object({
-        User: ChatId,
     }),
 ]);
 
@@ -6004,6 +6157,26 @@ export const ReportedMessage = Type.Object({
     count: Type.Number(),
 });
 
+export type ChannelMessageNotification = Static<typeof ChannelMessageNotification>;
+export const ChannelMessageNotification = Type.Object({
+    ci: CommunityId,
+    chi: ChannelId,
+    tr: Type.Optional(MessageIndex),
+    m: MessageIndex,
+    e: EventIndex,
+    cn: Type.String(),
+    chn: Type.String(),
+    s: UserId,
+    sn: Type.String(),
+    sd: Type.Optional(Type.String()),
+    ty: Type.String(),
+    tx: Type.Optional(Type.String()),
+    i: Type.Optional(Type.String()),
+    ca: Type.Optional(Type.BigInt()),
+    cha: Type.Optional(Type.BigInt()),
+    ct: Type.Optional(CryptoTransferDetails),
+});
+
 export type GroupMembershipUpdates = Static<typeof GroupMembershipUpdates>;
 export const GroupMembershipUpdates = Type.Object({
     role: Type.Optional(GroupRole),
@@ -6015,6 +6188,21 @@ export const GroupMembershipUpdates = Type.Object({
     rules_accepted: Type.Optional(Type.Boolean()),
     lapsed: Type.Optional(Type.Boolean()),
 });
+
+export type BotCommandParamType = Static<typeof BotCommandParamType>;
+export const BotCommandParamType = Type.Union([
+    Type.Literal("UserParam"),
+    Type.Literal("BooleanParam"),
+    Type.Object({
+        StringParam: StringParam,
+    }),
+    Type.Object({
+        IntegerParam: IntegerParam,
+    }),
+    Type.Object({
+        DecimalParam: DecimalParam,
+    }),
+]);
 
 export type SnsProposal = Static<typeof SnsProposal>;
 export const SnsProposal = Type.Object({
@@ -6079,6 +6267,37 @@ export const OptionUpdateAirdropConfig = Type.Union(
     ],
     { default: "NoChange" },
 );
+
+export type GroupMessageTipped = Static<typeof GroupMessageTipped>;
+export const GroupMessageTipped = Type.Object({
+    c: ChatId,
+    tr: Type.Optional(MessageIndex),
+    m: MessageIndex,
+    e: EventIndex,
+    g: Type.String(),
+    ti: UserId,
+    tn: Type.String(),
+    td: Type.Optional(Type.String()),
+    t: Type.String(),
+    a: Type.Optional(Type.BigInt()),
+});
+
+export type GroupMessageNotification = Static<typeof GroupMessageNotification>;
+export const GroupMessageNotification = Type.Object({
+    c: ChatId,
+    tr: Type.Optional(MessageIndex),
+    m: MessageIndex,
+    e: EventIndex,
+    g: Type.String(),
+    s: UserId,
+    sn: Type.String(),
+    sd: Type.Optional(Type.String()),
+    ty: Type.String(),
+    tx: Type.Optional(Type.String()),
+    i: Type.Optional(Type.String()),
+    a: Type.Optional(Type.BigInt()),
+    ct: Type.Optional(CryptoTransferDetails),
+});
 
 export type OptionUpdateDocument = Static<typeof OptionUpdateDocument>;
 export const OptionUpdateDocument = Type.Union(
@@ -6530,7 +6749,7 @@ export const CommunitySelectedInitialSuccessResult = Type.Object({
     last_updated: Type.BigInt(),
     latest_event_index: EventIndex,
     members: Type.Array(CommunityMember),
-    bots: Type.Array(InstalledBotDetails),
+    bots: Type.Array(BotGroupDetails),
     api_keys: Type.Array(PublicApiKeyDetails),
     basic_members: Type.Array(UserId),
     blocked_users: Type.Array(UserId),
@@ -6600,7 +6819,7 @@ export const CommunitySelectedUpdatesSuccessResult = Type.Object({
     last_updated: Type.BigInt(),
     members_added_or_updated: Type.Array(CommunityMember),
     members_removed: Type.Array(UserId),
-    bots_added_or_updated: Type.Array(InstalledBotDetails),
+    bots_added_or_updated: Type.Array(BotGroupDetails),
     bots_removed: Type.Array(UserId),
     api_keys_generated: Type.Array(PublicApiKeyDetails),
     blocked_users_added: Type.Array(UserId),
@@ -6733,7 +6952,7 @@ export const GroupSelectedInitialSuccessResult = Type.Object({
     last_updated: Type.BigInt(),
     latest_event_index: EventIndex,
     participants: Type.Array(GroupMember),
-    bots: Type.Array(InstalledBotDetails),
+    bots: Type.Array(BotGroupDetails),
     api_keys: Type.Array(PublicApiKeyDetails),
     basic_members: Type.Array(UserId),
     blocked_users: Type.Array(UserId),
@@ -6826,6 +7045,9 @@ export type UserSwapTokensExchangeArgs = Static<typeof UserSwapTokensExchangeArg
 export const UserSwapTokensExchangeArgs = Type.Union([
     Type.Object({
         ICPSwap: UserSwapTokensICPSwapArgs,
+    }),
+    Type.Object({
+        Sonic: UserSwapTokensICPSwapArgs,
     }),
     Type.Object({
         KongSwap: UserSwapTokensICPSwapArgs,
@@ -7131,21 +7353,6 @@ export const VideoCallContent = Type.Object({
     hidden_participants: Type.Number(),
 });
 
-export type SlashCommandParamType = Static<typeof SlashCommandParamType>;
-export const SlashCommandParamType = Type.Union([
-    Type.Literal("UserParam"),
-    Type.Literal("BooleanParam"),
-    Type.Object({
-        StringParam: StringParam,
-    }),
-    Type.Object({
-        IntegerParam: IntegerParam,
-    }),
-    Type.Object({
-        DecimalParam: DecimalParam,
-    }),
-]);
-
 export type EventWrapperGroupFrozen = Static<typeof EventWrapperGroupFrozen>;
 export const EventWrapperGroupFrozen = Type.Object({
     index: EventIndex,
@@ -7346,36 +7553,54 @@ export const SwapStatusError = Type.Union([
     }),
 ]);
 
-export type BotActionByCommandArgs = Static<typeof BotActionByCommandArgs>;
-export const BotActionByCommandArgs = Type.Object({
-    bot_id: UserId,
-    command: BotCommand,
-    scope: BotActionScope,
-});
-
-export type SlashCommandParam = Static<typeof SlashCommandParam>;
-export const SlashCommandParam = Type.Object({
-    name: Type.String(),
-    description: Type.Optional(Type.String()),
-    placeholder: Type.Optional(Type.String()),
-    required: Type.Boolean(),
-    param_type: SlashCommandParamType,
-});
-
-export type SlashCommandSchema = Static<typeof SlashCommandSchema>;
-export const SlashCommandSchema = Type.Object({
-    name: Type.String(),
-    description: Type.Optional(Type.String()),
-    placeholder: Type.Optional(Type.String()),
-    params: Type.Array(SlashCommandParam),
-    permissions: BotPermissions,
-});
+export type Notification = Static<typeof Notification>;
+export const Notification = Type.Union([
+    Type.Object({
+        ac: AddedToChannelNotification,
+    }),
+    Type.Object({
+        dm: DirectMessageNotification,
+    }),
+    Type.Object({
+        gm: GroupMessageNotification,
+    }),
+    Type.Object({
+        cm: ChannelMessageNotification,
+    }),
+    Type.Object({
+        dr: DirectReactionAddedNotification,
+    }),
+    Type.Object({
+        gr: GroupReactionAddedNotification,
+    }),
+    Type.Object({
+        cr: ChannelReactionAddedNotification,
+    }),
+    Type.Object({
+        dt: DirectMessageTipped,
+    }),
+    Type.Object({
+        gt: GroupMessageTipped,
+    }),
+    Type.Object({
+        ct: ChannelMessageTipped,
+    }),
+]);
 
 export type ProposalContent = Static<typeof ProposalContent>;
 export const ProposalContent = Type.Object({
     governance_canister_id: TSPrincipal,
     proposal: Proposal,
     my_vote: Type.Optional(Type.Boolean()),
+});
+
+export type BotCommandParam = Static<typeof BotCommandParam>;
+export const BotCommandParam = Type.Object({
+    name: Type.String(),
+    description: Type.Optional(Type.String()),
+    placeholder: Type.Optional(Type.String()),
+    required: Type.Boolean(),
+    param_type: BotCommandParamType,
 });
 
 export type DiamondMembershipStatusFull = Static<typeof DiamondMembershipStatusFull>;
@@ -7398,13 +7623,6 @@ export const P2PSwapContent = Type.Object({
     caption: Type.Optional(Type.String()),
     token0_txn_in: Type.BigInt(),
     status: P2PSwapStatus,
-});
-
-export type BotDefinition = Static<typeof BotDefinition>;
-export const BotDefinition = Type.Object({
-    description: Type.String(),
-    commands: Type.Array(SlashCommandSchema),
-    autonomous_config: Type.Optional(AutonomousConfig),
 });
 
 export type GroupIndexFreezeGroupResponse = Static<typeof GroupIndexFreezeGroupResponse>;
@@ -7466,43 +7684,10 @@ export const GroupIndexUnfreezeGroupResponse = Type.Union([
     }),
 ]);
 
-export type UserIndexBotUpdatesBotSchema = Static<typeof UserIndexBotUpdatesBotSchema>;
-export const UserIndexBotUpdatesBotSchema = Type.Object({
-    id: UserId,
-    owner: UserId,
-    name: Type.String(),
-    avatar_id: Type.Optional(Type.BigInt()),
-    endpoint: Type.String(),
-    description: Type.String(),
-    commands: Type.Array(SlashCommandSchema),
-    autonomous_config: Type.Optional(AutonomousConfig),
-    last_updated: Type.BigInt(),
-});
-
 export type UserIndexDeleteUserArgs = Static<typeof UserIndexDeleteUserArgs>;
 export const UserIndexDeleteUserArgs = Type.Object({
     user_id: UserId,
     delegation: SignedDelegation,
-});
-
-export type UserIndexUpdateBotArgs = Static<typeof UserIndexUpdateBotArgs>;
-export const UserIndexUpdateBotArgs = Type.Object({
-    bot_id: UserId,
-    owner: Type.Optional(UserId),
-    principal: Type.Optional(TSPrincipal),
-    avatar: OptionUpdateString,
-    endpoint: Type.Optional(Type.String()),
-    definition: Type.Optional(BotDefinition),
-});
-
-export type UserIndexRegisterBotArgs = Static<typeof UserIndexRegisterBotArgs>;
-export const UserIndexRegisterBotArgs = Type.Object({
-    principal: TSPrincipal,
-    owner: UserId,
-    name: Type.String(),
-    avatar: Type.Optional(Type.String()),
-    endpoint: Type.String(),
-    definition: BotDefinition,
 });
 
 export type UserIndexCurrentUserSuccessResult = Static<typeof UserIndexCurrentUserSuccessResult>;
@@ -7573,25 +7758,6 @@ export const LocalUserIndexChatEventsEventsArgs = Type.Object({
     args: LocalUserIndexChatEventsEventsArgsInner,
     latest_known_update: Type.Optional(Type.BigInt()),
 });
-
-export type LocalUserIndexAccessTokenV2Args = Static<typeof LocalUserIndexAccessTokenV2Args>;
-export const LocalUserIndexAccessTokenV2Args = Type.Union([
-    Type.Object({
-        StartVideoCall: StartVideoCallArgs,
-    }),
-    Type.Object({
-        JoinVideoCall: JoinVideoCallArgs,
-    }),
-    Type.Object({
-        MarkVideoCallAsEnded: MarkVideoCallAsEndedArgs,
-    }),
-    Type.Object({
-        BotActionByCommand: BotActionByCommandArgs,
-    }),
-    Type.Object({
-        BotActionByApiKey: Type.String(),
-    }),
-]);
 
 export type CommunityClaimPrizeResponse = Static<typeof CommunityClaimPrizeResponse>;
 export const CommunityClaimPrizeResponse = Type.Union([
@@ -8029,6 +8195,22 @@ export const PrizeWinnerContent = Type.Object({
     prize_message: MessageIndex,
 });
 
+export type BotCommandInitial = Static<typeof BotCommandInitial>;
+export const BotCommandInitial = Type.Object({
+    name: Type.String(),
+    args: Type.Array(BotCommandArg),
+});
+
+export type BotCommandDefinition = Static<typeof BotCommandDefinition>;
+export const BotCommandDefinition = Type.Object({
+    name: Type.String(),
+    description: Type.Optional(Type.String()),
+    placeholder: Type.Optional(Type.String()),
+    params: Type.Array(BotCommandParam),
+    permissions: BotPermissions,
+    default_role: Type.Optional(GroupRole),
+});
+
 export type CompositeGate = Static<typeof CompositeGate>;
 export const CompositeGate = Type.Object({
     inner: Type.Array(AccessGateNonComposite),
@@ -8102,10 +8284,18 @@ export const BotMatch = Type.Object({
     score: Type.Number(),
     name: Type.String(),
     description: Type.String(),
+    endpoint: Type.String(),
     owner: UserId,
     avatar_id: Type.Optional(Type.BigInt()),
-    commands: Type.Array(SlashCommandSchema),
+    commands: Type.Array(BotCommandDefinition),
     autonomous_config: Type.Optional(AutonomousConfig),
+});
+
+export type BotActionByCommandArgs = Static<typeof BotActionByCommandArgs>;
+export const BotActionByCommandArgs = Type.Object({
+    bot_id: UserId,
+    command: BotCommandInitial,
+    scope: BotActionScope,
 });
 
 export type AccessGate = Static<typeof AccessGate>;
@@ -8132,20 +8322,25 @@ export const AccessGate = Type.Union([
     Type.Literal("ReferredByMember"),
 ]);
 
-export type UserIndexBotUpdatesSuccessResult = Static<typeof UserIndexBotUpdatesSuccessResult>;
-export const UserIndexBotUpdatesSuccessResult = Type.Object({
-    added_or_updated: Type.Array(UserIndexBotUpdatesBotSchema),
-    removed: Type.Array(UserId),
-    timestamp: Type.BigInt(),
+export type BotDefinition = Static<typeof BotDefinition>;
+export const BotDefinition = Type.Object({
+    description: Type.String(),
+    commands: Type.Array(BotCommandDefinition),
+    autonomous_config: Type.Optional(AutonomousConfig),
 });
 
-export type UserIndexBotUpdatesResponse = Static<typeof UserIndexBotUpdatesResponse>;
-export const UserIndexBotUpdatesResponse = Type.Union([
-    Type.Object({
-        Success: UserIndexBotUpdatesSuccessResult,
-    }),
-    Type.Literal("SuccessNoUpdates"),
-]);
+export type UserIndexBotUpdatesBotSchema = Static<typeof UserIndexBotUpdatesBotSchema>;
+export const UserIndexBotUpdatesBotSchema = Type.Object({
+    id: UserId,
+    owner: UserId,
+    name: Type.String(),
+    avatar_id: Type.Optional(Type.BigInt()),
+    endpoint: Type.String(),
+    description: Type.String(),
+    commands: Type.Array(BotCommandDefinition),
+    autonomous_config: Type.Optional(AutonomousConfig),
+    last_updated: Type.BigInt(),
+});
 
 export type UserIndexUsersResult = Static<typeof UserIndexUsersResult>;
 export const UserIndexUsersResult = Type.Object({
@@ -8180,10 +8375,49 @@ export const UserIndexExploreBotsResponse = Type.Union([
     Type.Literal("InvalidTerm"),
 ]);
 
+export type UserIndexUpdateBotArgs = Static<typeof UserIndexUpdateBotArgs>;
+export const UserIndexUpdateBotArgs = Type.Object({
+    bot_id: UserId,
+    owner: Type.Optional(UserId),
+    principal: Type.Optional(TSPrincipal),
+    avatar: OptionUpdateString,
+    endpoint: Type.Optional(Type.String()),
+    definition: Type.Optional(BotDefinition),
+});
+
+export type UserIndexRegisterBotArgs = Static<typeof UserIndexRegisterBotArgs>;
+export const UserIndexRegisterBotArgs = Type.Object({
+    principal: TSPrincipal,
+    owner: UserId,
+    name: Type.String(),
+    avatar: Type.Optional(Type.String()),
+    endpoint: Type.String(),
+    definition: BotDefinition,
+});
+
 export type LocalUserIndexChatEventsArgs = Static<typeof LocalUserIndexChatEventsArgs>;
 export const LocalUserIndexChatEventsArgs = Type.Object({
     requests: Type.Array(LocalUserIndexChatEventsEventsArgs),
 });
+
+export type LocalUserIndexAccessTokenV2Args = Static<typeof LocalUserIndexAccessTokenV2Args>;
+export const LocalUserIndexAccessTokenV2Args = Type.Union([
+    Type.Object({
+        StartVideoCall: StartVideoCallArgs,
+    }),
+    Type.Object({
+        JoinVideoCall: JoinVideoCallArgs,
+    }),
+    Type.Object({
+        MarkVideoCallAsEnded: MarkVideoCallAsEndedArgs,
+    }),
+    Type.Object({
+        BotActionByCommand: BotActionByCommandArgs,
+    }),
+    Type.Object({
+        BotActionByApiKey: Type.String(),
+    }),
+]);
 
 export type LocalUserIndexBotSendMessageArgs = Static<typeof LocalUserIndexBotSendMessageArgs>;
 export const LocalUserIndexBotSendMessageArgs = Type.Object({
@@ -8500,6 +8734,21 @@ export const GroupIndexExploreGroupsResponse = Type.Union([
         TermTooLong: Type.Number(),
     }),
     Type.Literal("InvalidTerm"),
+]);
+
+export type UserIndexBotUpdatesSuccessResult = Static<typeof UserIndexBotUpdatesSuccessResult>;
+export const UserIndexBotUpdatesSuccessResult = Type.Object({
+    added_or_updated: Type.Array(UserIndexBotUpdatesBotSchema),
+    removed: Type.Array(UserId),
+    timestamp: Type.BigInt(),
+});
+
+export type UserIndexBotUpdatesResponse = Static<typeof UserIndexBotUpdatesResponse>;
+export const UserIndexBotUpdatesResponse = Type.Union([
+    Type.Object({
+        Success: UserIndexBotUpdatesSuccessResult,
+    }),
+    Type.Literal("SuccessNoUpdates"),
 ]);
 
 export type LocalUserIndexBotCreateChannelArgs = Static<typeof LocalUserIndexBotCreateChannelArgs>;
@@ -9717,8 +9966,6 @@ export const UserInitialStateSuccessResult = Type.Object({
     wallet_config: UserWalletConfig,
     referrals: Type.Array(UserReferral),
     message_activity_summary: UserMessageActivitySummary,
-    bots: Type.Array(InstalledBotDetails),
-    api_keys: Type.Array(PublicApiKeyDetails),
 });
 
 export type UserInitialStateResponse = Static<typeof UserInitialStateResponse>;
@@ -9751,9 +9998,6 @@ export const UserUpdatesSuccessResult = Type.Object({
     wallet_config: Type.Optional(UserWalletConfig),
     referrals: Type.Array(UserReferral),
     message_activity_summary: Type.Optional(UserMessageActivitySummary),
-    bots_added_or_updated: Type.Array(InstalledBotDetails),
-    bots_removed: Type.Array(UserId),
-    api_keys_generated: Type.Array(PublicApiKeyDetails),
 });
 
 export type UserUpdatesResponse = Static<typeof UserUpdatesResponse>;

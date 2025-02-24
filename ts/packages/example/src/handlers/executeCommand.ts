@@ -16,8 +16,9 @@ import file from "./file";
 import news from "./news";
 import prompt from "./prompt";
 import imagine from "./imagine";
-import start_ping from "./start_ping";
-import stop_ping from "./stop_ping";
+import subscribe from "./subscribe";
+import syncApiKey from "./syncApiKey";
+import unsubscribe from "./unsubscribe";
 import { WithBotClient } from "../types";
 import poll from "./poll";
 import numbers from "./numbers";
@@ -32,9 +33,10 @@ export default function executeCommand(req: Request, res: Response) {
     return;
   }
   const client = req.botClient;
-  console.log("Command: ", client.commandName, client.commandArgs);
 
   switch (client.commandName) {
+    case "sync_api_key":
+      return syncApiKey(req, res);
     case "prompt":
       return prompt(req, res);
     case "imagine":
@@ -43,10 +45,10 @@ export default function executeCommand(req: Request, res: Response) {
       return numbers(req, res);
     case "poll":
       return poll(req, res);
-    case "start_ping":
-      return start_ping(req, res);
-    case "stop_ping":
-      return stop_ping(req, res);
+    case "subscribe":
+      return subscribe(req, res);
+    case "unsubscribe":
+      return unsubscribe(req, res);
     case "file":
       return file(req, res);
     case "news":
