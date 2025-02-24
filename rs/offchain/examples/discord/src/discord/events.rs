@@ -51,15 +51,6 @@ async fn proxy_message(
         data.state
             .set_status_for_ds_channel(new_message.channel_id, channel_status)
             .await?;
-
-        // This is just for fun!
-        let msg = new_message.content.clone().to_lowercase();
-        let words: Vec<&str> = msg.split_whitespace().collect();
-        if words.contains(&"ping") {
-            new_message
-                .reply(ctx, "You've mentioned a ping! Here's a pong!")
-                .await?;
-        }
     }
 
     Ok(())

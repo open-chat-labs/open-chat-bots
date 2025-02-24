@@ -14,7 +14,7 @@
       "type": "array",
       "description": "This is the list of slash commands that your bot supports. Note that you must have between one and fifty commands.",
       "items": {
-        "$ref": "#/definitions/SlashCommandSchema"
+        "$ref": "#/definitions/BotCommandDefinition"
       },
       "minItems": 1,
       "maxItems": 50
@@ -44,11 +44,16 @@
       "type": "object",
       "description": "Configuration for the bot's autonomous behaviour",
       "properties": {
+        "sync_api_key": {
+          "type": "boolean",
+          "description": "Controls whether the OpenChat UI will offer to send generated api keys to this bot directly"
+        },
         "permissions": {
           "$ref": "#/definitions/BotPermissions",
           "description": "The permissions required to execute in this context. These are broken down into Community level, Chat level and Message level permissions."
         }
-      }
+      },
+      "required": ["sync_api_key", "permissions"]
     },
     "NameField": {
       "type": "string",
@@ -57,13 +62,18 @@
       "maxLength": 25,
       "pattern": "^[a-zA-Z0-9_]+$"
     },
-    "SlashCommandSchema": {
+    "BotCommandDefinition": {
       "type": "object",
       "description": "This is the specification of each individual command.",
       "properties": {
         "name": {
           "$ref": "#/definitions/NameField",
           "description": "The name that users will use to trigger this command in OpenChat."
+        },
+        "default_role": {
+          "type": "string",
+          "enum": ["Participant", "Moderator", "Admin", "Owner"],
+          "description": "The default role assigned to the command, which must be one of the specified roles."
         },
         "placeholder": {
           "type": "string",
@@ -76,10 +86,6 @@
           "description": "A brief description of what the slash command does.",
           "minLength": 5,
           "maxLength": 500
-        },
-        "ownerOnly": {
-          "type": "boolean",
-          "description": "Set to true if the command should only be executable by the owner of the installed context."
         },
         "params": {
           "type": "array",
@@ -94,7 +100,13 @@
           "description": "The permissions required to execute the command. These are broken down into Community level, Chat level and Message level permissions."
         }
       },
-      "required": ["name", "description", "params", "permissions"],
+      "required": [
+        "name",
+        "description",
+        "params",
+        "permissions",
+        "default_role"
+      ],
       "additionalProperties": false
     },
     "SlashCommandParam": {

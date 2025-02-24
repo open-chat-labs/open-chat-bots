@@ -41,7 +41,7 @@ pub struct OpenChatBotConfig {
 pub struct SystemConfig {
     pub store_path: Option<String>,
     // ...
-    #[serde(with = "serde_bytes")]
+    #[serde(with = "serde_bytes", default)]
     #[validate(custom = validate_encryption_key)]
     pub store_encryption_key: Option<Vec<u8>>,
     // ...
@@ -79,5 +79,122 @@ where
         "error" => Ok(tracing::Level::ERROR),
         "trace" => Ok(tracing::Level::TRACE),
         _ => Err(serde::de::Error::custom("`log_level` has an unexpected value. Please use one of: debug, error, info, warn, or trace.")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tracing::Level;
+
+    #[test]
+    fn minimal_config_is_parsed_correctly() -> Result<(), Box<dyn std::error::Error>> {
+        let config = "
+            [discord]
+            token = \"not-a-real-token\"
+            [openchat]
+            ic_url = \"http://localhost:8080\"
+            public_key = \"not-a-real-public-key\"
+            [openchat.bot]
+            port = 13456
+            private_key_path = \"nothing/to/see/here\"
+            [system]
+            log_level = \"info\"
+        ";
+
+        let parsed: Config = toml::from_str(config)?;
+
+        assert_eq!(parsed.discord.token, "not-a-real-token".to_string());
+        assert_eq!(parsed.openchat.ic_url, "http://localhost:8080".to_string());
+        assert_eq!(
+            parsed.openchat.public_key,
+            "not-a-real-public-key".to_string()
+        );
+        assert_eq!(parsed.openchat.bot.port, 13456);
+        assert_eq!(
+            parsed.openchat.bot.private_key_path,
+            "nothing/to/see/here".to_string()
+        );
+        assert_eq!(parsed.system.log_level, Level::INFO);
+        assert_eq!(parsed.system.store_path, None);
+        assert_eq!(parsed.system.store_encryption_key, None);
+
+        Ok(())
+    }
+
+    #[test]
+    fn full_config_is_parsed_correctly() -> Result<(), Box<dyn std::error::Error>> {
+        let config = "
+            [discord]
+            token = \"not-a-real-token\"
+            [openchat]
+            ic_url = \"http://localhost:8080\"
+            public_key = \"not-a-real-public-key\"
+            [openchat.bot]
+            port = 13456
+            private_key_path = \"nothing/to/see/here\"
+            [system]
+            log_level = \"info\"
+            store_path = \"path/to/store\"
+            store_encryption_key = \"-this-is-a-valid-32-bit-enc-key-\"
+        ";
+
+        let parsed: Config = toml::from_str(config)?;
+
+        assert_eq!(parsed.system.store_path, Some("path/to/store".to_string()));
+        assert_eq!(
+            parsed.system.store_encryption_key,
+            Some("-this-is-a-valid-32-bit-enc-key-".as_bytes().to_vec())
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn enc_key_is_correctly_validated() -> Result<(), Box<dyn std::error::Error>> {
+        let config = "
+            [discord]
+            token = \"not-a-real-token\"
+            [openchat]
+            ic_url = \"http://localhost:8080\"
+            public_key = \"not-a-real-public-key\"
+            [openchat.bot]
+            port = 13456
+            private_key_path = \"nothing/to/see/here\"
+            [system]
+            log_level = \"info\"
+            store_path = \"path/to/store\"
+            store_encryption_key = \"-this-is-a-valid-32-bit-enc-key-\"
+        ";
+
+        let parsed: Config = toml::from_str(config)?;
+
+        assert!(parsed.system.validate().is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn enc_key_fails_validation() -> Result<(), Box<dyn std::error::Error>> {
+        let config_with_invalid_enc_key = "
+            [discord]
+            token = \"not-a-real-token\"
+            [openchat]
+            ic_url = \"http://localhost:8080\"
+            public_key = \"not-a-real-public-key\"
+            [openchat.bot]
+            port = 13456
+            private_key_path = \"nothing/to/see/here\"
+            [system]
+            log_level = \"info\"
+            store_path = \"path/to/store\"
+            store_encryption_key = \"-this-is-definitelly-not-a-valid-32-bit-enc-key-\"
+        ";
+
+        let parsed: Config = toml::from_str(config_with_invalid_enc_key)?;
+
+        assert!(parsed.system.validate().is_err());
+
+        Ok(())
     }
 }

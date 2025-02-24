@@ -1,12 +1,13 @@
 {
     "name": "@open-ic/openchat-botclient-ts",
-    "version": "1.0.21",
+    "version": "1.0.24",
     "description": "A client library for OpenChat bots to interact with the OpenChat backend",
     "main": "lib/index.cjs",
     "module": "lib/index.mjs",
     "types": "lib/index.d.ts",
     "scripts": {
         "build": "rollup -c",
+        "test": "vitest",
         "prepare": "npm run build",
         "publish": "npm publish --access public"
     },
@@ -28,7 +29,8 @@
         "eslint-config-prettier": "^9.0.0",
         "eslint-plugin-prettier": "^5.0.0",
         "rollup": "^4.28.1",
-        "typescript": "^5.7.2"
+        "typescript": "^5.7.2",
+        "vitest": "^3.0.6"
     },
     "dependencies": {
         "@dfinity/agent": "^2.2.0",

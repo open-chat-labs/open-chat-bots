@@ -1,24 +1,30 @@
 import { Principal } from "@dfinity/principal";
-import type {
-    BlobReference,
-    AuthToken,
-    SendMessageResponse,
-    AccessGate,
-    AccessGateConfig,
-    GroupPermissions,
-    MessagePermissions,
-    PermissionRole,
-    CreateChannelResponse,
-    DeleteChannelResponse,
+import {
+    type BlobReference,
+    type AuthToken,
+    type SendMessageResponse,
+    type AccessGate,
+    type AccessGateConfig,
+    type GroupPermissions,
+    type MessagePermissions,
+    type PermissionRole,
+    type CreateChannelResponse,
+    type DeleteChannelResponse,
     DecodedApiKey,
-    RawApiKey,
-    ApiKeyActionScope,
-    MergedActionScope,
-    ChatIdentifier,
-    RawCommandJwt,
-    DecodedJwt,
-    CommandActionScope,
-    RawApiKeyJwt,
+    type RawApiKey,
+    type ApiKeyActionScope,
+    type MergedActionScope,
+    type ChatIdentifier,
+    type RawCommandJwt,
+    type DecodedJwt,
+    type CommandActionScope,
+    type RawApiKeyJwt,
+    MergedActionChatScope,
+    MergedActionCommunityScope,
+    CommunityIdentifier,
+    GroupChatIdentifier,
+    DirectChatIdentifier,
+    ChannelIdentifier,
 } from "../domain";
 import type {
     AuthToken as ApiAuthToken,
@@ -57,69 +63,56 @@ export function mapCommandJwt(api: RawCommandJwt): DecodedJwt {
     };
 }
 
-export function mapApiKey(api: RawApiKey): DecodedApiKey {
-    return {
-        kind: "api_key",
-        gateway: api.gateway,
-        bot_id: api.bot_id,
-        scope: mapApiKeyScope(api.scope),
-        secret: api.secret,
-    };
+export function mapApiKey(apiKey: string, json: RawApiKey): DecodedApiKey {
+    return new DecodedApiKey(
+        apiKey,
+        json.gateway,
+        json.bot_id,
+        mapApiKeyScope(json.scope),
+        json.permissions,
+    );
 }
 
 export function mapCommandScope(api: CommandActionScope): MergedActionScope {
     if ("Chat" in api) {
-        return {
-            kind: "chat",
-            chat: mapChatIdentifier(api.Chat.chat),
-            thread: api.Chat.thread,
-            messageId: api.Chat.message_id ? toBigInt64(api.Chat.message_id) : undefined,
-        };
+        return new MergedActionChatScope(
+            mapChatIdentifier(api.Chat.chat),
+            api.Chat.thread,
+            api.Chat.message_id ? toBigInt64(api.Chat.message_id) : undefined,
+        );
     }
     if ("Community" in api) {
-        return {
-            kind: "community",
-            communityId: {
-                kind: "community",
-                communityId: principalBytesToString(api.Community.community_id),
-            },
-        };
+        return new MergedActionCommunityScope(
+            new CommunityIdentifier(principalBytesToString(api.Community)),
+        );
     }
     throw new Error(`Unexpected ApiKeyActionScope: ${api}`);
 }
 
 export function mapApiKeyScope(api: ApiKeyActionScope): MergedActionScope {
     if ("Chat" in api) {
-        return {
-            kind: "chat",
-            chat: mapChatIdentifier(api.Chat),
-        };
+        return new MergedActionChatScope(mapChatIdentifier(api.Chat));
     }
     if ("Community" in api) {
-        return {
-            kind: "community",
-            communityId: {
-                kind: "community",
-                communityId: principalBytesToString(api.Community.community_id),
-            },
-        };
+        return new MergedActionCommunityScope(
+            new CommunityIdentifier(principalBytesToString(api.Community)),
+        );
     }
     throw new Error(`Unexpected ApiKeyActionScope: ${api}`);
 }
 
 export function mapChatIdentifier(api: Chat): ChatIdentifier {
     if ("Group" in api) {
-        return { kind: "group_chat", groupId: principalBytesToString(api.Group) };
+        return new GroupChatIdentifier(principalBytesToString(api.Group));
     }
     if ("Direct" in api) {
-        return { kind: "direct_chat", userId: principalBytesToString(api.Direct) };
+        return new DirectChatIdentifier(principalBytesToString(api.Direct));
     }
     if ("Channel" in api) {
-        return {
-            kind: "channel",
-            communityId: principalBytesToString(api.Channel[0]),
-            channelId: Number(toBigInt32(api.Channel[1])),
-        };
+        return new ChannelIdentifier(
+            principalBytesToString(api.Channel[0]),
+            Number(toBigInt32(api.Channel[1])),
+        );
     }
     throw new Error(`Unexpected Chat type received: ${api}`);
 }
