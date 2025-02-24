@@ -8,4 +8,5 @@ pub struct BotApiKeyToken {
     pub bot_id: UserId,
     pub scope: ActionScope,
     pub secret: String,
+    pub permissions: EncodedBotPermissions,
 }
