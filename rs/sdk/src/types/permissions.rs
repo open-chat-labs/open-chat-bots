@@ -198,8 +198,8 @@ pub struct EncodedBotPermissions {
 }
 
 impl From<BotPermissions> for EncodedBotPermissions {
-    fn from(value: BotPermissions) -> Self {
-        (&value).into()
+    fn from(permissions: BotPermissions) -> Self {
+        EncodedBotPermissions::from(&permissions)
     }
 }
 
@@ -218,6 +218,12 @@ impl From<&BotPermissions> for EncodedBotPermissions {
             chat: encode(&permissions.chat),
             message: encode(&permissions.message),
         }
+    }
+}
+
+impl From<EncodedBotPermissions> for BotPermissions {
+    fn from(permissions: EncodedBotPermissions) -> Self {
+        BotPermissions::from(&permissions).into()
     }
 }
 

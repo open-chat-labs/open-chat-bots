@@ -1,6 +1,5 @@
 import type {
     BotCommand,
-    BotPermissions,
     Chat,
     CommunityPermission,
     GroupPermission,
@@ -15,7 +14,7 @@ export type DecodedJwt = {
     bot_api_gateway: string;
     bot: string;
     scope: MergedActionScope;
-    granted_permissions: BotPermissions;
+    granted_permissions: BitmaskPermissions;
     command?: BotCommand;
 };
 
@@ -99,7 +98,7 @@ export type RawCommandJwt = {
     bot_api_gateway: string;
     bot: string;
     scope: CommandActionScope;
-    granted_permissions: BotPermissions;
+    granted_permissions: BitmaskPermissions;
     command?: BotCommand;
 };
 
@@ -109,7 +108,7 @@ export type RawApiKeyJwt = {
     bot_api_gateway: string;
     bot: string;
     scope: ApiKeyActionScope;
-    granted_permissions: BotPermissions;
+    granted_permissions: BitmaskPermissions;
 };
 
 export type RawApiKey = {
