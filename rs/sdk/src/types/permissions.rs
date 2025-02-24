@@ -223,7 +223,7 @@ impl From<&BotPermissions> for EncodedBotPermissions {
 
 impl From<EncodedBotPermissions> for BotPermissions {
     fn from(permissions: EncodedBotPermissions) -> Self {
-        BotPermissions::from(&permissions).into()
+        BotPermissions::from(&permissions)
     }
 }
 
