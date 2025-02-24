@@ -57,7 +57,6 @@ impl CommandHandler<CanisterRuntime> for Remind {
                 env::now(),
             );
 
-            state.metrics.reminders_added += 1;
             result
         })?;
 

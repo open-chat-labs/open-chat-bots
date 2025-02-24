@@ -11,7 +11,6 @@ thread_local! {
 #[derive(Serialize, Deserialize)]
 pub struct State {
     oc_public_key: String,
-    pub metrics: Metrics,
     pub api_key_registry: ApiKeyRegistry,
     pub reminders: Reminders,
 }
@@ -45,7 +44,6 @@ impl State {
     pub fn new(oc_public_key: String) -> State {
         State {
             oc_public_key,
-            metrics: Metrics::default(),
             api_key_registry: ApiKeyRegistry::default(),
             reminders: Reminders::default(),
         }
@@ -58,9 +56,19 @@ impl State {
     pub fn oc_public_key(&self) -> &str {
         &self.oc_public_key
     }
+
+    pub fn metrics(&self) -> Metrics {
+        Metrics {
+            api_keys: self.api_key_registry.count(),
+            reminders: self.reminders.count(),
+            chats_with_reminders: self.reminders.chats_count(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct Metrics {
-    pub reminders_added: u32,
+    pub api_keys: usize,
+    pub reminders: usize,
+    pub chats_with_reminders: usize,
 }

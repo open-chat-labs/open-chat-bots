@@ -62,4 +62,8 @@ impl ApiKeyRegistry {
     pub fn remove(&mut self, scope: &ActionScope) {
         self.api_keys.remove(scope);
     }
+
+    pub fn count(&self) -> usize {
+        self.api_keys.len()
+    }
 }

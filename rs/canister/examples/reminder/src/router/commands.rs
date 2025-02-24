@@ -38,9 +38,11 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
 }
 
 fn on_set_api_key(api_key: String) -> CommandResponse {
-    if state::mutate(|state| state.api_key_registry.insert(api_key)) {
-        CommandResponse::Success(SuccessResult { message: None })
-    } else {
-        CommandResponse::BadRequest(BadRequest::AccessTokenInvalid)
-    }
+    state::mutate(|state| {
+        if state.api_key_registry.insert(api_key) {
+            CommandResponse::Success(SuccessResult { message: None })
+        } else {
+            CommandResponse::BadRequest(BadRequest::AccessTokenInvalid)
+        }
+    })
 }

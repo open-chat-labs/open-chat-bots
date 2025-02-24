@@ -33,7 +33,7 @@ impl CommandHandler<CanisterRuntime> for Delete {
 
             state
                 .reminders
-                .delete(&chat_scope.chat, cxt.command.arg("id"))
+                .delete(&chat_scope.chat, cxt.command.arg("rid"))
         })?;
 
         let text = format!("{}\n\n\nReminder deleted", reminder.to_text());
@@ -63,7 +63,7 @@ impl Delete {
             description: Some("Delete a reminder from this chat by ID".to_string()),
             placeholder: None,
             params: vec![BotCommandParam {
-                name: "id".to_string(),
+                name: "rid".to_string(),
                 description: Some("The ID of the reminder to delete".to_string()),
                 placeholder: Some("Enter a reminder ID...".to_string()),
                 required: true,

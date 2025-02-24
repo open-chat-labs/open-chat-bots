@@ -158,6 +158,14 @@ impl Reminders {
             })
             .unwrap_or_default()
     }
+
+    pub fn count(&self) -> usize {
+        self.reminders.len()
+    }
+
+    pub fn chats_count(&self) -> usize {
+        self.per_chat.len()
+    }
 }
 
 pub struct AddResult {
