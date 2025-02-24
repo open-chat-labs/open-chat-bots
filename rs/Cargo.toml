@@ -5,6 +5,7 @@ members = [
     "canister/sdk",
     "offchain/examples/dice",
     "offchain/examples/discord",
+    "offchain/examples/llama",
     "offchain/sdk",
     "sdk",
 ]
@@ -39,6 +40,7 @@ serde_json = "1.0.138"
 sha2 = "0.10.8"
 tokio = "1.37.0"
 tower-http = "0.6.2"
+tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
 
 [profile.release]
