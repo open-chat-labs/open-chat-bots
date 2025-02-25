@@ -3,8 +3,14 @@
   "canisters": {
     "greet_bot": {
       "type": "rust",
-      "package": "greet_bot_canister",
-      "candid": "examples/greet/canister/can.did",
+      "package": "greet_bot",
+      "candid": "canister/examples/greet/canister/can.did",
+      "gzip": true
+    },
+    "reminder_bot": {
+      "type": "rust",
+      "package": "reminder_bot",
+      "candid": "canister/examples/reminder/can.did",
       "gzip": true
     }
   },

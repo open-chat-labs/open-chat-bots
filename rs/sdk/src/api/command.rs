@@ -11,6 +11,7 @@ pub struct Command {
     pub name: String,
     pub args: Vec<CommandArg>,
     pub initiator: UserId,
+    pub meta: Option<CommandMeta>,
 }
 
 impl Command {
@@ -256,4 +257,10 @@ pub enum CanisterError {
     NotAuthorized,
     Frozen,
     Other(String),
+}
+
+#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+pub struct CommandMeta {
+    pub timezone: String, // IANA timezone e.g. "Europe/London"
+    pub language: String, // The language selected in OpenChat e.g. "en"
 }
