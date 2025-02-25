@@ -6,7 +6,6 @@ use oc_bots_sdk::oc_api::actions::send_message;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::BotCommandContext;
 use oc_bots_sdk_canister::CanisterRuntime;
-use std::collections::HashSet;
 use std::sync::LazyLock;
 
 static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Joke::definition);
@@ -52,10 +51,7 @@ impl Joke {
             description: Some("This will send a random joke".to_string()),
             placeholder: Some("Thinking of a joke...".to_string()),
             params: vec![],
-            permissions: BotPermissions {
-                message: HashSet::from_iter([MessagePermission::Text]),
-                ..Default::default()
-            },
+            permissions: BotPermissions::text_only(),
             default_role: None,
         }
     }

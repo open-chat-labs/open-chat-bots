@@ -9,7 +9,6 @@ use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::MessageContent;
 use oc_bots_sdk::types::{BlobReference, BotCommandContext, ImageContent};
 use oc_bots_sdk_canister::{env, CanisterRuntime};
-use std::collections::HashSet;
 use std::io::Cursor;
 use std::sync::LazyLock;
 
@@ -156,10 +155,7 @@ impl Fractal {
                     }),
                 },
             ],
-            permissions: BotPermissions {
-                message: HashSet::from_iter([MessagePermission::Text]),
-                ..Default::default()
-            },
+            permissions: BotPermissions::text_only(),
             default_role: None,
         }
     }

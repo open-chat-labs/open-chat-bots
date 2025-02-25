@@ -11,6 +11,53 @@ pub struct BotPermissions {
     pub message: HashSet<MessagePermission>,
 }
 
+impl BotPermissions {
+    pub fn is_empty(&self) -> bool {
+        self.community.is_empty() && self.chat.is_empty() && self.message.is_empty()
+    }
+
+    pub fn is_subset(&self, other: &Self) -> bool {
+        self.community.is_subset(&other.community)
+            && self.chat.is_subset(&other.chat)
+            && self.message.is_subset(&other.message)
+    }
+
+    pub fn intersect(p1: &Self, p2: &Self) -> Self {
+        fn intersect<T: Hash + Eq + Clone>(x: &HashSet<T>, y: &HashSet<T>) -> HashSet<T> {
+            x.intersection(y).cloned().collect()
+        }
+
+        Self {
+            community: intersect(&p1.community, &p2.community),
+            chat: intersect(&p1.chat, &p2.chat),
+            message: intersect(&p1.message, &p2.message),
+        }
+    }
+
+    pub fn union(p1: &Self, p2: &Self) -> Self {
+        fn union<T: Hash + Eq + Clone>(x: &HashSet<T>, y: &HashSet<T>) -> HashSet<T> {
+            x.union(y).cloned().collect()
+        }
+
+        Self {
+            community: union(&p1.community, &p2.community),
+            chat: union(&p1.chat, &p2.chat),
+            message: union(&p1.message, &p2.message),
+        }
+    }
+
+    pub fn text_only() -> Self {
+        Self::from_message_permission(MessagePermission::Text)
+    }
+
+    pub fn from_message_permission(permission: MessagePermission) -> Self {
+        Self {
+            message: HashSet::from_iter([permission]),
+            ..Default::default()
+        }
+    }
+}
+
 #[repr(u8)]
 #[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum CommunityPermission {

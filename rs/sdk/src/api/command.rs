@@ -232,12 +232,13 @@ pub struct Message {
     pub content: MessageContent,
     pub block_level_markdown: bool,
     pub finalised: bool,
+    pub initiator_only: bool,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum BadRequest {
     AccessTokenNotFound,
-    AccessTokenInvalid,
+    AccessTokenInvalid(String),
     AccessTokenExpired,
     CommandNotFound,
     ArgsInvalid,

@@ -1,19 +1,26 @@
 use crate::api::command::*;
-use crate::api::definition::{BotCommandDefinition, BotCommandParam, BotCommandParamType};
+use crate::api::definition::{
+    BotCommandDefinition, BotCommandParam, BotCommandParamType, StringParam,
+};
 use crate::oc_api::client_factory::ClientFactory;
 use crate::types::{BotCommandContext, TimestampMillis, TokenError};
 use async_trait::async_trait;
+use std::sync::LazyLock;
 use std::{collections::HashMap, sync::Arc};
 
 pub struct CommandHandlerRegistry<R> {
     commands: HashMap<String, Box<dyn CommandHandler<R>>>,
+    on_set_api_key: Option<Box<dyn Fn(String) -> CommandResponse + Send + Sync + 'static>>,
     oc_client_factory: Arc<ClientFactory<R>>,
 }
+
+static SET_API_KEY_PARAMS: LazyLock<Vec<BotCommandParam>> = LazyLock::new(set_api_key_params);
 
 impl<R> CommandHandlerRegistry<R> {
     pub fn new(oc_client_factory: Arc<ClientFactory<R>>) -> CommandHandlerRegistry<R> {
         Self {
             commands: HashMap::new(),
+            on_set_api_key: None,
             oc_client_factory,
         }
     }
@@ -21,6 +28,14 @@ impl<R> CommandHandlerRegistry<R> {
     pub fn register<C: CommandHandler<R> + 'static>(mut self, command: C) -> Self {
         self.commands
             .insert(command.name().to_string(), Box::new(command));
+        self
+    }
+
+    pub fn on_sync_api_key(
+        mut self,
+        callback: Box<dyn Fn(String) -> CommandResponse + Send + Sync + 'static>,
+    ) -> Self {
+        self.on_set_api_key = Some(callback);
         self
     }
 
@@ -45,8 +60,8 @@ impl<R> CommandHandlerRegistry<R> {
             Ok(a) => a,
             Err(bad_request) => {
                 return match bad_request {
-                    TokenError::Invalid(_) => {
-                        CommandResponse::BadRequest(BadRequest::AccessTokenInvalid)
+                    TokenError::Invalid(error) => {
+                        CommandResponse::BadRequest(BadRequest::AccessTokenInvalid(error))
                     }
                     TokenError::Expired => {
                         CommandResponse::BadRequest(BadRequest::AccessTokenExpired)
@@ -55,7 +70,21 @@ impl<R> CommandHandlerRegistry<R> {
             }
         };
 
-        let Some(command_handler) = self.get(context.command.name.as_str()) else {
+        let command_name = context.command.name.as_str();
+
+        if command_name == "sync_api_key" {
+            if let Some(on_set_api_key) = &self.on_set_api_key {
+                if !check_args_internal(&context.command.args, &SET_API_KEY_PARAMS) {
+                    return CommandResponse::BadRequest(BadRequest::ArgsInvalid);
+                }
+
+                return on_set_api_key(context.command.arg("api_key"));
+            } else {
+                return CommandResponse::BadRequest(BadRequest::CommandNotFound);
+            }
+        }
+
+        let Some(command_handler) = self.get(command_name) else {
             return CommandResponse::BadRequest(BadRequest::CommandNotFound);
         };
 
@@ -173,4 +202,18 @@ fn check_args_internal(args: &[CommandArg], params: &[BotCommandParam]) -> bool 
     }
 
     true
+}
+
+fn set_api_key_params() -> Vec<BotCommandParam> {
+    vec![BotCommandParam {
+        name: "api_key".to_string(),
+        description: None,
+        placeholder: None,
+        required: true,
+        param_type: BotCommandParamType::StringParam(StringParam {
+            min_length: 10,
+            max_length: 1000,
+            choices: vec![],
+        }),
+    }]
 }

@@ -15,7 +15,7 @@ pub type TimestampNanos = u64;
 pub type CallResult<T> = Result<T, CallError>;
 pub type CallError = (i32, String);
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Copy)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Eq, PartialEq)]
 pub struct UserId(CanisterId);
 
 impl Display for UserId {
@@ -42,7 +42,16 @@ pub enum AuthToken {
     ApiKey(String),
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+impl AuthToken {
+    pub fn into(self) -> String {
+        match self {
+            AuthToken::Jwt(jwt) => jwt,
+            AuthToken::ApiKey(api_key) => api_key,
+        }
+    }
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum Chat {
     Direct(CanisterId),
     Group(CanisterId),
@@ -69,4 +78,10 @@ pub struct Document {
     pub id: u128,
     pub mime_type: String,
     pub data: Vec<u8>,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
+pub enum ActionScope {
+    Chat(Chat),
+    Community(CanisterId),
 }

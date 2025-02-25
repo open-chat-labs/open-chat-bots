@@ -1,4 +1,6 @@
-use super::{CanisterId, Chat, EncodedBotPermissions, MessageId, MessageIndex, UserId};
+use super::{
+    ActionScope, CanisterId, Chat, EncodedBotPermissions, MessageId, MessageIndex, UserId,
+};
 use crate::api::command::Command;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
@@ -13,7 +15,7 @@ pub enum TokenError {
 pub struct BotActionByCommandClaims {
     pub bot_api_gateway: CanisterId,
     pub bot: UserId,
-    pub scope: BotActionScope,
+    pub scope: BotCommandScope,
     pub granted_permissions: EncodedBotPermissions,
     pub command: Command,
 }
@@ -22,35 +24,38 @@ pub struct BotActionByCommandClaims {
 pub struct BotActionByApiKeyClaims {
     pub bot_api_gateway: CanisterId,
     pub bot: UserId,
-    pub scope: AccessTokenScope,
+    pub scope: ActionScope,
     pub granted_permissions: EncodedBotPermissions,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub enum BotActionScope {
+pub enum BotCommandScope {
     Chat(BotActionChatDetails),
     Community(BotActionCommunityDetails),
 }
 
-impl BotActionScope {
+impl BotCommandScope {
     pub fn message_id(&self) -> Option<MessageId> {
         match self {
-            BotActionScope::Chat(details) => Some(details.message_id),
-            BotActionScope::Community(_) => None,
+            BotCommandScope::Chat(details) => Some(details.message_id),
+            BotCommandScope::Community(_) => None,
         }
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
-pub enum AccessTokenScope {
-    Chat(Chat),
-    Community(CanisterId),
+impl From<BotCommandScope> for ActionScope {
+    fn from(value: BotCommandScope) -> Self {
+        match value {
+            BotCommandScope::Chat(details) => ActionScope::Chat(details.chat),
+            BotCommandScope::Community(details) => ActionScope::Community(details.community_id),
+        }
+    }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct BotActionChatDetails {
     pub chat: Chat,
-    pub thread_root_message_index: Option<MessageIndex>,
+    pub thread: Option<MessageIndex>,
     pub message_id: MessageId,
 }
 
