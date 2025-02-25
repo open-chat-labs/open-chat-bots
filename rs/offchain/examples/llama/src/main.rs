@@ -17,7 +17,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
-use tracing::{info, trace};
+use tracing::info;
 
 mod commands;
 mod llm_canister_agent;

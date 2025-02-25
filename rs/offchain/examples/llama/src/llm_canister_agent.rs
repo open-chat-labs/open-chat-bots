@@ -29,7 +29,7 @@ impl LlmCanisterAgent {
 
         match self
             .agent
-            .update(&*LLM_CANISTER_ID, "v0_chat")
+            .update(&LLM_CANISTER_ID, "v0_chat")
             .with_arg(candid::encode_one(&args).unwrap())
             .call_and_wait()
             .await
