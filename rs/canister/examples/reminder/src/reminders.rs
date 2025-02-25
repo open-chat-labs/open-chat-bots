@@ -1,5 +1,6 @@
 use ::cron::Schedule;
 use chrono::DateTime;
+use chrono_tz::Tz;
 use english_to_cron::str_cron_syntax;
 use oc_bots_sdk::types::{Chat, TimestampMillis, UserId};
 use serde::{Deserialize, Serialize};
@@ -51,15 +52,21 @@ impl Reminder {
 }
 
 impl Reminders {
+    #[allow(clippy::too_many_arguments)]
     pub fn add(
         &mut self,
         message: String,
         when: String,
         repeat: bool,
+        timezone: &str,
         initiator: UserId,
         chat: Chat,
-        now: TimestampMillis,
+        utc_now: TimestampMillis,
     ) -> Result<AddResult, String> {
+        let timezone: Tz = timezone
+            .parse()
+            .map_err(|error| format!("Cannot parse timezone: {error:?}"))?;
+
         // Check max global reminders
         if self.reminders.len() >= MAX_REMINDERS {
             return Err("Too many reminders".to_string());
@@ -75,17 +82,20 @@ impl Reminders {
         }
 
         // Parse the CRON schedule
-        let cron = str_cron_syntax(&when).map_err(|error| {
-            format!("Cannot understand when this reminder should be scheduled: {error:?}")
-        })?;
+        let cron = str_cron_syntax(&when)
+            .map_err(|_| "I don't understand when you want to be reminded".to_string())?;
 
         // Create a schedule from the CRON string
         let schedule = Schedule::from_str(&cron)
             .map_err(|error| format!("Incompatible CRON schedule: {error:?}"))?;
 
+        // Convert the current time to the initiator's timezone
+        let local_now = DateTime::from_timestamp_millis(utc_now as i64)
+            .unwrap()
+            .with_timezone(&timezone);
+
         // Get the next scheduled time
-        let now = DateTime::from_timestamp_millis(now as i64).unwrap();
-        let mut schedule_iter = schedule.after(&now);
+        let mut schedule_iter = schedule.after(&local_now);
         let Some(first) = schedule_iter.next().map(|dt| dt.timestamp_millis() as u64) else {
             return Err("No upcoming schedule found".to_string());
         };

@@ -1,3 +1,4 @@
+use crate::state;
 use async_trait::async_trait;
 use oc_bots_sdk::api::command::{CommandHandler, Message, SuccessResult};
 use oc_bots_sdk::api::definition::{
@@ -9,8 +10,6 @@ use oc_bots_sdk::types::{
 };
 use oc_bots_sdk_canister::CanisterRuntime;
 use std::sync::LazyLock;
-
-use crate::state;
 
 static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Delete::definition);
 
@@ -35,7 +34,7 @@ impl CommandHandler<CanisterRuntime> for Delete {
 
             state
                 .reminders
-                .delete(&chat_scope.chat, cxt.command.arg("rid"))
+                .delete(&chat_scope.chat, cxt.command.arg("id"))
         })?;
 
         let text = format!("Reminder deleted: {}", reminder.to_text());
@@ -60,7 +59,7 @@ impl Delete {
             description: Some("Delete a reminder from this chat by ID".to_string()),
             placeholder: None,
             params: vec![BotCommandParam {
-                name: "rid".to_string(),
+                name: "id".to_string(),
                 description: Some("The ID of the reminder to delete".to_string()),
                 placeholder: Some("Enter a reminder ID...".to_string()),
                 required: true,

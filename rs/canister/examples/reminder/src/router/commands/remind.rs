@@ -31,15 +31,14 @@ impl CommandHandler<CanisterRuntime> for Remind {
         let what = cxt.command.arg("what");
         let when = cxt.command.arg("when");
         let repeat = cxt.command.maybe_arg("repeat").unwrap_or_default();
-        let _local_timezone = cxt
+
+        let local_timezone = cxt
             .command
             .meta
             .as_ref()
             .map(|meta| meta.timezone.clone())
             .unwrap_or("UTC".to_string());
 
-        // TODO: Take the initiator's local browser timezone somehow. Hmm - we don't them to have to explicitly pass it in as an arg
-        // TODO: Perhaps the command definition needs to include implicit params that the OC website can provide such as the user's timezone and locale
         // TODO: Wire up scheduling
 
         let result = state::mutate(|state| {
@@ -61,6 +60,7 @@ impl CommandHandler<CanisterRuntime> for Remind {
                 what,
                 when,
                 repeat,
+                &local_timezone,
                 cxt.command.initiator,
                 chat_scope.chat.clone(),
                 env::now(),
@@ -68,7 +68,6 @@ impl CommandHandler<CanisterRuntime> for Remind {
         })?;
 
         // Compose a reply to the initiator
-        // TODO: Format using the initiator's local timezone
         let next = DateTime::from_timestamp_millis(result.timestamp as i64).unwrap();
         let text = format!(
             "Reminder #{} on {}{}",

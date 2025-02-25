@@ -12,7 +12,8 @@ crate-type = ["cdylib"]
 [dependencies]
 async-trait = { workspace = true }
 candid = { workspace = true }
-chrono = { workspace = true, default-features = false, features = ["alloc"] }
+chrono = { workspace = true }
+chrono-tz = { workspace = true }
 cron = { workspace = true }
 english-to-cron = { workspace = true }
 getrandom = { version = "0.2.15", features = ["custom"] }
