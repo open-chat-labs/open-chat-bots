@@ -66,7 +66,7 @@ export class BotClient {
         try {
             const decoded = jwt.verify(token, publicKey, { algorithms: ["ES256"] });
             if (typeof decoded !== "string") {
-                return mapCommandJwt(decoded as RawCommandJwt);
+                return mapCommandJwt(token, decoded as RawCommandJwt);
             } else {
                 console.error(`Unable to decode jwt`, token);
                 throw new BadRequestError("AccessTokenInvalid");
@@ -82,7 +82,7 @@ export class BotClient {
         try {
             const decoded = jwt.verify(token, publicKey, { algorithms: ["ES256"] });
             if (typeof decoded !== "string") {
-                return mapApiKeyJwt(decoded as RawApiKeyJwt);
+                return mapApiKeyJwt(token, decoded as RawApiKeyJwt);
             } else {
                 console.error(`Unable to decode jwt`, token);
                 throw new BadRequestError("AccessTokenInvalid");
@@ -114,7 +114,16 @@ export class BotClient {
         }
     }
 
+    #messagePermitted(message: Message): boolean {
+        return message.requiredMessagePermissions.every((p) =>
+            this.#decoded.hasMessagePermission(p),
+        );
+    }
+
     public sendMessage(message: Message): Promise<SendMessageResponse> {
+        if (!this.#messagePermitted(message)) {
+            return Promise.resolve({ kind: "not_authorized" });
+        }
         return this.#botService.sendMessage(message, this.#auth).then((resp) => {
             if (resp.kind !== "success") {
                 console.error("OpenChat botClient.sendMessage failed with: ", resp);
@@ -124,6 +133,12 @@ export class BotClient {
     }
 
     public createChannel(channel: Channel): Promise<CreateChannelResponse> {
+        if (channel.isPublic && !this.#decoded.hasCommunityPermission("CreatePublicChannel")) {
+            return Promise.resolve({ kind: "not_authorized" });
+        }
+        if (!channel.isPublic && !this.#decoded.hasCommunityPermission("CreatePrivateChannel")) {
+            return Promise.resolve({ kind: "not_authorized" });
+        }
         return this.#botService.createChannel(channel, this.#auth).then((resp) => {
             if (resp.kind !== "success") {
                 console.error("OpenChat botClient.createChannel failed with: ", resp);

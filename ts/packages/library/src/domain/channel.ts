@@ -55,6 +55,10 @@ export class Channel {
         return this;
     }
 
+    public get isPublic(): boolean {
+        return this.#isPublic;
+    }
+
     public setThreadPermissions(perm: MessagePermission, role: PermissionRole): Channel {
         if (this.#permissions.threadPermissions === undefined) {
             this.#permissions.threadPermissions = { custom: [], default: "members" };
