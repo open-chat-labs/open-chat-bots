@@ -3,8 +3,8 @@ use crate::jwt;
 use crate::jwt::Claims;
 use crate::types::{
     AccessTokenScope, AuthToken, BotActionByApiKeyClaims, BotActionByCommandClaims, BotActionScope,
-    BotApiKeyToken, BotPermissions, CanisterId, ChannelId, Chat, TimestampMillis, TokenError,
-    UserId,
+    BotApiKeyToken, BotPermissions, CanisterId, ChannelId, Chat, EncodedBotPermissions,
+    TimestampMillis, TokenError, UserId,
 };
 use crate::utils::base64;
 
@@ -34,7 +34,7 @@ impl BotCommandContext {
             bot_id: claims.bot,
             command: claims.command,
             scope: claims.scope,
-            granted_permissions: claims.granted_permissions,
+            granted_permissions: claims.granted_permissions.into(),
             api_gateway: claims.bot_api_gateway,
         })
     }
@@ -46,7 +46,7 @@ pub struct BotApiKeyContext {
     pub bot_id: UserId,
     pub api_gateway: CanisterId,
     pub scope: AccessTokenScope,
-    pub granted_permissions: Option<BotPermissions>,
+    pub granted_permissions: Option<EncodedBotPermissions>,
 }
 
 impl BotApiKeyContext {

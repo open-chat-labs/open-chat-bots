@@ -1,4 +1,4 @@
-use super::{BotPermissions, CanisterId, Chat, MessageId, MessageIndex, UserId};
+use super::{CanisterId, Chat, EncodedBotPermissions, MessageId, MessageIndex, UserId};
 use crate::api::command::Command;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
@@ -14,7 +14,7 @@ pub struct BotActionByCommandClaims {
     pub bot_api_gateway: CanisterId,
     pub bot: UserId,
     pub scope: BotActionScope,
-    pub granted_permissions: BotPermissions,
+    pub granted_permissions: EncodedBotPermissions,
     pub command: Command,
 }
 
@@ -23,7 +23,7 @@ pub struct BotActionByApiKeyClaims {
     pub bot_api_gateway: CanisterId,
     pub bot: UserId,
     pub scope: AccessTokenScope,
-    pub granted_permissions: BotPermissions,
+    pub granted_permissions: EncodedBotPermissions,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
