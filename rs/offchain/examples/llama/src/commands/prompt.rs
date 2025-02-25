@@ -48,7 +48,7 @@ impl Prompt {
     fn definition() -> BotCommandDefinition {
         BotCommandDefinition {
             name: "prompt".to_string(),
-            description: Some("Send a prompt to the Llama3 LLM".to_string()),
+            description: Some("Send a prompt to the Llama3.1 LLM".to_string()),
             placeholder: Some("Waiting...".to_string()),
             params: vec![BotCommandParam {
                 name: "message".to_string(),
