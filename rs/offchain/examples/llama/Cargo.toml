@@ -13,7 +13,9 @@ ic-agent = { workspace = true }
 oc_bots_sdk = { path = "../../../sdk" }
 oc_bots_sdk_offchain = { path = "../../sdk" }
 serde_json = { workspace = true }
+thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
+toml = { workspace = true }
 tower-http = { workspace = true, features = ["cors", "trace"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }

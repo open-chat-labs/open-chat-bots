@@ -1,0 +1,21 @@
+# The location of the pem file containing the private key which
+# the LlamaBot will use to sign requests to the IC
+pem_file = "./llama_bot.pem"
+
+# [optional]
+# The url of the Internet Computer instance the bot is targeting.
+# If not specified the mainnet IC url will be used.
+# ic_url = "http://localhost:8080"
+
+# [optional]
+# Public key component of the key used by OpenChat to sign the issued JWTs. This value
+# can be obtained from the OC UI, by visiting User Profile -> Advanced -> Bot client config.
+# If not specified the mainnet OC public key will be used.
+# oc_public_key = ""
+
+# The port the OC bot will listen for commands on
+port = 13457
+
+# Set the appropriate log level you'd like to record. Logs are recorded by the
+# `tracing` crate. Alowed values: trace, debug, info, warn, error.
+log_level = "info"

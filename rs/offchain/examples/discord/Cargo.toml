@@ -16,9 +16,9 @@ serde = { workspace = true }
 serde_bytes = "0.11.15"
 serde_json = { workspace = true }
 serde_valid = "1.0.5"
-thiserror = "2.0.11"
+thiserror = { workspace = true }
 tokio = { version = "1.43.0", features = ["rt-multi-thread", "tracing"] }
-toml = "0.8.20"
+toml = { workspace = true }
 tower-http = { version = "0.6.2", features = ["cors"] }
 tracing = "0.1.41"
 tracing-subscriber = { workspace = true }

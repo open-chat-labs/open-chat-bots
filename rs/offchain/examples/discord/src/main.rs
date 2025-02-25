@@ -22,7 +22,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load & parse config...
     let config = Config::from_file(&config_file_path)?;
 
-    // Valdate system config, specifically encryption key to make sure it's 32 bits
+    // Validate system config, specifically encryption key to make sure it's 32 bits
     config.system.validate()?;
 
     // Initialise log tracing!
