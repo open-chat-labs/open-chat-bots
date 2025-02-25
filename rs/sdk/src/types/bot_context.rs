@@ -94,7 +94,7 @@ impl BotApiKeyContext {
             bot_id: extracted.bot_id,
             api_gateway: extracted.gateway,
             scope: extracted.scope,
-            granted_permissions: extracted.permissions.into(),
+            granted_permissions: extracted.permissions,
         })
     }
 
