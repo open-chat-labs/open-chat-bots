@@ -62,6 +62,13 @@
       "maxLength": 25,
       "pattern": "^[a-zA-Z0-9_]+$"
     },
+    "ParamNameField": {
+      "type": "string",
+      "description": "A bot schema parameter name",
+      "minLength": 1,
+      "maxLength": 25,
+      "pattern": "^[a-zA-Z0-9_]+$"
+    },
     "BotCommandDefinition": {
       "type": "object",
       "description": "This is the specification of each individual command.",
@@ -114,7 +121,7 @@
       "description": "The definition for each parameter that a command can accept.",
       "properties": {
         "name": {
-          "$ref": "#/definitions/NameField",
+          "$ref": "#/definitions/ParamNameField",
           "description": "The name of the parameter."
         },
         "description": {
