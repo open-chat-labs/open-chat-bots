@@ -42,7 +42,7 @@ impl CommandHandler<CanisterRuntime> for Delete {
         let message = oc_client_factory
             .build_command_client(cxt)
             .send_text_message(text)
-            .for_initiator_only()
+            .with_ephemeral()
             .execute_then_return_message(|args, response| match response {
                 Ok(_) => (),
                 error => {

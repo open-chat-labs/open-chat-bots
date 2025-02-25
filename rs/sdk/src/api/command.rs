@@ -233,7 +233,7 @@ pub struct Message {
     pub content: MessageContent,
     pub block_level_markdown: bool,
     pub finalised: bool,
-    pub initiator_only: bool,
+    pub ephemeral: bool,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
