@@ -4,7 +4,7 @@ use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::BotCommandContext;
 use oc_bots_sdk_offchain::AgentRuntime;
-use std::{collections::HashSet, sync::LazyLock};
+use std::sync::LazyLock;
 
 // Status command
 static STATUS_DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Status::definition);
@@ -44,10 +44,7 @@ impl Status {
             description: Some("Returns status of the bot".to_string()),
             placeholder: None,
             params: vec![],
-            permissions: BotPermissions {
-                message: HashSet::from_iter([MessagePermission::Text]),
-                ..Default::default()
-            },
+            permissions: BotPermissions::text_only(),
             default_role: None,
         }
     }

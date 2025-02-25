@@ -89,6 +89,7 @@ struct Route {
     handler: BoxedHandler<HttpRequest, HttpResponse>,
 }
 
+#[derive(Debug)]
 pub struct HttpRequest {
     pub path: String,
     pub headers: Vec<(String, String)>,
