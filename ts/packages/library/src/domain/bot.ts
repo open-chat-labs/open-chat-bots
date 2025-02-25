@@ -7,88 +7,92 @@ import type {
 } from "../typebox/typebox";
 import type { MergedActionScope } from "./scope";
 
-export type DecodedJwt = {
-    kind: "jwt";
-    exp: number;
-    claim_type: string;
-    bot_api_gateway: string;
-    bot: string;
-    scope: MergedActionScope;
-    granted_permissions: BitmaskPermissions;
-    command?: BotCommand;
+const communityPermissionMap = {
+    ChangeRoles: 0,
+    UpdateDetails: 1,
+    InviteUsers: 2,
+    RemoveMembers: 3,
+    CreatePublicChannel: 4,
+    CreatePrivateChannel: 5,
+    ManageUserGroups: 6,
+};
+const chatPermissionsMap = {
+    ChangeRoles: 0,
+    UpdateGroup: 1,
+    AddMembers: 2,
+    InviteUsers: 3,
+    RemoveMembers: 4,
+    DeleteMessages: 5,
+    PinMessages: 6,
+    ReactToMessages: 7,
+    MentionAllMembers: 8,
+    StartVideoCall: 9,
+};
+const messagePermissionMap = {
+    Text: 0,
+    Image: 1,
+    Video: 2,
+    Audio: 3,
+    File: 4,
+    Poll: 5,
+    Crypto: 6,
+    Giphy: 7,
+    Prize: 8,
+    P2pSwap: 9,
+    VideoCall: 10,
 };
 
-export class DecodedApiKey {
-    #communityPermissionMap = {
-        ChangeRoles: 0,
-        UpdateDetails: 1,
-        InviteUsers: 2,
-        RemoveMembers: 3,
-        CreatePublicChannel: 4,
-        CreatePrivateChannel: 5,
-        ManageUserGroups: 6,
-    };
-    #chatPermissionsMap = {
-        ChangeRoles: 0,
-        UpdateGroup: 1,
-        AddMembers: 2,
-        InviteUsers: 3,
-        RemoveMembers: 4,
-        DeleteMessages: 5,
-        PinMessages: 6,
-        ReactToMessages: 7,
-        MentionAllMembers: 8,
-        StartVideoCall: 9,
-    };
-    #messagePermissionMap = {
-        Text: 0,
-        Image: 1,
-        Video: 2,
-        Audio: 3,
-        File: 4,
-        Poll: 5,
-        Crypto: 6,
-        Giphy: 7,
-        Prize: 8,
-        P2pSwap: 9,
-        VideoCall: 10,
-    };
-    kind = "api_key";
-    constructor(
-        public encoded: string,
-        public bot_api_gateway: string,
-        public bot: string,
-        public scope: MergedActionScope,
-        private granted_permissions: BitmaskPermissions,
-    ) {}
+class DecodedAuth {
+    constructor(protected granted_permissions: BitmaskPermissions) {}
 
     hasMessagePermission(perm: MessagePermission) {
         return this.granted_permissions.message
-            ? this.#hasPermission(
-                  this.granted_permissions.message,
-                  this.#messagePermissionMap[perm],
-              )
+            ? this.#hasPermission(this.granted_permissions.message, messagePermissionMap[perm])
             : false;
     }
 
     hasChatPermission(perm: GroupPermission) {
         return this.granted_permissions.chat
-            ? this.#hasPermission(this.granted_permissions.chat, this.#chatPermissionsMap[perm])
+            ? this.#hasPermission(this.granted_permissions.chat, chatPermissionsMap[perm])
             : false;
     }
 
     hasCommunityPermission(perm: CommunityPermission) {
         return this.granted_permissions.community
-            ? this.#hasPermission(
-                  this.granted_permissions.community,
-                  this.#communityPermissionMap[perm],
-              )
+            ? this.#hasPermission(this.granted_permissions.community, communityPermissionMap[perm])
             : false;
     }
 
     #hasPermission(granted: number, n: number): boolean {
         const bitmask = 1 << n;
         return (granted & bitmask) !== 0;
+    }
+}
+
+export class DecodedJwt extends DecodedAuth {
+    kind = "jwt";
+    constructor(
+        public encoded: string,
+        public bot_api_gateway: string,
+        public bot: string,
+        public scope: MergedActionScope,
+        granted_permissions: BitmaskPermissions,
+        public command?: BotCommand,
+    ) {
+        super(granted_permissions);
+    }
+}
+
+export class DecodedApiKey extends DecodedAuth {
+    kind = "api_key";
+    constructor(
+        public encoded: string,
+        public bot_api_gateway: string,
+        public bot: string,
+        public scope: MergedActionScope,
+        granted_permissions: BitmaskPermissions,
+    ) {
+        super(granted_permissions);
     }
 }
 

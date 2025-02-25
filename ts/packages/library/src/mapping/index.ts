@@ -16,12 +16,12 @@ import {
     type MergedActionScope,
     type ChatIdentifier,
     type RawCommandJwt,
-    type DecodedJwt,
     type CommandActionScope,
     type RawApiKeyJwt,
     MergedActionChatScope,
     MergedActionCommunityScope,
     CommunityIdentifier,
+    DecodedJwt,
     GroupChatIdentifier,
     DirectChatIdentifier,
     ChannelIdentifier,
@@ -47,20 +47,25 @@ function nullish<T>(val?: T | null | undefined): T | undefined {
     return val;
 }
 
-export function mapApiKeyJwt(api: RawApiKeyJwt): DecodedJwt {
-    return {
-        ...api,
-        kind: "jwt",
-        scope: mapApiKeyScope(api.scope),
-    };
+export function mapApiKeyJwt(jwtStr: string, json: RawApiKeyJwt): DecodedJwt {
+    return new DecodedJwt(
+        jwtStr,
+        json.bot_api_gateway,
+        json.bot,
+        mapApiKeyScope(json.scope),
+        json.granted_permissions,
+    );
 }
 
-export function mapCommandJwt(api: RawCommandJwt): DecodedJwt {
-    return {
-        ...api,
-        kind: "jwt",
-        scope: mapCommandScope(api.scope),
-    };
+export function mapCommandJwt(jwtStr: string, json: RawCommandJwt): DecodedJwt {
+    return new DecodedJwt(
+        jwtStr,
+        json.bot_api_gateway,
+        json.bot,
+        mapCommandScope(json.scope),
+        json.granted_permissions,
+        json.command,
+    );
 }
 
 export function mapApiKey(apiKey: string, json: RawApiKey): DecodedApiKey {

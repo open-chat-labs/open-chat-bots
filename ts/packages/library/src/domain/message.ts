@@ -4,6 +4,7 @@ import type {
     FileContent,
     ImageContent,
     BotMessageContent as MessageContent,
+    MessagePermission,
     PollContent,
 } from "../typebox/typebox";
 import type { AuthToken, BlobReference } from "./bot";
@@ -19,13 +20,15 @@ export type MessageResponse = {
     block_level_markdown: boolean;
 };
 
-export class Message {
+export abstract class Message {
     #channelId?: number;
     #messageId?: bigint;
     #contextMessageId?: bigint;
     #finalised: boolean = true;
     #blockLevelMarkdown: boolean = false;
     protected content: MessageContent;
+
+    abstract get requiredMessagePermissions(): MessagePermission[];
 
     constructor(content: MessageContent) {
         this.content = content;
@@ -81,6 +84,10 @@ export class TextMessage extends Message {
     constructor(text: string) {
         super({ Text: { text } });
     }
+
+    public get requiredMessagePermissions(): MessagePermission[] {
+        return ["Text"];
+    }
 }
 
 export class ImageMessage extends Message {
@@ -94,6 +101,10 @@ export class ImageMessage extends Message {
                 width,
             },
         });
+    }
+
+    public get requiredMessagePermissions(): MessagePermission[] {
+        return ["Image"];
     }
 
     setCaption(caption?: string): ImageMessage {
@@ -112,6 +123,10 @@ export class FileMessage extends Message {
                 blob_reference: apiOptional(blobReference, apiBlobReference),
             },
         });
+    }
+
+    public get requiredMessagePermissions(): MessagePermission[] {
+        return ["File"];
     }
 
     setCaption(caption?: string): FileMessage {
@@ -157,6 +172,10 @@ export class PollMessage extends Message {
                 },
             },
         });
+    }
+
+    public get requiredMessagePermissions(): MessagePermission[] {
+        return ["Poll"];
     }
 
     setAllowMultipleVotesPerUser(val: boolean): PollMessage {
