@@ -2,11 +2,12 @@ use crate::api::command::Command;
 use crate::jwt;
 use crate::jwt::Claims;
 use crate::types::{
-    AccessTokenScope, AuthToken, BotActionByApiKeyClaims, BotActionByCommandClaims, BotActionScope,
-    BotApiKeyToken, BotPermissions, CanisterId, ChannelId, Chat, EncodedBotPermissions,
-    TimestampMillis, TokenError, UserId,
+    AuthToken, BotActionByApiKeyClaims, BotActionByCommandClaims, BotApiKeyToken, BotPermissions,
+    CanisterId, ChannelId, Chat, EncodedBotPermissions, TimestampMillis, TokenError, UserId,
 };
 use crate::utils::base64;
+
+use super::{ActionScope, BotCommandScope};
 
 #[derive(Debug)]
 pub struct BotCommandContext {
@@ -14,7 +15,7 @@ pub struct BotCommandContext {
     pub bot_id: UserId,
     pub api_gateway: CanisterId,
     pub command: Command,
-    pub scope: BotActionScope,
+    pub scope: BotCommandScope,
     pub granted_permissions: BotPermissions,
 }
 
@@ -45,8 +46,8 @@ pub struct BotApiKeyContext {
     pub token: AuthToken,
     pub bot_id: UserId,
     pub api_gateway: CanisterId,
-    pub scope: AccessTokenScope,
-    pub granted_permissions: Option<EncodedBotPermissions>,
+    pub scope: ActionScope,
+    pub granted_permissions: EncodedBotPermissions,
 }
 
 impl BotApiKeyContext {
@@ -79,7 +80,7 @@ impl BotApiKeyContext {
             token: AuthToken::Jwt(jwt),
             bot_id: claims.bot,
             scope: claims.scope,
-            granted_permissions: Some(claims.granted_permissions),
+            granted_permissions: claims.granted_permissions,
             api_gateway: claims.bot_api_gateway,
         })
     }
@@ -93,14 +94,44 @@ impl BotApiKeyContext {
             bot_id: extracted.bot_id,
             api_gateway: extracted.gateway,
             scope: extracted.scope,
-            granted_permissions: None,
+            granted_permissions: extracted.permissions,
         })
     }
 
     pub fn channel_id(&self) -> Option<ChannelId> {
         match self.scope {
-            AccessTokenScope::Chat(Chat::Channel(_, channel_id)) => Some(channel_id),
+            ActionScope::Chat(Chat::Channel(_, channel_id)) => Some(channel_id),
             _ => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use candid::Principal;
+
+    use super::*;
+
+    #[test]
+    fn test_parse_api_key() {
+        let api_key = "eyJnYXRld2F5IjoiYnI1ZjctN3VhYWEtYWFhYWEtcWFhY2EtY2FpIiwiYm90X2lkIjoicGh4dWstbnJleHQtcnAzM2QtcXBhdXEiLCJzY29wZSI6eyJDaGF0Ijp7Ikdyb3VwIjoiZHpoMjItbnVhYWEtYWFhYWEtcWFhb2EtY2FpIn19LCJzZWNyZXQiOiIyNTM0NTEyNjIzNDQwMTA2MDIwMzU3NzczNzYyNjU1MjU5MDgzODAiLCJwZXJtaXNzaW9ucyI6eyJtZXNzYWdlIjoxfX0=".to_string();
+
+        let cxt = match BotApiKeyContext::parse_api_key(api_key) {
+            Ok(cxt) => cxt,
+            Err(error) => {
+                panic!("Failed to parse api key: {:?}", error);
+            }
+        };
+
+        assert_eq!(
+            cxt.bot_id,
+            Principal::from_text("phxuk-nrext-rp33d-qpauq")
+                .unwrap()
+                .into()
+        );
+
+        let granted: BotPermissions = cxt.granted_permissions.into();
+
+        assert!(granted.is_subset(&BotPermissions::text_only()));
     }
 }
