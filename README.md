@@ -16,7 +16,7 @@ There is some overlap in these capabilities and it is quite possible to create a
 
 All bots are server components (which may be implemented as an IC canister or any other kind of off-chain server) which will interact with the OpenChat backend in order to provide its functions. A bot's functions may be described by the set of commands that an OpenChat user can trigger from within OpenChat to interact with it or it may operate autonomously and therefore only express the permissions it required to do so.
 
-All bots must me described in accordance with the bot definition schema which is described [here](./schema/README.md).
+All bots must be described in accordance with the bot definition schema which is described [here](./schema/README.md).
 
 Your job is to provide an instance of this definition schema and a server which supports that definition. When defining your schema, pay close attention to the OpenChat permissions that each command will require or that the bot requires to act autonomously. Your bot will be actively prevented from taking any actions requiring permissions that the bot did not specify that it would need.
 
@@ -24,11 +24,13 @@ To test your bot, we recommend that you start by running OpenChat locally. Pleas
 
 #### Registering the bot
 
-The `/register_bot` command will load a modal to allow you to enter the details of your bot. Importantly this includes the endpoint that OpenChat should use to communicate with your bot. When you provide this endpoint, we will then attempt to load and validate your bot's definition schema. Take the time to browse through the parsed definition - this is how OpenChat understands your bot's behaviour and how it will control the user's interactions with your bot. When you are happy, you can register the bot. Note that in the live environment, your bot can only be registered via a special proposal type within the OpenChat proposals channel. This is to ensure that each bot get a certain level of scrutiny and that the DAO agrees in principal that it is a useful addition.
+The `/register_bot` command will load a modal to allow you to enter the details of your bot. Importantly this includes the endpoint that OpenChat should use to communicate with your bot. When you provide this endpoint, we will then attempt to load and validate your bot's definition schema. Take the time to browse through the parsed definition - this is how OpenChat understands your bot's behaviour and how it will control the user's interactions with your bot. When you are happy, you can register the bot. Note that in the live environment, your bot can only be registered via a special proposal type within the OpenChat proposals channel. This is to ensure that each bot gets a certain level of scrutiny and that the DAO agrees in principal that it is a useful addition.
 
 #### Installing the bot
 
 Once a bot is registered with OpenChat it becomes available to be added to any community or group by the owner(s) of that community or group. This is done via the members panel. If a bot exposes commands, when you choose to add a bot to a community or a group you will be presented with a summary of what commands the bot provides and what permissions it is asking for in support of those commands. You, as an owner of the community or group can choose which permissions you are prepared to actually _grant_ to the bot. If any permission requested by the bot is _not_ granted, then any commands which require that permission will not be available to the users in this context.
+
+If the bot supports autonomous operation you will also be asked if you wish to configure the autonomous permissions and generate an API key for the scope that you are installing the bot into. If you choose to generate an API key at this stage, and if the bot supports it, you can also choose to automatically and securely send that API key to the bot (so that it can operate autonomously in this context going forward).
 
 Once the bot is added to the community or group, if it supports commands, it will be available to your users. They can simply start typing with a `/` to see which commands are available in the current context. OpenChat will use the information in the definition schema you provided to show the user what the commands are and what (if any) parameters they require.
 
@@ -65,6 +67,8 @@ There are couple of different strategies that you can employ to achieve this. Fi
 A second approach is to have your bot immediately return with the placeholder progress message _before_ it goes on to perform its asynchronous work. In this scenario, the bot should create a placeholder progress message (using the provided libraries). This is a message with the `finalised` flag set to false to indicate that it is not the final version of the message. This message should be immediately return to the OpenChat frontend and also sent to the OpenChat backend (so that _other_ OpenChat users will also see it). The bot, can then perform it's work and finish off by sending a _final_ message (a message created with the finalised flag set to true) to the OpenChat backend.
 
 It is up to you to choose the appropriate combination of techniques for your case. Please refer to the example bots in this project to see our recommended approach and, of course, reach out to us on OpenChat if you would like advice or help about how best to structure your bot.
+
+You may also wish to return a message to the OpenChat front end that is only designed to be seen by the initiator of the command. This might be the case perhaps if your bot is responding to a configuration command that only the owner of the bot's execution context can call. It is also a valid way to handle a validation problem with the command's arguments - rather than tell _everyone_ in the chat that there was a problem, it's best just to tell the person who needs to know. To support this case, messages returned to the OpenChat front end should be marked as `ephemeral`. These messages are only displayed to the initiating user, and they will only persist until the next time the app is refreshed. An ephemeral message should _not_ be sent by the bot to the OpenChat _backend_.
 
 ### Integration Bots
 
@@ -115,19 +119,3 @@ See [the typescript readme](./ts/README.md).
 ### For information about the required bot schema
 
 See [the bot definition schema readme](./schema/README.md).
-
-    "autonomous_config": {
-      "$ref": "#/definitions/AutonomousConfig",
-      "description": "Configuration for the bot's autonomous behaviour"
-    }
-
-    "AutonomousConfig": {
-      "type": "object",
-      "description": "Configuration for the bot's autonomous behaviour",
-      "properies": {
-        "permissions": {
-          "$ref": "#/definitions/BotPermissions",
-          "description": "The permissions required to execute in this context. These are broken down into Community level, Chat level and Message level permissions."
-        }
-      }
-    },

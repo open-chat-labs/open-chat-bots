@@ -7,6 +7,7 @@ import type {
     MessagePermission,
     PollContent,
 } from "../typebox/typebox";
+import { random64 } from "../utils/rng";
 import type { AuthToken, BlobReference } from "./bot";
 
 type FileMessageContent = { File: FileContent };
@@ -18,6 +19,7 @@ export type MessageResponse = {
     content: MessageContent;
     finalised: boolean;
     block_level_markdown: boolean;
+    ephemeral: boolean;
 };
 
 export abstract class Message {
@@ -26,12 +28,23 @@ export abstract class Message {
     #contextMessageId?: bigint;
     #finalised: boolean = true;
     #blockLevelMarkdown: boolean = false;
+    #ephemeral: boolean = false;
+
     protected content: MessageContent;
 
     abstract get requiredMessagePermissions(): MessagePermission[];
 
     constructor(content: MessageContent) {
         this.content = content;
+    }
+
+    makeEphemeral<T extends Message>(): T {
+        this.#ephemeral = true;
+        return this.setFinalised(true).setContextMessageId(random64());
+    }
+
+    public get isEphemeral(): boolean {
+        return this.#ephemeral;
     }
 
     setChannelId<T extends Message>(id: number): T {
@@ -65,6 +78,7 @@ export abstract class Message {
             content: this.content,
             finalised: this.#finalised,
             block_level_markdown: this.#blockLevelMarkdown,
+            ephemeral: this.#ephemeral,
         };
     }
 

@@ -8,7 +8,12 @@ export default async function (req: WithBotClient, res: Response) {
   const client = req.botClient;
   const artist = client.stringArg("artist");
   if (artist === undefined) {
-    res.status(400).send(argumentsInvalid());
+    const ephemeral = (
+      await client.createTextMessage(
+        "You must provide a value for the artist parameter"
+      )
+    ).makeEphemeral();
+    res.status(200).json(success(ephemeral));
   } else {
     const placeholder = (
       await client.createTextMessage(`Searching Spotify for ${artist} ...`)
