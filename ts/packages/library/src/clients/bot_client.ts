@@ -221,6 +221,14 @@ export class BotClient {
         return this.#decoded.bot;
     }
 
+    public get commandTimezone(): string | undefined {
+        return this.command?.meta?.timezone;
+    }
+
+    public get commandLanguage(): string | undefined {
+        return this.command?.meta?.language;
+    }
+
     public get commandArgs(): BotCommandArg[] {
         return this.command?.args ?? [];
     }
