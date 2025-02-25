@@ -36,7 +36,7 @@ impl CommandHandler<CanisterRuntime> for Delete {
                 .delete(&chat_scope.chat, cxt.command.arg("rid"))
         })?;
 
-        let text = format!("{}\n\n\nReminder deleted", reminder.to_text());
+        let text = format!("Reminder deleted: {}", reminder.to_text());
 
         // Send the message to OpenChat but don't wait for the response
         let message = oc_client_factory

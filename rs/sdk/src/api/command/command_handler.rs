@@ -31,7 +31,7 @@ impl<R> CommandHandlerRegistry<R> {
         self
     }
 
-    pub fn on_set_api_key(
+    pub fn on_sync_api_key(
         mut self,
         callback: Box<dyn Fn(String) -> CommandResponse + Send + Sync + 'static>,
     ) -> Self {
@@ -60,8 +60,8 @@ impl<R> CommandHandlerRegistry<R> {
             Ok(a) => a,
             Err(bad_request) => {
                 return match bad_request {
-                    TokenError::Invalid(_) => {
-                        CommandResponse::BadRequest(BadRequest::AccessTokenInvalid)
+                    TokenError::Invalid(error) => {
+                        CommandResponse::BadRequest(BadRequest::AccessTokenInvalid(error))
                     }
                     TokenError::Expired => {
                         CommandResponse::BadRequest(BadRequest::AccessTokenExpired)
@@ -72,7 +72,7 @@ impl<R> CommandHandlerRegistry<R> {
 
         let command_name = context.command.name.as_str();
 
-        if command_name == "set_api_key" {
+        if command_name == "sync_api_key" {
             if let Some(on_set_api_key) = &self.on_set_api_key {
                 if !check_args_internal(&context.command.args, &SET_API_KEY_PARAMS) {
                     return CommandResponse::BadRequest(BadRequest::ArgsInvalid);

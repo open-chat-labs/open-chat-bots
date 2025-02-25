@@ -53,7 +53,7 @@ impl From<BotCommandScope> for ActionScope {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct BotActionChatDetails {
     pub chat: Chat,
-    pub thread_root_message_index: Option<MessageIndex>,
+    pub thread: Option<MessageIndex>,
     pub message_id: MessageId,
 }
 

@@ -238,7 +238,7 @@ pub struct Message {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum BadRequest {
     AccessTokenNotFound,
-    AccessTokenInvalid,
+    AccessTokenInvalid(String),
     AccessTokenExpired,
     CommandNotFound,
     ArgsInvalid,

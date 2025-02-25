@@ -23,18 +23,29 @@ pub struct Reminder {
     chat_reminder_id: u8,
     message: String,
     when: String,
-    schedule: Schedule,
+    schedule: Option<Schedule>,
     initiator: UserId,
     chat: Chat,
 }
 
 impl Reminder {
     pub fn to_text(&self) -> String {
+        let mut message = self.message.trim().replace(['\n'], " ");
+
+        if message.len() > 55 {
+            message = format!("{}...", message.truncate_to_boundary(50));
+        }
+
         format!(
-            "{}: {} -> {}",
+            "#{} {} -> {}{}",
             self.chat_reminder_id,
             self.when,
-            self.message.truncate_to_boundary(50),
+            message,
+            if self.schedule.is_some() {
+                " [repeats]"
+            } else {
+                ""
+            },
         )
     }
 }
@@ -44,6 +55,7 @@ impl Reminders {
         &mut self,
         message: String,
         when: String,
+        repeat: bool,
         initiator: UserId,
         chat: Chat,
         now: TimestampMillis,
@@ -74,14 +86,18 @@ impl Reminders {
         // Get the next scheduled time
         let now = DateTime::from_timestamp_millis(now as i64).unwrap();
         let mut schedule_iter = schedule.after(&now);
-        let Some(next) = schedule_iter.next().map(|dt| dt.timestamp() as u64) else {
+        let Some(first) = schedule_iter.next().map(|dt| dt.timestamp_millis() as u64) else {
             return Err("No upcoming schedule found".to_string());
         };
 
-        // Check if the schedule repeats
-        let repeats = schedule_iter.next().is_some();
-
-        // TODO: Return error if the reminder happens too often
+        // Return error if the reminder happens too often (less than 10 minutes apart)
+        if repeat {
+            if let Some(next) = schedule_iter.next() {
+                if next.timestamp_millis() as u64 - first < 10 * 60 * 1000 {
+                    return Err("The reminder is too frequent".to_string());
+                }
+            }
+        }
 
         // Determine the next global ID and chat ID
         let id = self.next_id;
@@ -101,19 +117,18 @@ impl Reminders {
                 chat_reminder_id,
                 message,
                 when,
-                schedule,
+                schedule: repeat.then_some(schedule),
                 initiator,
                 chat,
             },
         );
 
         // Insert the reminder into the ordered set
-        self.ordered.insert((next, id));
+        self.ordered.insert((first, id));
 
         Ok(AddResult {
             chat_reminder_id,
-            next_schedule: next,
-            repeats,
+            timestamp: first,
         })
     }
 
@@ -121,7 +136,7 @@ impl Reminders {
     // the per_chat map has at least one space left
     fn get_next_available_chat_id(&self, chat: &Chat) -> u8 {
         let per_chat = self.per_chat.get(chat).unwrap();
-        for i in 0..MAX_REMINDERS_PER_CHAT as u8 {
+        for i in 1..(MAX_REMINDERS_PER_CHAT + 1) as u8 {
             if !per_chat.contains_key(&i) {
                 return i;
             }
@@ -138,6 +153,10 @@ impl Reminders {
         let global_id = chat_reminders
             .remove(&chat_reminder_id)
             .ok_or("Reminder not found".to_string())?;
+
+        if chat_reminders.is_empty() {
+            self.per_chat.remove(chat);
+        }
 
         // Don't bother removing from the ordered set - when the reminder is due, it will be removed
 
@@ -170,6 +189,5 @@ impl Reminders {
 
 pub struct AddResult {
     pub chat_reminder_id: u8,
-    pub next_schedule: TimestampMillis,
-    pub repeats: bool,
+    pub timestamp: TimestampMillis,
 }

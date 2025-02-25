@@ -14,20 +14,19 @@ pub struct ApiKeyRecord {
 }
 
 impl ApiKeyRegistry {
-    pub fn insert(&mut self, api_key: String) -> bool {
-        let Ok(cxt) = BotApiKeyContext::parse_api_key(api_key) else {
-            return false;
-        };
+    pub fn insert(&mut self, api_key: String) -> Result<(), String> {
+        let cxt = BotApiKeyContext::parse_api_key(api_key).map_err(|err| format!("{err:?}"))?;
 
         // Overwrite any existing api key at the same scope
         self.api_keys.insert(
             cxt.scope,
             ApiKeyRecord {
-                granted_permissions: cxt.granted_permissions.unwrap(),
+                granted_permissions: cxt.granted_permissions,
                 token: cxt.token.into(),
             },
         );
-        true
+
+        Ok(())
     }
 
     pub fn get(&self, scope: &ActionScope) -> Option<&ApiKeyRecord> {

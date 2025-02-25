@@ -1,4 +1,4 @@
-use super::{ActionScope, CanisterId, UserId};
+use super::{ActionScope, CanisterId, EncodedBotPermissions, UserId};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 

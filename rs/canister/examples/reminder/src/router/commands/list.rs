@@ -33,8 +33,13 @@ impl CommandHandler<CanisterRuntime> for List {
         })?;
 
         let mut text = String::new();
-        for reminder in list {
-            text.push_str(&format!("{}\n", reminder.to_text()));
+
+        if list.is_empty() {
+            text.push_str("No reminders set in this chat");
+        } else {
+            for reminder in list {
+                text.push_str(&format!("{}\n", reminder.to_text()));
+            }
         }
 
         // Send the message to OpenChat but don't wait for the response
