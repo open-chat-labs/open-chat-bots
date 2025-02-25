@@ -2028,7 +2028,6 @@ dependencies = [
  "ic-agent",
  "oc_bots_sdk",
  "oc_bots_sdk_offchain",
- "rand",
  "serde",
  "serde_json",
  "tokio",
