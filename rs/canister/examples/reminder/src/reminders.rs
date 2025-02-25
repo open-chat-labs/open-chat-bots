@@ -63,6 +63,7 @@ impl Reminders {
         chat: Chat,
         utc_now: TimestampMillis,
     ) -> Result<AddResult, String> {
+        // Parse the initiator's local IANA timezone e.g. "Europe/London"
         let timezone: Tz = timezone
             .parse()
             .map_err(|error| format!("Cannot parse timezone: {error:?}"))?;
