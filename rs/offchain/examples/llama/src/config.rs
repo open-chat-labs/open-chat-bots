@@ -1,5 +1,5 @@
 use crate::errors::BotError;
-use oc_bots_sdk::consts::{IC_URL, OC_PUBLIC_KEY};
+use oc_bots_sdk::mainnet::{mainnet_ic_url, mainnet_oc_public_key};
 use serde::de::Deserializer;
 use serde::Deserialize;
 use std::fs;
@@ -38,12 +38,4 @@ where
         "error" => Ok(Level::ERROR),
         _ => Err(serde::de::Error::custom("`log_level` has an unexpected value. Please use one of: trace, debug, info, warn, or error.")),
     }
-}
-
-fn mainnet_ic_url() -> String {
-    IC_URL.to_string()
-}
-
-fn mainnet_oc_public_key() -> String {
-    OC_PUBLIC_KEY.to_string()
 }

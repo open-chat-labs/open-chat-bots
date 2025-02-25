@@ -8,6 +8,7 @@ use commands::coin::Coin;
 use commands::roll::Roll;
 use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
 use oc_bots_sdk::api::definition::BotDefinition;
+use oc_bots_sdk::mainnet::{mainnet_ic_url, mainnet_oc_public_key};
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk_offchain::env;
 use oc_bots_sdk_offchain::AgentRuntime;
@@ -22,8 +23,10 @@ async fn main() {
     tracing_subscriber::fmt::init();
 
     let config = Config::parse();
-    let ic_url = dotenv::var("IC_URL").expect("IC_URL not set");
-    let oc_public_key = dotenv::var("OC_PUBLIC_KEY").expect("OC_PUBLIC_KEY not set");
+    let ic_url = dotenv::var("IC_URL").ok().unwrap_or_else(mainnet_ic_url);
+    let oc_public_key = dotenv::var("OC_PUBLIC_KEY")
+        .ok()
+        .unwrap_or_else(mainnet_oc_public_key);
 
     let agent = oc_bots_sdk_offchain::build_agent(ic_url, &config.pem_file).await;
 

@@ -1,4 +1,5 @@
 use crate::errors::BotError;
+use oc_bots_sdk::mainnet::{mainnet_ic_url, mainnet_oc_public_key};
 use serde::de::Deserializer;
 use serde::Deserialize;
 use serde_valid::validation::Error as ValidError;
@@ -26,7 +27,9 @@ pub struct DiscordConfig {
 
 #[derive(Clone, Deserialize, Debug)]
 pub struct OpenChatConfig {
+    #[serde(default = "mainnet_ic_url")]
     pub ic_url: String,
+    #[serde(default = "mainnet_oc_public_key")]
     pub public_key: String,
     pub bot: OpenChatBotConfig,
 }

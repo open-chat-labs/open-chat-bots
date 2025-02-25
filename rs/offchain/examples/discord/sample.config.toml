@@ -4,13 +4,17 @@
 token = "your-discord-app-token"
 
 [openchat]
-# This is the the root host of the internet computer for the environment where
+# [optional]
+# This is the root host of the internet computer for the environment where
 # you are operating. Again this only varies by the target IC environment.
+# If not specified the mainnet IC url will be used.
 ic_url = "http://localhost:8080"
 
+# [optional]
 # Public pair of the key used by OpenChat to sign the issued JWT. This value
 # can be obtained from the OC UI, by visiting User Profile -> Advanced, and
 # then clicking on the "Bot client config" button.
+# If not specified the mainnet OC public key will be used.
 public_key = "openchat-publick-key-used-to-sign-jwt"
 
 [openchat.bot]

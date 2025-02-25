@@ -1,5 +1,5 @@
 pub mod api;
-pub mod consts;
+pub mod mainnet;
 pub mod oc_api;
 mod runtime;
 pub mod types;

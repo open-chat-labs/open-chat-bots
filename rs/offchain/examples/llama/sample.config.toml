@@ -9,7 +9,7 @@ pem_file = "./llama_bot.pem"
 
 # [optional]
 # Public key component of the key used by OpenChat to sign the issued JWTs. This value
-# can be obtained from the OC UI, by visiting User Profile -> Advanced -> Bot client config.
+# can be obtained from the OC UI by visiting User Profile -> Advanced -> Bot client config.
 # If not specified the mainnet OC public key will be used.
 # oc_public_key = ""
 
