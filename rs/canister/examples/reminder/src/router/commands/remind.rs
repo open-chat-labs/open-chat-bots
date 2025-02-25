@@ -1,11 +1,13 @@
 use async_trait::async_trait;
 use chrono::DateTime;
-use oc_bots_sdk::api::command::{CommandHandler, SuccessResult};
+use oc_bots_sdk::api::command::{CommandHandler, Message, SuccessResult};
 use oc_bots_sdk::api::definition::{
     BotCommandDefinition, BotCommandParam, BotCommandParamType, StringParam,
 };
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
-use oc_bots_sdk::types::{BotCommandContext, BotCommandScope, BotPermissions, ChatRole};
+use oc_bots_sdk::types::{
+    BotCommandContext, BotCommandScope, BotPermissions, ChatRole, MessageContent, TextContent,
+};
 use oc_bots_sdk_canister::{env, CanisterRuntime};
 use std::sync::LazyLock;
 
@@ -24,12 +26,12 @@ impl CommandHandler<CanisterRuntime> for Remind {
     async fn execute(
         &self,
         cxt: BotCommandContext,
-        oc_client_factory: &ClientFactory<CanisterRuntime>,
+        _oc_client_factory: &ClientFactory<CanisterRuntime>,
     ) -> Result<SuccessResult, String> {
         let what = cxt.command.arg("what");
         let when = cxt.command.arg("when");
         let repeat = cxt.command.maybe_arg("repeat").unwrap_or_default();
-        let local_timezone = cxt
+        let _local_timezone = cxt
             .command
             .meta
             .as_ref()
@@ -75,20 +77,15 @@ impl CommandHandler<CanisterRuntime> for Remind {
             if repeat { " [repeats]" } else { "" }
         );
 
-        // Send the message to OpenChat but don't wait for the response
-        let message = oc_client_factory
-            .build_command_client(cxt)
-            .send_text_message(text)
-            .with_ephemeral()
-            .execute_then_return_message(|args, response| match response {
-                Ok(_) => (),
-                error => {
-                    ic_cdk::println!("send_text_message: {args:?}, {error:?}");
-                }
-            });
-
+        // Reply to the initiator with an ephemeral message
         Ok(SuccessResult {
-            message: Some(message),
+            message: Some(Message {
+                id: cxt.scope.message_id().unwrap(),
+                content: MessageContent::Text(TextContent { text }),
+                block_level_markdown: false,
+                finalised: true,
+                ephemeral: true,
+            }),
         })
     }
 }

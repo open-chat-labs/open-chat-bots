@@ -1,10 +1,12 @@
 use async_trait::async_trait;
-use oc_bots_sdk::api::command::{CommandHandler, SuccessResult};
+use oc_bots_sdk::api::command::{CommandHandler, Message, SuccessResult};
 use oc_bots_sdk::api::definition::{
     BotCommandDefinition, BotCommandParam, BotCommandParamType, IntegerParam,
 };
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
-use oc_bots_sdk::types::{BotCommandContext, BotCommandScope, BotPermissions, ChatRole};
+use oc_bots_sdk::types::{
+    BotCommandContext, BotCommandScope, BotPermissions, ChatRole, MessageContent, TextContent,
+};
 use oc_bots_sdk_canister::CanisterRuntime;
 use std::sync::LazyLock;
 
@@ -23,7 +25,7 @@ impl CommandHandler<CanisterRuntime> for Delete {
     async fn execute(
         &self,
         cxt: BotCommandContext,
-        oc_client_factory: &ClientFactory<CanisterRuntime>,
+        _oc_client_factory: &ClientFactory<CanisterRuntime>,
     ) -> Result<SuccessResult, String> {
         let reminder = state::mutate(|state| {
             // Extract the chat
@@ -38,20 +40,15 @@ impl CommandHandler<CanisterRuntime> for Delete {
 
         let text = format!("Reminder deleted: {}", reminder.to_text());
 
-        // Send the message to OpenChat but don't wait for the response
-        let message = oc_client_factory
-            .build_command_client(cxt)
-            .send_text_message(text)
-            .with_ephemeral()
-            .execute_then_return_message(|args, response| match response {
-                Ok(_) => (),
-                error => {
-                    ic_cdk::println!("send_text_message: {args:?}, {error:?}");
-                }
-            });
-
+        // Reply to the initiator with an ephemeral message
         Ok(SuccessResult {
-            message: Some(message),
+            message: Some(Message {
+                id: cxt.scope.message_id().unwrap(),
+                content: MessageContent::Text(TextContent { text }),
+                block_level_markdown: false,
+                finalised: true,
+                ephemeral: true,
+            }),
         })
     }
 }
