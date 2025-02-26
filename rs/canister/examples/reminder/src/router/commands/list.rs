@@ -25,7 +25,7 @@ impl CommandHandler<CanisterRuntime> for List {
         cxt: BotCommandContext,
         _oc_client_factory: &ClientFactory<CanisterRuntime>,
     ) -> Result<SuccessResult, String> {
-        let list = state::mutate(|state| {
+        let list = state::read(|state| {
             // Extract the chat
             let BotCommandScope::Chat(chat_scope) = &cxt.scope else {
                 return Err("This command can only be used in a chat".to_string());

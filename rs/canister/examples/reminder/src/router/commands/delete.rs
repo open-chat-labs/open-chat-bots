@@ -26,7 +26,7 @@ impl CommandHandler<CanisterRuntime> for Delete {
         cxt: BotCommandContext,
         _oc_client_factory: &ClientFactory<CanisterRuntime>,
     ) -> Result<SuccessResult, String> {
-        let reminder = state::mutate(|state| {
+        let text = match state::mutate(|state| {
             // Extract the chat
             let BotCommandScope::Chat(chat_scope) = &cxt.scope else {
                 return Err("This command can only be used in a chat".to_string());
@@ -35,9 +35,10 @@ impl CommandHandler<CanisterRuntime> for Delete {
             state
                 .reminders
                 .delete(&chat_scope.chat, cxt.command.arg("id"))
-        })?;
-
-        let text = format!("Reminder deleted: {}", reminder.to_text());
+        }) {
+            Ok(reminder) => format!("Reminder deleted: {}", reminder.to_text()),
+            Err(error) => error,
+        };
 
         // Reply to the initiator with an ephemeral message
         Ok(SuccessResult {
