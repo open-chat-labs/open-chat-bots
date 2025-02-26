@@ -10,17 +10,23 @@ use crate::utils::base64;
 use super::{ActionScope, BotCommandScope};
 
 #[derive(Debug)]
-pub struct BotCommandContext {
+pub struct BotCommandContext<S> {
     pub token: AuthToken,
     pub bot_id: UserId,
     pub api_gateway: CanisterId,
     pub command: Command,
     pub scope: BotCommandScope,
     pub granted_permissions: BotPermissions,
+    pub shared_state: S,
 }
 
-impl BotCommandContext {
-    pub fn parse(jwt: String, public_key: &str, now: TimestampMillis) -> Result<Self, TokenError> {
+impl<S> BotCommandContext<S> {
+    pub fn parse(
+        jwt: String,
+        public_key: &str,
+        now: TimestampMillis,
+        shared_state: S,
+    ) -> Result<Self, TokenError> {
         let claims = jwt::verify::<Claims<BotActionByCommandClaims>>(&jwt, public_key)
             .map_err(|error| TokenError::Invalid(error.to_string()))?;
 
@@ -37,6 +43,7 @@ impl BotCommandContext {
             scope: claims.scope,
             granted_permissions: claims.granted_permissions.into(),
             api_gateway: claims.bot_api_gateway,
+            shared_state,
         })
     }
 }
