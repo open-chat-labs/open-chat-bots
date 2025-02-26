@@ -11,7 +11,7 @@ pub struct SendMessageBuilder<R> {
     content: MessageContent,
     block_level_markdown: bool,
     finalised: bool,
-    initiator_only: bool,
+    ephemeral: bool,
 }
 
 impl<R: Runtime> SendMessageBuilder<R> {
@@ -21,7 +21,7 @@ impl<R: Runtime> SendMessageBuilder<R> {
             content,
             block_level_markdown: false,
             finalised: true,
-            initiator_only: false,
+            ephemeral: false,
         }
     }
 
@@ -35,8 +35,8 @@ impl<R: Runtime> SendMessageBuilder<R> {
         self
     }
 
-    pub fn for_initiator_only(mut self) -> Self {
-        self.initiator_only = true;
+    pub fn with_ephemeral(mut self) -> Self {
+        self.ephemeral = true;
         self
     }
 
@@ -51,7 +51,7 @@ impl<R: Runtime> SendMessageBuilder<R> {
             content: self.content.clone(),
             finalised: self.finalised,
             block_level_markdown: self.block_level_markdown,
-            initiator_only: self.initiator_only,
+            ephemeral: self.ephemeral,
         };
         self.execute(on_response);
         message

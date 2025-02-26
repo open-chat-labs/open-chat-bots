@@ -11,6 +11,7 @@ pub struct Command {
     pub name: String,
     pub args: Vec<CommandArg>,
     pub initiator: UserId,
+    pub meta: Option<CommandMeta>,
 }
 
 impl Command {
@@ -27,6 +28,20 @@ impl Command {
     pub fn arg<T: TryFrom<CommandArgValue>>(&self, name: &str) -> T {
         self.maybe_arg(name)
             .expect("Argument missing or unexpected type")
+    }
+
+    pub fn timezone(&self) -> &str {
+        self.meta
+            .as_ref()
+            .map(|meta| meta.timezone.as_str())
+            .unwrap_or("UTC")
+    }
+
+    pub fn language(&self) -> &str {
+        self.meta
+            .as_ref()
+            .map(|meta| meta.language.as_str())
+            .unwrap_or("en")
     }
 }
 
@@ -232,7 +247,7 @@ pub struct Message {
     pub content: MessageContent,
     pub block_level_markdown: bool,
     pub finalised: bool,
-    pub initiator_only: bool,
+    pub ephemeral: bool,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -256,4 +271,10 @@ pub enum CanisterError {
     NotAuthorized,
     Frozen,
     Other(String),
+}
+
+#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+pub struct CommandMeta {
+    pub timezone: String, // IANA timezone e.g. "Europe/London"
+    pub language: String, // The language selected in OpenChat e.g. "en"
 }
