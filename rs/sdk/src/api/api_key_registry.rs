@@ -13,6 +13,12 @@ pub struct ApiKeyRecord {
     pub granted_permissions: BotPermissions,
 }
 
+impl ApiKeyRecord {
+    pub fn to_context(&self) -> BotApiKeyContext {
+        BotApiKeyContext::parse_api_key(self.token.clone()).unwrap()
+    }
+}
+
 impl ApiKeyRegistry {
     pub fn insert(&mut self, api_key: String) -> Result<(), String> {
         let cxt = BotApiKeyContext::parse_api_key(api_key).map_err(|err| format!("{err:?}"))?;

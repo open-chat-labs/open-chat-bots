@@ -1,15 +1,92 @@
+use crate::state::{mutate, State};
 use ::cron::Schedule;
 use chrono::DateTime;
 use chrono_tz::Tz;
 use english_to_cron::str_cron_syntax;
-use oc_bots_sdk::types::{Chat, TimestampMillis, UserId};
+use ic_cdk_timers::TimerId;
+use oc_bots_sdk::oc_api::actions::{send_message, ActionArgsBuilder};
+use oc_bots_sdk::types::{
+    ActionScope, BotApiKeyContext, BotPermissions, Chat, MessageContent, TextContent,
+    TimestampMillis, UserId,
+};
+use oc_bots_sdk_canister::{env, OPENCHAT_CLIENT_FACTORY};
 use serde::{Deserialize, Serialize};
+use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::str::FromStr;
+use std::time::Duration;
 use truncrate::*;
 
 const MAX_REMINDERS: usize = 100_000;
 const MAX_REMINDERS_PER_CHAT: usize = 100;
+
+thread_local! {
+    static TIMER_ID: Cell<Option<TimerId>> = Cell::default();
+}
+
+pub(crate) fn start_job_if_required(state: &mut State) -> bool {
+    if TIMER_ID.get().is_none() {
+        if let Some(next_reminder_due) = state.reminders.peek().map(|(timestamp, _)| timestamp) {
+            let utc_now = env::now();
+            let timer_id = ic_cdk_timers::set_timer(
+                Duration::from_millis(next_reminder_due.saturating_sub(utc_now)),
+                run,
+            );
+            TIMER_ID.set(Some(timer_id));
+            return true;
+        }
+    }
+
+    false
+}
+
+pub(crate) fn restart_job(state: &mut State) {
+    if let Some(timer_id) = TIMER_ID.get() {
+        ic_cdk_timers::clear_timer(timer_id);
+        TIMER_ID.set(None);
+    }
+
+    start_job_if_required(state);
+}
+
+fn run() {
+    TIMER_ID.set(None);
+
+    mutate(|state| {
+        while let Some(reminder) = state.reminders.pop_next_due_reminder(env::now()) {
+            if let Some(api_key) = state.api_key_registry.get_key_with_required_permissions(
+                &ActionScope::Chat(reminder.chat),
+                &BotPermissions::text_only(),
+            ) {
+                ic_cdk::spawn(send_reminder(
+                    api_key.to_context(),
+                    reminder.message.clone(),
+                ));
+            } else {
+                continue;
+            }
+        }
+
+        start_job_if_required(state);
+    });
+}
+
+async fn send_reminder(context: BotApiKeyContext, text: String) {
+    match OPENCHAT_CLIENT_FACTORY
+        .build_api_key_client(context)
+        .send_message(MessageContent::Text(TextContent { text }))
+        .execute_async()
+        .await
+    {
+        Ok(send_message::Response::Success(_)) => (),
+        Err((code, message)) => {
+            ic_cdk::println!("Failed to send reminder: {}: {}", code, message);
+        }
+        other => {
+            ic_cdk::println!("Failed to send reminder: {:?}", other);
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct Reminders {
@@ -24,6 +101,7 @@ pub struct Reminder {
     chat_reminder_id: u8,
     message: String,
     when: String,
+    timezone: Tz,
     schedule: Option<Schedule>,
     initiator: UserId,
     chat: Chat,
@@ -90,28 +168,11 @@ impl Reminders {
         let schedule = Schedule::from_str(&cron)
             .map_err(|error| format!("Incompatible CRON schedule: {error:?}"))?;
 
-        // Convert the current time to the initiator's timezone
-        let local_now = DateTime::from_timestamp_millis(utc_now as i64)
-            .unwrap()
-            .with_timezone(&timezone);
-
-        // Get the next scheduled time
-        let mut schedule_iter = schedule.after(&local_now);
-        let Some(first) = schedule_iter.next().map(|dt| dt.timestamp_millis() as u64) else {
-            return Err("No upcoming schedule found".to_string());
-        };
-
-        // Return error if the reminder happens too often (less than 10 minutes apart)
-        if repeat {
-            if let Some(next) = schedule_iter.next() {
-                if next.timestamp_millis() as u64 - first < 10 * 60 * 1000 {
-                    return Err("The reminder is too frequent".to_string());
-                }
-            }
-        }
+        // Calculate the next reminder time
+        let first = Self::next_reminder_time(&schedule, utc_now, &timezone, repeat)?;
 
         // Determine the next global ID and chat ID
-        let id = self.next_id;
+        let global_id = self.next_id;
         self.next_id += 1;
         let chat_reminder_id = self.get_next_available_chat_id(&chat);
 
@@ -119,15 +180,16 @@ impl Reminders {
         self.per_chat
             .get_mut(&chat)
             .unwrap()
-            .insert(chat_reminder_id, id);
+            .insert(chat_reminder_id, global_id);
 
         // Insert the reminder into the global map
         self.reminders.insert(
-            id,
+            global_id,
             Reminder {
                 chat_reminder_id,
                 message,
                 when,
+                timezone,
                 schedule: repeat.then_some(schedule),
                 initiator,
                 chat,
@@ -135,39 +197,56 @@ impl Reminders {
         );
 
         // Insert the reminder into the ordered set
-        self.ordered.insert((first, id));
+        self.ordered.insert((first, global_id));
+
+        // Check if this reminder is actually the next due reminder
+        let next_due = self.peek().map(|(_, id)| id == global_id).unwrap();
 
         Ok(AddResult {
             chat_reminder_id,
             timestamp: first,
+            timezone,
+            next_due,
         })
     }
 
-    // We assume that there is an entry for the given chat and that
-    // the per_chat map has at least one space left
-    fn get_next_available_chat_id(&self, chat: &Chat) -> u8 {
-        let per_chat = self.per_chat.get(chat).unwrap();
-        for i in 1..(MAX_REMINDERS_PER_CHAT + 1) as u8 {
-            if !per_chat.contains_key(&i) {
-                return i;
-            }
+    pub fn peek(&self) -> Option<(TimestampMillis, u64)> {
+        self.ordered.iter().next().copied()
+    }
+
+    pub fn pop_next_due_reminder(&mut self, utc_now: TimestampMillis) -> Option<Reminder> {
+        let (timestamp, global_id) = self.peek()?;
+
+        if timestamp > utc_now {
+            // The next reminder is not due yet
+            return None;
         }
-        unreachable!()
+
+        self.ordered.pop_first();
+
+        let reminder = self.reminders.get_mut(&global_id)?;
+
+        // Find the next reminder time if there is one
+        let reminder = if let Some(next) = reminder.schedule.as_ref().and_then(|schedule| {
+            Self::next_reminder_time(schedule, utc_now, &reminder.timezone, false).ok()
+        }) {
+            // This is a repeating reminder so insert the next occurrence
+            self.ordered.insert((next, global_id));
+
+            reminder.clone()
+        } else {
+            // This is a one-off reminder so delete it
+            self.reminders.remove(&global_id).unwrap()
+        };
+
+        self.delete_from_chat(&reminder.chat, reminder.chat_reminder_id)
+            .unwrap();
+
+        Some(reminder)
     }
 
     pub fn delete(&mut self, chat: &Chat, chat_reminder_id: u8) -> Result<Reminder, String> {
-        let chat_reminders = self
-            .per_chat
-            .get_mut(chat)
-            .ok_or("Chat not found".to_string())?;
-
-        let global_id = chat_reminders
-            .remove(&chat_reminder_id)
-            .ok_or("Reminder not found".to_string())?;
-
-        if chat_reminders.is_empty() {
-            self.per_chat.remove(chat);
-        }
+        let global_id = self.delete_from_chat(chat, chat_reminder_id)?;
 
         // Don't bother removing from the ordered set - when the reminder is due, it will be removed
 
@@ -196,9 +275,70 @@ impl Reminders {
     pub fn chats_count(&self) -> usize {
         self.per_chat.len()
     }
+
+    fn delete_from_chat(&mut self, chat: &Chat, chat_reminder_id: u8) -> Result<u64, String> {
+        let chat_reminders = self
+            .per_chat
+            .get_mut(chat)
+            .ok_or("Chat not found".to_string())?;
+
+        let global_id = chat_reminders
+            .remove(&chat_reminder_id)
+            .ok_or("Reminder not found".to_string())?;
+
+        if chat_reminders.is_empty() {
+            self.per_chat.remove(chat);
+        }
+
+        Ok(global_id)
+    }
+
+    fn next_reminder_time(
+        schedule: &Schedule,
+        utc_now: TimestampMillis,
+        timezone: &Tz,
+        check_frequency: bool,
+    ) -> Result<TimestampMillis, String> {
+        // Convert the current time to the initiator's timezone
+        let local_now = DateTime::from_timestamp_millis(utc_now as i64)
+            .unwrap()
+            .with_timezone(timezone);
+
+        // Get the next scheduled time
+        let mut schedule_iter = schedule.after(&local_now);
+        let first = schedule_iter
+            .next()
+            .map(|dt| dt.timestamp_millis() as u64)
+            .ok_or("No upcoming schedule found".to_string())?;
+
+        // Return error if the reminder happens too often (less than 10 minutes apart)
+        if check_frequency {
+            if let Some(next) = schedule_iter.next() {
+                if next.timestamp_millis() as u64 - first < 10 * 60 * 1000 {
+                    return Err("The reminder is too frequent".to_string());
+                }
+            }
+        }
+
+        Ok(first)
+    }
+
+    // We assume that there is an entry for the given chat and that
+    // the per_chat map has at least one space left
+    fn get_next_available_chat_id(&self, chat: &Chat) -> u8 {
+        let per_chat = self.per_chat.get(chat).unwrap();
+        for i in 1..(MAX_REMINDERS_PER_CHAT + 1) as u8 {
+            if !per_chat.contains_key(&i) {
+                return i;
+            }
+        }
+        unreachable!()
+    }
 }
 
 pub struct AddResult {
     pub chat_reminder_id: u8,
     pub timestamp: TimestampMillis,
+    pub timezone: Tz,
+    pub next_due: bool,
 }

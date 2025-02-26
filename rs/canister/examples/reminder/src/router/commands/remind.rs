@@ -11,7 +11,7 @@ use oc_bots_sdk::types::{
 use oc_bots_sdk_canister::{env, CanisterRuntime};
 use std::sync::LazyLock;
 
-use crate::state;
+use crate::{reminders, state};
 
 static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Remind::definition);
 
@@ -33,22 +33,26 @@ impl CommandHandler<CanisterRuntime> for Remind {
         let repeat = cxt.command.maybe_arg("repeat").unwrap_or_default();
         let timezone = cxt.command.timezone();
 
-        // TODO: Wire up scheduling
-
-        let text = match state::mutate(|state| {
+        let text = state::mutate(|state| {
             // Extract the chat
             let BotCommandScope::Chat(chat_scope) = &cxt.scope else {
-                return Err("This command can only be used in a chat".to_string());
+                return "This command can only be used in a chat".to_string();
             };
 
             // Check if there is an API Key registered at the required scope and with the required permissions
-            state
+            if state
                 .api_key_registry
-                .get_key_with_required_permissions(&cxt.scope.clone().into(), &BotPermissions::text_only())
-                .ok_or("You must first register an API key for this chat with the \"send text message\" permission".to_string())?;
+                .get_key_with_required_permissions(
+                    &cxt.scope.clone().into(),
+                    &BotPermissions::text_only(),
+                )
+                .is_none()
+            {
+                return "You must first register an API key for this chat with the \"send text message\" permission".to_string();
+            }
 
             // Add the reminder to the state
-            state.reminders.add(
+            let result = match state.reminders.add(
                 what,
                 when,
                 repeat,
@@ -56,19 +60,29 @@ impl CommandHandler<CanisterRuntime> for Remind {
                 cxt.command.initiator,
                 chat_scope.chat.clone(),
                 env::now(),
-            )
-        }) {
-            Ok(result) => {
-                let next = DateTime::from_timestamp_millis(result.timestamp as i64).unwrap();
-                format!(
-                    "Reminder #{} on {}{}",
-                    result.chat_reminder_id,
-                    next.to_rfc2822(),
-                    if repeat { " [repeats]" } else { "" }
-                )
+            ) {
+                Ok(result) => result,
+                Err(e) => return e,
+            };
+
+            if result.next_due {
+                reminders::restart_job(state);
+            } else {
+                reminders::start_job_if_required(state);
             }
-            Err(error) => error,
-        };
+
+            // Return the reminder text
+            let next = DateTime::from_timestamp_millis(result.timestamp as i64)
+                .unwrap()
+                .with_timezone(&result.timezone);
+
+            format!(
+                "Reminder #{} on {}{}",
+                result.chat_reminder_id,
+                next.to_rfc2822(),
+                if repeat { " [repeats]" } else { "" }
+            )
+        });
 
         // Reply to the initiator with an ephemeral message
         Ok(SuccessResult {

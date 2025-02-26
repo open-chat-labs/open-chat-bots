@@ -2,7 +2,7 @@ use oc_bots_sdk::api::ApiKeyRegistry;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 
-use crate::reminders::Reminders;
+use crate::reminders::{self, Reminders};
 
 thread_local! {
     static STATE: RefCell<Option<State>> = RefCell::default();
@@ -51,6 +51,8 @@ impl State {
 
     pub fn update(&mut self, oc_public_key: String) {
         self.oc_public_key = oc_public_key;
+
+        reminders::start_job_if_required(self);
     }
 
     pub fn oc_public_key(&self) -> &str {

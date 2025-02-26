@@ -19,6 +19,7 @@ english-to-cron = { workspace = true }
 getrandom = { version = "0.2.15", features = ["custom"] }
 http = { workspace = true }
 ic-cdk = { workspace = true }
+ic-cdk-timers = { workspace = true }
 ic-http-certification = { workspace = true }
 ic_principal = { workspace = true }
 ic-stable-structures = { workspace = true }
