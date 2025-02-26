@@ -82,7 +82,6 @@ At this point, messages should freely flow from Discord to OpenChat. You can che
 
 Features we will certainly look into:
 - Passing messages from OpenChat to Discord
-- Support for different message types - image, voice, video, etc.
 
 Features that require more consideration:
 - message deletion
