@@ -221,7 +221,7 @@ mod test {
         let ds_channel_id = ChannelId::new(2);
         state
             .set_relay_link(
-                ds_channel_id.clone(),
+                ds_channel_id,
                 RelayLink {
                     ds_channel_id,
                     oc_channel_key: OcChannelKey::new("this-is-key".into()),
