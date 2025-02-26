@@ -6,7 +6,10 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct OcToken(pub String);
+pub struct OcToken {
+    pub key: String,
+    pub token: String,
+}
 
 // Data available across commands invocations
 #[derive(Clone)]

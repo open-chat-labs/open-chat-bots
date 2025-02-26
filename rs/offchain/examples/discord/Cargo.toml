@@ -19,6 +19,6 @@ serde_valid = "1.0.5"
 thiserror = { workspace = true }
 tokio = { version = "1.43.0", features = ["rt-multi-thread", "tracing"] }
 toml = { workspace = true }
-tower-http = { version = "0.6.2", features = ["cors"] }
+tower-http = { version = "0.6.2", features = ["cors", "trace"] }
 tracing = "0.1.41"
 tracing-subscriber = { workspace = true }

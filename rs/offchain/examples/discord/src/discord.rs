@@ -1,6 +1,5 @@
 pub mod commands;
 pub mod events;
-pub mod types;
 
 use crate::config::DiscordConfig;
 use crate::discord::commands as discord_commands;
