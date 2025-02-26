@@ -31,50 +31,44 @@ impl CommandHandler<CanisterRuntime> for Remind {
         let what = cxt.command.arg("what");
         let when = cxt.command.arg("when");
         let repeat = cxt.command.maybe_arg("repeat").unwrap_or_default();
-
-        let local_timezone = cxt
-            .command
-            .meta
-            .as_ref()
-            .map(|meta| meta.timezone.clone())
-            .unwrap_or("UTC".to_string());
+        let timezone = cxt.command.timezone();
 
         // TODO: Wire up scheduling
 
-        let result = state::mutate(|state| {
+        let text = match state::mutate(|state| {
             // Extract the chat
             let BotCommandScope::Chat(chat_scope) = &cxt.scope else {
                 return Err("This command can only be used in a chat".to_string());
             };
 
-            // Check if there an API Key registered at the required scope and with the required permissions
+            // Check if there is an API Key registered at the required scope and with the required permissions
             state
                 .api_key_registry
                 .get_key_with_required_permissions(&cxt.scope.clone().into(), &BotPermissions::text_only())
                 .ok_or("You must first register an API key for this chat with the \"send text message\" permission".to_string())?;
 
             // Add the reminder to the state
-            // TODO: Pass in the initiator's local timezone
-
             state.reminders.add(
                 what,
                 when,
                 repeat,
-                &local_timezone,
+                timezone,
                 cxt.command.initiator,
                 chat_scope.chat.clone(),
                 env::now(),
             )
-        })?;
-
-        // Compose a reply to the initiator
-        let next = DateTime::from_timestamp_millis(result.timestamp as i64).unwrap();
-        let text = format!(
-            "Reminder #{} on {}{}",
-            result.chat_reminder_id,
-            next.to_rfc2822(),
-            if repeat { " [repeats]" } else { "" }
-        );
+        }) {
+            Ok(result) => {
+                let next = DateTime::from_timestamp_millis(result.timestamp as i64).unwrap();
+                format!(
+                    "Reminder #{} on {}{}",
+                    result.chat_reminder_id,
+                    next.to_rfc2822(),
+                    if repeat { " [repeats]" } else { "" }
+                )
+            }
+            Err(error) => error,
+        };
 
         // Reply to the initiator with an ephemeral message
         Ok(SuccessResult {
