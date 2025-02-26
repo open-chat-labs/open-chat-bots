@@ -5,4 +5,4 @@ dfx canister call user_index public_key '(record { })'
 dfx canister create greet_bot --no-wallet
 
 // Bot endpoint looks like this (replace with your canister id)
-http://gx2xg-kmaaa-aaaaa-qaasq-cai.localhost:8080
+http://gc5gl-leaaa-aaaaa-qaara-cai.raw.localhost:8080
