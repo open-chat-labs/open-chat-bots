@@ -29,6 +29,20 @@ impl Command {
         self.maybe_arg(name)
             .expect("Argument missing or unexpected type")
     }
+
+    pub fn timezone(&self) -> &str {
+        self.meta
+            .as_ref()
+            .map(|meta| meta.timezone.as_str())
+            .unwrap_or("UTC")
+    }
+
+    pub fn language(&self) -> &str {
+        self.meta
+            .as_ref()
+            .map(|meta| meta.language.as_str())
+            .unwrap_or("en")
+    }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
