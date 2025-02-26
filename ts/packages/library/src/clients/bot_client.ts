@@ -124,6 +124,10 @@ export class BotClient {
         if (!this.#messagePermitted(message)) {
             return Promise.resolve({ kind: "not_authorized" });
         }
+        if (message.isEphemeral) {
+            console.error("An ephemeral message should not be sent to the OpenChat backend");
+            return Promise.resolve({ kind: "invalid_request" });
+        }
         return this.#botService.sendMessage(message, this.#auth).then((resp) => {
             if (resp.kind !== "success") {
                 console.error("OpenChat botClient.sendMessage failed with: ", resp);
@@ -215,6 +219,14 @@ export class BotClient {
 
     public get botId(): string {
         return this.#decoded.bot;
+    }
+
+    public get commandTimezone(): string | undefined {
+        return this.command?.meta?.timezone;
+    }
+
+    public get commandLanguage(): string | undefined {
+        return this.command?.meta?.language;
     }
 
     public get commandArgs(): BotCommandArg[] {

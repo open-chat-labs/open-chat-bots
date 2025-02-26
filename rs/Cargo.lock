@@ -2060,6 +2060,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ee93343901ab17bd981295f2cf0026d4ad018c7c31ba84549a4ddbb47a45104"
 
 [[package]]
+name = "llama_bot"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "axum",
+ "candid",
+ "clap 4.5.26",
+ "dotenv",
+ "ic-agent",
+ "oc_bots_sdk",
+ "oc_bots_sdk_offchain",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.11",
+ "tokio",
+ "toml",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3774,9 +3796,11 @@ dependencies = [
  "bitflags 2.7.0",
  "bytes",
  "http 1.2.0",
+ "http-body 1.0.1",
  "pin-project-lite",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]

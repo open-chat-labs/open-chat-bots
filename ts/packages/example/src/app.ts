@@ -39,7 +39,7 @@ const factory = new BotClientFactory({
 });
 
 app.use(cors());
-// app.use(limiter);
+app.use(limiter);
 app.use(express.text());
 app.post("/execute_command", createCommandChatClient(factory), executeCommand);
 app.post("/execute_action", createApiChatClient(factory), executeAction);
