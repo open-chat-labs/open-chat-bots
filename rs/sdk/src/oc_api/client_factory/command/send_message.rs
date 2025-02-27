@@ -35,8 +35,8 @@ impl<R: Runtime> SendMessageBuilder<R> {
         self
     }
 
-    pub fn with_ephemeral(mut self) -> Self {
-        self.ephemeral = true;
+    pub fn with_ephemeral(mut self, ephemeral: bool) -> Self {
+        self.ephemeral = ephemeral;
         self
     }
 
