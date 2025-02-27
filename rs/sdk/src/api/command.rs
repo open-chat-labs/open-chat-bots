@@ -1,10 +1,10 @@
-use crate::types::{MessageContent, MessageId, UserId};
+use crate::types::{BotCommandContext, MessageContent, MessageId, TextContent, UserId};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
-mod command_handler;
-
 pub use command_handler::{CommandHandler, CommandHandlerRegistry};
+
+mod command_handler;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Command {
@@ -247,7 +247,7 @@ pub struct Message {
     pub content: MessageContent,
     pub block_level_markdown: bool,
     pub finalised: bool,
-    pub ephemeral: bool,
+    pub(crate) ephemeral: bool,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -277,4 +277,102 @@ pub enum CanisterError {
 pub struct CommandMeta {
     pub timezone: String, // IANA timezone e.g. "Europe/London"
     pub language: String, // The language selected in OpenChat e.g. "en"
+}
+
+/// Replying with an ephemeral [`Message`]!
+///
+/// Ephemeral messages are not saved to the OC backend, and can only be used
+/// as as a bot's reply sent to the OC UI. Ephemeral messages will only be
+/// visible for the user that initiated interaction with a bot, and they will
+/// dissapear upon UI refresh.
+///
+/// Here's a short example on how to use it:
+/// ```ignore
+/// use oc_bots_sdk::api::command::EphemeralMessageBuilder;
+///
+/// ...
+/// // Somewhere in your bot code, replying to a command...
+/// Ok(EphemeralMessageBuilder::new(ctx)
+///     .with_text_content("Hello, world! This is an ephemeral message, only visible to you.".into())
+///     .build()?
+///     .into())
+/// ```
+///
+/// In this example we're setting textual content for the message, but you
+/// have an option to use [`EphemeralMessageBuilder::with_content`], and provide
+/// any of the supported content types.
+///
+/// Once your ephemeral message is constructed, using `.into()` will transform
+/// the type into a [`SuccessResult`], which can then be wrapped into `Result::Ok`
+/// and returned as a reply for the UI.
+pub struct EphemeralMessageBuilder {
+    context: BotCommandContext,
+    content: Option<MessageContent>,
+    block_level_markdown: bool,
+}
+
+impl EphemeralMessageBuilder {
+    pub fn new(context: BotCommandContext) -> Self {
+        Self {
+            context,
+            content: None,
+            block_level_markdown: false,
+        }
+    }
+
+    /// Sets text content for the ephemeral message. This is a _convenience_
+    /// function.
+    pub fn with_text_content(self, text: String) -> Self {
+        Self {
+            content: Some(MessageContent::Text(TextContent { text })),
+            ..self
+        }
+    }
+
+    /// Set any type of content for the message. Content is required, if it's
+    /// not set, [`EphemeralMessageBuilder::build`] will fail. You may also use
+    /// [`EphemeralMessageBuilder::with_text_content`] to set text content for
+    /// the message.
+    pub fn with_content(self, content: MessageContent) -> Self {
+        Self {
+            content: Some(content),
+            ..self
+        }
+    }
+
+    /// Indicates if your text content contains markdown or not.
+    pub fn with_block_level_markdown(self, block_level_markdown: bool) -> Self {
+        Self {
+            block_level_markdown,
+            ..self
+        }
+    }
+
+    /// Builds a [`Message`] type from the provided data, with the `ephemeral`
+    /// flag set to `true`.
+    pub fn build(self) -> Result<Message, String> {
+        if let Some(content) = self.content {
+            Ok(Message {
+                id: self
+                    .context
+                    .scope
+                    .message_id()
+                    .ok_or_else(|| "Failed to get message id for ephemeral message.")?,
+                content,
+                block_level_markdown: self.block_level_markdown,
+                finalised: true,
+                ephemeral: true,
+            })
+        } else {
+            Err("Ephemeral message content is not set!".into())
+        }
+    }
+}
+
+impl From<Message> for SuccessResult {
+    fn from(message: Message) -> Self {
+        SuccessResult {
+            message: Some(message),
+        }
+    }
 }
