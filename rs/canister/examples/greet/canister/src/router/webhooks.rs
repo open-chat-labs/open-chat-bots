@@ -6,7 +6,9 @@ use oc_bots_sdk_canister::{env, HttpRequest, HttpResponse};
 
 pub async fn execute(request: HttpRequest) -> HttpResponse {
     let context =
-        match state::read(|state| request.extract_context(state.oc_public_key(), env::now())) {
+        match state::read(|state| request.extract_context(state.oc_public_key(), env::now()))
+            .map_err(|err| HttpResponse::text(400, format!("{err:?}")))
+        {
             Ok(cxt) => cxt,
             Err(response) => return response,
         };
