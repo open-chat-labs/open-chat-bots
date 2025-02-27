@@ -2,7 +2,7 @@ import type {
     BotCommand,
     Chat,
     CommunityPermission,
-    GroupPermission,
+    ChatPermission,
     MessagePermission,
 } from "../typebox/typebox";
 import type { MergedActionScope } from "./scope";
@@ -27,6 +27,9 @@ const chatPermissionsMap = {
     ReactToMessages: 7,
     MentionAllMembers: 8,
     StartVideoCall: 9,
+    ReadMessages: 10,
+    ReadMembership: 11,
+    ReadChatDetails: 12,
 };
 const messagePermissionMap = {
     Text: 0,
@@ -51,7 +54,7 @@ class DecodedAuth {
             : false;
     }
 
-    hasChatPermission(perm: GroupPermission) {
+    hasChatPermission(perm: ChatPermission) {
         return this.granted_permissions.chat
             ? this.#hasPermission(this.granted_permissions.chat, chatPermissionsMap[perm])
             : false;
