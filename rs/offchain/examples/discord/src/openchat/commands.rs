@@ -49,6 +49,7 @@ impl CommandHandler<AgentRuntime> for Status {
             } else {
                 "This channel is not linked to any Discord channels!".into()
             })
+            .with_ephemeral()
             .execute_then_return_message(|_, _| ());
 
         Ok(SuccessResult {
