@@ -9,14 +9,9 @@ pub async fn execute(
     public_key: &str,
     now: TimestampMillis,
 ) -> HttpResponse {
-    // let jwt = match request.get_header("x-oc-jwt") {
-    //     Some(jwt) => jwt,
-    //     None => return Response::json(400, &BadRequest::AccessTokenNotFound),
-    // };
-
-    let jwt = match str::from_utf8(&request.body) {
-        Ok(jwt) => jwt,
-        Err(_) => return HttpResponse::json(400, &BadRequest::AccessTokenNotFound),
+    let jwt = match request.get_header("x-oc-jwt") {
+        Some(jwt) => jwt,
+        None => return HttpResponse::json(400, &BadRequest::AccessTokenNotFound),
     };
 
     match command_handlers.execute(jwt, public_key, now).await {

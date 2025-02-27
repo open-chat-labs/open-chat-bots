@@ -1,21 +1,15 @@
 use oc_bots_sdk::oc_api::actions::{send_message, ActionArgsBuilder};
-use oc_bots_sdk::types::{AuthToken, MessageContent, TextContent};
+use oc_bots_sdk::types::{BotApiKeyContext, MessageContent, TextContent};
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
 
 #[derive(serde::Deserialize)]
 struct Args {
     text: String,
-    auth_token: AuthToken,
 }
 
-pub async fn execute(request: HttpRequest) -> HttpResponse {
+pub async fn execute(request: HttpRequest, context: BotApiKeyContext) -> HttpResponse {
     let args: Args = match super::extract_args(&request) {
         Ok(args) => args,
-        Err(response) => return response,
-    };
-
-    let context = match super::extract_context(args.auth_token) {
-        Ok(cxt) => cxt,
         Err(response) => return response,
     };
 
