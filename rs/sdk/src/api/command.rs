@@ -357,7 +357,7 @@ impl EphemeralMessageBuilder {
                     .context
                     .scope
                     .message_id()
-                    .ok_or_else(|| "Failed to get message id for ephemeral message.")?,
+                    .ok_or("Failed to get message id for ephemeral message.")?,
                 content,
                 block_level_markdown: self.block_level_markdown,
                 finalised: true,
