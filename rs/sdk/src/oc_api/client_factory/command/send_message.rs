@@ -6,15 +6,15 @@ use crate::types::{CallResult, CanisterId, MessageContent};
 use crate::Runtime;
 use std::sync::Arc;
 
-pub struct SendMessageBuilder<R> {
-    client: ClientForCommand<R>,
+pub struct SendMessageBuilder<R, S> {
+    client: ClientForCommand<R, S>,
     content: MessageContent,
     block_level_markdown: bool,
     finalised: bool,
 }
 
-impl<R: Runtime> SendMessageBuilder<R> {
-    pub fn new(client: ClientForCommand<R>, content: MessageContent) -> Self {
+impl<R: Runtime, S> SendMessageBuilder<R, S> {
+    pub fn new(client: ClientForCommand<R, S>, content: MessageContent) -> Self {
         Self {
             client,
             content,
@@ -51,7 +51,7 @@ impl<R: Runtime> SendMessageBuilder<R> {
     }
 }
 
-impl<R: Runtime> ActionArgsBuilder<R> for SendMessageBuilder<R> {
+impl<R: Runtime, S> ActionArgsBuilder<R> for SendMessageBuilder<R, S> {
     type Action = SendMessageAction;
 
     fn runtime(&self) -> Arc<R> {

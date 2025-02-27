@@ -8,16 +8,16 @@ use async_trait::async_trait;
 use std::sync::LazyLock;
 use std::{collections::HashMap, sync::Arc};
 
-pub struct CommandHandlerRegistry<R> {
-    commands: HashMap<String, Box<dyn CommandHandler<R>>>,
+pub struct CommandHandlerRegistry<R, S> {
+    commands: HashMap<String, Box<dyn CommandHandler<R, S>>>,
     on_set_api_key: Option<Box<dyn Fn(String) -> CommandResponse + Send + Sync + 'static>>,
     oc_client_factory: Arc<ClientFactory<R>>,
 }
 
 static SET_API_KEY_PARAMS: LazyLock<Vec<BotCommandParam>> = LazyLock::new(set_api_key_params);
 
-impl<R> CommandHandlerRegistry<R> {
-    pub fn new(oc_client_factory: Arc<ClientFactory<R>>) -> CommandHandlerRegistry<R> {
+impl<R, S> CommandHandlerRegistry<R, S> {
+    pub fn new(oc_client_factory: Arc<ClientFactory<R>>) -> CommandHandlerRegistry<R, S> {
         Self {
             commands: HashMap::new(),
             on_set_api_key: None,
@@ -25,7 +25,7 @@ impl<R> CommandHandlerRegistry<R> {
         }
     }
 
-    pub fn register<C: CommandHandler<R> + 'static>(mut self, command: C) -> Self {
+    pub fn register<C: CommandHandler<R, S> + 'static>(mut self, command: C) -> Self {
         self.commands
             .insert(command.name().to_string(), Box::new(command));
         self
@@ -39,7 +39,7 @@ impl<R> CommandHandlerRegistry<R> {
         self
     }
 
-    pub fn get(&self, name: &str) -> Option<&dyn CommandHandler<R>> {
+    pub fn get(&self, name: &str) -> Option<&dyn CommandHandler<R, S>> {
         self.commands.get(name).map(|v| &**v)
     }
 
@@ -55,8 +55,10 @@ impl<R> CommandHandlerRegistry<R> {
         jwt: &str,
         public_key: &str,
         now: TimestampMillis,
+        shared_state: S,
     ) -> CommandResponse {
-        let context = match BotCommandContext::parse(jwt.to_string(), public_key, now) {
+        let context = match BotCommandContext::parse(jwt.to_string(), public_key, now, shared_state)
+        {
             Ok(a) => a,
             Err(bad_request) => {
                 return match bad_request {
@@ -104,12 +106,12 @@ impl<R> CommandHandlerRegistry<R> {
 }
 
 #[async_trait]
-pub trait CommandHandler<R>: Send + Sync {
+pub trait CommandHandler<R, S>: Send + Sync {
     fn definition(&self) -> &BotCommandDefinition;
 
     async fn execute(
         &self,
-        context: BotCommandContext,
+        context: BotCommandContext<S>,
         oc_client_factory: &ClientFactory<R>,
     ) -> Result<SuccessResult, String>;
 

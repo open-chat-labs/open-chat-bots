@@ -18,7 +18,7 @@ impl<R: Runtime> ClientFactory<R> {
         }
     }
 
-    pub fn build_command_client(&self, context: BotCommandContext) -> ClientForCommand<R> {
+    pub fn build_command_client<S>(&self, context: BotCommandContext<S>) -> ClientForCommand<R, S> {
         ClientForCommand::new(self.runtime.clone(), context)
     }
 
