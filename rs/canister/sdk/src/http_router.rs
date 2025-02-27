@@ -119,7 +119,7 @@ impl HttpRequest {
         &self,
         public_key: &str,
         now: TimestampMillis,
-    ) -> Result<BotApiKeyContext, TokenError> {
+    ) -> Result<BotApiKeyContext, HttpResponse> {
         if let Some(jwt) = self.get_header("x-oc-jwt") {
             BotApiKeyContext::parse_jwt(jwt.to_string(), public_key, now)
         } else if let Some(api_key) = self.get_header("x-oc-api-key") {
@@ -127,6 +127,7 @@ impl HttpRequest {
         } else {
             Err(TokenError::Invalid("No auth token found".to_string()))
         }
+        .map_err(|err| HttpResponse::text(400, format!("{err:?}")))
     }
 }
 
