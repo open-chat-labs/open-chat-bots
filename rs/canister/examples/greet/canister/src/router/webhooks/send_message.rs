@@ -8,7 +8,7 @@ struct Args {
 }
 
 pub async fn execute(request: HttpRequest, context: BotApiKeyContext) -> HttpResponse {
-    let args: Args = match super::extract_args(&request) {
+    let args: Args = match request.extract_args() {
         Ok(args) => args,
         Err(response) => return response,
     };
