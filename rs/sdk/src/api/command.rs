@@ -282,7 +282,7 @@ pub struct CommandMeta {
 /// Replying with an ephemeral [`Message`]!
 ///
 /// Ephemeral messages are not saved to the OC backend, and can only be used
-/// as as a bot's reply sent to the OC UI. Ephemeral messages will only be
+/// as a bot's reply sent to the OC UI. Ephemeral messages will only be
 /// visible for the user that initiated interaction with a bot, and they will
 /// dissapear upon UI refresh.
 ///
