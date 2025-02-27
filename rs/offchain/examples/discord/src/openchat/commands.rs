@@ -1,7 +1,7 @@
 use crate::shared::OcChannelKey;
 use crate::state::BotState;
 use async_trait::async_trait;
-use oc_bots_sdk::api::command::{CommandHandler, SuccessResult};
+use oc_bots_sdk::api::command::{CommandHandler, EphemeralMessageBuilder, SuccessResult};
 use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::BotCommandContext;
@@ -24,7 +24,7 @@ impl CommandHandler<AgentRuntime> for Status {
     async fn execute(
         &self,
         ctx: BotCommandContext,
-        oc_client_factory: &ClientFactory<AgentRuntime>,
+        _oc_client_factory: &ClientFactory<AgentRuntime>,
     ) -> Result<SuccessResult, String> {
         let key = OcChannelKey::from_bot_context(&ctx);
         let num_links: u32 = self
@@ -42,19 +42,14 @@ impl CommandHandler<AgentRuntime> for Status {
                 }
             });
 
-        let message = oc_client_factory
-            .build_command_client(ctx)
-            .send_text_message(if num_links > 0 {
+        Ok(EphemeralMessageBuilder::new(ctx)
+            .with_text_content(if num_links > 0 {
                 "This channel has an active relay link to Discord!".into()
             } else {
                 "This channel is not linked to any Discord channels!".into()
             })
-            .with_ephemeral(true)
-            .execute_then_return_message(|_, _| ());
-
-        Ok(SuccessResult {
-            message: Some(message),
-        })
+            .build()?
+            .into())
     }
 }
 
