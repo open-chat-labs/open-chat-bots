@@ -1,6 +1,7 @@
-use crate::discord::{types::ChannelStatus, Context, Error};
-use crate::openchat::OcToken;
-use tracing::info;
+use crate::discord::{Context, Error};
+use crate::shared::{OcChannelKey, RelayLink};
+use oc_bots_sdk::types::TokenError;
+use tracing::{error, info};
 
 // Set OC token for the channel!
 //
@@ -12,22 +13,35 @@ pub async fn set_oc_token(
     ctx: Context<'_>,
     #[description = "OpenChat token used to proxy messages to the OpenChat API"] token: String,
 ) -> Result<(), Error> {
-    ctx.data()
-        .state
-        .set_token_for_oc_channel(ctx.channel_id(), OcToken(token))
-        .await?;
-    ctx.data()
-        .state
-        .set_status_for_ds_channel(ctx.channel_id(), ChannelStatus::Operational)
-        .await?;
-    ctx.send(
-        poise::CreateReply::default()
-            .ephemeral(true)
-            .content("OC token set!"),
-    )
-    .await?;
+    // If token is invalid, this will fail
+    // TODO should we only allow 1:1 Ds to Oc channel message relaying?
+    let reply = match OcChannelKey::from_api_key(token.clone()) {
+        Ok(key) => {
+            let relay_link = RelayLink::new(ctx.channel_id(), key, token);
 
-    info!("OC token set for channel :: {}", ctx.channel_id());
+            ctx.data()
+                .state
+                .set_relay_link(ctx.channel_id(), relay_link)
+                .await?;
+
+            info!("Relay link initialised for channel :: {}", ctx.channel_id());
+            "OpenChat API token set!"
+        }
+        Err(err) => {
+            error!(
+                "Failed to set OpenChat API token for Discord channel :: {:?}",
+                err
+            );
+            match err {
+                TokenError::Invalid(_) => "Token is not valid!",
+                TokenError::Expired => "Token has expired!",
+            }
+        }
+    };
+
+    ctx.send(poise::CreateReply::default().ephemeral(true).content(reply))
+        .await?;
+
     Ok(())
 }
 
@@ -37,26 +51,21 @@ pub async fn set_oc_token(
 /// provide some stats about the messages processed.
 #[poise::command(slash_command)]
 pub async fn status(ctx: Context<'_>) -> Result<(), Error> {
-    let channel_status = ctx
-        .data()
-        .state
-        .get_status_for_ds_channel(ctx.channel_id())
-        .await;
-    let process_status = || match channel_status {
-        Some(status) => match status {
-            ChannelStatus::TokenNotSet => {
-                "OpenChat token is not set! Please use the `/set_oc_token` command to set it."
-                    .to_string()
-            }
-            ChannelStatus::Operational => "OC token is set for this channel!".to_string(),
-            ChannelStatus::ProxyFailed(reason) => {
+    let relay_link = ctx.data().state.get_relay_link(ctx.channel_id()).await;
+
+    let process_status = || match relay_link {
+        Some(RelayLink { error, .. }) => {
+            if let Some(reason) = error {
                 format!(
-                    "OC token is set for this channel, but proxy failed: {}",
+                    "OpenChat token is set for this channel, but message relay failed: {}",
                     reason
                 )
+            } else {
+                "OpenChat token is set for this channel!".to_string()
             }
-        },
-        None => "I don't have a status for you yet, bot hasn't been used.".to_string(),
+        }
+        None => "OpenChat token is not set! Please use the `/set_oc_token` command to set it."
+            .to_string(),
     };
 
     ctx.send(

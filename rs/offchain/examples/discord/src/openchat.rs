@@ -15,6 +15,7 @@ use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use tokio::sync::mpsc::Receiver;
 use tower_http::cors::CorsLayer;
+use tower_http::trace::TraceLayer;
 use tracing::info;
 pub use types::*;
 
@@ -44,7 +45,9 @@ pub async fn init_openchat_client(
 
     // Register commands!
     let commands =
-        CommandHandlerRegistry::new(oc_client_factory.clone()).register(commands::Status);
+        CommandHandlerRegistry::new(oc_client_factory.clone()).register(commands::Status {
+            shared_state: state.clone(),
+        });
 
     // Init data required for OC side of things
     Ok(OcData::new(
@@ -72,6 +75,7 @@ pub async fn start_openchat_bot(
     let routes = Router::new()
         .route("/execute_command", post(execute_command))
         .route("/", get(bot_definition))
+        .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
         .with_state(data);
 
@@ -91,11 +95,12 @@ pub async fn start_openchat_bot(
 
 // Handler for command execution!
 async fn execute_command(State(oc_data): State<Arc<OcData>>, jwt: String) -> (StatusCode, Bytes) {
-    match oc_data
+    let res = oc_data
         .commands
         .execute(&jwt, &oc_data.oc_config.public_key, env::now())
-        .await
-    {
+        .await;
+
+    match res {
         CommandResponse::Success(r) => {
             //? should we use unwrap
             (StatusCode::OK, Bytes::from(serde_json::to_vec(&r).unwrap()))

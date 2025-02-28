@@ -2,6 +2,7 @@ pub mod config;
 pub mod discord;
 pub mod errors;
 pub mod openchat;
+pub mod shared;
 pub mod state;
 
 use crate::config::Config;

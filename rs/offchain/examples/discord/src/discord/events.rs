@@ -1,4 +1,4 @@
-use crate::discord::{types::ChannelStatus, Error, FrameworkContext, LocalData};
+use crate::discord::{Error, FrameworkContext, LocalData};
 use poise::serenity_prelude::{self as serenity, Message};
 use tracing::{debug, error, info};
 
@@ -40,17 +40,21 @@ async fn proxy_message(
         // Broadcast message, to be picked up by the OC agent!
         let res = data.tx.send(new_message.clone()).await;
 
-        let channel_status = if let Err(e) = res {
+        if let Err(e) = res {
             // TODO a recovery mechanism
             error!("Failed to push message to OC bot :: {}", e);
-            ChannelStatus::ProxyFailed("Message did not reach OpenChat handler bot!".to_string())
-        } else {
-            ChannelStatus::Operational
-        };
 
-        data.state
-            .set_status_for_ds_channel(new_message.channel_id, channel_status)
-            .await?;
+            if let Some(relay_link) = data.state.get_relay_link(new_message.channel_id).await {
+                data.state
+                    .set_relay_link(
+                        new_message.channel_id,
+                        // We'll reset this on the OC bot side!
+                        relay_link
+                            .set_error("Message did not reach OpenChat handler bot!".to_string()),
+                    )
+                    .await?;
+            }
+        }
     }
 
     Ok(())

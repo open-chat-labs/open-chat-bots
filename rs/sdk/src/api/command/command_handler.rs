@@ -74,7 +74,7 @@ impl<R> CommandHandlerRegistry<R> {
 
         if command_name == "sync_api_key" {
             if let Some(on_set_api_key) = &self.on_set_api_key {
-                if !check_args_internal(&context.command.args, &SET_API_KEY_PARAMS) {
+                if !check_args_internal(&context.command.args, &SET_API_KEY_PARAMS, now) {
                     return CommandResponse::BadRequest(BadRequest::ArgsInvalid);
                 }
 
@@ -88,7 +88,7 @@ impl<R> CommandHandlerRegistry<R> {
             return CommandResponse::BadRequest(BadRequest::CommandNotFound);
         };
 
-        if !command_handler.check_args(&context.command.args) {
+        if !command_handler.check_args(&context.command.args, now) {
             return CommandResponse::BadRequest(BadRequest::ArgsInvalid);
         }
 
@@ -117,12 +117,16 @@ pub trait CommandHandler<R>: Send + Sync {
         &self.definition().name
     }
 
-    fn check_args(&self, args: &[CommandArg]) -> bool {
-        check_args_internal(args, &self.definition().params)
+    fn check_args(&self, args: &[CommandArg], now: TimestampMillis) -> bool {
+        check_args_internal(args, &self.definition().params, now)
     }
 }
 
-fn check_args_internal(args: &[CommandArg], params: &[BotCommandParam]) -> bool {
+fn check_args_internal(
+    args: &[CommandArg],
+    params: &[BotCommandParam],
+    now: TimestampMillis,
+) -> bool {
     if args.len() > params.len() {
         return false;
     }
@@ -137,54 +141,54 @@ fn check_args_internal(args: &[CommandArg], params: &[BotCommandParam]) -> bool 
         };
 
         match &p.param_type {
-            BotCommandParamType::StringParam(t) => {
+            BotCommandParamType::StringParam(p) => {
                 let Some(value) = arg.value.as_string() else {
                     return false;
                 };
 
-                if value.len() < t.min_length as usize {
+                if value.len() < p.min_length as usize {
                     return false;
                 }
 
-                if value.len() > t.max_length as usize {
+                if value.len() > p.max_length as usize {
                     return false;
                 }
 
-                if !t.choices.is_empty() && !t.choices.iter().any(|c| c.value == value) {
+                if !p.choices.is_empty() && !p.choices.iter().any(|c| c.value == value) {
                     return false;
                 }
             }
-            BotCommandParamType::IntegerParam(t) => {
+            BotCommandParamType::IntegerParam(p) => {
                 let Some(value) = arg.value.as_integer() else {
                     return false;
                 };
 
-                if value < t.min_value {
+                if value < p.min_value {
                     return false;
                 }
 
-                if value > t.max_value {
+                if value > p.max_value {
                     return false;
                 }
 
-                if !t.choices.is_empty() && !t.choices.iter().any(|c| c.value == value) {
+                if !p.choices.is_empty() && !p.choices.iter().any(|c| c.value == value) {
                     return false;
                 }
             }
-            BotCommandParamType::DecimalParam(t) => {
+            BotCommandParamType::DecimalParam(p) => {
                 let Some(value) = arg.value.as_decimal() else {
                     return false;
                 };
 
-                if value < t.min_value {
+                if value < p.min_value {
                     return false;
                 }
 
-                if value > t.max_value {
+                if value > p.max_value {
                     return false;
                 }
 
-                if !t.choices.is_empty() && !t.choices.iter().any(|c| c.value == value) {
+                if !p.choices.is_empty() && !p.choices.iter().any(|c| c.value == value) {
                     return false;
                 }
             }
@@ -195,6 +199,15 @@ fn check_args_internal(args: &[CommandArg], params: &[BotCommandParam]) -> bool 
             }
             BotCommandParamType::UserParam => {
                 if !matches!(arg.value, CommandArgValue::User(_)) {
+                    return false;
+                }
+            }
+            BotCommandParamType::DateTimeParam(p) => {
+                let Some(value) = arg.value.as_datetime() else {
+                    return false;
+                };
+
+                if p.future_only && value < now {
                     return false;
                 }
             }
@@ -214,6 +227,7 @@ fn set_api_key_params() -> Vec<BotCommandParam> {
             min_length: 10,
             max_length: 1000,
             choices: vec![],
+            mutli_line: false,
         }),
     }]
 }

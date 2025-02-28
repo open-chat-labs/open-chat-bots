@@ -44,6 +44,7 @@ pub enum BotCommandParamType {
     StringParam(StringParam),
     IntegerParam(IntegerParam),
     DecimalParam(DecimalParam),
+    DateTimeParam(DateTimeParam),
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -51,6 +52,8 @@ pub struct StringParam {
     pub min_length: u16,
     pub max_length: u16,
     pub choices: Vec<BotCommandOptionChoice<String>>,
+    #[serde(default)]
+    pub mutli_line: bool,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -71,4 +74,9 @@ pub struct DecimalParam {
 pub struct BotCommandOptionChoice<T> {
     pub name: String,
     pub value: T,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+pub struct DateTimeParam {
+    pub future_only: bool,
 }

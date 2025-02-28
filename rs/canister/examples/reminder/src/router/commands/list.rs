@@ -1,10 +1,8 @@
 use async_trait::async_trait;
-use oc_bots_sdk::api::command::{CommandHandler, Message, SuccessResult};
+use oc_bots_sdk::api::command::{CommandHandler, EphemeralMessageBuilder, SuccessResult};
 use oc_bots_sdk::api::definition::BotCommandDefinition;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
-use oc_bots_sdk::types::{
-    BotCommandContext, BotCommandScope, BotPermissions, ChatRole, MessageContent, TextContent,
-};
+use oc_bots_sdk::types::{BotCommandContext, BotCommandScope, BotPermissions, ChatRole};
 use oc_bots_sdk_canister::CanisterRuntime;
 use std::sync::LazyLock;
 
@@ -44,16 +42,10 @@ impl CommandHandler<CanisterRuntime> for List {
             }
         }
 
-        // Reply to the initiator with an ephemeral message
-        Ok(SuccessResult {
-            message: Some(Message {
-                id: cxt.scope.message_id().unwrap(),
-                content: MessageContent::Text(TextContent { text }),
-                block_level_markdown: false,
-                finalised: true,
-                ephemeral: true,
-            }),
-        })
+        Ok(EphemeralMessageBuilder::new(cxt)
+            .with_text_content(text)
+            .build()?
+            .into())
     }
 }
 

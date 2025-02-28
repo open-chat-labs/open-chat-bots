@@ -18,7 +18,7 @@ export default function schema(_: Request, res: Response) {
           "CreatePublicChannel",
           "CreatePrivateChannel",
         ],
-        chat: [],
+        chat: ["ReadMessages"],
       },
     },
     description:
@@ -88,6 +88,7 @@ export default function schema(_: Request, res: Response) {
         permissions: {
           ...emptyPermissions,
           message: ["Text"],
+          chat: ["ReadMessages"],
         },
         params: [
           {

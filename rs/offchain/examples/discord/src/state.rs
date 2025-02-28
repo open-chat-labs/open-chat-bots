@@ -1,6 +1,4 @@
-use crate::discord::types::ChannelStatus;
 use crate::errors::BotError;
-use crate::openchat::OcToken;
 use aes_gcm::{
     aead::{Aead, AeadCore, KeyInit, OsRng},
     Aes256Gcm, Key, Nonce,
@@ -15,23 +13,22 @@ use std::sync::Arc;
 use std::{collections::HashMap, path::Path};
 use tokio::sync::RwLock;
 
+use crate::shared::RelayLink;
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct AesKey(pub Vec<u8>);
-pub type DiscordChannelStatusMap = HashMap<ChannelId, ChannelStatus>;
-pub type OpenChatTokenMap = HashMap<ChannelId, OcToken>;
+pub type RelayLinkMap = HashMap<ChannelId, RelayLink>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PersistData {
-    pub status_for_ds_channel: DiscordChannelStatusMap,
-    pub token_for_oc_channel: OpenChatTokenMap,
+    pub relay_links: RelayLinkMap,
 }
 
 #[derive(Debug)]
 pub struct BotState {
     pub aes_key: Option<AesKey>,
     pub store_path: Option<String>,
-    pub status_for_ds_channel: Arc<RwLock<DiscordChannelStatusMap>>,
-    pub token_for_oc_channel: Arc<RwLock<OpenChatTokenMap>>,
+    pub relay_links: Arc<RwLock<RelayLinkMap>>,
 }
 
 pub struct BotStateBuilder {
@@ -52,8 +49,7 @@ impl BotStateBuilder {
         let bot_state = BotState {
             aes_key: self.aes_key,
             store_path: self.store_path,
-            status_for_ds_channel: Arc::new(RwLock::new(HashMap::new())),
-            token_for_oc_channel: Arc::new(RwLock::new(HashMap::new())),
+            relay_links: Arc::new(RwLock::new(HashMap::new())),
         };
 
         bot_state.restore().await
@@ -68,44 +64,20 @@ impl BotState {
         }
     }
 
-    pub async fn set_status_for_ds_channel(
+    pub async fn set_relay_link(
         &self,
         channel_id: ChannelId,
-        new_status: ChannelStatus,
+        relay_link: RelayLink,
     ) -> Result<(), BotError> {
-        self.status_for_ds_channel
+        self.relay_links
             .write()
             .await
-            .insert(channel_id, new_status);
+            .insert(channel_id, relay_link);
         self.persist().await
     }
 
-    pub async fn get_status_for_ds_channel(&self, channel_id: ChannelId) -> Option<ChannelStatus> {
-        self.status_for_ds_channel
-            .read()
-            .await
-            .get(&channel_id)
-            .cloned()
-    }
-
-    pub async fn set_token_for_oc_channel(
-        &self,
-        channel_id: ChannelId,
-        oc_token: OcToken,
-    ) -> Result<(), BotError> {
-        self.token_for_oc_channel
-            .write()
-            .await
-            .insert(channel_id, oc_token);
-        self.persist().await
-    }
-
-    pub async fn get_token_for_oc_channel(&self, channel_id: ChannelId) -> Option<OcToken> {
-        self.token_for_oc_channel
-            .read()
-            .await
-            .get(&channel_id)
-            .cloned()
+    pub async fn get_relay_link(&self, channel_id: ChannelId) -> Option<RelayLink> {
+        self.relay_links.read().await.get(&channel_id).cloned()
     }
 
     /// Restore previously saved state
@@ -151,8 +123,7 @@ impl BotState {
                 .map_err(BotError::FailedToDeserialiseState)?;
 
             Ok(Self {
-                status_for_ds_channel: Arc::new(RwLock::new(store_data.status_for_ds_channel)),
-                token_for_oc_channel: Arc::new(RwLock::new(store_data.token_for_oc_channel)),
+                relay_links: Arc::new(RwLock::new(store_data.relay_links)),
                 ..self
             })
         } else {
@@ -187,8 +158,7 @@ impl BotState {
     async fn prepare_store_data(&self) -> Result<Vec<u8>, BotError> {
         // Prepare data for serialisation!
         let persist_data = PersistData {
-            status_for_ds_channel: self.status_for_ds_channel.read().await.clone(),
-            token_for_oc_channel: self.token_for_oc_channel.read().await.clone(),
+            relay_links: self.relay_links.read().await.clone(),
         };
 
         // Serialise data!
@@ -221,7 +191,9 @@ impl BotState {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::shared::OcChannelKey;
     use fs::remove_file;
+    use oc_bots_sdk::types::AuthToken;
     use poise::serenity_prelude::ChannelId;
     use std::{env, error::Error};
 
@@ -246,13 +218,16 @@ mod test {
             .build()
             .await?;
 
+        let ds_channel_id = ChannelId::new(2);
         state
-            .set_status_for_ds_channel(ChannelId::new(1), ChannelStatus::Operational)
-            .await?;
-        state
-            .set_token_for_oc_channel(
-                ChannelId::new(2),
-                OcToken("this-is-not-a-token".to_string()),
+            .set_relay_link(
+                ds_channel_id,
+                RelayLink {
+                    ds_channel_id,
+                    oc_channel_key: OcChannelKey::new("this-is-key".into()),
+                    oc_token: AuthToken::ApiKey("this-is-api-key".into()),
+                    error: None,
+                },
             )
             .await?;
 
@@ -267,14 +242,18 @@ mod test {
             .build()
             .await?;
 
+        let restored_link = new_state
+            .get_relay_link(ChannelId::new(2))
+            .await
+            .expect("Could not find the link after state was restored");
+
+        assert_eq!(restored_link.ds_channel_id, ChannelId::new(2));
         assert_eq!(
-            new_state.get_status_for_ds_channel(ChannelId::new(1)).await,
-            Some(ChannelStatus::Operational)
+            restored_link.oc_channel_key,
+            OcChannelKey::new("this-is-key".into())
         );
-        assert_eq!(
-            new_state.get_token_for_oc_channel(ChannelId::new(2)).await,
-            Some(OcToken("this-is-not-a-token".to_string()))
-        );
+        assert_eq!(restored_link.oc_token.into(), "this-is-api-key".to_string());
+        assert_eq!(restored_link.error, None);
 
         Ok(())
     }

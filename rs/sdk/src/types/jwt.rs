@@ -4,11 +4,23 @@ use super::{
 use crate::api::command::Command;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
+use std::error::Error;
+use std::fmt::Display;
 
 #[derive(Debug)]
 pub enum TokenError {
     Invalid(String),
     Expired,
+}
+
+impl Error for TokenError {}
+impl Display for TokenError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TokenError::Invalid(msg) => write!(f, "Invalid token: {}", msg),
+            TokenError::Expired => write!(f, "Token has expired"),
+        }
+    }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
