@@ -108,6 +108,7 @@ impl Remind {
                         choices: vec![],
                         min_length: 1,
                         max_length: 5000,
+                        mutli_line: true,
                     }),
                 },
                 BotCommandParam {
@@ -121,6 +122,7 @@ impl Remind {
                         choices: vec![],
                         min_length: 1,
                         max_length: 200,
+                        mutli_line: false,
                     }),
                 },
                 BotCommandParam {
