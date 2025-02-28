@@ -1,4 +1,6 @@
-use crate::types::{BotCommandContext, MessageContent, MessageId, TextContent, UserId};
+use crate::types::{
+    BotCommandContext, MessageContent, MessageId, TextContent, TimestampMillis, UserId,
+};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
@@ -58,6 +60,7 @@ pub enum CommandArgValue {
     Decimal(f64),
     Boolean(bool),
     User(UserId),
+    DateTime(TimestampMillis),
 }
 
 impl CommandArgValue {
@@ -96,6 +99,14 @@ impl CommandArgValue {
     pub fn as_user(&self) -> Option<UserId> {
         if let CommandArgValue::User(u) = self {
             Some(*u)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_datetime(&self) -> Option<TimestampMillis> {
+        if let CommandArgValue::DateTime(a) = self {
+            Some(*a)
         } else {
             None
         }
@@ -155,10 +166,11 @@ impl TryFrom<CommandArgValue> for u64 {
     type Error = ();
 
     fn try_from(value: CommandArgValue) -> Result<Self, Self::Error> {
-        value
-            .as_integer()
-            .and_then(|r| u64::try_from(r).ok())
-            .ok_or(())
+        match value {
+            CommandArgValue::Integer(i) => u64::try_from(i).map_err(|_| ()),
+            CommandArgValue::DateTime(t) => Ok(t),
+            _ => Err(()),
+        }
     }
 }
 
@@ -243,10 +255,10 @@ pub struct SuccessResult {
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Message {
-    pub id: MessageId,
-    pub content: MessageContent,
-    pub block_level_markdown: bool,
-    pub finalised: bool,
+    pub(crate) id: MessageId,
+    pub(crate) content: MessageContent,
+    pub(crate) block_level_markdown: bool,
+    pub(crate) finalised: bool,
     pub(crate) ephemeral: bool,
 }
 
