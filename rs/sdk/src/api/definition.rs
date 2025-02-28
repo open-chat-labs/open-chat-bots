@@ -52,6 +52,7 @@ pub struct StringParam {
     pub min_length: u16,
     pub max_length: u16,
     pub choices: Vec<BotCommandOptionChoice<String>>,
+    pub mutli_line: bool,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
