@@ -1,5 +1,5 @@
 use oc_bots_sdk::oc_api::actions::{send_message, ActionArgsBuilder};
-use oc_bots_sdk::types::{AuthToken, MessageContent, TextContent};
+use oc_bots_sdk::types::{AuthToken, MessageContentInitial, TextContent};
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
 
 #[derive(serde::Deserialize)]
@@ -21,7 +21,7 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
 
     let response = OPENCHAT_CLIENT_FACTORY
         .build(context)
-        .send_message(MessageContent::Text(TextContent { text: args.text }))
+        .send_message(MessageContentInitial::Text(TextContent { text: args.text }))
         .execute_async()
         .await;
 

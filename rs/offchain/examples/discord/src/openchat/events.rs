@@ -1,7 +1,7 @@
 use crate::errors::BotError;
 use crate::openchat::OcData;
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
-use oc_bots_sdk::types::{BotApiKeyContext, MessageContent, TextContent};
+use oc_bots_sdk::types::{BotApiKeyContext, MessageContentInitial, TextContent};
 use oc_bots_sdk_offchain::env;
 use poise::serenity_prelude::Message;
 use std::sync::Arc;
@@ -65,7 +65,7 @@ pub async fn handle_openchat_events(
                         let res = data
                             .oc_client
                             .build(ctx)
-                            .send_message(MessageContent::Text(TextContent { text }))
+                            .send_message(MessageContentInitial::Text(TextContent { text }))
                             .execute_async()
                             .await;
 

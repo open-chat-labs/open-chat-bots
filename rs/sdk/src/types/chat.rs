@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
-use super::{CanisterId, Milliseconds};
+use super::{CanisterId, MessageIndex, Milliseconds, TimestampMillis, UserId};
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct AccessGateConfig {
@@ -77,4 +77,31 @@ pub enum AccessGateNonComposite {
     TokenBalance(TokenBalanceGate),
     Locked,
     ReferredByMember,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+pub struct FrozenGroupInfo {
+    pub timestamp: TimestampMillis,
+    pub frozen_by: UserId,
+    pub reason: Option<String>,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+pub struct VersionedRules {
+    pub text: String,
+    pub version: u32,
+    pub enabled: bool,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct VideoCall {
+    pub message_index: MessageIndex,
+    pub call_type: VideoCallType,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Copy, Default)]
+pub enum VideoCallType {
+    Broadcast,
+    #[default]
+    Default,
 }

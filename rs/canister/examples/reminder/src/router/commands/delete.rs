@@ -38,7 +38,7 @@ impl CommandHandler<CanisterRuntime> for Delete {
             Err(error) => error,
         };
 
-        Ok(EphemeralMessageBuilder::new(cxt)
+        Ok(EphemeralMessageBuilder::new(cxt.scope.message_id())
             .with_text_content(text)
             .build()?
             .into())

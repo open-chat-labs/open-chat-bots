@@ -14,6 +14,7 @@ use std::sync::LazyLock;
 mod fractal;
 mod greet;
 mod joke;
+mod message;
 
 static COMMANDS: LazyLock<CommandHandlerRegistry<CanisterRuntime>> = LazyLock::new(|| {
     CommandHandlerRegistry::new(OPENCHAT_CLIENT_FACTORY.clone())

@@ -1,11 +1,16 @@
+use chat_details::ChatDetailsBuilder;
+use chat_events::ChatEventsBuilder;
 use create_channel::CreateChannelBuilder;
 use delete_channel::DeleteChannelBuilder;
 use send_message::SendMessageBuilder;
 
-use crate::types::{ActionContext, ChannelId, MessageContent, TextContent};
+use crate::oc_api::actions::chat_events::EventsSelectionCriteria;
+use crate::types::{ActionContext, ChannelId, MessageContentInitial, TextContent};
 use crate::Runtime;
 use std::sync::Arc;
 
+mod chat_details;
+mod chat_events;
 mod create_channel;
 mod delete_channel;
 mod send_message;
@@ -20,12 +25,12 @@ impl<R: Runtime> Client<R> {
         Client { runtime, context }
     }
 
-    pub fn send_message(self, content: MessageContent) -> SendMessageBuilder<R> {
+    pub fn send_message(self, content: MessageContentInitial) -> SendMessageBuilder<R> {
         SendMessageBuilder::new(self, content)
     }
 
     pub fn send_text_message(self, text: String) -> SendMessageBuilder<R> {
-        self.send_message(MessageContent::Text(TextContent { text }))
+        self.send_message(MessageContentInitial::Text(TextContent { text }))
     }
 
     pub fn create_channel(self, name: String, is_public: bool) -> CreateChannelBuilder<R> {
@@ -34,5 +39,13 @@ impl<R: Runtime> Client<R> {
 
     pub fn delete_channel(self, channel_id: ChannelId) -> DeleteChannelBuilder<R> {
         DeleteChannelBuilder::new(self, channel_id)
+    }
+
+    pub fn chat_details(self) -> ChatDetailsBuilder<R> {
+        ChatDetailsBuilder::new(self)
+    }
+
+    pub fn chat_events(self, events: EventsSelectionCriteria) -> ChatEventsBuilder<R> {
+        ChatEventsBuilder::new(self, events)
     }
 }

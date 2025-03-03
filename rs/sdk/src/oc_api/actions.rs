@@ -5,6 +5,8 @@ use serde::de::DeserializeOwned;
 use std::future::Future;
 use std::sync::Arc;
 
+pub mod chat_details;
+pub mod chat_events;
 pub mod create_channel;
 pub mod delete_channel;
 pub mod send_message;

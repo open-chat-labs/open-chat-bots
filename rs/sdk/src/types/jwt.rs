@@ -60,6 +60,19 @@ impl BotCommandScope {
             BotCommandScope::Community(_) => None,
         }
     }
+
+    pub fn path(&self) -> String {
+        match self {
+            BotCommandScope::Community(details) => format!("/community/{}", details.community_id),
+            BotCommandScope::Chat(details) => match details.chat {
+                Chat::Channel(community_id, channel_id) => {
+                    format!("/community/{}/channel/{}", community_id, channel_id)
+                }
+                Chat::Direct(chat_id) => format!("/user/{}", chat_id),
+                Chat::Group(chat_id) => format!("/group/{}", chat_id),
+            },
+        }
+    }
 }
 
 impl From<BotCommandScope> for ActionScope {

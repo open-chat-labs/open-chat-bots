@@ -42,7 +42,7 @@ impl CommandHandler<CanisterRuntime> for List {
             }
         }
 
-        Ok(EphemeralMessageBuilder::new(cxt)
+        Ok(EphemeralMessageBuilder::new(cxt.scope.message_id())
             .with_text_content(text)
             .build()?
             .into())

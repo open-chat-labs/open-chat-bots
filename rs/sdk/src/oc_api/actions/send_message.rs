@@ -1,6 +1,7 @@
 use crate::oc_api::actions::ActionDef;
 use crate::types::{
-    AuthToken, ChannelId, EventIndex, MessageContent, MessageId, MessageIndex, TimestampMillis,
+    AuthToken, ChannelId, EventIndex, MessageContentInitial, MessageId, MessageIndex,
+    TimestampMillis,
 };
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
@@ -20,7 +21,7 @@ impl ActionDef for SendMessageAction {
 pub struct Args {
     pub channel_id: Option<ChannelId>,
     pub message_id: Option<MessageId>,
-    pub content: MessageContent,
+    pub content: MessageContentInitial,
     pub block_level_markdown: bool,
     pub finalised: bool,
     pub auth_token: AuthToken,

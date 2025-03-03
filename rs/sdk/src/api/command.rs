@@ -1,6 +1,4 @@
-use crate::types::{
-    BotCommandContext, MessageContent, MessageId, TextContent, TimestampMillis, UserId,
-};
+use crate::types::{MessageContentInitial, MessageId, TextContent, TimestampMillis, UserId};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
@@ -256,7 +254,7 @@ pub struct SuccessResult {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Message {
     pub(crate) id: MessageId,
-    pub(crate) content: MessageContent,
+    pub(crate) content: MessageContentInitial,
     pub(crate) block_level_markdown: bool,
     pub(crate) finalised: bool,
     pub(crate) ephemeral: bool,
@@ -318,15 +316,15 @@ pub struct CommandMeta {
 /// the type into a [`SuccessResult`], which can then be wrapped into `Result::Ok`
 /// and returned as a reply for the UI.
 pub struct EphemeralMessageBuilder {
-    context: BotCommandContext,
-    content: Option<MessageContent>,
+    message_id: Option<MessageId>,
+    content: Option<MessageContentInitial>,
     block_level_markdown: bool,
 }
 
 impl EphemeralMessageBuilder {
-    pub fn new(context: BotCommandContext) -> Self {
+    pub fn new(message_id: Option<MessageId>) -> Self {
         Self {
-            context,
+            message_id,
             content: None,
             block_level_markdown: false,
         }
@@ -336,7 +334,7 @@ impl EphemeralMessageBuilder {
     /// function.
     pub fn with_text_content(self, text: String) -> Self {
         Self {
-            content: Some(MessageContent::Text(TextContent { text })),
+            content: Some(MessageContentInitial::Text(TextContent { text })),
             ..self
         }
     }
@@ -345,7 +343,7 @@ impl EphemeralMessageBuilder {
     /// not set, [`EphemeralMessageBuilder::build`] will fail. You may also use
     /// [`EphemeralMessageBuilder::with_text_content`] to set text content for
     /// the message.
-    pub fn with_content(self, content: MessageContent) -> Self {
+    pub fn with_content(self, content: MessageContentInitial) -> Self {
         Self {
             content: Some(content),
             ..self
@@ -366,9 +364,7 @@ impl EphemeralMessageBuilder {
         if let Some(content) = self.content {
             Ok(Message {
                 id: self
-                    .context
-                    .scope
-                    .message_id()
+                    .message_id
                     .ok_or("Failed to get message id for ephemeral message.")?,
                 content,
                 block_level_markdown: self.block_level_markdown,

@@ -42,7 +42,7 @@ impl CommandHandler<AgentRuntime> for Status {
                 }
             });
 
-        Ok(EphemeralMessageBuilder::new(ctx)
+        Ok(EphemeralMessageBuilder::new(ctx.scope.message_id())
             .with_text_content(if num_links > 0 {
                 "This channel has an active relay link to Discord!".into()
             } else {

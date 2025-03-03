@@ -2,7 +2,7 @@ use crate::api::command::Message;
 use crate::oc_api::actions::send_message::*;
 use crate::oc_api::actions::ActionArgsBuilder;
 use crate::types::CallResult;
-use crate::types::{CanisterId, ChannelId, MessageContent, MessageId};
+use crate::types::{CanisterId, ChannelId, MessageContentInitial, MessageId};
 use crate::Runtime;
 use std::sync::Arc;
 
@@ -10,7 +10,7 @@ use super::Client;
 
 pub struct SendMessageBuilder<R> {
     client: Client<R>,
-    content: MessageContent,
+    content: MessageContentInitial,
     channel_id: Option<ChannelId>,
     message_id: Option<MessageId>,
     block_level_markdown: bool,
@@ -18,7 +18,7 @@ pub struct SendMessageBuilder<R> {
 }
 
 impl<R: Runtime> SendMessageBuilder<R> {
-    pub fn new(client: Client<R>, content: MessageContent) -> Self {
+    pub fn new(client: Client<R>, content: MessageContentInitial) -> Self {
         let channel_id = client.context.channel_id();
         let message_id = client.context.message_id();
 

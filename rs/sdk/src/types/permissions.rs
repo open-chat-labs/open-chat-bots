@@ -56,6 +56,22 @@ impl BotPermissions {
             ..Default::default()
         }
     }
+
+    pub fn from_chat_permission(permission: ChatPermission) -> Self {
+        Self {
+            community: HashSet::new(),
+            chat: HashSet::from_iter([permission]),
+            message: HashSet::new(),
+        }
+    }
+
+    pub fn from_community_permission(permission: CommunityPermission) -> Self {
+        Self {
+            community: HashSet::from_iter([permission]),
+            chat: HashSet::new(),
+            message: HashSet::new(),
+        }
+    }
 }
 
 #[repr(u8)]
@@ -106,6 +122,9 @@ pub enum ChatPermission {
     ReactToMessages = 7,
     MentionAllMembers = 8,
     StartVideoCall = 9,
+    ReadMessages = 10,
+    ReadMembership = 11,
+    ReadChatDetails = 12,
 }
 
 impl From<ChatPermission> for u8 {
