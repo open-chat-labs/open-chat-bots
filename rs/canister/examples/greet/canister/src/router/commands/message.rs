@@ -4,7 +4,7 @@ use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::actions::chat_events::{self, EventsSelectionCriteria, EventsWindowArgs};
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
-use oc_bots_sdk::types::BotCommandContext;
+use oc_bots_sdk::types::{BotCommandContext, MessageContentInitial};
 use oc_bots_sdk_canister::CanisterRuntime;
 use std::sync::LazyLock;
 
@@ -42,28 +42,33 @@ impl CommandHandler<CanisterRuntime> for Message {
             .await;
 
         let text = match response {
-            Ok(chat_events::Response::Success(result)) => result
-                .events
-                .first()
-                .map(|event| match &event.event {
+            Ok(chat_events::Response::Success(result)) => {
+                result.events.first().and_then(|event| match &event.event {
                     oc_bots_sdk::types::ChatEvent::Message(message) => {
-                        let text = format!("{}\n\n", message.content.text().unwrap_or(""));
-                        format!("{text}[link](https://oc.app{}/{})", path, event.index)
+                        if message.message_index != index {
+                            None
+                        } else {
+                            let text = format!("{}\n\n", message.content.text().unwrap_or(""));
+                            Some(format!("{text}[link](https://oc.app{}/{})", path, index))
+                        }
                     }
-                    _ => "Message not found".to_string(),
+                    _ => None,
                 })
-                .unwrap_or_else(|| "Message not found".to_string()),
-            Ok(chat_events::Response::NotFound) => "Message not found".to_string(),
+            }
+            Ok(chat_events::Response::NotFound) => None,
             response => {
                 return Err(format!("Failed to retrieve message: {:?}", response));
             }
-        };
+        }
+        .unwrap_or("Message not found".to_string());
 
         // Reply to the initiator with an ephemeral message
-        Ok(EphemeralMessageBuilder::new(message_id)
-            .with_text_content(text)
-            .build()?
-            .into())
+        Ok(EphemeralMessageBuilder::new(
+            MessageContentInitial::from_text(text),
+            message_id.unwrap(),
+        )
+        .build()
+        .into())
     }
 }
 

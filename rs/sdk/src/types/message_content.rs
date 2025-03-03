@@ -15,6 +15,12 @@ pub enum MessageContentInitial {
     Custom(CustomContent),
 }
 
+impl MessageContentInitial {
+    pub fn from_text(text: String) -> Self {
+        MessageContentInitial::Text(TextContent { text })
+    }
+}
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum MessageContent {
     Text(TextContent),

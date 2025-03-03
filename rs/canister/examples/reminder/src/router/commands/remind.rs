@@ -5,7 +5,9 @@ use oc_bots_sdk::api::definition::{
     BotCommandDefinition, BotCommandParam, BotCommandParamType, StringParam,
 };
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
-use oc_bots_sdk::types::{BotCommandContext, BotCommandScope, BotPermissions, ChatRole};
+use oc_bots_sdk::types::{
+    BotCommandContext, BotCommandScope, BotPermissions, ChatRole, MessageContentInitial,
+};
 use oc_bots_sdk_canister::{env, CanisterRuntime};
 use std::sync::LazyLock;
 
@@ -83,10 +85,12 @@ impl CommandHandler<CanisterRuntime> for Remind {
         });
 
         // Reply to the initiator with an ephemeral message
-        Ok(EphemeralMessageBuilder::new(cxt.scope.message_id())
-            .with_text_content(text)
-            .build()?
-            .into())
+        Ok(EphemeralMessageBuilder::new(
+            MessageContentInitial::from_text(text),
+            cxt.scope.message_id().unwrap(),
+        )
+        .build()
+        .into())
     }
 }
 
