@@ -73,7 +73,7 @@ fn run() {
 
 async fn send_reminder(context: BotApiKeyContext, text: String) {
     match OPENCHAT_CLIENT_FACTORY
-        .build_api_key_client(context)
+        .build(context.into())
         .send_message(MessageContent::Text(TextContent { text }))
         .execute_async()
         .await

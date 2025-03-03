@@ -1,4 +1,5 @@
 mod access_gate_config;
+mod action_context;
 mod api_key;
 mod basic;
 mod bot_context;
@@ -8,6 +9,7 @@ mod message_id;
 mod permissions;
 
 pub use access_gate_config::*;
+pub use action_context::*;
 pub use api_key::*;
 pub use basic::*;
 pub use bot_context::*;

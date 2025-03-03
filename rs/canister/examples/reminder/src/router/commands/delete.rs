@@ -62,7 +62,7 @@ impl Delete {
                     max_value: 100,
                 }),
             }],
-            permissions: BotPermissions::text_only(),
+            permissions: BotPermissions::default(),
             default_role: Some(ChatRole::Admin),
         }
     }

@@ -1,4 +1,4 @@
-use super::ClientForApiKey;
+use super::Client;
 use crate::oc_api::actions::create_channel::*;
 use crate::oc_api::actions::ActionArgsBuilder;
 use crate::types::{AccessGateConfig, CanisterId, ChatPermissions, Document, Milliseconds, Rules};
@@ -6,7 +6,7 @@ use crate::Runtime;
 use std::sync::Arc;
 
 pub struct CreateChannelBuilder<R> {
-    client: ClientForApiKey<R>,
+    client: Client<R>,
     name: String,
     is_public: bool,
     description: String,
@@ -21,7 +21,7 @@ pub struct CreateChannelBuilder<R> {
 }
 
 impl<R: Runtime> CreateChannelBuilder<R> {
-    pub fn new(client: ClientForApiKey<R>, name: String, is_public: bool) -> Self {
+    pub fn new(client: Client<R>, name: String, is_public: bool) -> Self {
         CreateChannelBuilder {
             client,
             name,
@@ -98,12 +98,12 @@ impl<R: Runtime> ActionArgsBuilder<R> for CreateChannelBuilder<R> {
     }
 
     fn bot_api_gateway(&self) -> CanisterId {
-        self.client.context.api_gateway
+        self.client.context.api_gateway()
     }
 
     fn into_args(self) -> Args {
         Args {
-            auth_token: self.client.context.token,
+            auth_token: self.client.context.into_token(),
             name: self.name,
             is_public: self.is_public,
             description: self.description,

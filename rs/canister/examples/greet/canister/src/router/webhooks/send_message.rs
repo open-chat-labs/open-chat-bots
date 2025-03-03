@@ -20,7 +20,7 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
     };
 
     let response = OPENCHAT_CLIENT_FACTORY
-        .build_api_key_client(context)
+        .build(context.into())
         .send_message(MessageContent::Text(TextContent { text: args.text }))
         .execute_async()
         .await;

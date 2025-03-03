@@ -1,26 +1,31 @@
-use crate::oc_api::client_factory::api_key::send_message::SendMessageBuilder;
-use crate::types::{BotApiKeyContext, ChannelId, MessageContent};
-use crate::Runtime;
 use create_channel::CreateChannelBuilder;
 use delete_channel::DeleteChannelBuilder;
+use send_message::SendMessageBuilder;
+
+use crate::types::{ActionContext, ChannelId, MessageContent, TextContent};
+use crate::Runtime;
 use std::sync::Arc;
 
 mod create_channel;
 mod delete_channel;
 mod send_message;
 
-pub struct ClientForApiKey<R> {
+pub struct Client<R> {
     runtime: Arc<R>,
-    context: BotApiKeyContext,
+    context: ActionContext,
 }
 
-impl<R: Runtime> ClientForApiKey<R> {
-    pub fn new(runtime: Arc<R>, context: BotApiKeyContext) -> Self {
-        ClientForApiKey { runtime, context }
+impl<R: Runtime> Client<R> {
+    pub fn new(runtime: Arc<R>, context: ActionContext) -> Self {
+        Client { runtime, context }
     }
 
     pub fn send_message(self, content: MessageContent) -> SendMessageBuilder<R> {
         SendMessageBuilder::new(self, content)
+    }
+
+    pub fn send_text_message(self, text: String) -> SendMessageBuilder<R> {
+        self.send_message(MessageContent::Text(TextContent { text }))
     }
 
     pub fn create_channel(self, name: String, is_public: bool) -> CreateChannelBuilder<R> {

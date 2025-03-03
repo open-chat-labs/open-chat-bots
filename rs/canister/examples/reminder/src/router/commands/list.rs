@@ -56,7 +56,7 @@ impl List {
             description: Some("List the reminders set in this chat with their IDs".to_string()),
             placeholder: None,
             params: vec![],
-            permissions: BotPermissions::text_only(),
+            permissions: BotPermissions::default(),
             default_role: Some(ChatRole::Admin),
         }
     }

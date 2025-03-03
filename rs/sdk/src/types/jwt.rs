@@ -53,6 +53,13 @@ impl BotCommandScope {
             BotCommandScope::Community(_) => None,
         }
     }
+
+    pub fn thread(&self) -> Option<MessageIndex> {
+        match self {
+            BotCommandScope::Chat(details) => details.thread,
+            BotCommandScope::Community(_) => None,
+        }
+    }
 }
 
 impl From<BotCommandScope> for ActionScope {

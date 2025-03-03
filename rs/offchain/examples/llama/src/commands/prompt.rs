@@ -30,13 +30,11 @@ impl CommandHandler<AgentRuntime> for Prompt {
 
         // Send the message to OpenChat but don't wait for the response
         let message = oc_client_factory
-            .build_command_client(cxt)
+            .build(cxt.into())
             .send_text_message(llm_response)
             .execute_then_return_message(|_, _| ());
 
-        Ok(SuccessResult {
-            message: Some(message),
-        })
+        Ok(SuccessResult { message })
     }
 }
 

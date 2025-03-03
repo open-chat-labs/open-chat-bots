@@ -1,14 +1,9 @@
 use super::{
-    AccessTokenScope, AuthToken, BotActionScope, BotApiKeyToken, CanisterId, MessageId,
-    MessageIndex,
+    ActionScope, AuthToken, BotApiKeyContext, BotCommandContext, BotPermissions, CanisterId,
+    ChannelId, MessageId, MessageIndex,
 };
-use crate::api::{BotPermissions, Command};
-use crate::jwt;
-use crate::jwt::Claims;
-use crate::types::{
-    BotActionByApiKeyClaims, BotActionByCommandClaims, Chat, TimestampMillis, TokenError, UserId,
-};
-use crate::utils::base64;
+use crate::api::command::Command;
+use crate::types::{Chat, UserId};
 
 pub struct ActionContext {
     token: AuthToken,
@@ -17,71 +12,11 @@ pub struct ActionContext {
     scope: ActionScope,
     granted_permissions: Option<BotPermissions>,
     command: Option<Command>,
+    message_id: Option<MessageId>,
+    thread: Option<MessageIndex>,
 }
 
 impl ActionContext {
-    pub fn parse_command_jwt(
-        token: String,
-        public_key: &str,
-        now: TimestampMillis,
-    ) -> Result<Self, TokenError> {
-        let claims = jwt::verify::<Claims<BotActionByCommandClaims>>(&token, public_key)
-            .map_err(|error| TokenError::Invalid(error.to_string()))?;
-
-        if claims.exp_ms() <= now {
-            return Err(TokenError::Expired);
-        }
-
-        let claims = claims.into_custom();
-
-        Ok(ActionContext {
-            token: AuthToken::Jwt(token),
-            bot_id: claims.bot,
-            api_gateway: claims.bot_api_gateway,
-            scope: claims.scope.into(),
-            granted_permissions: Some(claims.granted_permissions),
-            command: Some(claims.command),
-        })
-    }
-
-    pub fn parse_api_key_jwt(
-        token: String,
-        public_key: &str,
-        now: TimestampMillis,
-    ) -> Result<Self, TokenError> {
-        let claims = jwt::verify::<Claims<BotActionByApiKeyClaims>>(&token, public_key)
-            .map_err(|error| TokenError::Invalid(error.to_string()))?;
-
-        if claims.exp_ms() <= now {
-            return Err(TokenError::Expired);
-        }
-
-        let claims = claims.into_custom();
-
-        Ok(ActionContext {
-            token: AuthToken::Jwt(token),
-            bot_id: claims.bot,
-            api_gateway: claims.bot_api_gateway,
-            scope: claims.scope.into(),
-            granted_permissions: Some(claims.granted_permissions),
-            command: None,
-        })
-    }
-
-    pub fn parse_api_key(token: String) -> Result<Self, TokenError> {
-        let claims: BotApiKeyToken =
-            base64::to_value(&token).map_err(|error| TokenError::Invalid(error.to_string()))?;
-
-        Ok(ActionContext {
-            token: AuthToken::ApiKey(token),
-            bot_id: claims.bot_id,
-            api_gateway: claims.gateway,
-            scope: claims.scope.into(),
-            granted_permissions: None,
-            command: None,
-        })
-    }
-
     pub fn into_token(self) -> AuthToken {
         self.token
     }
@@ -105,58 +40,52 @@ impl ActionContext {
     pub fn command(&self) -> Option<&Command> {
         self.command.as_ref()
     }
-}
 
-pub enum ActionScope {
-    Chat(ChatScope),
-    Community(CommunityScope),
-}
-
-impl ActionScope {
     pub fn message_id(&self) -> Option<MessageId> {
-        match self {
-            ActionScope::Chat(chat) => chat.message_id,
-            ActionScope::Community(_) => None,
+        self.message_id
+    }
+
+    pub fn thread(&self) -> Option<MessageIndex> {
+        self.thread
+    }
+
+    pub fn channel_id(&self) -> Option<ChannelId> {
+        match self.scope {
+            ActionScope::Chat(Chat::Channel(_, channel_id)) => Some(channel_id),
+            _ => None,
         }
     }
 }
 
-pub struct ChatScope {
-    pub chat: Chat,
-    pub thread: Option<MessageIndex>,
-    pub message_id: Option<MessageId>,
-}
+impl From<BotCommandContext> for ActionContext {
+    fn from(value: BotCommandContext) -> Self {
+        let message_id = value.scope.message_id();
+        let thread = value.scope.thread();
 
-pub struct CommunityScope {
-    pub community: CanisterId,
-}
-
-impl From<BotActionScope> for ActionScope {
-    fn from(value: BotActionScope) -> Self {
-        match value {
-            BotActionScope::Chat(chat) => ActionScope::Chat(ChatScope {
-                chat: chat.chat,
-                thread: chat.thread_root_message_index,
-                message_id: Some(chat.message_id),
-            }),
-            BotActionScope::Community(community) => ActionScope::Community(CommunityScope {
-                community: community.community_id,
-            }),
+        ActionContext {
+            token: value.token,
+            bot_id: value.bot_id,
+            api_gateway: value.api_gateway,
+            scope: value.scope.into(),
+            granted_permissions: Some(value.granted_permissions),
+            command: Some(value.command),
+            message_id,
+            thread,
         }
     }
 }
 
-impl From<AccessTokenScope> for ActionScope {
-    fn from(value: AccessTokenScope) -> Self {
-        match value {
-            AccessTokenScope::Chat(chat) => ActionScope::Chat(ChatScope {
-                chat,
-                thread: None,
-                message_id: None,
-            }),
-            AccessTokenScope::Community(community) => {
-                ActionScope::Community(CommunityScope { community })
-            }
+impl From<BotApiKeyContext> for ActionContext {
+    fn from(value: BotApiKeyContext) -> Self {
+        ActionContext {
+            token: value.token,
+            bot_id: value.bot_id,
+            api_gateway: value.api_gateway,
+            scope: value.scope,
+            granted_permissions: Some(value.granted_permissions.into()),
+            command: None,
+            message_id: None,
+            thread: None,
         }
     }
 }
