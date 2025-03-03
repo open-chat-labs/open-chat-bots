@@ -64,7 +64,7 @@ impl CommandHandler<CanisterRuntime> for Fractal {
 
         // Send the message to OpenChat but don't wait for the response
         let message = oc_client_factory
-            .build(cxt.into())
+            .build(cxt)
             .send_message(MessageContent::Image(content))
             .execute_then_return_message(|args, response| match response {
                 Ok(send_message::Response::Success(_)) => {

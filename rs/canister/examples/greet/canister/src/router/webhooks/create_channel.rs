@@ -21,7 +21,7 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
     };
 
     let response = OPENCHAT_CLIENT_FACTORY
-        .build(context.into())
+        .build(context)
         .create_channel(args.channel_name, args.is_public)
         .execute_async()
         .await;

@@ -64,7 +64,7 @@ pub async fn handle_openchat_events(
                         // TODO add recovery mechanism with backpressure for the request.
                         let res = data
                             .oc_client
-                            .build(ctx.into())
+                            .build(ctx)
                             .send_message(MessageContent::Text(TextContent { text }))
                             .execute_async()
                             .await;

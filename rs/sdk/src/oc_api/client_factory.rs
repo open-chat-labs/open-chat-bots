@@ -16,7 +16,7 @@ impl<R: Runtime> ClientFactory<R> {
         }
     }
 
-    pub fn build(&self, context: ActionContext) -> Client<R> {
-        Client::new(self.runtime.clone(), context)
+    pub fn build(&self, context: impl Into<ActionContext>) -> Client<R> {
+        Client::new(self.runtime.clone(), context.into())
     }
 }
