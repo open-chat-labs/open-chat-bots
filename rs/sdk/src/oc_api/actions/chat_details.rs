@@ -14,8 +14,12 @@ impl ActionDef for ChatDetailsAction {
     type Args = Args;
     type Response = Response;
 
-    fn method_name() -> &'static str {
-        "bot_chat_details"
+    fn method_name(is_canister_runtime: bool) -> &'static str {
+        if is_canister_runtime {
+            "bot_chat_details_c2c"
+        } else {
+            "bot_chat_details"
+        }
     }
 }
 

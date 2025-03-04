@@ -12,7 +12,7 @@ impl ActionDef for SendMessageAction {
     type Args = Args;
     type Response = Response;
 
-    fn method_name() -> &'static str {
+    fn method_name(_: bool) -> &'static str {
         "bot_send_message"
     }
 }
