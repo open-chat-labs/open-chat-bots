@@ -193,7 +193,7 @@
         },
         {
           "type": "object",
-          "description": "A parameter representing datetime as a timestamp in milliseconds",
+          "description": "A parameter representing a datetime as a timestamp in milliseconds",
           "properties": {
             "DateTimeParam": {
               "$ref": "#/definitions/DateTimeParam"
