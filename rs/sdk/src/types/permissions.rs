@@ -4,45 +4,72 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::hash::Hash;
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
 pub struct BotPermissions {
-    pub community: HashSet<CommunityPermission>,
-    pub chat: HashSet<ChatPermission>,
-    pub message: HashSet<MessagePermission>,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    community: u32,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    chat: u32,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    message: u32,
+}
+
+fn is_zero(value: &u32) -> bool {
+    *value == 0
 }
 
 impl BotPermissions {
+    pub fn new(
+        community: HashSet<CommunityPermission>,
+        chat: HashSet<ChatPermission>,
+        message: HashSet<MessagePermission>,
+    ) -> Self {
+        BotPermissions {
+            community: Self::encode(&community),
+            chat: Self::encode(&chat),
+            message: Self::encode(&message),
+        }
+    }
+
+    pub fn community(&self) -> HashSet<CommunityPermission> {
+        Self::decode(self.community)
+    }
+
+    pub fn chat(&self) -> HashSet<ChatPermission> {
+        Self::decode(self.chat)
+    }
+
+    pub fn message(&self) -> HashSet<MessagePermission> {
+        Self::decode(self.message)
+    }
+
     pub fn is_empty(&self) -> bool {
-        self.community.is_empty() && self.chat.is_empty() && self.message.is_empty()
+        self.community == 0 && self.chat == 0 && self.message == 0
     }
 
     pub fn is_subset(&self, other: &Self) -> bool {
-        self.community.is_subset(&other.community)
-            && self.chat.is_subset(&other.chat)
-            && self.message.is_subset(&other.message)
+        fn is_subset(x: u32, y: u32) -> bool {
+            intersect_bits(x, y) == x
+        }
+
+        is_subset(self.community, other.community)
+            && is_subset(self.chat, other.chat)
+            && is_subset(self.message, other.message)
     }
 
-    pub fn intersect(p1: &Self, p2: &Self) -> Self {
-        fn intersect<T: Hash + Eq + Clone>(x: &HashSet<T>, y: &HashSet<T>) -> HashSet<T> {
-            x.intersection(y).cloned().collect()
-        }
-
+    pub fn intersect(&self, other: &Self) -> Self {
         Self {
-            community: intersect(&p1.community, &p2.community),
-            chat: intersect(&p1.chat, &p2.chat),
-            message: intersect(&p1.message, &p2.message),
+            community: intersect_bits(self.community, other.community),
+            chat: intersect_bits(self.chat, other.chat),
+            message: intersect_bits(self.message, other.message),
         }
     }
 
-    pub fn union(p1: &Self, p2: &Self) -> Self {
-        fn union<T: Hash + Eq + Clone>(x: &HashSet<T>, y: &HashSet<T>) -> HashSet<T> {
-            x.union(y).cloned().collect()
-        }
-
+    pub fn union(&self, other: &Self) -> Self {
         Self {
-            community: union(&p1.community, &p2.community),
-            chat: union(&p1.chat, &p2.chat),
-            message: union(&p1.message, &p2.message),
+            community: union_bits(self.community, other.community),
+            chat: union_bits(self.chat, other.chat),
+            message: union_bits(self.message, other.message),
         }
     }
 
@@ -52,26 +79,51 @@ impl BotPermissions {
 
     pub fn from_message_permission(permission: MessagePermission) -> Self {
         Self {
-            message: HashSet::from_iter([permission]),
+            message: encode_as_bitflags([permission as u8].into_iter()),
             ..Default::default()
         }
     }
 
     pub fn from_chat_permission(permission: ChatPermission) -> Self {
         Self {
-            community: HashSet::new(),
-            chat: HashSet::from_iter([permission]),
-            message: HashSet::new(),
+            chat: encode_as_bitflags([permission as u8].into_iter()),
+            ..Default::default()
         }
     }
 
     pub fn from_community_permission(permission: CommunityPermission) -> Self {
         Self {
-            community: HashSet::from_iter([permission]),
-            chat: HashSet::new(),
-            message: HashSet::new(),
+            community: encode_as_bitflags([permission as u8].into_iter()),
+            ..Default::default()
         }
     }
+
+    fn encode<T: Into<u8> + Copy>(field: &HashSet<T>) -> u32 {
+        encode_as_bitflags(field.iter().map(|v| (*v).into()))
+    }
+
+    fn decode<T: TryFrom<u8> + Copy + Eq + Hash>(field: u32) -> HashSet<T> {
+        decode_from_bitflags(field)
+            .into_iter()
+            .filter_map(|v| v.try_into().ok())
+            .collect()
+    }
+}
+
+fn intersect_bits(x: u32, y: u32) -> u32 {
+    let mut intersection = [0; 4];
+    for (i, (x_byte, y_byte)) in x.to_be_bytes().into_iter().zip(y.to_be_bytes()).enumerate() {
+        intersection[i] = x_byte & y_byte;
+    }
+    u32::from_be_bytes(intersection)
+}
+
+fn union_bits(x: u32, y: u32) -> u32 {
+    let mut union = [0; 4];
+    for (i, (x_byte, y_byte)) in x.to_be_bytes().into_iter().zip(y.to_be_bytes()).enumerate() {
+        union[i] = x_byte | y_byte;
+    }
+    u32::from_be_bytes(union)
 }
 
 #[repr(u8)]
@@ -253,61 +305,103 @@ pub enum ChatRole {
     Participant,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct EncodedBotPermissions {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    community: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    chat: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    message: Option<u32>,
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::random;
 
-impl From<BotPermissions> for EncodedBotPermissions {
-    fn from(permissions: BotPermissions) -> Self {
-        EncodedBotPermissions::from(&permissions)
-    }
-}
+    #[test]
+    fn permissions_is_subset() {
+        for _ in 0..20 {
+            let mut x = HashSet::new();
+            let mut y = HashSet::new();
 
-impl From<&BotPermissions> for EncodedBotPermissions {
-    fn from(permissions: &BotPermissions) -> Self {
-        fn encode<T: Into<u8> + Copy>(field: &HashSet<T>) -> Option<u32> {
-            if field.is_empty() {
-                None
-            } else {
-                Some(encode_as_bitflags(field.iter().map(|v| (*v).into())))
+            let mut is_subset = true;
+            if random() {
+                x.insert(CommunityPermission::CreatePublicChannel);
+                if random() {
+                    y.insert(CommunityPermission::CreatePublicChannel);
+                } else {
+                    is_subset = false;
+                }
             }
-        }
+            if random() {
+                x.insert(CommunityPermission::CreatePrivateChannel);
+                if random() {
+                    y.insert(CommunityPermission::CreatePrivateChannel);
+                } else {
+                    is_subset = false;
+                }
+            }
 
-        EncodedBotPermissions {
-            community: encode(&permissions.community),
-            chat: encode(&permissions.chat),
-            message: encode(&permissions.message),
+            let x = BotPermissions::new(x, HashSet::new(), HashSet::new());
+            let y = BotPermissions::new(y, HashSet::new(), HashSet::new());
+
+            assert_eq!(x.is_subset(&y), is_subset);
         }
     }
-}
 
-impl From<EncodedBotPermissions> for BotPermissions {
-    fn from(permissions: EncodedBotPermissions) -> Self {
-        BotPermissions::from(&permissions)
-    }
-}
+    #[test]
+    fn permissions_intersect() {
+        for _ in 0..20 {
+            let mut x = HashSet::new();
+            let mut y = HashSet::new();
+            let mut intersect = HashSet::new();
 
-impl From<&EncodedBotPermissions> for BotPermissions {
-    fn from(permissions: &EncodedBotPermissions) -> Self {
-        fn decode<T: TryFrom<u8> + Copy + Eq + Hash>(field: Option<u32>) -> HashSet<T> {
-            field
-                .map(decode_from_bitflags)
-                .unwrap_or_default()
-                .into_iter()
-                .filter_map(|v| v.try_into().ok())
-                .collect()
+            if random() {
+                x.insert(CommunityPermission::CreatePublicChannel);
+                if random() {
+                    y.insert(CommunityPermission::CreatePublicChannel);
+                    intersect.insert(CommunityPermission::CreatePublicChannel);
+                }
+            } else if random() {
+                y.insert(CommunityPermission::CreatePublicChannel);
+            }
+            if random() {
+                x.insert(CommunityPermission::CreatePrivateChannel);
+                if random() {
+                    y.insert(CommunityPermission::CreatePrivateChannel);
+                    intersect.insert(CommunityPermission::CreatePrivateChannel);
+                }
+            } else if random() {
+                y.insert(CommunityPermission::CreatePrivateChannel);
+            }
+
+            let x = BotPermissions::new(x, HashSet::new(), HashSet::new());
+            let y = BotPermissions::new(y, HashSet::new(), HashSet::new());
+            let expected = BotPermissions::new(intersect, HashSet::new(), HashSet::new());
+
+            assert_eq!(x.intersect(&y), expected);
         }
+    }
 
-        BotPermissions {
-            community: decode(permissions.community),
-            chat: decode(permissions.chat),
-            message: decode(permissions.message),
+    #[test]
+    fn permissions_union() {
+        for _ in 0..20 {
+            let mut x = HashSet::new();
+            let mut y = HashSet::new();
+            let mut union = HashSet::new();
+
+            if random() {
+                x.insert(CommunityPermission::CreatePublicChannel);
+                union.insert(CommunityPermission::CreatePublicChannel);
+            } else if random() {
+                y.insert(CommunityPermission::CreatePublicChannel);
+                union.insert(CommunityPermission::CreatePublicChannel);
+            }
+            if random() {
+                x.insert(CommunityPermission::CreatePrivateChannel);
+                union.insert(CommunityPermission::CreatePrivateChannel);
+            } else if random() {
+                y.insert(CommunityPermission::CreatePrivateChannel);
+                union.insert(CommunityPermission::CreatePrivateChannel);
+            }
+
+            let x = BotPermissions::new(x, HashSet::new(), HashSet::new());
+            let y = BotPermissions::new(y, HashSet::new(), HashSet::new());
+            let expected = BotPermissions::new(union, HashSet::new(), HashSet::new());
+
+            assert_eq!(x.union(&y), expected);
         }
     }
 }

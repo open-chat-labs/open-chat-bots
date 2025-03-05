@@ -1,4 +1,4 @@
-use super::{ActionScope, CanisterId, EncodedBotPermissions, UserId};
+use super::{ActionScope, BotPermissions, CanisterId, UserId};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
@@ -8,5 +8,5 @@ pub struct BotApiKeyToken {
     pub bot_id: UserId,
     pub scope: ActionScope,
     pub secret: String,
-    pub permissions: EncodedBotPermissions,
+    pub permissions: BotPermissions,
 }
