@@ -19,15 +19,24 @@ fn is_zero(value: &u32) -> bool {
 }
 
 impl BotPermissions {
-    pub fn new(
-        community: HashSet<CommunityPermission>,
-        chat: HashSet<ChatPermission>,
-        message: HashSet<MessagePermission>,
-    ) -> Self {
-        BotPermissions {
-            community: Self::encode(&community),
-            chat: Self::encode(&chat),
-            message: Self::encode(&message),
+    pub fn with_community(self, community: &HashSet<CommunityPermission>) -> Self {
+        Self {
+            community: Self::encode(community),
+            ..self
+        }
+    }
+
+    pub fn with_chat(self, chat: &HashSet<ChatPermission>) -> Self {
+        Self {
+            chat: Self::encode(chat),
+            ..self
+        }
+    }
+
+    pub fn with_message(self, message: &HashSet<MessagePermission>) -> Self {
+        Self {
+            message: Self::encode(message),
+            ..self
         }
     }
 
@@ -335,7 +344,10 @@ mod tests {
                 }
             }
 
-            let permissions = BotPermissions::new(community.clone(), chat.clone(), message.clone());
+            let permissions = BotPermissions::default()
+                .with_community(&community)
+                .with_chat(&chat)
+                .with_message(&message);
 
             assert_eq!(community, permissions.community());
             assert_eq!(chat, permissions.chat());
@@ -367,8 +379,8 @@ mod tests {
                 }
             }
 
-            let x = BotPermissions::new(x, HashSet::new(), HashSet::new());
-            let y = BotPermissions::new(y, HashSet::new(), HashSet::new());
+            let x = BotPermissions::default().with_community(&x);
+            let y = BotPermissions::default().with_community(&y);
 
             assert_eq!(x.is_subset(&y), is_subset);
         }
@@ -400,9 +412,9 @@ mod tests {
                 y.insert(CommunityPermission::CreatePrivateChannel);
             }
 
-            let x = BotPermissions::new(x, HashSet::new(), HashSet::new());
-            let y = BotPermissions::new(y, HashSet::new(), HashSet::new());
-            let expected = BotPermissions::new(intersect, HashSet::new(), HashSet::new());
+            let x = BotPermissions::default().with_community(&x);
+            let y = BotPermissions::default().with_community(&y);
+            let expected = BotPermissions::default().with_community(&intersect);
 
             assert_eq!(x.intersect(&y), expected);
         }
@@ -430,9 +442,9 @@ mod tests {
                 union.insert(CommunityPermission::CreatePrivateChannel);
             }
 
-            let x = BotPermissions::new(x, HashSet::new(), HashSet::new());
-            let y = BotPermissions::new(y, HashSet::new(), HashSet::new());
-            let expected = BotPermissions::new(union, HashSet::new(), HashSet::new());
+            let x = BotPermissions::default().with_community(&x);
+            let y = BotPermissions::default().with_community(&y);
+            let expected = BotPermissions::default().with_community(&union);
 
             assert_eq!(x.union(&y), expected);
         }

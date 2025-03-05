@@ -11,14 +11,12 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
                 .to_string(),
             commands: commands::definitions(),
             autonomous_config: Some(AutonomousConfig {
-                permissions: BotPermissions::new(
-                    HashSet::from_iter(vec![
+                permissions: BotPermissions::default()
+                    .with_community(&HashSet::from_iter(vec![
                         CommunityPermission::CreatePublicChannel,
                         CommunityPermission::CreatePrivateChannel,
-                    ]),
-                    HashSet::new(),
-                    HashSet::from_iter(vec![MessagePermission::Text]),
-                ),
+                    ]))
+                    .with_message(&HashSet::from_iter(vec![MessagePermission::Text])),
                 sync_api_key: false,
             }),
         },
