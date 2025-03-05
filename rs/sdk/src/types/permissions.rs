@@ -311,6 +311,39 @@ mod tests {
     use rand::random;
 
     #[test]
+    fn permissions_round_trip() {
+        for _ in 0..20 {
+            let mut community = HashSet::new();
+            let mut chat = HashSet::new();
+            let mut message = HashSet::new();
+
+            for i in 0..20 {
+                if let Ok(c) = CommunityPermission::try_from(i) {
+                    if random() {
+                        community.insert(c);
+                    }
+                }
+                if let Ok(c) = ChatPermission::try_from(i) {
+                    if random() {
+                        chat.insert(c);
+                    }
+                }
+                if let Ok(m) = MessagePermission::try_from(i) {
+                    if random() {
+                        message.insert(m);
+                    }
+                }
+            }
+
+            let permissions = BotPermissions::new(community.clone(), chat.clone(), message.clone());
+
+            assert_eq!(community, permissions.community());
+            assert_eq!(chat, permissions.chat());
+            assert_eq!(message, permissions.message());
+        }
+    }
+
+    #[test]
     fn permissions_is_subset() {
         for _ in 0..20 {
             let mut x = HashSet::new();
