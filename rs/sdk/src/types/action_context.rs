@@ -82,7 +82,7 @@ impl From<BotApiKeyContext> for ActionContext {
             bot_id: value.bot_id,
             api_gateway: value.api_gateway,
             scope: value.scope,
-            granted_permissions: Some(value.granted_permissions.into()),
+            granted_permissions: Some(value.granted_permissions),
             command: None,
             message_id: None,
             thread: None,

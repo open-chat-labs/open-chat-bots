@@ -27,7 +27,7 @@ impl ApiKeyRegistry {
         self.api_keys.insert(
             cxt.scope,
             ApiKeyRecord {
-                granted_permissions: cxt.granted_permissions.into(),
+                granted_permissions: cxt.granted_permissions,
                 token: cxt.token.into(),
             },
         );
