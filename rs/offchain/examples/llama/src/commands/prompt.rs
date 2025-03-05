@@ -5,7 +5,7 @@ use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::BotCommandContext;
 use oc_bots_sdk_offchain::AgentRuntime;
-use std::{collections::HashSet, sync::LazyLock};
+use std::sync::LazyLock;
 
 static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Prompt::definition);
 
@@ -60,10 +60,7 @@ impl Prompt {
                     mutli_line: true,
                 }),
             }],
-            permissions: BotPermissions {
-                message: HashSet::from_iter([MessagePermission::Text]),
-                ..Default::default()
-            },
+            permissions: BotPermissions::from_message_permission(MessagePermission::Text),
             default_role: None,
         }
     }

@@ -130,7 +130,7 @@ mod tests {
                 .into()
         );
 
-        let granted: BotPermissions = cxt.granted_permissions.into();
+        let granted: BotPermissions = cxt.granted_permissions;
 
         assert!(granted.is_subset(&BotPermissions::text_only()));
     }
