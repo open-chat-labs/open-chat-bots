@@ -10,6 +10,10 @@ use super::init::InitOrUpgradeArgs;
 
 #[post_upgrade]
 fn post_upgrade(args: InitOrUpgradeArgs) {
+    let InitOrUpgradeArgs::Upgrade(args) = args else {
+        panic!("Expected UpgradeArgs, got InitArgs");
+    };
+
     let memory = get_upgrades_memory();
     let reader = BufferedReader::new(READER_WRITER_BUFFER_SIZE, Reader::new(&memory, 0));
     let mut deserializer = rmp_serde::Deserializer::new(reader);
