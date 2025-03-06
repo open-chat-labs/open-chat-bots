@@ -57,7 +57,7 @@ impl Prompt {
                     min_length: 1,
                     max_length: 10000,
                     choices: Vec::new(),
-                    mutli_line: true,
+                    multi_line: true,
                 }),
             }],
             permissions: BotPermissions::from_message_permission(MessagePermission::Text),
