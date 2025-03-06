@@ -22,7 +22,7 @@ npm i @open-ic/openchat-botclient-ts
 
 The library exports a `BotClientFactory` constructor which is designed to be created when your bot starts up. This will be given a number of pieces of environment specific configuration which are necessary to construct a valid client to talk to the OpenChat backend.
 
-This client factory exposes two methods `createClientFromJwt` and `createClientFromApiKey` depending on whether you are respondind to a command or using an API key.
+This client factory exposes two methods `createClientFromJwt` and `createClientFromApiKey` depending on whether you are responding to a command or using an API key.
 
 One ideomatic pattern to work with is to use express middleware to create the right kind of client and attach it to the request object so that it is available to downstream route handlers.
 

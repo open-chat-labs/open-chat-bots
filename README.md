@@ -187,6 +187,10 @@ As an example, a moderation bot might wish to subscribe to messages in a chat to
 
 Or a welcome bot might subscribe to "member joined" events to send new members a welcome message.
 
+### For Rust bots
+
+See [the Rust readme](./rs/README.md).
+
 ### For off-chain typescript bots
 
 See [the typescript readme](./ts/README.md).

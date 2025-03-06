@@ -18,4 +18,5 @@ target/
 
 Makefile
 bot_store.db
-notes.md
+local/
+rs/canister_ids.json

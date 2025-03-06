@@ -11,6 +11,7 @@ thread_local! {
 #[derive(Serialize, Deserialize)]
 pub struct State {
     oc_public_key: String,
+    #[serde(default, skip_deserializing)]
     pub api_key_registry: ApiKeyRegistry,
     pub reminders: Reminders,
 }
@@ -49,8 +50,10 @@ impl State {
         }
     }
 
-    pub fn update(&mut self, oc_public_key: String) {
-        self.oc_public_key = oc_public_key;
+    pub fn update(&mut self, oc_public_key: Option<String>) {
+        if let Some(oc_public_key) = oc_public_key {
+            self.oc_public_key = oc_public_key;
+        }
 
         reminders::start_job_if_required(self);
     }
