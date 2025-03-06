@@ -104,7 +104,7 @@ impl Remind {
                 BotCommandParam {
                     name: "what".to_string(),
                     description: Some(
-                        "The reminder message to be sent at the specified time(s)".to_string(),
+                        "The reminder message to be sent at the specified time(s). This supports `markdown` to style messages.".to_string(),
                     ),
                     placeholder: Some("Enter a reminder message...".to_string()),
                     required: true,
@@ -112,7 +112,7 @@ impl Remind {
                         choices: vec![],
                         min_length: 1,
                         max_length: 5000,
-                        mutli_line: true,
+                        multi_line: true,
                     }),
                 },
                 BotCommandParam {
@@ -126,7 +126,7 @@ impl Remind {
                         choices: vec![],
                         min_length: 1,
                         max_length: 200,
-                        mutli_line: false,
+                        multi_line: false,
                     }),
                 },
                 BotCommandParam {
