@@ -2,6 +2,19 @@
 
 SDKs for building Bots for OpenChat with examples
 
+## Getting Started with Open Chat Bots
+
+If you're looking to develop and integrate bots with OpenChat, we have a comprehensive guide that walks you through the entire process. 
+
+The guide covers both offchain bots (running as external services) and onchain bots (running directly on the Internet Computer as canisters), and includes step-by-step instructions for:
+
+- Setting up Open Chat locally
+- Creating and configuring bots
+- Registering and installing bots in Open Chat
+- Testing your bot's functionality
+
+You can access the complete integration guide [here](./docs/integration-guide.md).
+
 ## What kind of bots can I build?
 
 There are broadly three different categories of bot that OpenChat currently supports.
