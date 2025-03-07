@@ -153,7 +153,7 @@ impl Fractal {
                     }),
                 },
             ],
-            permissions: BotPermissions::text_only(),
+            permissions: BotPermissions::from_message_permission(MessagePermission::Image),
             default_role: None,
         }
     }
