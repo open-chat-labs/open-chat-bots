@@ -1,7 +1,7 @@
 use crate::discord::{Context, Error};
 use crate::shared::{OcChannelKey, RelayLink};
 use oc_bots_sdk::types::TokenError;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 // Set OC token for the channel!
 //
@@ -37,6 +37,30 @@ pub async fn set_oc_token(
                 TokenError::Expired => "Token has expired!",
             }
         }
+    };
+
+    ctx.send(poise::CreateReply::default().ephemeral(true).content(reply))
+        .await?;
+
+    Ok(())
+}
+
+/// Clear OC token!
+///
+/// Removes the previously set OC token within the Discord channel where the
+/// command was called. If no token was
+#[poise::command(slash_command)]
+pub async fn clear_oc_token(ctx: Context<'_>) -> Result<(), Error> {
+    let was_removed = ctx.data().state.remove_relay_link(ctx.channel_id()).await;
+    let reply = if was_removed {
+        info!("Relay link removed for channel :: {}", ctx.channel_id());
+        "OpenChat API token cleared!"
+    } else {
+        warn!(
+            "Attempted to clear token, but OC API token not set for channel :: {}",
+            ctx.channel_id()
+        );
+        "OpenChat API token was not set for this channel!"
     };
 
     ctx.send(poise::CreateReply::default().ephemeral(true).content(reply))
