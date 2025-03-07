@@ -7,6 +7,7 @@ use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::{BotCommandContext, MessageContentInitial};
 use oc_bots_sdk_offchain::AgentRuntime;
 use std::sync::{Arc, LazyLock};
+use tracing::info;
 
 // Status command
 static STATUS_DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Status::definition);
@@ -26,6 +27,8 @@ impl CommandHandler<AgentRuntime> for Status {
         ctx: BotCommandContext,
         _oc_client_factory: &ClientFactory<AgentRuntime>,
     ) -> Result<SuccessResult, String> {
+        info!("OpenChat :: executing status command.");
+
         let key = OcChannelKey::from_bot_context(&ctx);
         let num_links: u32 = self
             .shared_state

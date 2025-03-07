@@ -80,6 +80,11 @@ impl BotState {
         self.relay_links.read().await.get(&channel_id).cloned()
     }
 
+    pub async fn remove_relay_link(&self, channel_id: ChannelId) -> bool {
+        let removed_link = self.relay_links.write().await.remove(&channel_id);
+        removed_link.is_some()
+    }
+
     /// Restore previously saved state
     ///
     /// Loads data from the state file, if store path is provided. If the
