@@ -14,7 +14,7 @@ pub async fn execute(request: HttpRequest, context: BotApiKeyContext) -> HttpRes
     };
 
     let response = OPENCHAT_CLIENT_FACTORY
-        .build_api_key_client(context)
+        .build(context)
         .delete_channel(args.channel_id)
         .execute_async()
         .await;

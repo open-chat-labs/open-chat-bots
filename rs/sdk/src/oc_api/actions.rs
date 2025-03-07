@@ -5,6 +5,8 @@ use serde::de::DeserializeOwned;
 use std::future::Future;
 use std::sync::Arc;
 
+pub mod chat_details;
+pub mod chat_events;
 pub mod create_channel;
 pub mod delete_channel;
 pub mod send_message;
@@ -13,7 +15,7 @@ pub trait ActionDef {
     type Args: CandidType + Clone + Send + 'static;
     type Response: CandidType + DeserializeOwned;
 
-    fn method_name() -> &'static str;
+    fn method_name(is_canister_runtime: bool) -> &'static str;
 }
 
 pub trait ActionArgsBuilder<R: Runtime>: Sized {
@@ -37,9 +39,10 @@ pub trait ActionArgsBuilder<R: Runtime>: Sized {
         on_response: F,
     ) {
         let runtime = self.runtime();
+        let is_canister_runtime = runtime.is_canister();
         let runtime_clone = runtime.clone();
         let bot_api_gateway = self.bot_api_gateway();
-        let method_name = Self::Action::method_name();
+        let method_name = Self::Action::method_name(is_canister_runtime);
         let args = self.into_args();
 
         runtime.spawn(async move {
@@ -57,7 +60,8 @@ pub trait ActionArgsBuilder<R: Runtime>: Sized {
     ) -> impl Future<Output = CallResult<<Self::Action as ActionDef>::Response>> + Send {
         let runtime = self.runtime();
         let bot_api_gateway = self.bot_api_gateway();
-        let method_name = Self::Action::method_name();
+        let is_canister_runtime = runtime.is_canister();
+        let method_name = Self::Action::method_name(is_canister_runtime);
         let args = self.into_args();
 
         async move {

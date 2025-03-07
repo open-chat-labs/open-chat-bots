@@ -5,7 +5,9 @@ use oc_bots_sdk::api::definition::{
     BotCommandDefinition, BotCommandParam, BotCommandParamType, StringParam,
 };
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
-use oc_bots_sdk::types::{BotCommandContext, BotCommandScope, BotPermissions, ChatRole};
+use oc_bots_sdk::types::{
+    BotCommandContext, BotCommandScope, BotPermissions, ChatRole, MessageContentInitial,
+};
 use oc_bots_sdk_canister::{env, CanisterRuntime};
 use std::sync::LazyLock;
 
@@ -83,10 +85,12 @@ impl CommandHandler<CanisterRuntime> for Remind {
         });
 
         // Reply to the initiator with an ephemeral message
-        Ok(EphemeralMessageBuilder::new(cxt)
-            .with_text_content(text)
-            .build()?
-            .into())
+        Ok(EphemeralMessageBuilder::new(
+            MessageContentInitial::from_text(text),
+            cxt.scope.message_id().unwrap(),
+        )
+        .build()
+        .into())
     }
 }
 
@@ -100,7 +104,7 @@ impl Remind {
                 BotCommandParam {
                     name: "what".to_string(),
                     description: Some(
-                        "The reminder message to be sent at the specified time(s)".to_string(),
+                        "The reminder message to be sent at the specified time(s). This supports `markdown` to style messages.".to_string(),
                     ),
                     placeholder: Some("Enter a reminder message...".to_string()),
                     required: true,
@@ -108,7 +112,7 @@ impl Remind {
                         choices: vec![],
                         min_length: 1,
                         max_length: 5000,
-                        mutli_line: true,
+                        multi_line: true,
                     }),
                 },
                 BotCommandParam {
@@ -122,7 +126,7 @@ impl Remind {
                         choices: vec![],
                         min_length: 1,
                         max_length: 200,
-                        mutli_line: false,
+                        multi_line: false,
                     }),
                 },
                 BotCommandParam {
@@ -133,7 +137,7 @@ impl Remind {
                     param_type: BotCommandParamType::BooleanParam,
                 },
             ],
-            permissions: BotPermissions::text_only(),
+            permissions: BotPermissions::default(),
             default_role: Some(ChatRole::Admin),
         }
     }

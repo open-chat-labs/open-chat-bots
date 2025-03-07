@@ -227,7 +227,7 @@ fn set_api_key_params() -> Vec<BotCommandParam> {
             min_length: 10,
             max_length: 1000,
             choices: vec![],
-            mutli_line: false,
+            multi_line: false,
         }),
     }]
 }

@@ -1,6 +1,4 @@
-use crate::types::{
-    BotCommandContext, MessageContent, MessageId, TextContent, TimestampMillis, UserId,
-};
+use crate::types::{MessageContentInitial, MessageId, TimestampMillis, UserId};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
@@ -256,7 +254,7 @@ pub struct SuccessResult {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Message {
     pub(crate) id: MessageId,
-    pub(crate) content: MessageContent,
+    pub(crate) content: MessageContentInitial,
     pub(crate) block_level_markdown: bool,
     pub(crate) finalised: bool,
     pub(crate) ephemeral: bool,
@@ -318,37 +316,17 @@ pub struct CommandMeta {
 /// the type into a [`SuccessResult`], which can then be wrapped into `Result::Ok`
 /// and returned as a reply for the UI.
 pub struct EphemeralMessageBuilder {
-    context: BotCommandContext,
-    content: Option<MessageContent>,
+    message_id: MessageId,
+    content: MessageContentInitial,
     block_level_markdown: bool,
 }
 
 impl EphemeralMessageBuilder {
-    pub fn new(context: BotCommandContext) -> Self {
+    pub fn new(content: MessageContentInitial, message_id: MessageId) -> Self {
         Self {
-            context,
-            content: None,
+            message_id,
+            content,
             block_level_markdown: false,
-        }
-    }
-
-    /// Sets text content for the ephemeral message. This is a _convenience_
-    /// function.
-    pub fn with_text_content(self, text: String) -> Self {
-        Self {
-            content: Some(MessageContent::Text(TextContent { text })),
-            ..self
-        }
-    }
-
-    /// Set any type of content for the message. Content is required, if it's
-    /// not set, [`EphemeralMessageBuilder::build`] will fail. You may also use
-    /// [`EphemeralMessageBuilder::with_text_content`] to set text content for
-    /// the message.
-    pub fn with_content(self, content: MessageContent) -> Self {
-        Self {
-            content: Some(content),
-            ..self
         }
     }
 
@@ -362,21 +340,13 @@ impl EphemeralMessageBuilder {
 
     /// Builds a [`Message`] type from the provided data, with the `ephemeral`
     /// flag set to `true`.
-    pub fn build(self) -> Result<Message, String> {
-        if let Some(content) = self.content {
-            Ok(Message {
-                id: self
-                    .context
-                    .scope
-                    .message_id()
-                    .ok_or("Failed to get message id for ephemeral message.")?,
-                content,
-                block_level_markdown: self.block_level_markdown,
-                finalised: true,
-                ephemeral: true,
-            })
-        } else {
-            Err("Ephemeral message content is not set!".into())
+    pub fn build(self) -> Message {
+        Message {
+            id: self.message_id,
+            content: self.content,
+            block_level_markdown: self.block_level_markdown,
+            finalised: true,
+            ephemeral: true,
         }
     }
 }

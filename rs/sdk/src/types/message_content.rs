@@ -1,7 +1,25 @@
-use super::TimestampMillis;
+use super::{TimestampMillis, UserId};
 use crate::utils::{serialize_large_uint, serialize_principal_as_bytes};
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub enum MessageContentInitial {
+    Text(TextContent),
+    Image(ImageContent),
+    Video(VideoContent),
+    Audio(AudioContent),
+    File(FileContent),
+    Poll(PollContent),
+    Giphy(GiphyContent),
+    Custom(CustomContent),
+}
+
+impl MessageContentInitial {
+    pub fn from_text(text: String) -> Self {
+        MessageContentInitial::Text(TextContent { text })
+    }
+}
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum MessageContent {
@@ -11,7 +29,27 @@ pub enum MessageContent {
     Audio(AudioContent),
     File(FileContent),
     Poll(PollContent),
+    Deleted(DeletedBy),
     Giphy(GiphyContent),
+    Custom(CustomContent),
+    Unsupported(UnsupportedContent),
+}
+
+impl MessageContent {
+    pub fn text(&self) -> Option<&str> {
+        match self {
+            MessageContent::Text(t) => Some(t.text.as_str()),
+            MessageContent::Image(i) => i.caption.as_deref(),
+            MessageContent::Video(v) => v.caption.as_deref(),
+            MessageContent::Audio(a) => a.caption.as_deref(),
+            MessageContent::File(f) => f.caption.as_deref(),
+            MessageContent::Poll(p) => p.config.text.as_deref(),
+            MessageContent::Giphy(g) => g.caption.as_deref(),
+            MessageContent::Deleted(_)
+            | MessageContent::Unsupported(_)
+            | MessageContent::Custom(_) => None,
+        }
+    }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -115,4 +153,21 @@ pub struct BlobReference {
     pub canister_id: Principal,
     #[serde(serialize_with = "serialize_large_uint")]
     pub blob_id: u128,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct DeletedBy {
+    pub deleted_by: UserId,
+    pub timestamp: TimestampMillis,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct CustomContent {
+    pub kind: String,
+    pub data: Vec<u8>,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct UnsupportedContent {
+    pub kind: String,
 }

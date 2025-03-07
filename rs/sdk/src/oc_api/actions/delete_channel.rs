@@ -9,7 +9,7 @@ impl ActionDef for DeleteChannelAction {
     type Args = Args;
     type Response = Response;
 
-    fn method_name() -> &'static str {
+    fn method_name(_: bool) -> &'static str {
         "bot_delete_channel"
     }
 }

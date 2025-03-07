@@ -13,4 +13,6 @@ pub trait Runtime: Send + Sync + 'static {
     fn spawn<F: Future<Output = ()> + Send + 'static>(&self, f: F);
 
     fn now(&self) -> TimestampMillis;
+
+    fn is_canister(&self) -> bool;
 }

@@ -190,6 +190,17 @@
           },
           "required": ["DecimalParam"],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "A parameter representing a datetime as a timestamp in milliseconds",
+          "properties": {
+            "DateTimeParam": {
+              "$ref": "#/definitions/DateTimeParam"
+            }
+          },
+          "required": ["DateTimeParam"],
+          "additionalProperties": false
         }
       ]
     },
@@ -211,9 +222,13 @@
           "type": "array",
           "description": "List of predefined choices for the string parameter.",
           "items": { "$ref": "#/definitions/SlashCommandOptionChoiceString" }
+        },
+        "multi_line": {
+          "type": "boolean",
+          "description": "Indicates that a multi-line string parameter should be expected."
         }
       },
-      "required": ["min_length", "max_length", "choices"],
+      "required": ["min_length", "max_length", "choices", "multi_line"],
       "additionalProperties": false
     },
     "IntegerParam": {
@@ -260,6 +275,18 @@
         }
       },
       "required": ["min_length", "max_length", "choices"],
+      "additionalProperties": false
+    },
+    "DateTimeParam": {
+      "type": "object",
+      "description": "DateTime parameter constraints and choices",
+      "properties": {
+        "future_only": {
+          "type": "boolean",
+          "description": "Indicates that only dates in the future are allowed, including now."
+        }
+      },
+      "required": ["future_only"],
       "additionalProperties": false
     },
     "SlashCommandOptionChoiceString": {

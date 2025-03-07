@@ -1,6 +1,4 @@
-use super::{
-    ActionScope, CanisterId, Chat, EncodedBotPermissions, MessageId, MessageIndex, UserId,
-};
+use super::{ActionScope, BotPermissions, CanisterId, Chat, MessageId, MessageIndex, UserId};
 use crate::api::command::Command;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
@@ -28,7 +26,7 @@ pub struct BotActionByCommandClaims {
     pub bot_api_gateway: CanisterId,
     pub bot: UserId,
     pub scope: BotCommandScope,
-    pub granted_permissions: EncodedBotPermissions,
+    pub granted_permissions: BotPermissions,
     pub command: Command,
 }
 
@@ -37,7 +35,7 @@ pub struct BotActionByApiKeyClaims {
     pub bot_api_gateway: CanisterId,
     pub bot: UserId,
     pub scope: ActionScope,
-    pub granted_permissions: EncodedBotPermissions,
+    pub granted_permissions: BotPermissions,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -51,6 +49,26 @@ impl BotCommandScope {
         match self {
             BotCommandScope::Chat(details) => Some(details.message_id),
             BotCommandScope::Community(_) => None,
+        }
+    }
+
+    pub fn thread(&self) -> Option<MessageIndex> {
+        match self {
+            BotCommandScope::Chat(details) => details.thread,
+            BotCommandScope::Community(_) => None,
+        }
+    }
+
+    pub fn path(&self) -> String {
+        match self {
+            BotCommandScope::Community(details) => format!("/community/{}", details.community_id),
+            BotCommandScope::Chat(details) => match details.chat {
+                Chat::Channel(community_id, channel_id) => {
+                    format!("/community/{}/channel/{}", community_id, channel_id)
+                }
+                Chat::Direct(chat_id) => format!("/user/{}", chat_id),
+                Chat::Group(chat_id) => format!("/group/{}", chat_id),
+            },
         }
     }
 }

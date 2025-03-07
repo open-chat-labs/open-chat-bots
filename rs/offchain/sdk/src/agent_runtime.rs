@@ -45,4 +45,8 @@ impl Runtime for AgentRuntime {
             .unwrap()
             .as_millis() as TimestampMillis
     }
+
+    fn is_canister(&self) -> bool {
+        false
+    }
 }

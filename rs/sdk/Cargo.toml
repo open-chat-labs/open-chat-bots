@@ -11,6 +11,8 @@ base64 = { workspace = true }
 candid = { workspace = true }
 ct-codecs = { workspace = true }
 dataurl = { workspace = true }
+ic-ledger-types = { workspace = true }
+icrc-ledger-types = { workspace = true }
 image = { workspace = true }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 rand = { workspace = true }

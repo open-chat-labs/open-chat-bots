@@ -36,13 +36,11 @@ impl CommandHandler<AgentRuntime> for Roll {
 
         // Send the message to OpenChat but don't wait for the response
         let message = oc_client_factory
-            .build_command_client(cxt)
+            .build(cxt)
             .send_text_message(text)
             .execute_then_return_message(|_, _| ());
 
-        Ok(SuccessResult {
-            message: Some(message),
-        })
+        Ok(SuccessResult { message })
     }
 }
 

@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use oc_bots_sdk::api::command::{CommandHandler, EphemeralMessageBuilder, SuccessResult};
 use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
-use oc_bots_sdk::types::BotCommandContext;
+use oc_bots_sdk::types::{BotCommandContext, MessageContentInitial};
 use oc_bots_sdk_offchain::AgentRuntime;
 use std::sync::{Arc, LazyLock};
 
@@ -42,14 +42,17 @@ impl CommandHandler<AgentRuntime> for Status {
                 }
             });
 
-        Ok(EphemeralMessageBuilder::new(ctx)
-            .with_text_content(if num_links > 0 {
+        // Reply to the initiator with an ephemeral message
+        Ok(EphemeralMessageBuilder::new(
+            MessageContentInitial::from_text(if num_links > 0 {
                 "This channel has an active relay link to Discord!".into()
             } else {
                 "This channel is not linked to any Discord channels!".into()
-            })
-            .build()?
-            .into())
+            }),
+            ctx.scope.message_id().unwrap(),
+        )
+        .build()
+        .into())
     }
 }
 

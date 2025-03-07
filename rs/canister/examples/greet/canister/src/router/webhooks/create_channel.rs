@@ -15,7 +15,7 @@ pub async fn execute(request: HttpRequest, context: BotApiKeyContext) -> HttpRes
     };
 
     let response = OPENCHAT_CLIENT_FACTORY
-        .build_api_key_client(context)
+        .build(context)
         .create_channel(args.channel_name, args.is_public)
         .execute_async()
         .await;

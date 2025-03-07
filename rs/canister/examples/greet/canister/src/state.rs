@@ -69,9 +69,14 @@ impl State {
         inserted
     }
 
-    pub fn update(&mut self, oc_public_key: String, administrator: Principal) {
-        self.oc_public_key = oc_public_key;
-        self.administrator = administrator;
+    pub fn update(&mut self, oc_public_key: Option<String>, administrator: Option<Principal>) {
+        if let Some(oc_public_key) = oc_public_key {
+            self.oc_public_key = oc_public_key;
+        }
+
+        if let Some(administrator) = administrator {
+            self.administrator = administrator;
+        }
     }
 
     pub fn set_rng_seed(&mut self, seed: [u8; 32]) {

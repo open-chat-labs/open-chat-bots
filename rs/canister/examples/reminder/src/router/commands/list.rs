@@ -2,7 +2,9 @@ use async_trait::async_trait;
 use oc_bots_sdk::api::command::{CommandHandler, EphemeralMessageBuilder, SuccessResult};
 use oc_bots_sdk::api::definition::BotCommandDefinition;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
-use oc_bots_sdk::types::{BotCommandContext, BotCommandScope, BotPermissions, ChatRole};
+use oc_bots_sdk::types::{
+    BotCommandContext, BotCommandScope, BotPermissions, ChatRole, MessageContentInitial,
+};
 use oc_bots_sdk_canister::CanisterRuntime;
 use std::sync::LazyLock;
 
@@ -42,10 +44,12 @@ impl CommandHandler<CanisterRuntime> for List {
             }
         }
 
-        Ok(EphemeralMessageBuilder::new(cxt)
-            .with_text_content(text)
-            .build()?
-            .into())
+        Ok(EphemeralMessageBuilder::new(
+            MessageContentInitial::from_text(text),
+            cxt.scope.message_id().unwrap(),
+        )
+        .build()
+        .into())
     }
 }
 
@@ -56,7 +60,7 @@ impl List {
             description: Some("List the reminders set in this chat with their IDs".to_string()),
             placeholder: None,
             params: vec![],
-            permissions: BotPermissions::text_only(),
+            permissions: BotPermissions::default(),
             default_role: Some(ChatRole::Admin),
         }
     }

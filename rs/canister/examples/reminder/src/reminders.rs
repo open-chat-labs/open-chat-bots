@@ -6,7 +6,7 @@ use english_to_cron::str_cron_syntax;
 use ic_cdk_timers::TimerId;
 use oc_bots_sdk::oc_api::actions::{send_message, ActionArgsBuilder};
 use oc_bots_sdk::types::{
-    ActionScope, BotApiKeyContext, BotPermissions, Chat, MessageContent, TextContent,
+    ActionScope, BotApiKeyContext, BotPermissions, Chat, MessageContentInitial, TextContent,
     TimestampMillis, UserId,
 };
 use oc_bots_sdk_canister::{env, OPENCHAT_CLIENT_FACTORY};
@@ -73,8 +73,9 @@ fn run() {
 
 async fn send_reminder(context: BotApiKeyContext, text: String) {
     match OPENCHAT_CLIENT_FACTORY
-        .build_api_key_client(context)
-        .send_message(MessageContent::Text(TextContent { text }))
+        .build(context)
+        .send_message(MessageContentInitial::Text(TextContent { text }))
+        .with_block_level_markdown(true)
         .execute_async()
         .await
     {

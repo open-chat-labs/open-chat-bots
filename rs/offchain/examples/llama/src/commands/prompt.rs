@@ -5,7 +5,7 @@ use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::BotCommandContext;
 use oc_bots_sdk_offchain::AgentRuntime;
-use std::{collections::HashSet, sync::LazyLock};
+use std::sync::LazyLock;
 
 static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Prompt::definition);
 
@@ -30,13 +30,11 @@ impl CommandHandler<AgentRuntime> for Prompt {
 
         // Send the message to OpenChat but don't wait for the response
         let message = oc_client_factory
-            .build_command_client(cxt)
+            .build(cxt)
             .send_text_message(llm_response)
             .execute_then_return_message(|_, _| ());
 
-        Ok(SuccessResult {
-            message: Some(message),
-        })
+        Ok(SuccessResult { message })
     }
 }
 
@@ -59,13 +57,10 @@ impl Prompt {
                     min_length: 1,
                     max_length: 10000,
                     choices: Vec::new(),
-                    mutli_line: true,
+                    multi_line: true,
                 }),
             }],
-            permissions: BotPermissions {
-                message: HashSet::from_iter([MessagePermission::Text]),
-                ..Default::default()
-            },
+            permissions: BotPermissions::from_message_permission(MessagePermission::Text),
             default_role: None,
         }
     }

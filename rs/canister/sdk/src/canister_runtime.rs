@@ -26,4 +26,8 @@ impl Runtime for CanisterRuntime {
     fn now(&self) -> TimestampMillis {
         crate::env::now()
     }
+
+    fn is_canister(&self) -> bool {
+        true
+    }
 }

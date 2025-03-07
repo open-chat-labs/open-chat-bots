@@ -28,7 +28,7 @@ impl CommandHandler<CanisterRuntime> for Greet {
 
         // Send the message to OpenChat but don't wait for the response
         let message = oc_client_factory
-            .build_command_client(cxt)
+            .build(cxt)
             .send_text_message(text)
             .execute_then_return_message(|args, response| match response {
                 Ok(send_message::Response::Success(_)) => {
@@ -39,9 +39,7 @@ impl CommandHandler<CanisterRuntime> for Greet {
                 }
             });
 
-        Ok(SuccessResult {
-            message: Some(message),
-        })
+        Ok(SuccessResult { message })
     }
 }
 
