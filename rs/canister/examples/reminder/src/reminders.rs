@@ -118,9 +118,7 @@ impl Reminder {
 
         let when = match &self.when {
             RemindWhen::Recurring(text) => format!("recurs {}", text),
-            RemindWhen::Once(ts) => {
-                format!("{}", Self::format_datetime(*ts, &self.timezone))
-            }
+            RemindWhen::Once(ts) => Self::format_datetime(*ts, &self.timezone).to_string(),
         };
 
         format!("#{} \"{}\" {}", self.chat_reminder_id, message, when)
