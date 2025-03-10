@@ -370,7 +370,7 @@ mod tests {
 
         assert_eq!(
             Reminder::format_datetime(timestamp, &timezone),
-            "Mon, 10 Mar 2025 at 12:02"
+            "at 12:02 on Mon, 10 Mar 2025"
         );
     }
 }
