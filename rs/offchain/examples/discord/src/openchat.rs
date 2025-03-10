@@ -118,7 +118,7 @@ async fn execute_command(
 
     let res = oc_data
         .commands
-        .execute(&jwt, &oc_data.oc_config.public_key, env::now())
+        .execute(jwt, &oc_data.oc_config.public_key, env::now())
         .await;
 
     match res {
