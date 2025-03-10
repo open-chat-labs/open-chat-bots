@@ -90,7 +90,7 @@ impl RemindAt {
     fn definition() -> BotCommandDefinition {
         BotCommandDefinition {
             name: "remind_at".to_string(),
-            description: Some("/remind_at \"Go to dentist appointment\" \"4pm\"".to_string()),
+            description: Some("/remind_at \"Go to dentist appointment\" \"4pm tomorrow\"".to_string()),
             placeholder: None,
             params: vec![
                 BotCommandParam {

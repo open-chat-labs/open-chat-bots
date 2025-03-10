@@ -91,7 +91,7 @@ impl RemindRecurring {
     fn definition() -> BotCommandDefinition {
         BotCommandDefinition {
             name: "remind_recurring".to_string(),
-            description: Some("/remind_recurring \"drink water\" \"at 4:00 pm\"".to_string()),
+            description: Some("/remind_recurring \"drink water\" \"at 4pm every day\"".to_string()),
             placeholder: None,
             params: vec![
                 BotCommandParam {
