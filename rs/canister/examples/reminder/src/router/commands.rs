@@ -11,16 +11,19 @@ use oc_bots_sdk_canister::http_command_handler;
 use oc_bots_sdk_canister::CanisterRuntime;
 use oc_bots_sdk_canister::OPENCHAT_CLIENT_FACTORY;
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse};
-use remind::Remind;
+use remind_at::RemindAt;
+use remind_recurring::RemindRecurring;
 use std::sync::LazyLock;
 
 mod delete;
 mod list;
-mod remind;
+mod remind_at;
+mod remind_recurring;
 
 static COMMANDS: LazyLock<CommandHandlerRegistry<CanisterRuntime>> = LazyLock::new(|| {
     CommandHandlerRegistry::new(OPENCHAT_CLIENT_FACTORY.clone())
-        .register(Remind)
+        .register(RemindRecurring)
+        .register(RemindAt)
         .register(List)
         .register(Delete)
         .on_sync_api_key(Box::new(on_sync_api_key))

@@ -1,8 +1,7 @@
 use async_trait::async_trait;
-use chrono::DateTime;
 use oc_bots_sdk::api::command::{CommandHandler, EphemeralMessageBuilder, SuccessResult};
 use oc_bots_sdk::api::definition::{
-    BotCommandDefinition, BotCommandParam, BotCommandParamType, StringParam,
+    BotCommandDefinition, BotCommandParam, BotCommandParamType, DateTimeParam, StringParam,
 };
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::{
@@ -11,14 +10,15 @@ use oc_bots_sdk::types::{
 use oc_bots_sdk_canister::{env, CanisterRuntime};
 use std::sync::LazyLock;
 
+use crate::reminders::{RemindWhen, Reminder};
 use crate::{reminders, state};
 
-static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Remind::definition);
+static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(RemindAt::definition);
 
-pub struct Remind;
+pub struct RemindAt;
 
 #[async_trait]
-impl CommandHandler<CanisterRuntime> for Remind {
+impl CommandHandler<CanisterRuntime> for RemindAt {
     fn definition(&self) -> &BotCommandDefinition {
         &DEFINITION
     }
@@ -30,7 +30,6 @@ impl CommandHandler<CanisterRuntime> for Remind {
     ) -> Result<SuccessResult, String> {
         let what = cxt.command.arg("what");
         let when = cxt.command.arg("when");
-        let repeat = cxt.command.maybe_arg("repeat").unwrap_or_default();
         let timezone = cxt.command.timezone();
 
         let text = state::mutate(|state| {
@@ -54,8 +53,7 @@ impl CommandHandler<CanisterRuntime> for Remind {
             // Add the reminder to the state
             let result = match state.reminders.add(
                 what,
-                when,
-                repeat,
+                RemindWhen::Once(when),
                 timezone,
                 cxt.command.initiator,
                 chat_scope.chat.clone(),
@@ -71,16 +69,10 @@ impl CommandHandler<CanisterRuntime> for Remind {
                 reminders::start_job_if_required(state);
             }
 
-            // Return the reminder text
-            let next = DateTime::from_timestamp_millis(result.timestamp as i64)
-                .unwrap()
-                .with_timezone(&result.timezone);
-
             format!(
-                "Reminder #{} on {}{}",
+                "Reminder #{} {}",
                 result.chat_reminder_id,
-                next.to_rfc2822(),
-                if repeat { " [repeats]" } else { "" }
+                Reminder::format_datetime(result.timestamp, &result.timezone),
             )
         });
 
@@ -94,17 +86,17 @@ impl CommandHandler<CanisterRuntime> for Remind {
     }
 }
 
-impl Remind {
+impl RemindAt {
     fn definition() -> BotCommandDefinition {
         BotCommandDefinition {
-            name: "remind".to_string(),
-            description: Some("/remind \"drink water\" \"at 4:00 pm\" true".to_string()),
+            name: "remind_at".to_string(),
+            description: Some("/remind_at \"Go to dentist appointment\" \"4pm tomorrow\"".to_string()),
             placeholder: None,
             params: vec![
                 BotCommandParam {
                     name: "what".to_string(),
                     description: Some(
-                        "The reminder message to be sent at the specified time(s). This supports `markdown` to style messages.".to_string(),
+                        "The reminder message to be sent at the specified time. This supports `markdown` to style messages.".to_string(),
                     ),
                     placeholder: Some("Enter a reminder message...".to_string()),
                     required: true,
@@ -118,23 +110,13 @@ impl Remind {
                 BotCommandParam {
                     name: "when".to_string(),
                     description: Some(
-                        "When to send a reminder (using natural language)".to_string(),
+                        "The date and time to send the reminder".to_string(),
                     ),
-                    placeholder: Some("Say when you want the reminder...".to_string()),
+                    placeholder: Some("Pick a date/time to send the reminder...".to_string()),
                     required: true,
-                    param_type: BotCommandParamType::StringParam(StringParam {
-                        choices: vec![],
-                        min_length: 1,
-                        max_length: 200,
-                        multi_line: false,
+                    param_type: BotCommandParamType::DateTimeParam(DateTimeParam {
+                        future_only: true,
                     }),
-                },
-                BotCommandParam {
-                    name: "repeat".to_string(),
-                    description: Some("Whether this reminder repeats".to_string()),
-                    placeholder: None,
-                    required: false,
-                    param_type: BotCommandParamType::BooleanParam,
                 },
             ],
             permissions: BotPermissions::default(),

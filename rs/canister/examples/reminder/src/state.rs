@@ -11,7 +11,6 @@ thread_local! {
 #[derive(Serialize, Deserialize)]
 pub struct State {
     oc_public_key: String,
-    #[serde(default, skip_deserializing)]
     pub api_key_registry: ApiKeyRegistry,
     pub reminders: Reminders,
 }
