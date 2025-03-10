@@ -64,7 +64,7 @@ pub struct RelayLink {
     // Note that this key can be retrieved from the token, but we are basically
     // caching it to simplify the code.
     pub oc_channel_key: OcChannelKey,
-    pub oc_token: AuthToken,
+    pub oc_auth_token: AuthToken,
     pub error: Option<String>,
 }
 
@@ -73,7 +73,7 @@ impl RelayLink {
         Self {
             ds_channel_id,
             oc_channel_key,
-            oc_token: AuthToken::ApiKey(api_key),
+            oc_auth_token: AuthToken::ApiKey(api_key),
             error: None,
         }
     }

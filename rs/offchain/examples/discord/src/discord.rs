@@ -45,8 +45,8 @@ pub async fn init_discord_client(
     let options = poise::FrameworkOptions {
         commands: vec![
             discord_commands::status(),
-            discord_commands::set_oc_token(),
-            discord_commands::clear_oc_token(),
+            discord_commands::connect(),
+            discord_commands::disconnect(),
         ],
         post_command: |ctx| {
             Box::pin(async move {
