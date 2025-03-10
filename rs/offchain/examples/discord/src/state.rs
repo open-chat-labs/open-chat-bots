@@ -80,6 +80,11 @@ impl BotState {
         self.relay_links.read().await.get(&channel_id).cloned()
     }
 
+    pub async fn remove_relay_link(&self, channel_id: ChannelId) -> bool {
+        let removed_link = self.relay_links.write().await.remove(&channel_id);
+        removed_link.is_some()
+    }
+
     /// Restore previously saved state
     ///
     /// Loads data from the state file, if store path is provided. If the
@@ -195,12 +200,10 @@ mod test {
     use fs::remove_file;
     use oc_bots_sdk::types::AuthToken;
     use poise::serenity_prelude::ChannelId;
-    use std::{env, error::Error};
+    use std::error::Error;
 
     #[tokio::test]
     async fn state_is_encrypted() -> Result<(), Box<dyn Error>> {
-        print!("LOC === {:?}", env::current_dir()?);
-
         // This data would be deserialised from the config
         let key = b"-this-is-very-silly--32-bit-key-";
         let store_path_str = "../../target/unit_tests/store.db".to_string();
@@ -225,7 +228,7 @@ mod test {
                 RelayLink {
                     ds_channel_id,
                     oc_channel_key: OcChannelKey::new("this-is-key".into()),
-                    oc_token: AuthToken::ApiKey("this-is-api-key".into()),
+                    oc_auth_token: AuthToken::ApiKey("this-is-api-key".into()),
                     error: None,
                 },
             )
@@ -252,9 +255,34 @@ mod test {
             restored_link.oc_channel_key,
             OcChannelKey::new("this-is-key".into())
         );
-        assert_eq!(restored_link.oc_token.into(), "this-is-api-key".to_string());
+        assert_eq!(
+            restored_link.oc_auth_token.into(),
+            "this-is-api-key".to_string()
+        );
         assert_eq!(restored_link.error, None);
 
+        Ok(())
+    }
+
+    // This test should catch errors that may occur when property names of the
+    // state struct are changed, and state is serialised with the old names.
+    // TODO devise a migration mechanism for this case!
+    #[tokio::test]
+    async fn state_decodes_correctly_from_string() -> Result<(), Box<dyn Error>> {
+        let store_str = r#"{
+            "relay_links":{
+                "1338817539941077055":{
+                    "ds_channel_id":"1338817539941077055",
+                    "oc_channel_key":"dzh22-nuaaa-aaaaa-qaaoa-cai",
+                    "oc_auth_token":{
+                        "ApiKey":"eyJnYXRld2F5IjoiY3VqNnUtYzRhYWEtYWFhYWEtcWFhanEtY2FpIiwiYm90X2lkIjoiZWNieHotdHR4bWctM29hZ3QtcHB3MmEiLCJzY29wZSI6eyJDaGF0Ijp7Ikdyb3VwIjoiZHpoMjItbnVhYWEtYWFhYWEtcWFhb2EtY2FpIn19LCJzZWNyZXQiOiIxNjQ1NDMzNjM3NjQ5NzkxMDYxNzUwMTI0MTIwOTIwMDY5NzAzODAiLCJwZXJtaXNzaW9ucyI6eyJtZXNzYWdlIjoxfX0="
+                    },
+                    "error":null
+                }
+            }
+        }"#;
+
+        serde_json::from_str::<PersistData>(store_str)?;
         Ok(())
     }
 }

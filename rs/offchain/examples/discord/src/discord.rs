@@ -43,10 +43,17 @@ pub async fn init_discord_client(
     // Commands are registered on every bot startup; any changes made between
     // restarts will be reflected on the next start-up.
     let options = poise::FrameworkOptions {
-        commands: vec![discord_commands::status(), discord_commands::set_oc_token()],
+        commands: vec![
+            discord_commands::status(),
+            discord_commands::connect(),
+            discord_commands::disconnect(),
+        ],
         post_command: |ctx| {
             Box::pin(async move {
-                info!("Command processed :: {}", ctx.command().qualified_name);
+                info!(
+                    "Discord :: command processed :: {}",
+                    ctx.command().qualified_name
+                );
             })
         },
         event_handler: |ctx, event, framework, data| {
