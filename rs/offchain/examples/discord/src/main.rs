@@ -58,14 +58,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Run bots, if any of them fails, we log the error and exit.
     tokio::select! {
         res = discord_client.start() => {
-            error!("Discord bot failed! :: {:?}", res);
+            if res.is_err() {
+                error!("Discord bot failed! :: {:?}", res);
+            }
         },
         res = crate::openchat::start_openchat_bot(
             Arc::new(openchat_client),
             config.openchat.bot.port,
             rx,
         ) => {
-            error!("OpenChat bot failed! :: {:?}", res);
+            if res.is_err() {
+                error!("OpenChat bot failed! :: {:?}", res);
+            }
         },
     };
 
