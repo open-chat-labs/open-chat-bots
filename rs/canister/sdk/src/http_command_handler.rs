@@ -18,6 +18,6 @@ pub async fn execute(
         CommandResponse::Success(result) => HttpResponse::json(200, &result),
         CommandResponse::BadRequest(err) => HttpResponse::json(400, &err),
         CommandResponse::TooManyRequests => HttpResponse::status(429),
-        CommandResponse::InternalError(err) => HttpResponse::text(500, format!("{err:?}")),
+        CommandResponse::InternalError(err) => HttpResponse::json(500, &err),
     }
 }

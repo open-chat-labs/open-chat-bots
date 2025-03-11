@@ -111,7 +111,7 @@ async fn execute_command(State(oc_data): State<Arc<OcData>>, jwt: String) -> (St
         ),
         CommandResponse::InternalError(err) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Bytes::from(format!("{err:?}")),
+            Bytes::from(serde_json::to_vec(&err).unwrap()),
         ),
         CommandResponse::TooManyRequests => (StatusCode::TOO_MANY_REQUESTS, Bytes::new()),
     }
