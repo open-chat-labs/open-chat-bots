@@ -33,16 +33,19 @@ After a minute or so you should see the OpenChat frontend.
 &nbsp;
 Navigate to the groups section and then click "New group" from the groups menu
 &nbsp;
+
 ![Create a group on open chat](./images/create-group.png)
 
 &nbsp;
 Enter the group name
 &nbsp;
+
 ![Group names](./images/GroupName.png)
 
 &nbsp;
 Just pick default settings by clicking "next" until you reach the "Create Group" button
 &nbsp;
+
 ![Create group](./images/creategroup.png)
 
 ### Step 3: Deploy the Bot
@@ -72,14 +75,11 @@ To deploy the example bots for particular SDKs please follow these links:
 
 2. Look for the "Add bots" tab
 
-&nbsp;
 ![add bots](./images/add-bots.png)
-&nbsp;
 
 3. Select the newly registered bot and install it
 
-&nbsp;
 ![install bot](./images/install-bot.png)
-&nbsp;
 
+&nbsp;
 You can now run the various bot commands it provides!
