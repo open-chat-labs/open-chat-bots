@@ -33,4 +33,5 @@ else
     exit 1
 fi
 
+# Deploy the greet_bot with the given MODE and ARGS
 ./scripts/utils/deploy_bot.sh greet_bot $MODE "$ARGS"

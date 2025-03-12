@@ -91,23 +91,9 @@ impl RemindRecurring {
     fn definition() -> BotCommandDefinition {
         BotCommandDefinition {
             name: "remind_recurring".to_string(),
-            description: Some("/remind_recurring \"drink water\" \"at 4pm every day\"".to_string()),
+            description: Some("/remind_recurring \"9am every weekday\" \"Daily stand-up starting now\" ".to_string()),
             placeholder: None,
             params: vec![
-                BotCommandParam {
-                    name: "what".to_string(),
-                    description: Some(
-                        "The reminder message to be sent. This supports `markdown` to style messages.".to_string(),
-                    ),
-                    placeholder: Some("Enter a reminder message...".to_string()),
-                    required: true,
-                    param_type: BotCommandParamType::StringParam(StringParam {
-                        choices: vec![],
-                        min_length: 1,
-                        max_length: 5000,
-                        multi_line: true,
-                    }),
-                },
                 BotCommandParam {
                     name: "when".to_string(),
                     description: Some(
@@ -120,6 +106,20 @@ impl RemindRecurring {
                         min_length: 1,
                         max_length: 200,
                         multi_line: false,
+                    }),
+                },
+                BotCommandParam {
+                    name: "what".to_string(),
+                    description: Some(
+                        "The reminder message to be sent. This supports `markdown` to style messages.".to_string(),
+                    ),
+                    placeholder: Some("Enter a reminder message...".to_string()),
+                    required: true,
+                    param_type: BotCommandParamType::StringParam(StringParam {
+                        choices: vec![],
+                        min_length: 1,
+                        max_length: 5000,
+                        multi_line: true,
                     }),
                 },
             ],
