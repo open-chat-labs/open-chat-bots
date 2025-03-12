@@ -3,6 +3,7 @@ use crate::errors::BotError;
 use crate::state::BotState;
 use axum::body::Bytes;
 use axum::extract::State;
+use axum::http::header::HeaderMap;
 use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::Router;
@@ -16,7 +17,7 @@ use std::sync::Arc;
 use tokio::sync::mpsc::Receiver;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
-use tracing::info;
+use tracing::{error, info};
 pub use types::*;
 
 pub mod commands;
@@ -94,31 +95,66 @@ pub async fn start_openchat_bot(
 }
 
 // Handler for command execution!
-async fn execute_command(State(oc_data): State<Arc<OcData>>, jwt: String) -> (StatusCode, Bytes) {
+async fn execute_command(
+    State(oc_data): State<Arc<OcData>>,
+    headers: HeaderMap,
+) -> (StatusCode, Bytes) {
+    let jwt = if let Some(val) = headers.get("x-oc-jwt") {
+        if let Ok(jwt) = val.to_str() {
+            jwt
+        } else {
+            error!("Failed to parse authorization header! :: {:?}", val);
+            return (
+                StatusCode::BAD_REQUEST,
+                Bytes::from("Failed to parse authorization header!"),
+            );
+        }
+    } else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Bytes::from("No authorization header found!"),
+        );
+    };
+
     let res = oc_data
         .commands
-        .execute(&jwt, &oc_data.oc_config.public_key, env::now())
+        .execute(jwt, &oc_data.oc_config.public_key, env::now())
         .await;
 
     match res {
         CommandResponse::Success(r) => {
+            info!("OpenChat :: command executed successfully!");
             //? should we use unwrap
             (StatusCode::OK, Bytes::from(serde_json::to_vec(&r).unwrap()))
         }
-        CommandResponse::BadRequest(r) => (
-            StatusCode::BAD_REQUEST,
-            Bytes::from(serde_json::to_vec(&r).unwrap()),
-        ),
-        CommandResponse::InternalError(err) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Bytes::from(serde_json::to_vec(&err).unwrap()),
-        ),
-        CommandResponse::TooManyRequests => (StatusCode::TOO_MANY_REQUESTS, Bytes::new()),
+        CommandResponse::BadRequest(r) => {
+            error!("OpenChat :: command failed with bad request :: {:?}", r);
+            (
+                StatusCode::BAD_REQUEST,
+                Bytes::from(serde_json::to_vec(&r).unwrap()),
+            )
+        }
+        CommandResponse::InternalError(err) => {
+            error!(
+                "OpenChat :: command failed with internal error :: {:?}",
+                err
+            );
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Bytes::from(format!("{err:?}")),
+            )
+        }
+        CommandResponse::TooManyRequests => {
+            error!("OpenChat :: command failed with _too many_ request!");
+            (StatusCode::TOO_MANY_REQUESTS, Bytes::new())
+        }
     }
 }
 
 // Handler for returning the bot definition!
 async fn bot_definition(State(oc_data): State<Arc<OcData>>, _body: String) -> (StatusCode, Bytes) {
+    info!("OpenChat :: bot definition requested!");
+
     let definition = BotDefinition {
         description: "Bot for proxying messages from Discord to OpenChat".to_string(),
         commands: oc_data.commands.definitions(),
