@@ -10,7 +10,7 @@ There are broadly three different categories of bot that OpenChat currently supp
 
 There is some overlap in these capabilities and it is quite possible to create a single bot which acts in all three different ways. We will provide examples of all the different approaches and when you might use each type of bot. Let's discuss these bot types and how they work in more detail.
 
-### All bots
+## All bots
 
 All bots are server components (which may be implemented as an IC canister or any other kind of off-chain server) which will interact with the OpenChat backend in order to provide its functions. A bot's functions may be described by the set of commands that an OpenChat user can trigger from within OpenChat to interact with it or it may operate autonomously and therefore only express the permissions it required to do so.
 
@@ -20,13 +20,13 @@ Your job is to provide an instance of this definition schema and a server which 
 
 To test your bot, we recommend that you start by running OpenChat locally. Please refer to the [OpenChat readme](https://github.com/open-chat-labs/open-chat/blob/master/README.md) for help with this. When you have a test bot running and an instance of OpenChat running locally you are ready to try to register your bot using the built-in `/register_bot` command (which is only available in developer mode).
 
-#### Registering the bot
+### Registering the bot
 
 The `/register_bot` command will load a modal to allow you to enter the details of your bot. Importantly this includes the endpoint that OpenChat should use to communicate with your bot. When you provide this endpoint, we will then attempt to load and validate your bot's definition schema. Take the time to browse through the parsed definition - this is how OpenChat understands your bot's behaviour and how it will control the user's interactions with your bot. When you are happy, you can register the bot.
 
 When you register a bot it won't yet be available to all users to install. As the owner of the bot you will be able to install the bot in any group or community you own, or as a direct chat. As part of the registration you can additionally specify one other group or community for testing purposes and its owner will be be able to install the bot. When your bot has been fully tested and is ready for prime time you can make a "publish bot" proposal to make the bot publicly available. This is to ensure that each bot gets a certain level of scrutiny and that the DAO agrees in principal that it is a useful addition.
 
-#### Installing the bot
+### Installing the bot
 
 Once a bot has been registered with OpenChat and then published it becomes available to be added to any community or group by the owner(s) of that community or group, or as a direct chat by any user. In the case of groups and communities this is done via the members panel, or for a direct chat you can search for it in the direct chats section.
 
@@ -38,7 +38,7 @@ Once the bot is installed in a group or community, if it supports commands, it w
 
 Let's now consider what's different about the different types of bot.
 
-### Command bots
+## Command bots
 
 Once a user has selected a command and filled in any required parameters, OpenChat will attempt to obtain an authorisation token. We will check that the user and the bot have the permission to do what they are asking to do in principal and then, if all is well, we will create an authorisation token in the form of a json web token (a JWT) signed with the OpenChat private key. This token will then be automatically sent to your bot's endpoint (currently in the HTTP POST body but soon as an HTTP header) and contains all of the information required by your bot to take action.
 
@@ -60,7 +60,7 @@ To understand how to handle receiving this token it is best to refer to the spec
 
 The auth token also contains the "scope" to which it applies and for commands the scope is currently either a group, channel or direct chat.
 
-#### Command lifecycle
+### Command lifecycle
 
 A command bot's `execute_command` request handler should return as quickly as possible. What the bot returns depends on the nature of the bot and what task(s) it will be performing. If the bot is able to synchronously and quickly respond to the user's command then it should respond with the final message that it sends to the OpenChat backend. We indicate that the message is the final version by setting the finalised flag to true in that case.
 
@@ -76,11 +76,11 @@ You may also wish to return a message to the OpenChat front end that is only des
 
 Finally, the command definition has a property, `default_role` with possible values, `Participant`, `Moderator`, `Admin`, `Owner`. At some point the OpenChat interface will allow a group/community owner to specify the allowed member role for each command with the default being the value specified in the definition. However, for now this is not available, and setting `default_role` effectively allows the bot owner to limit which member roles should be able to call each command.
 
-### Integration Bots
+## Integration Bots
 
 For integration bots the flow is a little different because the interaction is not triggered by an OpenChat user but by another external system. If you want an external system to be able to trigger your bot you will need to generate an API key to give to your external system.
 
-#### API keys
+### API keys
 
 As a community or group owner, when you have installed a bot, you will have the option to generate an API key for that context. This option is available from the bot's entry in the members list. When you choose to generate an API key, you will be asked to select the permissions you wish to encode in this key relative to the permissions the bot is seeking. You will then be shown the generated key.
 
@@ -98,7 +98,7 @@ External System            Bot Server            OC Backend
 
 Like command JWTs, API keys contain the scope in which it can be used. An API key can be generated for a community and separately for channels within the community. To allow the bot to take "community" actions such as creating a channel an API key must be generated at the community level with the appropriate permissions. However, the permissions cascade, so you could generate a community API key and give it the "send message" permission which will allow the bot to send messages to _any_ channel in the community. If you wish to restrict this behaviour you could choose to give the bot a channel API key(s) to allow it to send messages only in that channel(s).
 
-### Autonomous Bots
+## Autonomous Bots
 
 Automonous bots also use API Keys to interact with OpenChat. As a bot owner you could choose to give your bot one or more API keys to allow it to take actions (typically send messages) in a particular scope. However, the standard workflow is as follows. In the `AutonomousConfig` section of the bot _definition_ you can set the property `sync_api_key` to `true`. This tells the OpenChat interface to offer a group/community owner to sync an API key with the bot. OpenChat will then automatically call the bot with a special `sync_api_key` command where the command argument contains the API key. Typically the bot will then store this API key in a map keyed by the scope (more later) which will allow the bot to take actions in this scope. The handling of this special command and the API key map are provided by the SDKs. A bot then might offer a command, perhaps with `default_role = Admin`, allowing the user to subscribe to some particular behaviour. The bot would then hold the subscriptions and when some particular event happens use the API key for the given scope to take an OpenChat action. This is all quite abstract so an example will help.
 
@@ -127,7 +127,7 @@ User          OC Frontend           OC Backend          Bot Server
  |                     |                    |                  |
 ```
 
-### Available actions
+## Available actions
 
 Currently the OpenChat bot infrastructure allows the following actions to be taken by bots:
 
@@ -165,7 +165,7 @@ In time we will add support for the following additional message types:
 
 If are looking to build a bot which requires any of these actions, or any others not mentioned, please let us know and we can prioritise their availability.
 
-### Read / subscribe to OpenChat events
+## Read / subscribe to OpenChat events
 
 In addition to taking actions bots can also read and subcribe to OpenChat events:
 
@@ -185,6 +185,6 @@ As an example, a moderation bot might wish to subscribe to messages in a chat to
 
 Or a welcome bot might subscribe to "member joined" events to send new members a welcome message.
 
-### For information about the required bot schema
+## For information about the required bot schema
 
 See [the bot definition schema readme](./schema/README.md).
