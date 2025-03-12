@@ -13,7 +13,7 @@ To get the example canister bots running, follow these steps:
 
 3. Signup, create an account, and then create a private group for testing
 
-4. Run `./scripts/install_greet_bot.sh`. This will create a local canister, build the WASM, install it, then return the bot endpoint.
+4. Run `./scripts/deploy_greet_bot.sh install`. This will create a local canister, build the WASM, install it, then return the bot endpoint.
 
 5. From your test group on the local OpenChat website enter `/register_bot` and fill in the fields. The principal is the bot canister id which you can see in the bot endpoint url from step 4. This registers the bot on OpenChat for testing but it still needs to be installed into a group or community, or as a direct chat to interact with it.
 

@@ -55,12 +55,14 @@ fn run() {
     mutate(|state| {
         while let Some(reminder) = state.reminders.pop_next_due_reminder(env::now()) {
             if let Some(api_key) = state.api_key_registry.get_key_with_required_permissions(
-                &ActionScope::Chat(reminder.chat),
+                &ActionScope::Chat(reminder.chat.clone()),
                 &BotPermissions::text_only(),
             ) {
                 ic_cdk::spawn(send_reminder(
                     api_key.to_context(),
                     reminder.message.clone(),
+                    reminder.chat,
+                    reminder.chat_reminder_id,
                 ));
             } else {
                 continue;
@@ -71,7 +73,7 @@ fn run() {
     });
 }
 
-async fn send_reminder(context: BotApiKeyContext, text: String) {
+async fn send_reminder(context: BotApiKeyContext, text: String, chat: Chat, chat_reminder_id: u8) {
     match OPENCHAT_CLIENT_FACTORY
         .build(context)
         .send_message(MessageContentInitial::Text(TextContent { text }))
@@ -84,7 +86,10 @@ async fn send_reminder(context: BotApiKeyContext, text: String) {
             ic_cdk::println!("Failed to send reminder: {}: {}", code, message);
         }
         other => {
-            ic_cdk::println!("Failed to send reminder: {:?}", other);
+            mutate(|state| {
+                let _ = state.reminders.delete(&chat, chat_reminder_id);
+            });
+            ic_cdk::println!("Failed to send reminder - DELETING: {:?}", other);
         }
     }
 }
@@ -236,20 +241,31 @@ impl Reminders {
         let reminder = self.reminders.get_mut(&global_id)?;
 
         // Find the next reminder time if there is one
-        let reminder = if let Some(next) = reminder.schedule.as_ref().and_then(|schedule| {
-            Self::next_reminder_time(schedule, utc_now, &reminder.timezone, false).ok()
-        }) {
+        let (reminder, repeating) = if let Some(next) =
+            reminder.schedule.as_ref().and_then(|schedule| {
+                Self::next_reminder_time(schedule, utc_now, &reminder.timezone, false).ok()
+            }) {
             // This is a repeating reminder so insert the next occurrence
             self.ordered.insert((next, global_id));
 
-            reminder.clone()
+            (reminder.clone(), true)
         } else {
             // This is a one-off reminder so delete it
-            self.reminders.remove(&global_id).unwrap()
+            (self.reminders.remove(&global_id).unwrap(), false)
         };
 
-        self.delete_from_chat(&reminder.chat, reminder.chat_reminder_id)
-            .unwrap();
+        if !repeating {
+            match self.delete_from_chat(&reminder.chat, reminder.chat_reminder_id) {
+                Ok(_) => (),
+                Err(error) => {
+                    ic_cdk::println!(
+                        "Failed to delete reminder from chat: {} {}",
+                        reminder.chat.canister_id().to_string(),
+                        error
+                    );
+                }
+            }
+        }
 
         Some(reminder)
     }

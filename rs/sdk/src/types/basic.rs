@@ -65,6 +65,14 @@ impl Chat {
             _ => None,
         }
     }
+
+    pub fn canister_id(&self) -> CanisterId {
+        match self {
+            Chat::Direct(canister_id) => *canister_id,
+            Chat::Group(canister_id) => *canister_id,
+            Chat::Channel(canister_id, _) => *canister_id,
+        }
+    }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
