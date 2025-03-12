@@ -13,7 +13,7 @@ The guide covers both offchain bots (running as external services) and onchain b
 - Registering and installing bots in Open Chat
 - Testing your bot's functionality
 
-You can access the complete integration guide [here](./docs/integration-guide.md).
+You can access the complete integration guide [here](./rs/README.md).
 
 ## What kind of bots can I build?
 
