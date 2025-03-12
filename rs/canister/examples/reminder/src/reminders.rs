@@ -101,7 +101,7 @@ pub struct Reminders {
 pub struct Reminder {
     chat_reminder_id: u8,
     message: String,
-    when: String,
+    when: RemindWhen,
     timezone: Tz,
     schedule: Option<Schedule>,
     initiator: UserId,
@@ -116,27 +116,28 @@ impl Reminder {
             message = format!("{}...", message.truncate_to_boundary(50));
         }
 
-        format!(
-            "#{} {} -> {}{}",
-            self.chat_reminder_id,
-            self.when,
-            message,
-            if self.schedule.is_some() {
-                " [repeats]"
-            } else {
-                ""
-            },
-        )
+        let when = match &self.when {
+            RemindWhen::Recurring(text) => format!("recurs {}", text),
+            RemindWhen::Once(ts) => Self::format_datetime(*ts, &self.timezone).to_string(),
+        };
+
+        format!("#{} \"{}\" {}", self.chat_reminder_id, message, when)
+    }
+
+    pub fn format_datetime(ts: TimestampMillis, tz: &Tz) -> String {
+        let next = DateTime::from_timestamp_millis(ts as i64)
+            .unwrap()
+            .with_timezone(tz);
+
+        next.format("at %H:%M on %a, %d %b %Y").to_string()
     }
 }
 
 impl Reminders {
-    #[allow(clippy::too_many_arguments)]
     pub fn add(
         &mut self,
         message: String,
-        when: String,
-        repeat: bool,
+        when: RemindWhen,
         timezone: &str,
         initiator: UserId,
         chat: Chat,
@@ -161,16 +162,23 @@ impl Reminders {
             self.per_chat.insert(chat.clone(), BTreeMap::new());
         }
 
-        // Parse the CRON schedule
-        let cron = str_cron_syntax(&when)
-            .map_err(|_| "I don't understand when you want to be reminded".to_string())?;
+        let (timestamp, schedule) = match &when {
+            RemindWhen::Recurring(text) => {
+                // Parse the CRON schedule
+                let cron = str_cron_syntax(text)
+                    .map_err(|_| "I don't understand when you want to be reminded".to_string())?;
 
-        // Create a schedule from the CRON string
-        let schedule = Schedule::from_str(&cron)
-            .map_err(|error| format!("Incompatible CRON schedule: {error:?}"))?;
+                // Create a schedule from the CRON string
+                let schedule = Schedule::from_str(&cron)
+                    .map_err(|error| format!("Incompatible CRON schedule: {error:?}"))?;
 
-        // Calculate the next reminder time
-        let first = Self::next_reminder_time(&schedule, utc_now, &timezone, repeat)?;
+                // Calculate the next reminder time
+                let timestamp = Self::next_reminder_time(&schedule, utc_now, &timezone, true)?;
+
+                (timestamp, Some(schedule))
+            }
+            RemindWhen::Once(ts) => (*ts, None),
+        };
 
         // Determine the next global ID and chat ID
         let global_id = self.next_id;
@@ -191,21 +199,21 @@ impl Reminders {
                 message,
                 when,
                 timezone,
-                schedule: repeat.then_some(schedule),
+                schedule,
                 initiator,
                 chat,
             },
         );
 
         // Insert the reminder into the ordered set
-        self.ordered.insert((first, global_id));
+        self.ordered.insert((timestamp, global_id));
 
         // Check if this reminder is actually the next due reminder
         let next_due = self.peek().map(|(_, id)| id == global_id).unwrap();
 
         Ok(AddResult {
             chat_reminder_id,
-            timestamp: first,
+            timestamp,
             timezone,
             next_due,
         })
@@ -342,4 +350,27 @@ pub struct AddResult {
     pub timestamp: TimestampMillis,
     pub timezone: Tz,
     pub next_due: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub enum RemindWhen {
+    Recurring(String),
+    Once(TimestampMillis),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_formatting() {
+        let tz_str = "Europe/London";
+        let timezone: Tz = tz_str.parse().unwrap();
+        let timestamp: TimestampMillis = 1741608144000;
+
+        assert_eq!(
+            Reminder::format_datetime(timestamp, &timezone),
+            "at 12:02 on Mon, 10 Mar 2025"
+        );
+    }
 }

@@ -53,7 +53,7 @@ impl CommandHandler<CanisterRuntime> for Delete {
 impl Delete {
     fn definition() -> BotCommandDefinition {
         BotCommandDefinition {
-            name: "delete".to_string(),
+            name: "delete_reminder".to_string(),
             description: Some("Delete a reminder from this chat by ID".to_string()),
             placeholder: None,
             params: vec![BotCommandParam {

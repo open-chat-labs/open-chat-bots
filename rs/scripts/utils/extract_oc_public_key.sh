@@ -22,7 +22,6 @@ OC_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----$second_part-----END PUBLIC KEY-----\n"
 # Change directory back to rs folder
 cd $SCRIPT_DIR/..
 
-# Save the public key to a file
-## echo "$OC_PUBLIC_KEY" > oc_public_key.pem
+# Echo the public key
 echo "$OC_PUBLIC_KEY"
 
