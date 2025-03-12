@@ -4,7 +4,7 @@ This is a guide to get the example bots up and running as a starting point for d
 
 ## Prerequisites
 
-Ensure the `open-chat-labs` and `open-chat` repos are cloned into the same root directory:
+Ensure the `open-chat` and `open-chat-bots` repos are cloned into the same root directory:
 
 ```
 open-chat-labs/
@@ -67,6 +67,8 @@ To deploy the example bots for particular SDKs please follow these links:
 
 3. This registers the bot on OpenChat for testing but it still needs to be installed into a group, community, or as a direct chat
 
+&nbsp;
+
 ![Register bot](./images/register-onchain-bot.png)
 
 ### Step 5: Add Bot to Group
@@ -77,7 +79,7 @@ To deploy the example bots for particular SDKs please follow these links:
 
 ![add bots](./images/add-bots.png)
 
-3. Select the newly registered bot and install it
+1. Select the newly registered bot and install it
 
 ![install bot](./images/install-bot.png)
 
