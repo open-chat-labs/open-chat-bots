@@ -18,9 +18,7 @@ open-chat-labs/
 
 2. Run OpenChat in a browser with `http://localhost:5001/`
 
----
-
-After a minute or so you should see the OpenChat frontend.
+## After a minute or so you should see the OpenChat frontend.
 
 ![Open chat frontend](./images/open-chat-frontend.png)
 
@@ -30,13 +28,16 @@ After a minute or so you should see the OpenChat frontend.
 
 2. Create a private group for testing:
 
-Navigate to the groups section and then click "New group" from the groups menu
+## Navigate to the groups section and then click "New group" from the groups menu
+
 ![Create a group on open chat](./images/create-group.png)
 
-Enter the group name
+## Enter the group name
+
 ![Group names](./images/GroupName.png)
 
-Just pick default settings by clicking "next" until you reach the "Create Group" button
+## Just pick default settings by clicking "next" until you reach the "Create Group" button
+
 ![Create group](./images/creategroup.png)
 
 ### Step 3: Deploy the Bot
@@ -58,6 +59,8 @@ To deploy the example bots for particular SDKs please follow these links:
 
 3. This registers the bot on OpenChat for testing but it still needs to be installed into a group, community, or as a direct chat
 
+---
+
 ![Register bot](./images/register-onchain-bot.png)
 
 ### Step 5: Add Bot to Group
@@ -66,9 +69,13 @@ To deploy the example bots for particular SDKs please follow these links:
 
 2. Look for the "Add bots" tab
 
+---
+
 ![add bots](./images/add-bots.png)
 
 3. Select the newly registered bot and install it
+
+---
 
 ![install bot](./images/install-bot.png)
 
