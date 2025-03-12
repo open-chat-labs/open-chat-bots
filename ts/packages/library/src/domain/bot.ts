@@ -1,74 +1,24 @@
-import type {
-    BotCommand,
-    Chat,
-    CommunityPermission,
-    ChatPermission,
-    MessagePermission,
-} from "../typebox/typebox";
+import type { BotCommand, BotPermissions, Chat } from "../typebox/typebox";
+import type { ChatPermission, CommunityPermission, MessagePermission } from "./permissions";
+import { Permissions } from "./permissions";
 import type { MergedActionScope } from "./scope";
 
-const communityPermissionMap = {
-    ChangeRoles: 0,
-    UpdateDetails: 1,
-    InviteUsers: 2,
-    RemoveMembers: 3,
-    CreatePublicChannel: 4,
-    CreatePrivateChannel: 5,
-    ManageUserGroups: 6,
-};
-const chatPermissionsMap = {
-    ChangeRoles: 0,
-    UpdateGroup: 1,
-    AddMembers: 2,
-    InviteUsers: 3,
-    RemoveMembers: 4,
-    DeleteMessages: 5,
-    PinMessages: 6,
-    ReactToMessages: 7,
-    MentionAllMembers: 8,
-    StartVideoCall: 9,
-    ReadMessages: 10,
-    ReadMembership: 11,
-    ReadChatDetails: 12,
-};
-const messagePermissionMap = {
-    Text: 0,
-    Image: 1,
-    Video: 2,
-    Audio: 3,
-    File: 4,
-    Poll: 5,
-    Crypto: 6,
-    Giphy: 7,
-    Prize: 8,
-    P2pSwap: 9,
-    VideoCall: 10,
-};
-
 class DecodedAuth {
-    constructor(protected granted_permissions: BitmaskPermissions) {}
+    #perm: Permissions;
+    constructor(protected granted_permissions: BotPermissions) {
+        this.#perm = new Permissions(granted_permissions);
+    }
 
     hasMessagePermission(perm: MessagePermission) {
-        return this.granted_permissions.message
-            ? this.#hasPermission(this.granted_permissions.message, messagePermissionMap[perm])
-            : false;
+        return this.#perm.hasMessagePermission(perm);
     }
 
     hasChatPermission(perm: ChatPermission) {
-        return this.granted_permissions.chat
-            ? this.#hasPermission(this.granted_permissions.chat, chatPermissionsMap[perm])
-            : false;
+        return this.#perm.hasChatPermission(perm);
     }
 
     hasCommunityPermission(perm: CommunityPermission) {
-        return this.granted_permissions.community
-            ? this.#hasPermission(this.granted_permissions.community, communityPermissionMap[perm])
-            : false;
-    }
-
-    #hasPermission(granted: number, n: number): boolean {
-        const bitmask = 1 << n;
-        return (granted & bitmask) !== 0;
+        return this.#perm.hasCommunityPermission(perm);
     }
 }
 
@@ -79,7 +29,7 @@ export class DecodedJwt extends DecodedAuth {
         public bot_api_gateway: string,
         public bot: string,
         public scope: MergedActionScope,
-        granted_permissions: BitmaskPermissions,
+        granted_permissions: BotPermissions,
         public command?: BotCommand,
     ) {
         super(granted_permissions);
@@ -93,7 +43,7 @@ export class DecodedApiKey extends DecodedAuth {
         public bot_api_gateway: string,
         public bot: string,
         public scope: MergedActionScope,
-        granted_permissions: BitmaskPermissions,
+        granted_permissions: BotPermissions,
     ) {
         super(granted_permissions);
     }
@@ -105,7 +55,7 @@ export type RawCommandJwt = {
     bot_api_gateway: string;
     bot: string;
     scope: CommandActionScope;
-    granted_permissions: BitmaskPermissions;
+    granted_permissions: BotPermissions;
     command?: BotCommand;
 };
 
@@ -115,7 +65,7 @@ export type RawApiKeyJwt = {
     bot_api_gateway: string;
     bot: string;
     scope: ApiKeyActionScope;
-    granted_permissions: BitmaskPermissions;
+    granted_permissions: BotPermissions;
 };
 
 export type RawApiKey = {
@@ -123,13 +73,7 @@ export type RawApiKey = {
     bot_id: string;
     scope: ApiKeyActionScope;
     secret: string;
-    permissions: BitmaskPermissions;
-};
-
-export type BitmaskPermissions = {
-    community?: number;
-    chat?: number;
-    message?: number;
+    permissions: BotPermissions;
 };
 
 export type DecodedPayload = DecodedApiKey | DecodedJwt;

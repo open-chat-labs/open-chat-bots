@@ -46,7 +46,7 @@ pub async fn handle_openchat_events(
             if !(message.content.is_empty() && attachments.is_empty() && stickers.is_empty()) {
                 // TODO Can we recover if this fails? Could the context be clone-able?
                 match BotApiKeyContext::parse(
-                    relay_link.oc_token.clone(),
+                    relay_link.oc_auth_token.clone(),
                     &data.oc_config.public_key,
                     env::now(),
                 ) {

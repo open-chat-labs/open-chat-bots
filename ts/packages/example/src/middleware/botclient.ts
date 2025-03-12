@@ -5,6 +5,7 @@
  */
 import { Request, Response, NextFunction } from "express";
 import {
+  accessTokenNotFound,
   BadRequestError,
   BotClientFactory,
 } from "@open-ic/openchat-botclient-ts";
@@ -13,8 +14,12 @@ import { WithBotClient } from "../types";
 export function createCommandChatClient(factory: BotClientFactory) {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
+      const token = req.headers["x-oc-jwt"];
+      if (!token) {
+        throw new BadRequestError(accessTokenNotFound());
+      }
       (req as WithBotClient).botClient = factory.createClientFromCommandJwt(
-        req.body
+        token as string
       );
       console.log("Bot client created");
       next();

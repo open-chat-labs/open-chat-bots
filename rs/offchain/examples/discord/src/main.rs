@@ -11,6 +11,7 @@ use serde_valid::Validate;
 use state::AesKey;
 use std::sync::Arc;
 use tokio::sync::mpsc::channel;
+use tracing::error;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -54,18 +55,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let openchat_client =
         crate::openchat::init_openchat_client(&config.openchat, state.clone()).await?;
 
-    // Run bots in their respective threads
-    let (ds_res, oc_res) = tokio::join!(
-        tokio::spawn(async move { discord_client.start().await }),
-        tokio::spawn(crate::openchat::start_openchat_bot(
+    // Run bots, if any of them fails, we log the error and exit.
+    tokio::select! {
+        res = discord_client.start() => {
+            if res.is_err() {
+                error!("Discord bot failed! :: {:?}", res);
+            }
+        },
+        res = crate::openchat::start_openchat_bot(
             Arc::new(openchat_client),
             config.openchat.bot.port,
             rx,
-        )),
-    );
-
-    let _ = ds_res.expect("Discord bot failed!");
-    let _ = oc_res.expect("OpenChat bot failed!");
+        ) => {
+            if res.is_err() {
+                error!("OpenChat bot failed! :: {:?}", res);
+            }
+        },
+    };
 
     Ok(())
 }
