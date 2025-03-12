@@ -352,59 +352,18 @@
       "description": "Permissions required for slash commands to execute.",
       "properties": {
         "community": {
-          "type": "array",
-          "description": "Permissions specific to the community context.",
-          "items": {
-            "enum": [
-              "ChangeRoles",
-              "UpdateDetails",
-              "InviteUsers",
-              "RemoveMembers",
-              "CreatePublicChannel",
-              "CreatePrivateChannel",
-              "ManageUserGroups"
-            ]
-          }
+          "type": "number",
+          "description": "Bit mask of the required community level permissions"
         },
         "chat": {
-          "type": "array",
-          "description": "Permissions specific to the chat context.",
-          "items": {
-            "enum": [
-              "ChangeRoles",
-              "UpdateGroup",
-              "AddMembers",
-              "InviteUsers",
-              "RemoveMembers",
-              "DeleteMessages",
-              "PinMessages",
-              "ReactToMessages",
-              "MentionAllMembers",
-              "StartVideoCall"
-            ]
-          }
+          "type": "number",
+          "description": "Bit mask of the required chat level permissions"
         },
         "message": {
-          "type": "array",
-          "description": "Permissions specific to messages.",
-          "items": {
-            "enum": [
-              "Text",
-              "Image",
-              "Video",
-              "Audio",
-              "File",
-              "Poll",
-              "Crypto",
-              "Giphy",
-              "Prize",
-              "P2pSwap",
-              "VideoCall"
-            ]
-          }
+          "type": "number",
+          "description": "Bit mask of the required message level permissions"
         }
       },
-      "required": ["community", "chat", "message"],
       "additionalProperties": false
     }
   }
