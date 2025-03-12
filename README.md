@@ -2,7 +2,7 @@
 
 SDKs for building Bots for OpenChat with examples
 
-## Overview
+## Overview
 
 You can find an overview of the OpenChat Bot framework [here](./OVERVIEW.md).
 
