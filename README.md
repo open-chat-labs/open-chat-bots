@@ -6,6 +6,10 @@ SDKs for building Bots for OpenChat with examples
 
 You can find an overview of the OpenChat Bot framework [here](./OVERVIEW.md).
 
+## Get started
+
+To get started by installing and testing the example bots, [see the get started guide](GETSTARTED.md).
+
 ## SDKs
 
 This repo has SDKs for different languages, and for canister (on-chain) and off-chain bots.
@@ -14,11 +18,3 @@ This repo has SDKs for different languages, and for canister (on-chain) and off-
 - For canister bots written in Motoko, [see the motoko readme](./motoko/README.md) (coming soon).
 - For off-chain bots written in typescript, [see the ts readme](./ts/README.md).
 - For off-chain bots written in Rust, [see the rs/offchain readme](./rs/offchain/README.md).
-
-## Get started
-
-To get started by installing and testing the example bots, [see the get started guide](GETSTARTED.md).
-
-## For information about the required bot schema
-
-See [the bot definition schema readme](./schema/README.md).
