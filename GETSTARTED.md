@@ -14,11 +14,13 @@ open-chat-labs/
 
 ## Step 1: Setup OpenChat Locally
 
-1. Setup OpenChat locally by following the instructions in the [README](https://github.com/open-chat-labs/open-chat/blob/master/README.md)
+1. Setup OpenChat locally by following the instructions in the [readme](https://github.com/open-chat-labs/open-chat/blob/master/README.md) of the OpenChat repo.
 
 2. Run OpenChat in a browser with `http://localhost:5001/`
 
-You'll see the OpenChat frontend:
+---
+
+After a minute or so you should see the OpenChat frontend.
 
 ![Open chat frontend](./images/open-chat-frontend.png)
 
@@ -27,12 +29,15 @@ You'll see the OpenChat frontend:
 1. Signup and create an account
 
 2. Create a private group for testing:
-   - Click "Create a new group":
-     ![Create a group on open chat](./images/create-group.png)
-   - Enter the group name:
-     ![Group names](./images/GroupName.png)
-   - Click "next" until you reach the "Create Group" button:
-     ![Create group](./images/creategroup.png)
+
+Navigate to the groups section and then click "New group" from the groups menu
+![Create a group on open chat](./images/create-group.png)
+
+Enter the group name
+![Group names](./images/GroupName.png)
+
+Just pick default settings by clicking "next" until you reach the "Create Group" button
+![Create group](./images/creategroup.png)
 
 ### Step 3: Deploy the Bot
 
@@ -42,14 +47,14 @@ To deploy the example bots for particular SDKs please follow these links:
   - [Rust](./rs/canister/README.md)
   - [Motoko](./rs/motoko/README.md) (coming soon)
 - Off-chain bots
-  - [Typescript](./ts/README.md)
   - [Rust](./rs/offchain/README.md)
+  - [Typescript](./ts/README.md)
 
 ### Step 4: Register the Bot
 
 1. From your test group on the local OpenChat website enter `/register_bot` and fill in the fields
 
-2. Use the bot canister id from the endpoint URL in Step 3 as the principal
+2. If registering a canister bot then for the `Principal` field use the bot canister id from the endpoint URL
 
 3. This registers the bot on OpenChat for testing but it still needs to be installed into a group, community, or as a direct chat
 
