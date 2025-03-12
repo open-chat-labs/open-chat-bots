@@ -1,6 +1,6 @@
 # SDK for off-chain bots built in Rust
 
-## Deployment guide
+## Deployment guide
 
 1. Change directory into any of the examples. We'll run the `dice` example:
 

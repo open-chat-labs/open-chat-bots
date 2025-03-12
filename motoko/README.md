@@ -1,4 +1,6 @@
-# SDK and examples for Motoko canister bots - coming soon...
+# SDK and examples for Motoko canister bots
+
+**coming soon...**
 
 OpenChat user Gekctek, has kindly been porting the Rust canister bot SDK to Motoko.
 
