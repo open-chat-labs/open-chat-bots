@@ -3,7 +3,7 @@ use crate::config::Config;
 use crate::llm_canister_agent::LlmCanisterAgent;
 use axum::body::Bytes;
 use axum::extract::State;
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::Router;
 use dotenv::dotenv;
@@ -16,7 +16,7 @@ use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
-use tracing::info;
+use tracing::{error, info};
 
 mod commands;
 mod config;
@@ -73,10 +73,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn execute_command(State(state): State<Arc<AppState>>, jwt: String) -> (StatusCode, Bytes) {
+async fn execute_command(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> (StatusCode, Bytes) {
+    let jwt = if let Some(val) = headers.get("x-oc-jwt") {
+        if let Ok(jwt) = val.to_str() {
+            jwt
+        } else {
+            error!("Failed to parse authorization header! :: {:?}", val);
+            return (
+                StatusCode::BAD_REQUEST,
+                Bytes::from("Failed to parse authorization header!"),
+            );
+        }
+    } else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Bytes::from("No authorization header found!"),
+        );
+    };
+
     match state
         .commands
-        .execute(&jwt, &state.oc_public_key, env::now())
+        .execute(jwt, &state.oc_public_key, env::now())
         .await
     {
         CommandResponse::Success(r) => {
