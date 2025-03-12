@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { Permissions } from "@open-ic/openchat-botclient-ts";
 
 const emptyPermissions = {
   chat: [],
@@ -10,7 +11,7 @@ export default function schema(_: Request, res: Response) {
   res.status(200).json({
     autonomous_config: {
       sync_api_key: true,
-      permissions: {
+      permissions: Permissions.encodePermissions({
         message: ["Text", "Image", "P2pSwap", "VideoCall"],
         community: [
           "RemoveMembers",
@@ -19,7 +20,7 @@ export default function schema(_: Request, res: Response) {
           "CreatePrivateChannel",
         ],
         chat: ["ReadMessages"],
-      },
+      }),
     },
     description:
       "This is a demonstration bot which demonstrates a variety of different approaches and techniques that bot developers can use.",
@@ -28,30 +29,30 @@ export default function schema(_: Request, res: Response) {
         name: "subscribe",
         default_role: "Owner",
         description: "Start pinging this context",
-        permissions: {
+        permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["Text"],
-        },
+        }),
         params: [],
       },
       {
         name: "unsubscribe",
         default_role: "Owner",
         description: "Stop pinging this context",
-        permissions: {
+        permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["Text"],
-        },
+        }),
         params: [],
       },
       {
         name: "numbers",
         default_role: "Admin",
         description: "Handle different types of numbers",
-        permissions: {
+        permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["Text"],
-        },
+        }),
         params: [
           {
             name: "int_one",
@@ -85,11 +86,11 @@ export default function schema(_: Request, res: Response) {
         name: "imagine",
         default_role: "Participant",
         description: "Generate an image with AI",
-        permissions: {
+        permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["Text"],
           chat: ["ReadMessages"],
-        },
+        }),
         params: [
           {
             name: "prompt",
@@ -110,10 +111,10 @@ export default function schema(_: Request, res: Response) {
         name: "prompt",
         default_role: "Participant",
         description: "Send a prompt to ChatGPT",
-        permissions: {
+        permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["Text"],
-        },
+        }),
         params: [
           {
             name: "prompt",
@@ -134,10 +135,10 @@ export default function schema(_: Request, res: Response) {
         name: "poll",
         default_role: "Participant",
         description: "Send a random poll",
-        permissions: {
+        permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["Poll"],
-        },
+        }),
         params: [],
       },
       {
@@ -145,40 +146,40 @@ export default function schema(_: Request, res: Response) {
         default_role: "Participant",
         description: "Show a list of the current news headlines",
         placeholder: "Searching for the headlines ...",
-        permissions: {
+        permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["Text"],
-        },
+        }),
         params: [],
       },
       {
         name: "image",
         default_role: "Participant",
         description: "Post an image message",
-        permissions: {
+        permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["Image"],
-        },
+        }),
         params: [],
       },
       {
         name: "file",
         default_role: "Participant",
         description: "Post a file message",
-        permissions: {
+        permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["File"],
-        },
+        }),
         params: [],
       },
       {
         name: "artist",
         default_role: "Participant",
         description: "Search for an artist on Spotify",
-        permissions: {
+        permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["Text"],
-        },
+        }),
         params: [
           {
             name: "artist",
@@ -200,10 +201,10 @@ export default function schema(_: Request, res: Response) {
         default_role: "Participant",
         description: "Search for a song on Spotify",
         placeholder: "Searching Spotify for your song ...",
-        permissions: {
+        permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["Text"],
-        },
+        }),
         params: [
           {
             name: "song",
@@ -224,10 +225,10 @@ export default function schema(_: Request, res: Response) {
         name: "album",
         default_role: "Participant",
         description: "Search for an album on Spotify",
-        permissions: {
+        permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["Text"],
-        },
+        }),
         params: [
           {
             name: "album",

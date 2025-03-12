@@ -4,11 +4,11 @@ import type {
     FileContent,
     ImageContent,
     BotMessageContent as MessageContent,
-    MessagePermission,
     PollContent,
 } from "../typebox/typebox";
 import { random64 } from "../utils/rng";
 import type { AuthToken, BlobReference } from "./bot";
+import type { MessagePermission } from "./permissions";
 
 type FileMessageContent = { File: FileContent };
 type PollMessageContent = { Poll: PollContent };
