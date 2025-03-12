@@ -260,7 +260,7 @@ impl Reminders {
                 Err(error) => {
                     ic_cdk::println!(
                         "Failed to delete reminder from chat: {} {}",
-                        reminder.chat.cansiter_id().to_string(),
+                        reminder.chat.canister_id().to_string(),
                         error
                     );
                 }
