@@ -63,6 +63,22 @@ import {
     type Proposal,
     ProposalDecisionStatus,
     ProposalRewardStatus,
+    type PrizeContent,
+    type PrizeWinnerContent,
+    type MessageReminderCreatedContent,
+    type MessageReminderContent,
+    type ReportedMessageContent,
+    type P2PSwapContent,
+    type TokenInfo,
+    type P2PSwapStatus,
+    type VideoCallContent,
+    type VideoCallParticipant,
+    type VideoCallType,
+    type Reaction,
+    type ThreadSummary,
+    type TipsReceived,
+    type BotMessageContext,
+    type SlashCommandParamInstance,
 } from "../domain";
 import {
     type AuthToken as ApiAuthToken,
@@ -110,11 +126,27 @@ import {
     type Proposal as ApiProposal,
     type ProposalDecisionStatus as ApiProposalDecisionStatus,
     type ProposalRewardStatus as ApiProposalRewardStatus,
+    type PrizeContent as ApiPrizeContent,
+    type PrizeWinnerContent as ApiPrizeWinnerContent,
+    type MessageReminderContent as ApiMessageReminderContent,
+    type MessageReminderCreatedContent as ApiMessageReminderCreatedContent,
+    type CustomContent as ApiCustomContent,
+    type ReportedMessage as ApiReportedMessage,
+    type P2PSwapContent as ApiP2PSwapContent,
+    type TokenInfo as ApiTokenInfo,
+    type P2PSwapStatus as ApiP2PSwapStatus,
+    type VideoCallContent as ApiVideoCallContent,
+    type CallParticipant as ApiCallParticipant,
+    type VideoCallType as ApiVideoCallType,
+    type ThreadSummary as ApiThreadSummary,
+    type BotMessageContext as ApiBotMessageContext,
+    BotCommandArg,
 } from "../typebox/typebox";
 import { toBigInt32, toBigInt64 } from "../utils/bigint";
 import { UnsupportedValueError } from "../utils/error";
 
 const E8S_AS_BIGINT = BigInt(100_000_000);
+type ApiPrincipal = Uint8Array | number[] | string;
 
 function nullish<T>(val?: T | null | undefined): T | undefined {
     if (val == null) return undefined;
@@ -1395,4 +1427,260 @@ function proposalRewardStatus(value: ApiProposalRewardStatus): ProposalRewardSta
     if (value === "ReadyToSettle") return ProposalRewardStatus.ReadyToSettle;
     if (value === "Settled") return ProposalRewardStatus.Settled;
     return ProposalRewardStatus.Unspecified;
+}
+
+function prizeContent(value: ApiPrizeContent): PrizeContent {
+    return {
+        kind: "prize_content",
+        prizesRemaining: value.prizes_remaining,
+        prizesPending: value.prizes_pending,
+        diamondOnly: value.diamond_only,
+        lifetimeDiamondOnly: value.lifetime_diamond_only,
+        uniquePersonOnly: value.unique_person_only,
+        streakOnly: value.streak_only,
+        winners: value.winners.map(principalBytesToString),
+        token: token(value.token),
+        endDate: value.end_date,
+        caption: value.caption,
+    };
+}
+
+function prizeWinnerContent(senderId: string, value: ApiPrizeWinnerContent): PrizeWinnerContent {
+    return {
+        kind: "prize_winner_content",
+        transaction: completedCryptoTransfer(
+            value.transaction,
+            senderId,
+            principalBytesToString(value.winner),
+        ),
+        prizeMessageIndex: value.prize_message,
+    };
+}
+
+function messageReminderCreated(
+    value: ApiMessageReminderCreatedContent,
+): MessageReminderCreatedContent {
+    return {
+        kind: "message_reminder_created_content",
+        notes: value.notes,
+        remindAt: Number(value.remind_at),
+        reminderId: value.reminder_id,
+        hidden: value.hidden,
+    };
+}
+
+function messageReminder(value: ApiMessageReminderContent): MessageReminderContent {
+    return {
+        kind: "message_reminder_content",
+        notes: value.notes,
+        reminderId: value.reminder_id,
+    };
+}
+
+function customContent(value: ApiCustomContent): MessageContent {
+    if (value.kind === "meme_fighter") {
+        const decoder = new TextDecoder();
+        const json = decoder.decode(consolidateBytes(value.data));
+        const decoded = JSON.parse(json) as { url: string; width: number; height: number };
+        return {
+            kind: "meme_fighter_content",
+            ...decoded,
+        };
+    }
+    if (value.kind === "user_referral_card") {
+        return {
+            kind: "user_referral_card",
+        };
+    }
+
+    throw new Error(`Unknown custom content kind received: ${value.kind}`);
+}
+
+function reportedMessage(value: ApiReportedMessage): ReportedMessageContent {
+    return {
+        kind: "reported_message_content",
+        total: value.count,
+        reports: value.reports.map((r) => ({
+            notes: r.notes,
+            reasonCode: r.reason_code,
+            timestamp: Number(r.timestamp),
+            reportedBy: principalBytesToString(r.reported_by),
+        })),
+    };
+}
+
+function p2pSwapContent(value: ApiP2PSwapContent): P2PSwapContent {
+    return {
+        kind: "p2p_swap_content",
+        token0: tokenInfo(value.token0),
+        token1: tokenInfo(value.token1),
+        token0Amount: value.token0_amount,
+        token1Amount: value.token1_amount,
+        caption: value.caption,
+        expiresAt: value.expires_at,
+        status: p2pTradeStatus(value.status),
+        swapId: value.swap_id,
+        token0TxnIn: value.token0_txn_in,
+    };
+}
+
+function tokenInfo(value: ApiTokenInfo): TokenInfo {
+    return {
+        fee: value.fee,
+        decimals: value.decimals,
+        symbol: token(value.token),
+        ledger: principalBytesToString(value.ledger),
+    };
+}
+
+function p2pTradeStatus(value: ApiP2PSwapStatus): P2PSwapStatus {
+    if (value === "Open") {
+        return { kind: "p2p_swap_open" };
+    }
+    if ("Reserved" in value) {
+        return {
+            kind: "p2p_swap_reserved",
+            reservedBy: principalBytesToString(value.Reserved.reserved_by),
+        };
+    }
+    if ("Accepted" in value) {
+        return {
+            kind: "p2p_swap_accepted",
+            acceptedBy: principalBytesToString(value.Accepted.accepted_by),
+            token1TxnIn: value.Accepted.token1_txn_in,
+        };
+    }
+    if ("Cancelled" in value) {
+        return {
+            kind: "p2p_swap_cancelled",
+            token0TxnOut: value.Cancelled.token0_txn_out,
+        };
+    }
+    if ("Expired" in value) {
+        return {
+            kind: "p2p_swap_expired",
+            token0TxnOut: value.Expired.token0_txn_out,
+        };
+    }
+    if ("Completed" in value) {
+        const { accepted_by, token1_txn_in, token0_txn_out, token1_txn_out } = value.Completed;
+        return {
+            kind: "p2p_swap_completed",
+            acceptedBy: principalBytesToString(accepted_by),
+            token1TxnIn: token1_txn_in,
+            token0TxnOut: token0_txn_out,
+            token1TxnOut: token1_txn_out,
+        };
+    }
+
+    throw new UnsupportedValueError("Unexpected ApiP2PSwapStatus type received", value);
+}
+
+function videoCallContent(value: ApiVideoCallContent): VideoCallContent {
+    return {
+        kind: "video_call_content",
+        ended: value.ended,
+        participants: value.participants.map(videoCallParticipant),
+        callType: videoCallType(value.call_type),
+    };
+}
+
+function videoCallParticipant(value: ApiCallParticipant): VideoCallParticipant {
+    return {
+        userId: principalBytesToString(value.user_id),
+        joined: value.joined,
+    };
+}
+
+function videoCallType(value: ApiVideoCallType): VideoCallType {
+    if (value === "Default") {
+        return "default";
+    }
+    if (value === "Broadcast") {
+        return "broadcast";
+    }
+    throw new UnsupportedValueError("Unexpected ApiVideoCallTypye type received", value);
+}
+
+function reactions(value: [string, ApiPrincipal[]][]): Reaction[] {
+    return value.map(([reaction, userIds]) => ({
+        reaction,
+        userIds: new Set(userIds.map(principalBytesToString)),
+    }));
+}
+
+export function threadSummary(value: ApiThreadSummary): ThreadSummary {
+    return {
+        participantIds: new Set(value.participant_ids.map(principalBytesToString)),
+        followedByMe: value.followed_by_me,
+        numberOfReplies: Number(value.reply_count),
+        latestEventIndex: Number(value.latest_event_index),
+        latestEventTimestamp: value.latest_event_timestamp,
+    };
+}
+
+export function tips(value: [ApiPrincipal, [ApiPrincipal, bigint][]][]): TipsReceived {
+    return value.reduce((agg, [ledger, tips]) => {
+        agg[principalBytesToString(ledger)] = tips.reduce(
+            (userTips, [userId, amount]) => {
+                userTips[principalBytesToString(userId)] = amount;
+                return userTips;
+            },
+            {} as Record<string, bigint>,
+        );
+        return agg;
+    }, {} as TipsReceived);
+}
+
+export function botMessageContext(value: ApiBotMessageContext): BotMessageContext {
+    return {
+        finalised: value.finalised,
+        command: optional(value.command, (command) => ({
+            name: command.name,
+            args: command.args.map(botCommandArg),
+            initiator: principalBytesToString(command.initiator),
+        })),
+    };
+}
+
+export function botCommandArg(api: BotCommandArg): SlashCommandParamInstance {
+    const { name, value } = api;
+    if ("Boolean" in value) {
+        return {
+            kind: "boolean",
+            name,
+            value: value.Boolean,
+        };
+    } else if ("Integer" in value) {
+        return {
+            kind: "integer",
+            name,
+            value: value.Integer,
+        };
+    } else if ("Decimal" in value) {
+        return {
+            kind: "decimal",
+            name,
+            value: value.Decimal,
+        };
+    } else if ("String" in value) {
+        return {
+            kind: "string",
+            name,
+            value: value.String,
+        };
+    } else if ("User" in value) {
+        return {
+            kind: "user",
+            name,
+            userId: principalBytesToString(value.User),
+        };
+    } else if ("DateTime" in value) {
+        return {
+            kind: "dateTime",
+            name,
+            value: value.DateTime,
+        };
+    }
+    throw new Error(`Unexpected ApiBotCommandArg type received, ${api}`);
 }
