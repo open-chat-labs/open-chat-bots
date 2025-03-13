@@ -1,14 +1,13 @@
+use crate::config::Config;
 use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::Router;
-use clap::Parser;
 use commands::coin::Coin;
 use commands::roll::Roll;
 use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
 use oc_bots_sdk::api::definition::BotDefinition;
-use oc_bots_sdk::mainnet::{mainnet_ic_url, mainnet_oc_public_key};
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk_offchain::env;
 use oc_bots_sdk_offchain::AgentRuntime;
@@ -16,19 +15,25 @@ use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
 mod commands;
+mod config;
 
 #[tokio::main]
-async fn main() {
-    dotenv::dotenv().unwrap();
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Get config file path from the args, or if not set, use default
+    let config_file_path = std::env::args()
+        .next()
+        .unwrap_or("./config.toml".to_string());
+
+    // Load & parse config
+    let Config {
+        pem_file,
+        ic_url,
+        oc_public_key,
+    } = Config::from_file(&config_file_path)?;
+
     tracing_subscriber::fmt::init();
 
-    let config = Config::parse();
-    let ic_url = dotenv::var("IC_URL").ok().unwrap_or_else(mainnet_ic_url);
-    let oc_public_key = dotenv::var("OC_PUBLIC_KEY")
-        .ok()
-        .unwrap_or_else(mainnet_oc_public_key);
-
-    let agent = oc_bots_sdk_offchain::build_agent(ic_url, &config.pem_file).await;
+    let agent = oc_bots_sdk_offchain::build_agent(ic_url, &pem_file).await;
 
     let oc_client_factory = Arc::new(ClientFactory::new(AgentRuntime::new(
         agent,
@@ -56,6 +61,7 @@ async fn main() {
         .unwrap();
 
     axum::serve(listener, routes).await.unwrap();
+    Ok(())
 }
 
 async fn execute_command(State(state): State<Arc<AppState>>, jwt: String) -> (StatusCode, Bytes) {
@@ -73,7 +79,7 @@ async fn execute_command(State(state): State<Arc<AppState>>, jwt: String) -> (St
         ),
         CommandResponse::InternalError(err) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Bytes::from(format!("{err:?}")),
+            Bytes::from(serde_json::to_vec(&err).unwrap()),
         ),
         CommandResponse::TooManyRequests => (StatusCode::TOO_MANY_REQUESTS, Bytes::new()),
     }
@@ -97,10 +103,4 @@ struct AppState {
     oc_client_factory: Arc<ClientFactory<AgentRuntime>>,
     oc_public_key: String,
     commands: CommandHandlerRegistry<AgentRuntime>,
-}
-
-#[derive(Parser, Debug)]
-struct Config {
-    #[arg(long)]
-    pem_file: String,
 }
