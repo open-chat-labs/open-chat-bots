@@ -9,7 +9,7 @@ axum = { workspace = true, features = [] }
 clap = { workspace = true, features = ["derive"] }
 dotenv = { workspace = true }
 oc_bots_sdk = { path = "../../../sdk" }
-oc_bots_sdk_offchain = { path = "../../sdk" }
+oc_bots_sdk_offchain = { path = "../../sdk", features = ["tower"] }
 rand = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread"] }

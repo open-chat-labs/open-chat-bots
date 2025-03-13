@@ -3,20 +3,21 @@ use crate::config::Config;
 use crate::llm_canister_agent::LlmCanisterAgent;
 use axum::body::Bytes;
 use axum::extract::State;
-use axum::http::{HeaderMap, StatusCode};
+use axum::http::StatusCode;
 use axum::routing::{get, post};
-use axum::Router;
+use axum::{Extension, Router};
 use dotenv::dotenv;
 use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
 use oc_bots_sdk::api::definition::BotDefinition;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk_offchain::env;
+use oc_bots_sdk_offchain::middleware::tower::{ExtractJwtLayer, OpenChatJwt};
 use oc_bots_sdk_offchain::AgentRuntime;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
-use tracing::{error, info};
+use tracing::info;
 
 mod commands;
 mod config;
@@ -59,6 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let routes = Router::new()
         .route("/execute_command", post(execute_command))
+        .route_layer(ExtractJwtLayer::new())
         .route("/", get(bot_definition))
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
@@ -75,28 +77,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn execute_command(
     State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
+    Extension(OpenChatJwt(jwt)): Extension<OpenChatJwt>,
 ) -> (StatusCode, Bytes) {
-    let jwt = if let Some(val) = headers.get("x-oc-jwt") {
-        if let Ok(jwt) = val.to_str() {
-            jwt
-        } else {
-            error!("Failed to parse authorization header! :: {:?}", val);
-            return (
-                StatusCode::BAD_REQUEST,
-                Bytes::from("Failed to parse authorization header!"),
-            );
-        }
-    } else {
-        return (
-            StatusCode::BAD_REQUEST,
-            Bytes::from("No authorization header found!"),
-        );
-    };
-
     match state
         .commands
-        .execute(jwt, &state.oc_public_key, env::now())
+        .execute(&jwt, &state.oc_public_key, env::now())
         .await
     {
         CommandResponse::Success(r) => {

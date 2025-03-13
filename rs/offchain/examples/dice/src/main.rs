@@ -2,7 +2,7 @@ use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::routing::{get, post};
-use axum::Router;
+use axum::{Extension, Router};
 use clap::Parser;
 use commands::coin::Coin;
 use commands::roll::Roll;
@@ -11,6 +11,7 @@ use oc_bots_sdk::api::definition::BotDefinition;
 use oc_bots_sdk::mainnet::{mainnet_ic_url, mainnet_oc_public_key};
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk_offchain::env;
+use oc_bots_sdk_offchain::middleware::tower::{ExtractJwtLayer, OpenChatJwt};
 use oc_bots_sdk_offchain::AgentRuntime;
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
@@ -47,6 +48,7 @@ async fn main() {
 
     let routes = Router::new()
         .route("/execute_command", post(execute_command))
+        .route_layer(ExtractJwtLayer::new())
         .route("/", get(bot_definition))
         .layer(CorsLayer::permissive())
         .with_state(Arc::new(app_state));
@@ -58,7 +60,10 @@ async fn main() {
     axum::serve(listener, routes).await.unwrap();
 }
 
-async fn execute_command(State(state): State<Arc<AppState>>, jwt: String) -> (StatusCode, Bytes) {
+async fn execute_command(
+    State(state): State<Arc<AppState>>,
+    Extension(OpenChatJwt(jwt)): Extension<OpenChatJwt>,
+) -> (StatusCode, Bytes) {
     match state
         .commands
         .execute(&jwt, &state.oc_public_key, env::now())
