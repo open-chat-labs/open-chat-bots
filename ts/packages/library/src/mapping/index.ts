@@ -25,20 +25,29 @@ import {
     GroupChatIdentifier,
     DirectChatIdentifier,
     ChannelIdentifier,
+    type ChatDetailsResponse,
+    type ChatDetailsSuccess,
+    type FrozenGroupInfo,
+    type VideoCall,
+    type LeafGate,
 } from "../domain";
-import type {
-    AuthToken as ApiAuthToken,
-    BlobReference as ApiBlobReference,
-    AccessGate as ApiAccessGate,
-    AccessGateNonComposite as ApiAccessGateNonComposite,
-    AccessGateConfig as ApiAccessGateConfig,
-    MessagePermissions as ApiMessagePermissions,
-    GroupPermissionRole as ApiPermissionRole,
-    GroupPermissions as ApiGroupPermissions,
-    LocalUserIndexBotDeleteChannelResponse as BotDeleteChannelResponse,
-    LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
-    LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
-    Chat,
+import {
+    type AuthToken as ApiAuthToken,
+    type BlobReference as ApiBlobReference,
+    type AccessGate as ApiAccessGate,
+    type AccessGateNonComposite as ApiAccessGateNonComposite,
+    type AccessGateConfig as ApiAccessGateConfig,
+    type MessagePermissions as ApiMessagePermissions,
+    type GroupPermissionRole as ApiPermissionRole,
+    type GroupPermissions as ApiGroupPermissions,
+    type LocalUserIndexBotDeleteChannelResponse as BotDeleteChannelResponse,
+    type LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
+    type LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
+    type Chat,
+    type LocalUserIndexBotChatDetailsResponse as BotChatDetailsResponse,
+    type ChatDetails,
+    type FrozenGroupInfo as ApiFrozenGroupInfo,
+    type VideoCall as ApiVideoCall,
 } from "../typebox/typebox";
 import { toBigInt32, toBigInt64 } from "../utils/bigint";
 
@@ -197,6 +206,192 @@ export function deleteChannelResponse(api: BotDeleteChannelResponse): DeleteChan
     throw new Error(`Unknown BotDeleteChannelResponseReceived: ${api}`);
 }
 
+export function chatDetailsResponse(api: BotChatDetailsResponse): ChatDetailsResponse {
+    if (typeof api === "object") {
+        if ("Success" in api) {
+            return chatDetails(api.Success);
+        } else if ("FailedAuthentication" in api) {
+            return { kind: "failed_authentication" };
+        } else if ("InternalError" in api) {
+            return { kind: "server_error" };
+        }
+    } else if (api === "DirectChatUnsupported") {
+        return { kind: "direct_chat_unsupported" };
+    } else if (api === "NotAuthorized") {
+        return { kind: "not_authorized" };
+    } else if (api === "NotFound") {
+        return { kind: "not_found" };
+    }
+    throw new Error(`Unknown BotChatDetailsResponse: ${api}`);
+}
+
+function chatDetails(api: ChatDetails): ChatDetailsSuccess {
+    return {
+        kind: "success",
+        name: api.name,
+        description: api.description,
+        avatarId: api.avatar_id,
+        isPublic: api.is_public,
+        historyVisibleToNewJoiners: api.history_visible_to_new_joiners,
+        messagesVisibleToNonMembers: api.messages_visible_to_non_members,
+        permissions: groupPermissions(api.permissions),
+        rules: api.rules,
+        eventsTtl: api.events_ttl,
+        eventsTtlLastUpdated: api.events_ttl_last_updated,
+        gateConfig: optional(accessGateConfig, api.gate_config),
+        videoCallInProgress: optional(videoCall, api.video_call_in_progress),
+        verified: api.verified ?? false,
+        frozen: optional(frozenGroupInfo, api.frozen),
+        dateLastPinned: api.date_last_pinned,
+        lastUpdated: api.last_updated,
+        externalUrl: api.external_url,
+        latestEventIndex: api.latest_event_index,
+        latestMessageIndex: api.latest_message_index,
+        memberCount: api.member_count,
+    };
+}
+
+function groupPermissions(api: ApiGroupPermissions): GroupPermissions {
+    return {
+        changeRoles: permissionRole(api.change_roles),
+        updateGroup: permissionRole(api.update_group),
+        addMembers: permissionRole(api.add_members),
+        inviteUsers: permissionRole(api.invite_users),
+        removeMembers: permissionRole(api.remove_members),
+        deleteMessages: permissionRole(api.delete_messages),
+        pinMessages: permissionRole(api.pin_messages),
+        reactToMessages: permissionRole(api.react_to_messages),
+        mentionAllMembers: permissionRole(api.mention_all_members),
+        startVideoCall: permissionRole(api.start_video_call),
+        messagePermissions: messagePermissions(api.message_permissions),
+        threadPermissions: optional(messagePermissions, api.thread_permissions),
+    };
+}
+
+function messagePermissions(api: ApiMessagePermissions): MessagePermissions {
+    return {
+        audio: optional(permissionRole, api.audio) ?? "none",
+        video: optional(permissionRole, api.video) ?? "none",
+        videoCall: optional(permissionRole, api.video_call) ?? "none",
+        custom: api.custom.map((p) => ({
+            subtype: p.subtype,
+            role: permissionRole(p.role),
+        })),
+        file: optional(permissionRole, api.file) ?? "none",
+        poll: optional(permissionRole, api.poll) ?? "none",
+        text: optional(permissionRole, api.text) ?? "none",
+        crypto: optional(permissionRole, api.crypto) ?? "none",
+        giphy: optional(permissionRole, api.giphy) ?? "none",
+        default: optional(permissionRole, api.default) ?? "none",
+        image: optional(permissionRole, api.image) ?? "none",
+        prize: optional(permissionRole, api.prize) ?? "none",
+        p2pSwap: optional(permissionRole, api.p2p_swap) ?? "none",
+    };
+}
+
+function frozenGroupInfo(api: ApiFrozenGroupInfo): FrozenGroupInfo {
+    return {
+        timestamp: api.timestamp,
+        frozenBy: principalBytesToString(api.frozen_by),
+        reason: api.reason,
+    };
+}
+
+function accessGateConfig(api: ApiAccessGateConfig): AccessGateConfig {
+    return {
+        gate: accessGate(api.gate),
+        expiry: api.expiry,
+    };
+}
+
+export function accessGate(api: ApiAccessGate): AccessGate {
+    if (api === "DiamondMember") {
+        return {
+            kind: "diamond_gate",
+        };
+    } else if (api === "LifetimeDiamondMember") {
+        return {
+            kind: "lifetime_diamond_gate",
+        };
+    } else if (api === "UniquePerson") {
+        return {
+            kind: "unique_person_gate",
+        };
+    } else if (api === "Locked") {
+        return {
+            kind: "locked_gate",
+        };
+    } else if (api === "ReferredByMember") {
+        return {
+            kind: "referred_by_member_gate",
+        };
+    } else if ("Composite" in api) {
+        return {
+            kind: "composite_gate",
+            operator: api.Composite.and ? "and" : "or",
+            gates: api.Composite.inner.map(accessGate) as LeafGate[],
+        };
+    } else if ("SnsNeuron" in api) {
+        return {
+            kind: "neuron_gate",
+            minDissolveDelay: optional(BigInt, api.SnsNeuron.min_dissolve_delay),
+            minStakeE8s: optional(BigInt, api.SnsNeuron.min_stake_e8s),
+            governanceCanister: principalBytesToString(api.SnsNeuron.governance_canister_id),
+        };
+    } else if ("VerifiedCredential" in api) {
+        const credentialArgs = Object.entries(api.VerifiedCredential.credential_arguments);
+        return {
+            kind: "credential_gate",
+            credential: {
+                issuerCanisterId: principalBytesToString(api.VerifiedCredential.issuer_canister_id),
+                issuerOrigin: api.VerifiedCredential.issuer_origin,
+                credentialType: api.VerifiedCredential.credential_type,
+                credentialName: api.VerifiedCredential.credential_name,
+                credentialArguments:
+                    credentialArgs.length === 0 ? undefined : credentialArguments(credentialArgs),
+            },
+        };
+    } else if ("Payment" in api) {
+        return {
+            kind: "payment_gate",
+            ledgerCanister: principalBytesToString(api.Payment.ledger_canister_id),
+            amount: api.Payment.amount,
+            fee: api.Payment.fee,
+        };
+    } else if ("TokenBalance" in api) {
+        return {
+            kind: "token_balance_gate",
+            ledgerCanister: principalBytesToString(api.TokenBalance.ledger_canister_id),
+            minBalance: api.TokenBalance.min_balance,
+        };
+    }
+
+    throw new Error(`Unexpected ApiGroupGate type received: ${api}`);
+}
+
+export function credentialArguments(
+    value: [string, { String: string } | { Int: number }][],
+): Record<string, string | number> {
+    return toRecord2(
+        value,
+        ([k, _]) => k,
+        ([_, v]) => {
+            if ("String" in v) {
+                return v.String;
+            } else {
+                return v.Int;
+            }
+        },
+    );
+}
+
+function videoCall(api: ApiVideoCall): VideoCall {
+    return {
+        messageIndex: api.message_index,
+        callType: api.call_type === "Default" ? "default" : "broadcast",
+    };
+}
+
 export function apiAuthToken(auth: AuthToken): ApiAuthToken {
     switch (auth.kind) {
         case "api_key":
@@ -297,6 +492,21 @@ function apiCredentialArguments(domain?: Record<string, string | number>): ApiCr
     }, {} as ApiCredentialArguments);
 }
 
+export function permissionRole(api: ApiPermissionRole): PermissionRole {
+    switch (api) {
+        case "Admins":
+            return "admins";
+        case "Members":
+            return "members";
+        case "Moderators":
+            return "moderators";
+        case "None":
+            return "none";
+        case "Owner":
+            return "owners";
+    }
+}
+
 export function apiPermissionRole(domain: PermissionRole): ApiPermissionRole {
     switch (domain) {
         case "admins":
@@ -363,9 +573,8 @@ export function apiOptional<A, B>(domain: A | undefined, mapper: (a: A) => B): B
     return domain === undefined ? undefined : mapper(domain);
 }
 
-export function optional<A, B>(api: [] | [A], mapper: (a: A) => B): B | undefined {
-    const [inp] = api;
-    return inp === undefined ? undefined : mapper(inp);
+export function optional<A, B>(mapper: (a: A) => B, api?: A): B | undefined {
+    return api === undefined ? undefined : mapper(api);
 }
 
 export function identity<A>(a: A): A {
@@ -386,4 +595,18 @@ export function principalBytesToString(value: Uint8Array | number[] | string): s
         return value;
     }
     return Principal.fromUint8Array(consolidateBytes(value)).toString();
+}
+
+export function toRecord2<T, K extends string | number | symbol, V>(
+    xs: T[],
+    keyFn: (x: T) => K,
+    valFn: (x: T) => V,
+): Record<K, V> {
+    return xs.reduce(
+        (rec, x) => {
+            rec[keyFn(x)] = valFn(x);
+            return rec;
+        },
+        {} as Record<K, V>,
+    );
 }

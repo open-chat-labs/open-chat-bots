@@ -23,6 +23,7 @@ import {
     type ChatIdentifier,
     type RawCommandJwt,
     type RawApiKeyJwt,
+    type ChatDetailsResponse,
 } from "../domain";
 import type { Channel } from "../domain/channel";
 import { apiOptional, mapApiKeyJwt, mapCommandJwt, principalBytesToString } from "../mapping";
@@ -288,6 +289,15 @@ export class BotClient {
                 fileSize,
                 blobReference,
             ).setContextMessageId<FileMessage>(this.messageId);
+        });
+    }
+
+    chatDetails(channelId?: bigint): Promise<ChatDetailsResponse> {
+        return this.#botService.chatDetails(this.#auth, channelId).then((resp) => {
+            if (resp.kind !== "success") {
+                console.error("OpenChat botClient.chatDetails failed with: ", resp);
+            }
+            return resp;
         });
     }
 }

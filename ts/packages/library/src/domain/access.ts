@@ -2,7 +2,7 @@ export type AccessGate = LeafGate | CompositeGate;
 
 export type AccessGateConfig = {
     gate: AccessGate;
-    expiry: bigint | undefined;
+    expiry?: bigint;
 };
 
 export type LeafGate =
