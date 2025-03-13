@@ -81,7 +81,7 @@ To deploy the example bots for particular SDKs please follow these links:
 
 3. Select the newly registered bot and install it
 
-![install bot](./images/install-bot-new.png)
+![install bot](./images/install-bot.png)
 
 &nbsp;
 You can now run the various bot commands it provides!
