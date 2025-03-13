@@ -26,6 +26,8 @@ import {
     LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
     LocalUserIndexBotChatDetailsArgs as BotChatDetailsArgs,
     LocalUserIndexBotChatDetailsResponse as BotChatDetailsResponse,
+    LocalUserIndexBotChatEventsArgs as BotChatEventsArgs,
+    LocalUserIndexBotChatEventsResponse as BotChatEventsResponse,
 } from "../../typebox/typebox";
 
 export class BotGatewayClient extends MsgpackCanisterAgent {
@@ -89,16 +91,16 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
         });
     }
 
-    // chatEvents(auth: AuthToken, channelId?: bigint): Promise<ChatDetailsResponse> {
-    //     return this.executeMsgpackUpdate(
-    //         "bot_chat_events",
-    //         { channel_id: channelId, auth_token: apiAuthToken(auth) },
-    //         chatDetailsResponse,
-    //         BotChatDetailsArgs,
-    //         BotChatDetailsResponse,
-    //     ).catch((err) => {
-    //         console.error("Call to bot_chat_details failed with: ", JSON.stringify(err));
-    //         throw err;
-    //     });
-    // }
+    chatEvents(auth: AuthToken, channelId?: bigint): Promise<ChatEventsResponse> {
+        return this.executeMsgpackUpdate(
+            "bot_chat_events",
+            { channel_id: channelId, auth_token: apiAuthToken(auth) },
+            chatDetailsResponse,
+            BotChatEventsArgs,
+            BotChatEventsResponse,
+        ).catch((err) => {
+            console.error("Call to bot_chat_details failed with: ", JSON.stringify(err));
+            throw err;
+        });
+    }
 }

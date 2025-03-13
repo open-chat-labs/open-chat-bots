@@ -48,7 +48,7 @@ export const messagePermissionList = [
 type MessagePermissionType = typeof messagePermissionList;
 export type MessagePermission = MessagePermissionType[number];
 
-export type PermissionRole = "none" | "moderators" | "owners" | "admins" | "members";
+export type PermissionRole = "none" | "moderator" | "owner" | "admin" | "member";
 
 type LowercaseFirstLetter<T extends string> = T extends `${infer First}${infer Rest}`
     ? `${Lowercase<First>}${Rest}`

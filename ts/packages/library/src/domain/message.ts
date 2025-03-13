@@ -7,7 +7,8 @@ import type {
     PollContent,
 } from "../typebox/typebox";
 import { random64 } from "../utils/rng";
-import type { AuthToken, BlobReference } from "./bot";
+import type { AuthToken } from "./bot";
+import type { BlobReference } from "./data";
 import type { MessagePermission } from "./permissions";
 
 type FileMessageContent = { File: FileContent };

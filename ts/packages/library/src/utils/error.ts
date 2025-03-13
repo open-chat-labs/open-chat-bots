@@ -115,3 +115,9 @@ function responseTooLarge(error: Error): ResponseTooLargeError | undefined {
     }
     return undefined;
 }
+
+export class UnsupportedValueError extends Error {
+    constructor(msg: string, value: never) {
+        super(`${msg}: ${value}`);
+    }
+}

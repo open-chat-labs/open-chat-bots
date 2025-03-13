@@ -1,4 +1,5 @@
 import type { AccessGateConfig } from "./access";
+import type { ChatEvent } from "./event";
 import type { GroupPermissions } from "./permissions";
 import type { VersionedRules } from "./rules";
 import type { VideoCall } from "./video";
@@ -7,6 +8,26 @@ export type SendMessageResponse = SendMessageSuccess | SendMessageFailure;
 export type CreateChannelResponse = CreateChannelSuccess | CreateChannelFailure;
 export type DeleteChannelResponse = DeleteChannelSuccess | DeleteChannelFailure;
 export type ChatDetailsResponse = ChatDetailsSuccess | ChatDetailsFailure;
+export type ChatEventsResponse = ChatEventsSuccess | ChatEventsFailure;
+
+export type ChatEventsSuccess = {
+    kind: "success";
+    events: ChatEventWrapper[];
+    unauthorized: number[];
+    expiredEventRanges: [number, number][];
+    expiredMessageRanges: [number, number][];
+    latestEventIndex: number;
+    chatLastUpdated: bigint;
+};
+
+export type ChatEventWrapper = {
+    index: number;
+    timestamp: bigint;
+    expiresAt?: bigint;
+    event: ChatEvent;
+};
+
+export type ChatEventsFailure = FailedAuthentication | NotAuthorized | NotFound | ServerError;
 
 export type ChatDetailsSuccess = {
     kind: "success";

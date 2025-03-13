@@ -119,13 +119,46 @@ export type ApiKeyJwtAuthToken = { kind: "api_jwt"; token: string };
 
 export type ApiKey = { kind: "api_key"; token: string };
 
-export type BlobReference = {
-    blobId: bigint;
-    canisterId: string;
+export type SlashCommandParamInstance = CommandParamInstance & SlashCommandParamTypeInstance;
+
+export type CommandParamInstance = {
+    name: string;
 };
 
-export type DataContent = {
-    blobReference?: BlobReference;
-    blobData?: Uint8Array;
-    blobUrl?: string;
+export type SlashCommandParamTypeInstance =
+    | UserParamInstance
+    | BooleanParamInstance
+    | StringParamInstance
+    | IntegerParamInstance
+    | DecimalParamInstance
+    | DateTimeParamInstance;
+
+export type UserParamInstance = {
+    kind: "user";
+    userId?: string;
+};
+
+export type BooleanParamInstance = {
+    kind: "boolean";
+    value?: boolean;
+};
+
+export type StringParamInstance = {
+    kind: "string";
+    value?: string;
+};
+
+export type IntegerParamInstance = {
+    kind: "integer";
+    value: bigint | null;
+};
+
+export type DecimalParamInstance = {
+    kind: "decimal";
+    value: number | null; // this is to do with how number input binding works
+};
+
+export type DateTimeParamInstance = {
+    kind: "dateTime";
+    value?: bigint | null;
 };
