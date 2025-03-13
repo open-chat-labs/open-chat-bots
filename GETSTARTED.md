@@ -34,19 +34,19 @@ After a minute or so you should see the OpenChat frontend.
 Navigate to the groups section and then click "New group" from the groups menu
 &nbsp;
 
-![Create a group on open chat](./images/create-group.png)
+![Create a group on open chat](./images/new-group.png)
 
 &nbsp;
 Enter the group name
 &nbsp;
 
-![Group names](./images/GroupName.png)
+![Group names](./images/creategroup.png)
 
 &nbsp;
 Just pick default settings by clicking "next" until you reach the "Create Group" button
 &nbsp;
 
-![Create group](./images/creategroup.png)
+![Create group](./images/group-name.png)
 
 ### Step 3: Deploy the Bot
 
@@ -68,7 +68,7 @@ For offchain typescript bots, please refer to the [ts/readme](./ts/README.md).
 
 &nbsp;
 
-![Register bot](./images/register-onchain-bot.png)
+![Register bot](./images/register-reminder-bot.png)
 
 ### Step 5: Add Bot to Group
 
@@ -76,7 +76,7 @@ For offchain typescript bots, please refer to the [ts/readme](./ts/README.md).
 
 2. Look for the "Add bots" tab
 
-![add bots](./images/add-bots.png)
+![add bots](./images/add-new-bot.png)
 
 3. Select the newly registered bot and install it
 
