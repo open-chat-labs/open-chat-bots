@@ -22,6 +22,7 @@ import unsubscribe from "./unsubscribe";
 import { WithBotClient } from "../types";
 import poll from "./poll";
 import numbers from "./numbers";
+import details from "./details";
 
 function hasBotClient(req: Request): req is WithBotClient {
   return (req as WithBotClient).botClient !== undefined;
@@ -37,6 +38,8 @@ export default function executeCommand(req: Request, res: Response) {
   switch (client.commandName) {
     case "sync_api_key":
       return syncApiKey(req, res);
+    case "chat_details":
+      return details(req, res);
     case "prompt":
       return prompt(req, res);
     case "imagine":

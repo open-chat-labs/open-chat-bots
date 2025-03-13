@@ -226,6 +226,17 @@ export default function schema(_: Request, res: Response) {
         ],
       },
       {
+        name: "chat_details",
+        default_role: "Participant",
+        description: "Return the details of the current chat",
+        permissions: Permissions.encodePermissions({
+          ...emptyPermissions,
+          message: ["Text"],
+          chat: ["ReadChatDetails"],
+        }),
+        params: [],
+      },
+      {
         name: "album",
         default_role: "Participant",
         description: "Search for an album on Spotify",

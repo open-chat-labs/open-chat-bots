@@ -77,7 +77,7 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
     }
 
     chatDetails(auth: AuthToken, channelId?: bigint): Promise<ChatDetailsResponse> {
-        return this.executeMsgpackUpdate(
+        return this.executeMsgpackQuery(
             "bot_chat_details",
             { channel_id: channelId, auth_token: apiAuthToken(auth) },
             chatDetailsResponse,
@@ -85,7 +85,20 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
             BotChatDetailsResponse,
         ).catch((err) => {
             console.error("Call to bot_chat_details failed with: ", JSON.stringify(err));
-            throw err;
+            return { kind: "server_error" };
         });
     }
+
+    // chatEvents(auth: AuthToken, channelId?: bigint): Promise<ChatDetailsResponse> {
+    //     return this.executeMsgpackUpdate(
+    //         "bot_chat_events",
+    //         { channel_id: channelId, auth_token: apiAuthToken(auth) },
+    //         chatDetailsResponse,
+    //         BotChatDetailsArgs,
+    //         BotChatDetailsResponse,
+    //     ).catch((err) => {
+    //         console.error("Call to bot_chat_details failed with: ", JSON.stringify(err));
+    //         throw err;
+    //     });
+    // }
 }
