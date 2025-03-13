@@ -12,6 +12,7 @@ use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk_offchain::env;
 use oc_bots_sdk_offchain::middleware::tower::{ExtractJwtLayer, OpenChatJwt};
 use oc_bots_sdk_offchain::AgentRuntime;
+use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
@@ -30,6 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         pem_file,
         ic_url,
         oc_public_key,
+        port,
     } = Config::from_file(&config_file_path)?;
 
     tracing_subscriber::fmt::init();
@@ -38,7 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let oc_client_factory = Arc::new(ClientFactory::new(AgentRuntime::new(
         agent,
-        tokio::runtime::Runtime::new().unwrap(),
+        tokio::runtime::Runtime::new()?,
     )));
 
     let commands = CommandHandlerRegistry::new(oc_client_factory.clone())
@@ -58,11 +60,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(CorsLayer::permissive())
         .with_state(Arc::new(app_state));
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
-        .await
-        .unwrap();
+    let socket_addr = SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), port);
+    let listener = tokio::net::TcpListener::bind(socket_addr).await?;
 
-    axum::serve(listener, routes).await.unwrap();
+    axum::serve(listener, routes).await?;
     Ok(())
 }
 

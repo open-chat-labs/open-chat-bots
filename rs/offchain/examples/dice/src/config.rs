@@ -10,6 +10,7 @@ pub struct Config {
     pub ic_url: String,
     #[serde(default = "mainnet_oc_public_key")]
     pub oc_public_key: String,
+    pub port: u16,
 }
 
 impl Config {

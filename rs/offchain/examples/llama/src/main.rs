@@ -43,7 +43,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let oc_client_factory = Arc::new(ClientFactory::new(AgentRuntime::new(
         agent.clone(),
-        tokio::runtime::Runtime::new().unwrap(),
+        tokio::runtime::Runtime::new()?,
     )));
 
     let llm_canister_agent = LlmCanisterAgent::new(agent);
@@ -68,7 +68,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_state(Arc::new(app_state));
 
     let socket_addr = SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), config.port);
-    let listener = tokio::net::TcpListener::bind(socket_addr).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(socket_addr).await?;
 
     info!("LlamaBot ready");
 
