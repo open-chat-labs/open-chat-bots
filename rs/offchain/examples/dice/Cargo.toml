@@ -7,7 +7,7 @@ edition = "2021"
 async-trait = { workspace = true }
 axum = { workspace = true, features = [] }
 oc_bots_sdk = { path = "../../../sdk" }
-oc_bots_sdk_offchain = { path = "../../sdk" }
+oc_bots_sdk_offchain = { path = "../../sdk", features = ["tower"] }
 rand = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
