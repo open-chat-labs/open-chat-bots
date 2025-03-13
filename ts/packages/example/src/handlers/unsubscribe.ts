@@ -10,15 +10,11 @@ export default async function (req: WithBotClient, res: Response) {
     await client.createTextMessage(
       "Unsubscribing from autonomous behaviour ..."
     )
-  ).setFinalised(true);
+  )
+    .setFinalised(true)
+    .makeEphemeral();
 
   ping.unsubscribe(client.scope);
-
-  client
-    .sendMessage(msg)
-    .catch((err: unknown) =>
-      console.error("sendTextMessage failed with: ", err)
-    );
 
   res.status(200).json(success(msg));
 }
