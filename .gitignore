@@ -20,3 +20,4 @@ Makefile
 bot_store.db
 local/
 rs/canister_ids.json
+*.pem

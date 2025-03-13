@@ -6,7 +6,6 @@ use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::Router;
-use dotenv::dotenv;
 use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
 use oc_bots_sdk::api::definition::BotDefinition;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
@@ -20,16 +19,14 @@ use tracing::{error, info};
 
 mod commands;
 mod config;
-mod errors;
 mod llm_canister_agent;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Load .env file if present
-    dotenv().ok();
-
-    // Get config file path from env - if not set, use default
-    let config_file_path = std::env::var("CONFIG_FILE").unwrap_or("./config.toml".to_string());
+    // Get config file path from the args, or if not set, use default
+    let config_file_path = std::env::args()
+        .next()
+        .unwrap_or("./config.toml".to_string());
 
     // Load & parse config
     let config = Config::from_file(&config_file_path)?;

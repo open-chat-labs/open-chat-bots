@@ -7,7 +7,6 @@ edition = "2021"
 aes-gcm = "0.10.3"
 async-trait = { workspace = true }
 axum = { workspace = true }
-dotenv = { workspace = true }
 ic-agent = { workspace = true }
 oc_bots_sdk = { path = "../../../sdk" }
 oc_bots_sdk_offchain = { path = "../../sdk" }

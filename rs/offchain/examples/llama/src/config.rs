@@ -1,7 +1,7 @@
-use crate::errors::BotError;
 use oc_bots_sdk::mainnet::{mainnet_ic_url, mainnet_oc_public_key};
 use serde::de::Deserializer;
 use serde::Deserialize;
+use std::error::Error;
 use std::fs;
 use tracing::Level;
 
@@ -18,8 +18,8 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_file(path: &str) -> Result<Self, BotError> {
-        let content = fs::read_to_string(path).map_err(BotError::ConfigFileError)?;
+    pub fn from_file(path: &str) -> Result<Self, Box<dyn Error>> {
+        let content = fs::read_to_string(path)?;
         Ok(toml::from_str(&content)?)
     }
 }

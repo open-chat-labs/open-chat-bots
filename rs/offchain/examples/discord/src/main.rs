@@ -6,7 +6,6 @@ pub mod shared;
 pub mod state;
 
 use crate::config::Config;
-use dotenv::dotenv;
 use serde_valid::Validate;
 use state::AesKey;
 use std::sync::Arc;
@@ -15,11 +14,10 @@ use tracing::error;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Load env file if available!
-    dotenv().ok();
-
-    // Get config file path from env - if not set, use default.
-    let config_file_path = std::env::var("CONFIG_FILE").unwrap_or("./config.toml".to_string());
+    // Get config file path from the args, or if not set, use default
+    let config_file_path = std::env::args()
+        .next()
+        .unwrap_or("./config.toml".to_string());
 
     // Load & parse config...
     let config = Config::from_file(&config_file_path)?;

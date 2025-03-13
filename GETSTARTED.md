@@ -79,7 +79,7 @@ To deploy the example bots for particular SDKs please follow these links:
 
 ![add bots](./images/add-bots.png)
 
-1. Select the newly registered bot and install it
+3. Select the newly registered bot and install it
 
 ![install bot](./images/install-bot.png)
 
