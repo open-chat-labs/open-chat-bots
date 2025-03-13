@@ -12,7 +12,7 @@ http.workspace = true
 ic-agent = { workspace = true }
 oc_bots_sdk = { path = "../../sdk" }
 tokio = { workspace = true, features = ["rt"] }
-tower = "0.5.2"
+tower = { version = "0.5.2", optional = true }
 
 [features]
-tower = []
+tower = ["dep:tower"]
