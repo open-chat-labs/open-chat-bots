@@ -15,6 +15,7 @@ use oc_bots_sdk_offchain::middleware::tower::{ExtractJwtLayer, OpenChatJwt};
 use oc_bots_sdk_offchain::AgentRuntime;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
+use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing::info;
@@ -62,8 +63,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/execute_command", post(execute_command))
         .route_layer(ExtractJwtLayer::new())
         .route("/", get(bot_definition))
-        .layer(TraceLayer::new_for_http())
-        .layer(CorsLayer::permissive())
+        .layer(
+            ServiceBuilder::new()
+                .layer(TraceLayer::new_for_http())
+                .layer(CorsLayer::permissive()),
+        )
         .with_state(Arc::new(app_state));
 
     let socket_addr = SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), config.port);
