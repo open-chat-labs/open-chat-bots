@@ -5,7 +5,7 @@ use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::routing::{get, post};
-use axum::{Extension, Router};
+use axum::{Extension, Json, Router};
 use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
 use oc_bots_sdk::api::definition::BotDefinition;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
@@ -27,7 +27,7 @@ mod llm_canister_agent;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Get config file path from the args, or if not set, use default
     let config_file_path = std::env::args()
-        .next()
+        .nth(1)
         .unwrap_or("./config.toml".to_string());
 
     // Load & parse config
@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_max_level(config.log_level)
         .init();
 
-    info!(?config, "LlamaBot starting");
+    info!("LlamaBot starting");
 
     let agent = oc_bots_sdk_offchain::build_agent(config.ic_url, &config.pem_file).await;
 
@@ -100,17 +100,12 @@ async fn execute_command(
     }
 }
 
-async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> (StatusCode, Bytes) {
-    let definition = BotDefinition {
+async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> Json<BotDefinition> {
+    Json(BotDefinition {
         description: "Use this bot to send prompts to the Llama3 LLM".to_string(),
         commands: state.commands.definitions(),
         autonomous_config: None,
-    };
-
-    (
-        StatusCode::OK,
-        Bytes::from(serde_json::to_vec(&definition).unwrap()),
-    )
+    })
 }
 
 struct AppState {

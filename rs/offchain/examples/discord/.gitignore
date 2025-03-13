@@ -11,6 +11,5 @@ target/
 tmp/
 temp/
 
-*.pem
 config.toml
 bot_store.db

@@ -50,14 +50,12 @@ Just pick default settings by clicking "next" until you reach the "Create Group"
 
 ### Step 3: Deploy the Bot
 
-To deploy the example bots for particular SDKs please follow these links:
+You can find scripts to deploy a selection of the example bots in the [scripts folder](./scripts/).
 
-- Canister bots
-  - [Rust](./rs/canister/README.md)
-  - [Motoko](./rs/motoko/README.md) (coming soon)
-- Off-chain bots
-  - [Rust](./rs/offchain/README.md)
-  - [Typescript](./ts/README.md)
+Note 1 - the LlamaBot can currently only be run on mainnet because it calls the DFINITY Llama canister.
+Note 2 - the DiscordBot cannot be run locally because it needs to be reachable by Discord.
+
+For offchain typescript bots, please refer to the [ts/readme](./ts/README.md).
 
 ### Step 4: Register the Bot
 

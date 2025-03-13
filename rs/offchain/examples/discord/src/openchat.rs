@@ -5,7 +5,7 @@ use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::routing::{get, post};
-use axum::{Extension, Router};
+use axum::{Extension, Json, Router};
 use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
 use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
@@ -32,12 +32,12 @@ pub async fn init_openchat_client(
     oc_config: &OpenChatConfig,
     state: Arc<BotState>,
 ) -> Result<OcData, BotError> {
+    // Read the text from the pem file
+    let pem_file = std::fs::read_to_string(&oc_config.bot.private_key_path)
+        .map_err(BotError::FailedToReadPemFile)?;
+
     // Init OC agent
-    let oc_agent = oc_bots_sdk_offchain::build_agent(
-        oc_config.ic_url.clone(),
-        &oc_config.bot.private_key_path,
-    )
-    .await;
+    let oc_agent = oc_bots_sdk_offchain::build_agent(oc_config.ic_url.clone(), &pem_file).await;
 
     // Init client factory!
     let oc_client_factory = Arc::new(ClientFactory::new(AgentRuntime::new(
@@ -140,20 +140,15 @@ async fn execute_command(
 }
 
 // Handler for returning the bot definition!
-async fn bot_definition(State(oc_data): State<Arc<OcData>>) -> (StatusCode, Bytes) {
+async fn bot_definition(State(oc_data): State<Arc<OcData>>) -> Json<BotDefinition> {
     info!("OpenChat :: bot definition requested!");
 
-    let definition = BotDefinition {
+    Json(BotDefinition {
         description: "Bot for proxying messages from Discord to OpenChat".to_string(),
         commands: oc_data.commands.definitions(),
         autonomous_config: Some(AutonomousConfig {
             permissions: BotPermissions::text_only(),
             sync_api_key: false,
         }),
-    };
-
-    (
-        StatusCode::OK,
-        Bytes::from(serde_json::to_vec(&definition).unwrap()),
-    )
+    })
 }

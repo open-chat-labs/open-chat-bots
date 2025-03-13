@@ -42,4 +42,7 @@ pub enum BotError {
 
     #[error("Failed to decrypt state :: {0}")]
     FailedToDecryptState(aead::Error),
+
+    #[error("Failed to read pem file :: {0}")]
+    FailedToReadPemFile(std::io::Error),
 }

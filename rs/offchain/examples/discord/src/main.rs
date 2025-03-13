@@ -16,7 +16,7 @@ use tracing::error;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Get config file path from the args, or if not set, use default
     let config_file_path = std::env::args()
-        .next()
+        .nth(1)
         .unwrap_or("./config.toml".to_string());
 
     // Load & parse config...
