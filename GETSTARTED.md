@@ -26,18 +26,40 @@ After a minute or so you should see the OpenChat frontend.
 
 ## Step 2: Deploy the Bots
 
-You can find automated scripts or READMEs to deploy the example bots.
+You can find automated scripts or READMEs to deploy the example bots. In each case
 
-- Canister bots
-  - [GreetBot](./scripts/deploy_greet_bot.sh)
-  - [ReminderBot](./scripts/deploy_reminder_bot.sh)
-- Off-chain bots
-  - [DiceBot](./scripts/deploy_dice_bot.sh)
-  - [LlamaBot](./scripts/deploy_llama_bot.sh)
-  - [DiscordBot](./rs/offchain/examples/discord/README.md)
-  - [Typescript bots](./ts/README.md)
+### Canister bots
 
-Note: the DiscordBot cannot be deployed locally because it needs to be reachable by Discord:
+- [GreetBot](./scripts/deploy_greet_bot.sh)
+
+```bash
+  ./scripts/deploy_greet_bot.sh
+```
+
+- [ReminderBot](./scripts/deploy_reminder_bot.sh)
+
+```bash
+  ./scripts/deploy_reminder_bot.sh
+```
+
+### Off-chain bots
+
+- [DiceBot](./scripts/deploy_dice_bot.sh)
+
+```bash
+  ./scripts/deploy_dice_bot.sh
+```
+
+- [LlamaBot](./scripts/deploy_llama_bot.sh)
+
+```bash
+  ./scripts/deploy_llama_bot.sh
+```
+
+- [DiscordBot](./rs/offchain/examples/discord/README.md)
+- [Typescript bots](./ts/README.md)
+
+Note: the DiscordBot cannot be deployed locally because it needs to be reachable by Discord.
 
 ## Step 3: Create Account and Test Group
 
@@ -65,11 +87,9 @@ Just pick default settings by clicking "next" until you reach the "Create Group"
 
 ## Step 4: Register the Bot
 
-1. From your test group on the local OpenChat website enter `/register_bot` and fill in the fields
+From your test group on the local OpenChat website enter `/register_bot` and fill in the fields
 
-2. If registering a canister bot then for the `Principal` field use the bot canister id from the endpoint URL
-
-3. This registers the bot on OpenChat for testing but it still needs to be installed into a group, community, or as a direct chat
+This registers the bot on OpenChat for testing but it still needs to be installed into a group, community, or as a direct chat
 
 &nbsp;
 
