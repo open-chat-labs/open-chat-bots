@@ -50,9 +50,9 @@ Just pick default settings by clicking "next" until you reach the "Create Group"
 
 ### Step 3: Deploy the Bot
 
-You can find scripts to deploy a selection of the example bots in the [scripts folder](./scripts/).
+You can find scripts to locally deploy the Rust example bots in the [scripts folder](./scripts/).
 
-Note: the DiscordBot cannot be run locally because it needs to be reachable by Discord.
+Note: the DiscordBot cannot be deployed locally because it needs to be reachable by Discord.
 
 For offchain typescript bots, please refer to the [ts/readme](./ts/README.md).
 
