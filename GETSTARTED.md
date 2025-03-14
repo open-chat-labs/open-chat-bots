@@ -26,7 +26,7 @@ After a minute or so you should see the OpenChat frontend.
 
 ## Step 2: Deploy the Bots
 
-You can find scripts to locally deploy the Rust example bots in the [scripts folder](./scripts/).
+You can find automated scripts or READMEs to deploy the example bots.
 
 - Canister bots
   - [GreetBot](./scripts/deploy_greet_bot.sh)
@@ -34,10 +34,10 @@ You can find scripts to locally deploy the Rust example bots in the [scripts fol
 - Off-chain bots
   - [DiceBot](./scripts/deploy_dice_bot.sh)
   - [LlamaBot](./scripts/deploy_llama_bot.sh)
+  - [DiscordBot](./rs/offchain/examples/discord/README.md)
+  - [Typescript bots](./ts/README.md)
 
-Note: the DiscordBot cannot be deployed locally because it needs to be reachable by Discord.
-
-For offchain typescript bots, please refer to the [ts/readme](./ts/README.md).
+Note: the DiscordBot cannot be deployed locally because it needs to be reachable by Discord:
 
 ## Step 3: Create Account and Test Group
 
