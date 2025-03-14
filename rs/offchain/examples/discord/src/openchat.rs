@@ -3,18 +3,19 @@ use crate::errors::BotError;
 use crate::state::BotState;
 use axum::body::Bytes;
 use axum::extract::State;
-use axum::http::header::HeaderMap;
 use axum::http::StatusCode;
 use axum::routing::{get, post};
-use axum::Router;
+use axum::{Extension, Router};
 use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
 use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
+use oc_bots_sdk_offchain::middleware::tower::{ExtractJwtLayer, OpenChatJwt};
 use oc_bots_sdk_offchain::{env, AgentRuntime};
 use poise::serenity_prelude::Message;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use tokio::sync::mpsc::Receiver;
+use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
@@ -75,9 +76,13 @@ pub async fn start_openchat_bot(
     // OC bot setup!
     let routes = Router::new()
         .route("/execute_command", post(execute_command))
+        .route_layer(ExtractJwtLayer::new())
         .route("/", get(bot_definition))
-        .layer(TraceLayer::new_for_http())
-        .layer(CorsLayer::permissive())
+        .layer(
+            ServiceBuilder::new()
+                .layer(TraceLayer::new_for_http())
+                .layer(CorsLayer::permissive()),
+        )
         .with_state(data);
 
     let socket_addr = SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), port);
@@ -97,28 +102,11 @@ pub async fn start_openchat_bot(
 // Handler for command execution!
 async fn execute_command(
     State(oc_data): State<Arc<OcData>>,
-    headers: HeaderMap,
+    Extension(OpenChatJwt(jwt)): Extension<OpenChatJwt>,
 ) -> (StatusCode, Bytes) {
-    let jwt = if let Some(val) = headers.get("x-oc-jwt") {
-        if let Ok(jwt) = val.to_str() {
-            jwt
-        } else {
-            error!("Failed to parse authorization header! :: {:?}", val);
-            return (
-                StatusCode::BAD_REQUEST,
-                Bytes::from("Failed to parse authorization header!"),
-            );
-        }
-    } else {
-        return (
-            StatusCode::BAD_REQUEST,
-            Bytes::from("No authorization header found!"),
-        );
-    };
-
     let res = oc_data
         .commands
-        .execute(jwt, &oc_data.oc_config.public_key, env::now())
+        .execute(&jwt, &oc_data.oc_config.public_key, env::now())
         .await;
 
     match res {
@@ -152,7 +140,7 @@ async fn execute_command(
 }
 
 // Handler for returning the bot definition!
-async fn bot_definition(State(oc_data): State<Arc<OcData>>, _body: String) -> (StatusCode, Bytes) {
+async fn bot_definition(State(oc_data): State<Arc<OcData>>) -> (StatusCode, Bytes) {
     info!("OpenChat :: bot definition requested!");
 
     let definition = BotDefinition {

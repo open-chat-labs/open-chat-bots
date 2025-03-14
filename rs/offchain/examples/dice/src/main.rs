@@ -1,38 +1,46 @@
+use crate::config::Config;
 use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::routing::{get, post};
-use axum::Router;
-use clap::Parser;
+use axum::{Extension, Router};
 use commands::coin::Coin;
 use commands::roll::Roll;
 use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
 use oc_bots_sdk::api::definition::BotDefinition;
-use oc_bots_sdk::mainnet::{mainnet_ic_url, mainnet_oc_public_key};
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk_offchain::env;
+use oc_bots_sdk_offchain::middleware::tower::{ExtractJwtLayer, OpenChatJwt};
 use oc_bots_sdk_offchain::AgentRuntime;
+use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
 mod commands;
+mod config;
 
 #[tokio::main]
-async fn main() {
-    dotenv::dotenv().unwrap();
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Get config file path from the args, or if not set, use default
+    let config_file_path = std::env::args()
+        .next()
+        .unwrap_or("./config.toml".to_string());
+
+    // Load & parse config
+    let Config {
+        pem_file,
+        ic_url,
+        oc_public_key,
+        port,
+    } = Config::from_file(&config_file_path)?;
+
     tracing_subscriber::fmt::init();
 
-    let config = Config::parse();
-    let ic_url = dotenv::var("IC_URL").ok().unwrap_or_else(mainnet_ic_url);
-    let oc_public_key = dotenv::var("OC_PUBLIC_KEY")
-        .ok()
-        .unwrap_or_else(mainnet_oc_public_key);
-
-    let agent = oc_bots_sdk_offchain::build_agent(ic_url, &config.pem_file).await;
+    let agent = oc_bots_sdk_offchain::build_agent(ic_url, &pem_file).await;
 
     let oc_client_factory = Arc::new(ClientFactory::new(AgentRuntime::new(
         agent,
-        tokio::runtime::Runtime::new().unwrap(),
+        tokio::runtime::Runtime::new()?,
     )));
 
     let commands = CommandHandlerRegistry::new(oc_client_factory.clone())
@@ -47,18 +55,22 @@ async fn main() {
 
     let routes = Router::new()
         .route("/execute_command", post(execute_command))
+        .route_layer(ExtractJwtLayer::new())
         .route("/", get(bot_definition))
         .layer(CorsLayer::permissive())
         .with_state(Arc::new(app_state));
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
-        .await
-        .unwrap();
+    let socket_addr = SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), port);
+    let listener = tokio::net::TcpListener::bind(socket_addr).await?;
 
-    axum::serve(listener, routes).await.unwrap();
+    axum::serve(listener, routes).await?;
+    Ok(())
 }
 
-async fn execute_command(State(state): State<Arc<AppState>>, jwt: String) -> (StatusCode, Bytes) {
+async fn execute_command(
+    State(state): State<Arc<AppState>>,
+    Extension(OpenChatJwt(jwt)): Extension<OpenChatJwt>,
+) -> (StatusCode, Bytes) {
     match state
         .commands
         .execute(&jwt, &state.oc_public_key, env::now())
@@ -73,7 +85,7 @@ async fn execute_command(State(state): State<Arc<AppState>>, jwt: String) -> (St
         ),
         CommandResponse::InternalError(err) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Bytes::from(format!("{err:?}")),
+            Bytes::from(serde_json::to_vec(&err).unwrap()),
         ),
         CommandResponse::TooManyRequests => (StatusCode::TOO_MANY_REQUESTS, Bytes::new()),
     }
@@ -97,10 +109,4 @@ struct AppState {
     oc_client_factory: Arc<ClientFactory<AgentRuntime>>,
     oc_public_key: String,
     commands: CommandHandlerRegistry<AgentRuntime>,
-}
-
-#[derive(Parser, Debug)]
-struct Config {
-    #[arg(long)]
-    pem_file: String,
 }

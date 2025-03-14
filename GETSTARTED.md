@@ -4,7 +4,7 @@ This is a guide to get the example bots up and running as a starting point for d
 
 ## Prerequisites
 
-Ensure the `open-chat-labs` and `open-chat` repos are cloned into the same root directory:
+Ensure the `open-chat` and `open-chat-bots` repos are cloned into the same root directory:
 
 ```
 open-chat-labs/
@@ -34,19 +34,19 @@ After a minute or so you should see the OpenChat frontend.
 Navigate to the groups section and then click "New group" from the groups menu
 &nbsp;
 
-![Create a group on open chat](./images/create-group.png)
+![Create a group on open chat](./images/new-group.png)
 
 &nbsp;
 Enter the group name
 &nbsp;
 
-![Group names](./images/GroupName.png)
+![Group names](./images/creategroup.png)
 
 &nbsp;
 Just pick default settings by clicking "next" until you reach the "Create Group" button
 &nbsp;
 
-![Create group](./images/creategroup.png)
+![Create group](./images/group-name.png)
 
 ### Step 3: Deploy the Bot
 
@@ -67,7 +67,9 @@ To deploy the example bots for particular SDKs please follow these links:
 
 3. This registers the bot on OpenChat for testing but it still needs to be installed into a group, community, or as a direct chat
 
-![Register bot](./images/register-onchain-bot.png)
+&nbsp;
+
+![Register bot](./images/register-reminder-bot.png)
 
 ### Step 5: Add Bot to Group
 
@@ -75,7 +77,7 @@ To deploy the example bots for particular SDKs please follow these links:
 
 2. Look for the "Add bots" tab
 
-![add bots](./images/add-bots.png)
+![add bots](./images/add-new-bot.png)
 
 3. Select the newly registered bot and install it
 
