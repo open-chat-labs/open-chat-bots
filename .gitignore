@@ -21,4 +21,3 @@ bot_store.db
 local/
 rs/canister_ids.json
 *.pem
-scripts/upload_jokes.sh
