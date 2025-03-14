@@ -53,7 +53,7 @@ In each case the scripts will output the following which are needed in step 4 to
 
 ### Off-chain bots
 
-The DiceBot and LlamaBot will need to each be run in a separate terminal.
+The DiceBot and LlamaBot will each need to be run in a separate terminal.
 
 - [DiceBot](./scripts/deploy_dice_bot.sh)
 
@@ -85,13 +85,7 @@ Navigate to the groups section and then click "New group" from the groups menu
 ![Create a group on open chat](./images/new-group.png)
 
 &nbsp;
-Enter the group name
-&nbsp;
-
-![Group names](./images/creategroup.png)
-
-&nbsp;
-Just pick default settings by clicking "next" until you reach the "Create Group" button
+Enter the group name and just pick default settings by clicking "next" until you reach the "Create Group" button.
 &nbsp;
 
 ![Create group](./images/group-name.png)
