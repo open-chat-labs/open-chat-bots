@@ -53,6 +53,8 @@ In each case the scripts will output the following which are needed in step 4 to
 
 ### Off-chain bots
 
+The DiceBot and LlamaBot will need to each be run in a separate terminal.
+
 - [DiceBot](./scripts/deploy_dice_bot.sh)
 
 ```bash
