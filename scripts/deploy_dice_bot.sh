@@ -47,7 +47,7 @@ cd ../rs/offchain/examples/dice || exit 1
 cargo build --release
 
 echo ""
-echo "Bot: DiceBot"
+echo "Name: DiceBot"
 echo "Principal: $PRINCIPAL"
 echo "Endpoint: http://localhost:$PORT"
 echo ""

@@ -32,7 +32,7 @@ In each case the scripts will output the following which are needed in step 4 to
 
 ```
   # example
-  Bot: DiceBot
+  Name: DiceBot
   Principal: xojpk-xfq5f-kkflr-wiq6n-ihp2u-2lnwn-2r5wl-lho4l-ldv5o-n5vip-5ae
   Endpoint: http://localhost:3000
 ```

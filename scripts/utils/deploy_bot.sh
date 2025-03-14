@@ -26,7 +26,7 @@ dfx canister install --quiet --mode $MODE $BOT --argument "$ARGS" || exit 1
 
 # Return the URL of the $BOT
 echo ""
-echo "Bot: $BOT"
+echo "Name: $BOT"
 echo "Principal: $CANISTER_ID"
 echo "Endpoint: http://$CANISTER_ID.raw.localhost:8080"
 echo ""

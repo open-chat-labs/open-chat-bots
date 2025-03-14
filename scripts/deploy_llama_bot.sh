@@ -51,7 +51,7 @@ cd ../rs/offchain/examples/llama || exit 1
 cargo build --release
 
 echo ""
-echo "Bot: LlamaBot"
+echo "Name: LlamaBot"
 echo "Principal: $PRINCIPAL"
 echo "Endpoint: http://localhost:$PORT"
 echo ""
