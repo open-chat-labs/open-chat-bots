@@ -21,19 +21,19 @@ export type Rules = { text: string; enabled: boolean };
 export class Channel {
     #isPublic = true;
     #permissions: GroupPermissions = {
-        changeRoles: "admins",
-        removeMembers: "moderators",
-        deleteMessages: "moderators",
-        updateGroup: "admins",
-        pinMessages: "admins",
-        inviteUsers: "admins",
-        addMembers: "admins",
-        mentionAllMembers: "members",
-        reactToMessages: "members",
-        startVideoCall: "members",
+        changeRoles: "admin",
+        removeMembers: "moderator",
+        deleteMessages: "moderator",
+        updateGroup: "admin",
+        pinMessages: "admin",
+        inviteUsers: "admin",
+        addMembers: "admin",
+        mentionAllMembers: "member",
+        reactToMessages: "member",
+        startVideoCall: "member",
         messagePermissions: {
             custom: [],
-            default: "members",
+            default: "member",
             p2pSwap: "none",
         },
     };
@@ -61,7 +61,7 @@ export class Channel {
 
     public setThreadPermissions(perm: MessagePermission, role: PermissionRole): Channel {
         if (this.#permissions.threadPermissions === undefined) {
-            this.#permissions.threadPermissions = { custom: [], default: "members" };
+            this.#permissions.threadPermissions = { custom: [], default: "member" };
         }
         this.#permissions.threadPermissions[perm] = role;
         return this;

@@ -7,6 +7,8 @@ import type {
     CreateChannelResponse,
     DeleteChannelResponse,
     ChatDetailsResponse,
+    ChatEventsResponse,
+    ChatEventsCriteria,
 } from "../../domain";
 import type { Channel } from "../../domain/channel";
 import { MsgpackCanisterAgent } from "../canisterAgent/msgpack";
@@ -16,6 +18,8 @@ import {
     createChannelResponse,
     deleteChannelResponse,
     chatDetailsResponse,
+    chatEventsResponse,
+    apiChatEventsCriteria,
 } from "../../mapping";
 import {
     LocalUserIndexBotDeleteChannelArgs as BotDeleteChannelArgs,
@@ -91,15 +95,23 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
         });
     }
 
-    chatEvents(auth: AuthToken, channelId?: bigint): Promise<ChatEventsResponse> {
-        return this.executeMsgpackUpdate(
+    chatEvents(
+        auth: AuthToken,
+        criteria: ChatEventsCriteria,
+        channelId?: bigint,
+    ): Promise<ChatEventsResponse> {
+        return this.executeMsgpackQuery(
             "bot_chat_events",
-            { channel_id: channelId, auth_token: apiAuthToken(auth) },
-            chatDetailsResponse,
+            {
+                channel_id: channelId,
+                auth_token: apiAuthToken(auth),
+                events: apiChatEventsCriteria(criteria),
+            },
+            chatEventsResponse,
             BotChatEventsArgs,
             BotChatEventsResponse,
         ).catch((err) => {
-            console.error("Call to bot_chat_details failed with: ", JSON.stringify(err));
+            console.error("Call to bot_chat_events failed with: ", JSON.stringify(err));
             throw err;
         });
     }

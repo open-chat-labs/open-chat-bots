@@ -678,3 +678,25 @@ export type VideoCallContent = {
     ended?: bigint;
     callType: VideoCallType;
 };
+
+export type ChatEventsCriteria = ChatEventsPage | ChatEventsByIndex | ChatEventsWindow;
+
+export type ChatEventsPage = {
+    kind: "chat_events_page";
+    startEventIndex: number;
+    ascending: boolean;
+    maxMessages: number;
+    maxEvents: number;
+};
+
+export type ChatEventsByIndex = {
+    kind: "chat_events_by_index";
+    eventIndexes: number[];
+};
+
+export type ChatEventsWindow = {
+    kind: "chat_events_window";
+    midPointMessageIndex: number;
+    maxMessages: number;
+    maxEvents: number;
+};

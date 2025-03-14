@@ -79,6 +79,9 @@ import {
     type TipsReceived,
     type BotMessageContext,
     type SlashCommandParamInstance,
+    type ChatEventsResponse,
+    type ChatEventsSuccess,
+    type ChatEventsCriteria,
 } from "../domain";
 import {
     type AuthToken as ApiAuthToken,
@@ -96,10 +99,10 @@ import {
     type Chat,
     type Chat as ApiChat,
     type LocalUserIndexBotChatDetailsResponse as BotChatDetailsResponse,
+    type LocalUserIndexBotChatEventsResponse as BotChatEventsResponse,
     type ChatDetails,
     type FrozenGroupInfo as ApiFrozenGroupInfo,
     type VideoCall as ApiVideoCall,
-    type EventWrapperChatEvent as ApiEventWrapperChatEvent,
     type ChatEvent as ApiChatEvent,
     type Message as ApiMessage,
     type MessageContent as ApiMessageContent,
@@ -141,6 +144,9 @@ import {
     type ThreadSummary as ApiThreadSummary,
     type BotMessageContext as ApiBotMessageContext,
     BotCommandArg,
+    type EventsResponse as ApiEventsResponse,
+    type EventWrapperChatEvent as ApiEventWrapperChatEvent,
+    type LocalUserIndexChatEventsEventsSelectionCriteria as ApiChatEventsCriteria,
 } from "../typebox/typebox";
 import { toBigInt32, toBigInt64 } from "../utils/bigint";
 import { UnsupportedValueError } from "../utils/error";
@@ -320,6 +326,35 @@ export function chatDetailsResponse(api: BotChatDetailsResponse): ChatDetailsRes
         return { kind: "not_found" };
     }
     throw new Error(`Unknown BotChatDetailsResponse: ${api}`);
+}
+
+export function chatEventsResponse(api: BotChatEventsResponse): ChatEventsResponse {
+    if (typeof api === "object") {
+        if ("Success" in api) {
+            return chatEventsSuccessResponse(api.Success);
+        } else if ("FailedAuthentication" in api) {
+            return { kind: "failed_authentication" };
+        } else if ("InternalError" in api) {
+            return { kind: "server_error" };
+        }
+    } else if (api === "NotAuthorized") {
+        return { kind: "not_authorized" };
+    } else if (api === "NotFound") {
+        return { kind: "not_found" };
+    }
+    throw new UnsupportedValueError("Unknown BotChatEventsResponse", api);
+}
+
+function chatEventsSuccessResponse(api: ApiEventsResponse): ChatEventsSuccess {
+    return {
+        kind: "success",
+        events: api.events.map(eventWrapper),
+        unauthorized: api.unauthorized,
+        expiredEventRanges: api.expired_event_ranges,
+        expiredMessageRanges: api.expired_message_ranges,
+        latestEventIndex: api.latest_event_index,
+        chatLastUpdated: api.chat_last_updated,
+    };
 }
 
 function chatDetails(api: ChatDetails): ChatDetailsSuccess {
@@ -1683,4 +1718,32 @@ export function botCommandArg(api: BotCommandArg): SlashCommandParamInstance {
         };
     }
     throw new Error(`Unexpected ApiBotCommandArg type received, ${api}`);
+}
+
+export function apiChatEventsCriteria(domain: ChatEventsCriteria): ApiChatEventsCriteria {
+    switch (domain.kind) {
+        case "chat_events_page":
+            return {
+                Page: {
+                    start_index: domain.startEventIndex,
+                    ascending: domain.ascending,
+                    max_messages: domain.maxMessages,
+                    max_events: domain.maxEvents,
+                },
+            };
+        case "chat_events_by_index":
+            return {
+                ByIndex: {
+                    events: domain.eventIndexes,
+                },
+            };
+        case "chat_events_window":
+            return {
+                Window: {
+                    mid_point: domain.midPointMessageIndex,
+                    max_messages: domain.maxMessages,
+                    max_events: domain.maxEvents,
+                },
+            };
+    }
 }

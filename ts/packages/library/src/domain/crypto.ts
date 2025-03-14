@@ -1,7 +1,7 @@
-export declare const CHAT_SYMBOL = "CHAT";
-export declare const ICP_SYMBOL = "ICP";
-export declare const CKBTC_SYMBOL = "ckBTC";
-export declare const SNS1_SYMBOL = "SNS1";
-export declare const KINIC_SYMBOL = "KINIC";
-export declare const HOTORNOT_SYMBOL = "HOT";
-export declare const GHOST_SYMBOL = "GHOST";
+export const CHAT_SYMBOL = "CHAT";
+export const ICP_SYMBOL = "ICP";
+export const CKBTC_SYMBOL = "ckBTC";
+export const SNS1_SYMBOL = "SNS1";
+export const KINIC_SYMBOL = "KINIC";
+export const HOTORNOT_SYMBOL = "HOT";
+export const GHOST_SYMBOL = "GHOST";

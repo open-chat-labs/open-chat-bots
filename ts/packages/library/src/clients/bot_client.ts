@@ -24,6 +24,8 @@ import {
     type RawCommandJwt,
     type RawApiKeyJwt,
     type ChatDetailsResponse,
+    type ChatEventsCriteria,
+    type ChatEventsResponse,
 } from "../domain";
 import type { Channel } from "../domain/channel";
 import { apiOptional, mapApiKeyJwt, mapCommandJwt, principalBytesToString } from "../mapping";
@@ -296,6 +298,15 @@ export class BotClient {
         return this.#botService.chatDetails(this.#auth, channelId).then((resp) => {
             if (resp.kind !== "success") {
                 console.error("OpenChat botClient.chatDetails failed with: ", resp);
+            }
+            return resp;
+        });
+    }
+
+    chatEvents(criteria: ChatEventsCriteria, channelId?: bigint): Promise<ChatEventsResponse> {
+        return this.#botService.chatEvents(this.#auth, criteria, channelId).then((resp) => {
+            if (resp.kind !== "success") {
+                console.error("OpenChat botClient.chatEvents failed with: ", resp);
             }
             return resp;
         });
