@@ -78,7 +78,7 @@ import {
     type ThreadSummary,
     type TipsReceived,
     type BotMessageContext,
-    type SlashCommandParamInstance,
+    type CommandArg,
     type ChatEventsResponse,
     type ChatEventsSuccess,
     type ChatEventsCriteria,
@@ -1678,7 +1678,7 @@ export function botMessageContext(value: ApiBotMessageContext): BotMessageContex
     };
 }
 
-export function botCommandArg(api: BotCommandArg): SlashCommandParamInstance {
+export function botCommandArg(api: BotCommandArg): CommandArg {
     const { name, value } = api;
     if ("Boolean" in value) {
         return {

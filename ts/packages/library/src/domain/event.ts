@@ -1,4 +1,4 @@
-import type { SlashCommandParamInstance } from "./bot";
+import type { CommandArg } from "./bot";
 import type { DataContent } from "./data";
 import type { ChatIdentifier } from "./identifiers";
 import type { GroupPermissions, PermissionRole } from "./permissions";
@@ -237,7 +237,7 @@ export type TipsReceived = Record<LedgerId, Record<UserId, bigint>>;
 
 export type BotContextCommand = {
     name: string;
-    args: SlashCommandParamInstance[];
+    args: CommandArg[];
     initiator: string;
 };
 

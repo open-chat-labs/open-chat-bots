@@ -1,370 +1,376 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "title": "OpenChat bot definition schema",
-  "description": "When a bot is registered with OpenChat it must expose its definition on a special endpoint called /schema. OpenChat will make a GET request to this endpoint and must receive a response which is valid against the following schema. This is so that OpenChat can determine how the user will interact with the bot i.e. which commands it supports and what their parameter are.",
-  "properties": {
-    "description": {
-      "type": "string",
-      "description": "A brief description of what your bot does.",
-      "minLength": 5,
-      "maxLength": 500
-    },
-    "commands": {
-      "type": "array",
-      "description": "This is the list of slash commands that your bot supports. Note that you must have between one and fifty commands.",
-      "items": {
-        "$ref": "#/definitions/BotCommandDefinition"
-      },
-      "minItems": 1,
-      "maxItems": 50
-    },
-    "autonomous_config": {
-      "$ref": "#/definitions/AutonomousConfig",
-      "description": "Configuration for the bot's autonomous behaviour"
-    }
-  },
-  "anyOf": [
-    {
-      "required": ["autonomous_config"]
-    },
-    {
-      "minProperties": 1,
-      "properties": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "title": "OpenChat bot definition schema",
+    "description": "When a bot is registered with OpenChat it must expose its definition on a special endpoint called /schema. OpenChat will make a GET request to this endpoint and must receive a response which is valid against the following schema. This is so that OpenChat can determine how the user will interact with the bot i.e. which commands it supports and what their parameter are.",
+    "properties": {
+        "description": {
+            "type": "string",
+            "description": "A brief description of what your bot does.",
+            "minLength": 5,
+            "maxLength": 500
+        },
         "commands": {
-          "minItems": 1
+            "type": "array",
+            "description": "This is the list of commands that your bot supports. Note that you must have between one and fifty commands.",
+            "items": {
+                "$ref": "#/definitions/BotCommandDefinition"
+            },
+            "minItems": 1,
+            "maxItems": 50
+        },
+        "autonomous_config": {
+            "$ref": "#/definitions/AutonomousConfig",
+            "description": "Configuration for the bot's autonomous behaviour"
         }
-      }
+    },
+    "anyOf": [
+        {
+            "required": ["autonomous_config"]
+        },
+        {
+            "minProperties": 1,
+            "properties": {
+                "commands": {
+                    "minItems": 1
+                }
+            }
+        }
+    ],
+    "required": ["description"],
+    "additionalProperties": false,
+    "definitions": {
+        "AutonomousConfig": {
+            "type": "object",
+            "description": "Configuration for the bot's autonomous behaviour",
+            "properties": {
+                "sync_api_key": {
+                    "type": "boolean",
+                    "description": "Controls whether the OpenChat UI will offer to send generated api keys to this bot directly"
+                },
+                "permissions": {
+                    "$ref": "#/definitions/BotPermissions",
+                    "description": "The permissions required to execute in this context. These are broken down into Community level, Chat level and Message level permissions."
+                }
+            },
+            "required": ["sync_api_key", "permissions"]
+        },
+        "NameField": {
+            "type": "string",
+            "description": "A bot schema element name",
+            "minLength": 3,
+            "maxLength": 25,
+            "pattern": "^[a-zA-Z0-9_]+$"
+        },
+        "ParamNameField": {
+            "type": "string",
+            "description": "A bot schema parameter name",
+            "minLength": 1,
+            "maxLength": 25,
+            "pattern": "^[a-zA-Z0-9_]+$"
+        },
+        "BotCommandDefinition": {
+            "type": "object",
+            "description": "This is the specification of each individual command.",
+            "properties": {
+                "name": {
+                    "$ref": "#/definitions/NameField",
+                    "description": "The name that users will use to trigger this command in OpenChat."
+                },
+                "default_role": {
+                    "type": "string",
+                    "enum": ["Participant", "Moderator", "Admin", "Owner"],
+                    "description": "The default role assigned to the command, which must be one of the specified roles."
+                },
+                "placeholder": {
+                    "type": "string",
+                    "description": "An optional placeholder message to display in OpenChat while await the initial response from the bot",
+                    "minLength": 5,
+                    "maxLength": 500
+                },
+                "description": {
+                    "type": "string",
+                    "description": "A brief description of what the command does.",
+                    "minLength": 5,
+                    "maxLength": 500
+                },
+                "params": {
+                    "type": "array",
+                    "description": "List of parameters accepted by the command.",
+                    "maxItems": 50,
+                    "items": {
+                        "$ref": "#/definitions/CommandParam"
+                    }
+                },
+                "permissions": {
+                    "$ref": "#/definitions/BotPermissions",
+                    "description": "The permissions required to execute the command. These are broken down into Community level, Chat level and Message level permissions."
+                }
+            },
+            "required": [
+                "name",
+                "description",
+                "params",
+                "permissions",
+                "default_role"
+            ],
+            "additionalProperties": false
+        },
+        "CommandParam": {
+            "type": "object",
+            "description": "The definition for each parameter that a command can accept.",
+            "properties": {
+                "name": {
+                    "$ref": "#/definitions/ParamNameField",
+                    "description": "The name of the parameter."
+                },
+                "description": {
+                    "type": "string",
+                    "description": "A description of what the parameter represents.",
+                    "minLength": 5,
+                    "maxLength": 500
+                },
+                "placeholder": {
+                    "type": "string",
+                    "description": "A placeholder text shown when the parameter is being input.",
+                    "minLength": 5,
+                    "maxLength": 100
+                },
+                "required": {
+                    "type": "boolean",
+                    "description": "Indicates whether this parameter is required or optional."
+                },
+                "param_type": {
+                    "$ref": "#/definitions/CommandParamType",
+                    "description": "The type of parameter (e.g., string, number, boolean, or user)."
+                }
+            },
+            "required": ["name", "description", "required", "param_type"],
+            "additionalProperties": false
+        },
+        "CommandParamType": {
+            "anyOf": [
+                {
+                    "const": "UserParam",
+                    "description": "A parameter representing an OpenChat user."
+                },
+                {
+                    "const": "BooleanParam",
+                    "description": "A boolean (true/false) parameter."
+                },
+                {
+                    "type": "object",
+                    "description": "A parameter representing a string.",
+                    "properties": {
+                        "StringParam": {
+                            "$ref": "#/definitions/StringParam"
+                        }
+                    },
+                    "required": ["StringParam"],
+                    "additionalProperties": false
+                },
+                {
+                    "type": "object",
+                    "description": "A parameter representing an integer.",
+                    "properties": {
+                        "IntegerParam": {
+                            "$ref": "#/definitions/IntegerParam"
+                        }
+                    },
+                    "required": ["IntegerParam"],
+                    "additionalProperties": false
+                },
+                {
+                    "type": "object",
+                    "description": "A parameter representing a decimal.",
+                    "properties": {
+                        "DecimalParam": {
+                            "$ref": "#/definitions/DecimalParam"
+                        }
+                    },
+                    "required": ["DecimalParam"],
+                    "additionalProperties": false
+                },
+                {
+                    "type": "object",
+                    "description": "A parameter representing a datetime as a timestamp in milliseconds",
+                    "properties": {
+                        "DateTimeParam": {
+                            "$ref": "#/definitions/DateTimeParam"
+                        }
+                    },
+                    "required": ["DateTimeParam"],
+                    "additionalProperties": false
+                }
+            ]
+        },
+        "StringParam": {
+            "type": "object",
+            "description": "String parameter constraints and choices",
+            "properties": {
+                "min_length": {
+                    "type": "integer",
+                    "description": "Minimum allowed length for the string parameter.",
+                    "minimum": 0
+                },
+                "max_length": {
+                    "type": "integer",
+                    "description": "Maximum allowed length for the string parameter.",
+                    "minimum": 0
+                },
+                "choices": {
+                    "type": "array",
+                    "description": "List of predefined choices for the string parameter.",
+                    "items": {
+                        "$ref": "#/definitions/CommandOptionChoiceString"
+                    }
+                },
+                "multi_line": {
+                    "type": "boolean",
+                    "description": "Indicates that a multi-line string parameter should be expected."
+                }
+            },
+            "required": ["min_length", "max_length", "choices", "multi_line"],
+            "additionalProperties": false
+        },
+        "IntegerParam": {
+            "type": "object",
+            "description": "Integer parameter constraints and choices",
+            "properties": {
+                "min_length": {
+                    "type": "integer",
+                    "description": "Minimum allowed value for the integer parameter.",
+                    "minimum": 0
+                },
+                "max_length": {
+                    "type": "integer",
+                    "description": "Maximum allowed value for the integer parameter.",
+                    "minimum": 0
+                },
+                "choices": {
+                    "type": "array",
+                    "description": "List of predefined choices for the integer parameter.",
+                    "items": {
+                        "$ref": "#/definitions/CommandOptionChoiceI128"
+                    }
+                }
+            },
+            "required": ["min_length", "max_length", "choices"],
+            "additionalProperties": false
+        },
+        "DecimalParam": {
+            "type": "object",
+            "description": "Decimal parameter constraints and choices",
+            "properties": {
+                "min_length": {
+                    "type": "number",
+                    "description": "Minimum allowed value for the decimal parameter.",
+                    "minimum": 0
+                },
+                "max_length": {
+                    "type": "number",
+                    "description": "Maximum allowed value for the decimal parameter.",
+                    "minimum": 0
+                },
+                "choices": {
+                    "type": "array",
+                    "description": "List of predefined choices for the decimal parameter.",
+                    "items": {
+                        "$ref": "#/definitions/CommandOptionChoiceF64"
+                    }
+                }
+            },
+            "required": ["min_length", "max_length", "choices"],
+            "additionalProperties": false
+        },
+        "DateTimeParam": {
+            "type": "object",
+            "description": "DateTime parameter constraints and choices",
+            "properties": {
+                "future_only": {
+                    "type": "boolean",
+                    "description": "Indicates that only dates in the future are allowed, including now."
+                }
+            },
+            "required": ["future_only"],
+            "additionalProperties": false
+        },
+        "CommandOptionChoiceString": {
+            "type": "object",
+            "description": "A choice for a string parameter.",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The name of the choice.",
+                    "minLength": 1,
+                    "maxLength": 100
+                },
+                "value": {
+                    "type": "string",
+                    "description": "The value of the choice.",
+                    "minLength": 1,
+                    "maxLength": 100
+                }
+            },
+            "required": ["name", "value"],
+            "additionalProperties": false
+        },
+        "CommandOptionChoiceI128": {
+            "type": "object",
+            "description": "A choice for an integer parameter.",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The name of the choice.",
+                    "minLength": 1,
+                    "maxLength": 100
+                },
+                "value": {
+                    "type": "integer",
+                    "description": "The value of the choice.",
+                    "minimum": 0
+                }
+            },
+            "required": ["name", "value"],
+            "additionalProperties": false
+        },
+        "CommandOptionChoiceF64": {
+            "type": "object",
+            "description": "A choice for a decimal parameter.",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The name of the choice.",
+                    "minLength": 1,
+                    "maxLength": 100
+                },
+                "value": {
+                    "type": "number",
+                    "description": "The value of the choice.",
+                    "minimum": 0
+                }
+            },
+            "required": ["name", "value"],
+            "additionalProperties": false
+        },
+        "BotPermissions": {
+            "type": "object",
+            "description": "Permissions required for commands to execute.",
+            "properties": {
+                "community": {
+                    "type": "number",
+                    "description": "Bit mask of the required community level permissions"
+                },
+                "chat": {
+                    "type": "number",
+                    "description": "Bit mask of the required chat level permissions"
+                },
+                "message": {
+                    "type": "number",
+                    "description": "Bit mask of the required message level permissions"
+                }
+            },
+            "additionalProperties": false
+        }
     }
-  ],
-  "required": ["description"],
-  "additionalProperties": false,
-  "definitions": {
-    "AutonomousConfig": {
-      "type": "object",
-      "description": "Configuration for the bot's autonomous behaviour",
-      "properties": {
-        "sync_api_key": {
-          "type": "boolean",
-          "description": "Controls whether the OpenChat UI will offer to send generated api keys to this bot directly"
-        },
-        "permissions": {
-          "$ref": "#/definitions/BotPermissions",
-          "description": "The permissions required to execute in this context. These are broken down into Community level, Chat level and Message level permissions."
-        }
-      },
-      "required": ["sync_api_key", "permissions"]
-    },
-    "NameField": {
-      "type": "string",
-      "description": "A bot schema element name",
-      "minLength": 3,
-      "maxLength": 25,
-      "pattern": "^[a-zA-Z0-9_]+$"
-    },
-    "ParamNameField": {
-      "type": "string",
-      "description": "A bot schema parameter name",
-      "minLength": 1,
-      "maxLength": 25,
-      "pattern": "^[a-zA-Z0-9_]+$"
-    },
-    "BotCommandDefinition": {
-      "type": "object",
-      "description": "This is the specification of each individual command.",
-      "properties": {
-        "name": {
-          "$ref": "#/definitions/NameField",
-          "description": "The name that users will use to trigger this command in OpenChat."
-        },
-        "default_role": {
-          "type": "string",
-          "enum": ["Participant", "Moderator", "Admin", "Owner"],
-          "description": "The default role assigned to the command, which must be one of the specified roles."
-        },
-        "placeholder": {
-          "type": "string",
-          "description": "An optional placeholder message to display in OpenChat while await the initial response from the bot",
-          "minLength": 5,
-          "maxLength": 500
-        },
-        "description": {
-          "type": "string",
-          "description": "A brief description of what the slash command does.",
-          "minLength": 5,
-          "maxLength": 500
-        },
-        "params": {
-          "type": "array",
-          "description": "List of parameters accepted by the slash command.",
-          "maxItems": 50,
-          "items": {
-            "$ref": "#/definitions/SlashCommandParam"
-          }
-        },
-        "permissions": {
-          "$ref": "#/definitions/BotPermissions",
-          "description": "The permissions required to execute the command. These are broken down into Community level, Chat level and Message level permissions."
-        }
-      },
-      "required": [
-        "name",
-        "description",
-        "params",
-        "permissions",
-        "default_role"
-      ],
-      "additionalProperties": false
-    },
-    "SlashCommandParam": {
-      "type": "object",
-      "description": "The definition for each parameter that a command can accept.",
-      "properties": {
-        "name": {
-          "$ref": "#/definitions/ParamNameField",
-          "description": "The name of the parameter."
-        },
-        "description": {
-          "type": "string",
-          "description": "A description of what the parameter represents.",
-          "minLength": 5,
-          "maxLength": 500
-        },
-        "placeholder": {
-          "type": "string",
-          "description": "A placeholder text shown when the parameter is being input.",
-          "minLength": 5,
-          "maxLength": 100
-        },
-        "required": {
-          "type": "boolean",
-          "description": "Indicates whether this parameter is required or optional."
-        },
-        "param_type": {
-          "$ref": "#/definitions/SlashCommandParamType",
-          "description": "The type of parameter (e.g., string, number, boolean, or user)."
-        }
-      },
-      "required": ["name", "description", "required", "param_type"],
-      "additionalProperties": false
-    },
-    "SlashCommandParamType": {
-      "anyOf": [
-        {
-          "const": "UserParam",
-          "description": "A parameter representing an OpenChat user."
-        },
-        {
-          "const": "BooleanParam",
-          "description": "A boolean (true/false) parameter."
-        },
-        {
-          "type": "object",
-          "description": "A parameter representing a string.",
-          "properties": {
-            "StringParam": {
-              "$ref": "#/definitions/StringParam"
-            }
-          },
-          "required": ["StringParam"],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "description": "A parameter representing an integer.",
-          "properties": {
-            "IntegerParam": {
-              "$ref": "#/definitions/IntegerParam"
-            }
-          },
-          "required": ["IntegerParam"],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "description": "A parameter representing a decimal.",
-          "properties": {
-            "DecimalParam": {
-              "$ref": "#/definitions/DecimalParam"
-            }
-          },
-          "required": ["DecimalParam"],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "description": "A parameter representing a datetime as a timestamp in milliseconds",
-          "properties": {
-            "DateTimeParam": {
-              "$ref": "#/definitions/DateTimeParam"
-            }
-          },
-          "required": ["DateTimeParam"],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "StringParam": {
-      "type": "object",
-      "description": "String parameter constraints and choices",
-      "properties": {
-        "min_length": {
-          "type": "integer",
-          "description": "Minimum allowed length for the string parameter.",
-          "minimum": 0
-        },
-        "max_length": {
-          "type": "integer",
-          "description": "Maximum allowed length for the string parameter.",
-          "minimum": 0
-        },
-        "choices": {
-          "type": "array",
-          "description": "List of predefined choices for the string parameter.",
-          "items": { "$ref": "#/definitions/SlashCommandOptionChoiceString" }
-        },
-        "multi_line": {
-          "type": "boolean",
-          "description": "Indicates that a multi-line string parameter should be expected."
-        }
-      },
-      "required": ["min_length", "max_length", "choices", "multi_line"],
-      "additionalProperties": false
-    },
-    "IntegerParam": {
-      "type": "object",
-      "description": "Integer parameter constraints and choices",
-      "properties": {
-        "min_length": {
-          "type": "integer",
-          "description": "Minimum allowed value for the integer parameter.",
-          "minimum": 0
-        },
-        "max_length": {
-          "type": "integer",
-          "description": "Maximum allowed value for the integer parameter.",
-          "minimum": 0
-        },
-        "choices": {
-          "type": "array",
-          "description": "List of predefined choices for the integer parameter.",
-          "items": { "$ref": "#/definitions/SlashCommandOptionChoiceI128" }
-        }
-      },
-      "required": ["min_length", "max_length", "choices"],
-      "additionalProperties": false
-    },
-    "DecimalParam": {
-      "type": "object",
-      "description": "Decimal parameter constraints and choices",
-      "properties": {
-        "min_length": {
-          "type": "number",
-          "description": "Minimum allowed value for the decimal parameter.",
-          "minimum": 0
-        },
-        "max_length": {
-          "type": "number",
-          "description": "Maximum allowed value for the decimal parameter.",
-          "minimum": 0
-        },
-        "choices": {
-          "type": "array",
-          "description": "List of predefined choices for the decimal parameter.",
-          "items": { "$ref": "#/definitions/SlashCommandOptionChoiceF64" }
-        }
-      },
-      "required": ["min_length", "max_length", "choices"],
-      "additionalProperties": false
-    },
-    "DateTimeParam": {
-      "type": "object",
-      "description": "DateTime parameter constraints and choices",
-      "properties": {
-        "future_only": {
-          "type": "boolean",
-          "description": "Indicates that only dates in the future are allowed, including now."
-        }
-      },
-      "required": ["future_only"],
-      "additionalProperties": false
-    },
-    "SlashCommandOptionChoiceString": {
-      "type": "object",
-      "description": "A choice for a string parameter.",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "The name of the choice.",
-          "minLength": 1,
-          "maxLength": 100
-        },
-        "value": {
-          "type": "string",
-          "description": "The value of the choice.",
-          "minLength": 1,
-          "maxLength": 100
-        }
-      },
-      "required": ["name", "value"],
-      "additionalProperties": false
-    },
-    "SlashCommandOptionChoiceI128": {
-      "type": "object",
-      "description": "A choice for an integer parameter.",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "The name of the choice.",
-          "minLength": 1,
-          "maxLength": 100
-        },
-        "value": {
-          "type": "integer",
-          "description": "The value of the choice.",
-          "minimum": 0
-        }
-      },
-      "required": ["name", "value"],
-      "additionalProperties": false
-    },
-    "SlashCommandOptionChoiceF64": {
-      "type": "object",
-      "description": "A choice for a decimal parameter.",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "The name of the choice.",
-          "minLength": 1,
-          "maxLength": 100
-        },
-        "value": {
-          "type": "number",
-          "description": "The value of the choice.",
-          "minimum": 0
-        }
-      },
-      "required": ["name", "value"],
-      "additionalProperties": false
-    },
-    "BotPermissions": {
-      "type": "object",
-      "description": "Permissions required for slash commands to execute.",
-      "properties": {
-        "community": {
-          "type": "number",
-          "description": "Bit mask of the required community level permissions"
-        },
-        "chat": {
-          "type": "number",
-          "description": "Bit mask of the required chat level permissions"
-        },
-        "message": {
-          "type": "number",
-          "description": "Bit mask of the required message level permissions"
-        }
-      },
-      "additionalProperties": false
-    }
-  }
 }

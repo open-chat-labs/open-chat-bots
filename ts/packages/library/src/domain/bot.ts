@@ -119,46 +119,46 @@ export type ApiKeyJwtAuthToken = { kind: "api_jwt"; token: string };
 
 export type ApiKey = { kind: "api_key"; token: string };
 
-export type SlashCommandParamInstance = CommandParamInstance & SlashCommandParamTypeInstance;
+export type CommandArg = CommandArgCommon & CommandArgType;
 
-export type CommandParamInstance = {
+export type CommandArgCommon = {
     name: string;
 };
 
-export type SlashCommandParamTypeInstance =
-    | UserParamInstance
-    | BooleanParamInstance
-    | StringParamInstance
-    | IntegerParamInstance
-    | DecimalParamInstance
-    | DateTimeParamInstance;
+export type CommandArgType =
+    | UserArg
+    | BooleanArg
+    | StringArg
+    | IntegerArg
+    | DecimalArg
+    | DateTimeArg;
 
-export type UserParamInstance = {
+export type UserArg = {
     kind: "user";
     userId?: string;
 };
 
-export type BooleanParamInstance = {
+export type BooleanArg = {
     kind: "boolean";
     value?: boolean;
 };
 
-export type StringParamInstance = {
+export type StringArg = {
     kind: "string";
     value?: string;
 };
 
-export type IntegerParamInstance = {
+export type IntegerArg = {
     kind: "integer";
     value: bigint | null;
 };
 
-export type DecimalParamInstance = {
+export type DecimalArg = {
     kind: "decimal";
     value: number | null; // this is to do with how number input binding works
 };
 
-export type DateTimeParamInstance = {
+export type DateTimeArg = {
     kind: "dateTime";
     value?: bigint | null;
 };
