@@ -24,7 +24,22 @@ After a minute or so you should see the OpenChat frontend.
 
 ![Open chat frontend](./images/open-chat-frontend.png)
 
-### Step 2: Create Account and Test Group
+## Step 2: Deploy the Bots
+
+You can find scripts to locally deploy the Rust example bots in the [scripts folder](./scripts/).
+
+- Canister bots
+  - [GreetBot](./scripts/deploy_greet_bot.sh)
+  - [ReminderBot](./scripts/deploy_reminder_bot.sh)
+- Off-chain bots
+  - [DiceBot](./scripts/deploy_dice_bot.sh)
+  - [LlamaBot](./scripts/deploy_llama_bot.sh)
+
+Note: the DiscordBot cannot be deployed locally because it needs to be reachable by Discord.
+
+For offchain typescript bots, please refer to the [ts/readme](./ts/README.md).
+
+## Step 3: Create Account and Test Group
 
 1. Signup and create an account
 
@@ -48,15 +63,7 @@ Just pick default settings by clicking "next" until you reach the "Create Group"
 
 ![Create group](./images/group-name.png)
 
-### Step 3: Deploy the Bot
-
-You can find scripts to locally deploy the Rust example bots in the [scripts folder](./scripts/).
-
-Note: the DiscordBot cannot be deployed locally because it needs to be reachable by Discord.
-
-For offchain typescript bots, please refer to the [ts/readme](./ts/README.md).
-
-### Step 4: Register the Bot
+## Step 4: Register the Bot
 
 1. From your test group on the local OpenChat website enter `/register_bot` and fill in the fields
 
@@ -68,7 +75,7 @@ For offchain typescript bots, please refer to the [ts/readme](./ts/README.md).
 
 ![Register bot](./images/register-reminder-bot.png)
 
-### Step 5: Add Bot to Group
+## Step 5: Add Bot to Group
 
 1. Open the group members in the right panel
 
