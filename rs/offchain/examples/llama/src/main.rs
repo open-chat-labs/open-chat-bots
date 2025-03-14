@@ -8,6 +8,7 @@ use axum::routing::{get, post};
 use axum::{Extension, Json, Router};
 use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
 use oc_bots_sdk::api::definition::BotDefinition;
+use oc_bots_sdk::mainnet::IC_URL;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk_offchain::env;
 use oc_bots_sdk_offchain::middleware::tower::{ExtractJwtLayer, OpenChatJwt};
@@ -39,14 +40,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("LlamaBot starting");
 
-    let agent = oc_bots_sdk_offchain::build_agent(config.ic_url, &config.pem_file).await;
-
+    // Init OC client
+    let oc_agent = oc_bots_sdk_offchain::build_agent(config.ic_url, &config.pem_file).await;
     let oc_client_factory = Arc::new(ClientFactory::new(AgentRuntime::new(
-        agent.clone(),
+        oc_agent,
         tokio::runtime::Runtime::new()?,
     )));
 
-    let llm_canister_agent = LlmCanisterAgent::new(agent);
+    // Init Llama3 LLM canister agent
+    let llama_agent = oc_bots_sdk_offchain::build_agent(IC_URL.to_string(), &config.pem_file).await;
+    let llm_canister_agent = LlmCanisterAgent::new(llama_agent);
 
     let commands =
         CommandHandlerRegistry::new(oc_client_factory).register(Prompt::new(llm_canister_agent));

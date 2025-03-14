@@ -52,9 +52,7 @@ Just pick default settings by clicking "next" until you reach the "Create Group"
 
 You can find scripts to deploy a selection of the example bots in the [scripts folder](./scripts/).
 
-Note 1 - the LlamaBot can currently only be run on mainnet because it calls the DFINITY Llama canister.
-
-Note 2 - the DiscordBot cannot be run locally because it needs to be reachable by Discord.
+Note: the DiscordBot cannot be run locally because it needs to be reachable by Discord.
 
 For offchain typescript bots, please refer to the [ts/readme](./ts/README.md).
 
