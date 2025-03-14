@@ -7,16 +7,14 @@ edition = "2021"
 async-trait = { workspace = true }
 axum = { workspace = true }
 candid = { workspace = true }
-clap = { workspace = true, features = ["derive"] }
-dotenv = { workspace = true }
 ic-agent = { workspace = true }
 oc_bots_sdk = { path = "../../../sdk" }
-oc_bots_sdk_offchain = { path = "../../sdk" }
+oc_bots_sdk_offchain = { path = "../../sdk", features = ["tower"] }
+serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 toml = { workspace = true }
 tower-http = { workspace = true, features = ["cors", "trace"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
+tower = "0.5.2"

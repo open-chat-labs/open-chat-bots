@@ -1,13 +1,14 @@
 #!/bin/bash
 
-# Capture the directory this script is installed in and backup to rs
+# Capture the directory this script is installed in and cd into the rs folder
 SCRIPT=$(readlink -f "$0")
 SCRIPT_DIR=$(dirname "$SCRIPT")
-cd $SCRIPT_DIR/..
+cd $SCRIPT_DIR/../../rs
 
 BOT=$1
-MODE=$2
-ARGS=$3
+NAME=$2
+MODE=$3
+ARGS=$4
 
 if [ $MODE = "install" ]
 then
@@ -26,7 +27,7 @@ dfx canister install --quiet --mode $MODE $BOT --argument "$ARGS" || exit 1
 
 # Return the URL of the $BOT
 echo ""
-echo "Deployment complete. The $BOT has the following endpoint:"
-echo ""
-echo "http://$CANISTER_ID.raw.localhost:8080"
+echo "Name: $Name"
+echo "Principal: $CANISTER_ID"
+echo "Endpoint: http://$CANISTER_ID.raw.localhost:8080"
 echo ""

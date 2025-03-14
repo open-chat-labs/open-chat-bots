@@ -9,7 +9,7 @@ SCRIPT=$(readlink -f "$0")
 SCRIPT_DIR=$(dirname "$SCRIPT")
 
 # Change directory to the OpenChat repo
-cd $SCRIPT_DIR/../../../../open-chat
+cd $SCRIPT_DIR/../../../open-chat
 
 # Call the local OpenChat user_index to get the OpenChat public key
 RESULT=$(dfx canister call -qq user_index public_key '(record { })') || exit 1
@@ -19,8 +19,8 @@ first_part="${RESULT#*-----BEGIN PUBLIC KEY-----}"  # Remove everything up to an
 second_part="${first_part%-----END PUBLIC KEY-----*}" # Remove everything from the last "---" to the end
 OC_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----$second_part-----END PUBLIC KEY-----\n"
 
-# Change directory back to rs folder
-cd $SCRIPT_DIR/..
+# Change directory back to the rs folder
+cd $SCRIPT_DIR/../../rs
 
 # Echo the public key
 echo "$OC_PUBLIC_KEY"

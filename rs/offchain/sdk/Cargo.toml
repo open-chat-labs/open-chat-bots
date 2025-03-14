@@ -7,6 +7,12 @@ edition = "2021"
 
 [dependencies]
 candid = { workspace = true }
+futures = "0.3.31"
+http.workspace = true
 ic-agent = { workspace = true }
 oc_bots_sdk = { path = "../../sdk" }
 tokio = { workspace = true, features = ["rt"] }
+tower = { version = "0.5.2", optional = true }
+
+[features]
+tower = ["dep:tower"]

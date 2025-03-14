@@ -7,17 +7,17 @@
 # 3. dfx has been started
 # 4. You are using the desired DFX principal. See `dfx identity use --help` for more information.
 
-# Capture the directory this script is installed in and backup to rs
+# CD into the directory this script is installed in
 SCRIPT=$(readlink -f "$0")
 SCRIPT_DIR=$(dirname "$SCRIPT")
-cd $SCRIPT_DIR/..
+cd $SCRIPT_DIR
 
 MODE=${1:-install} # MODE is either install, reinstall or upgrade
 
 if [[ $MODE = "install" ]] || [[ $MODE = "reinstall" ]]
 then
     # Extract the OpenChat public key from the user_index
-    OC_PUBLIC_KEY=$(./scripts/utils/extract_oc_public_key.sh) || exit 1
+    OC_PUBLIC_KEY=$(./utils/get_oc_public_key.sh) || exit 1
 
     # Build the reminder_bot install args
     ARGS="(variant { Init = record { oc_public_key = \"$OC_PUBLIC_KEY\" } })"
@@ -31,4 +31,4 @@ else
 fi
 
 # Deploy the reminder_bot with the given MODE and ARGS
-./scripts/utils/deploy_bot.sh reminder_bot $MODE "$ARGS"
+./utils/deploy_bot.sh reminder_bot ReminderBot $MODE "$ARGS"
