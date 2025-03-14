@@ -5,7 +5,7 @@ use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::routing::{get, post};
-use axum::{Extension, Router};
+use axum::{Extension, Json, Router};
 use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
 use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
@@ -140,20 +140,15 @@ async fn execute_command(
 }
 
 // Handler for returning the bot definition!
-async fn bot_definition(State(oc_data): State<Arc<OcData>>) -> (StatusCode, Bytes) {
+async fn bot_definition(State(oc_data): State<Arc<OcData>>) -> Json<BotDefinition> {
     info!("OpenChat :: bot definition requested!");
 
-    let definition = BotDefinition {
+    Json(BotDefinition {
         description: "Bot for proxying messages from Discord to OpenChat".to_string(),
         commands: oc_data.commands.definitions(),
         autonomous_config: Some(AutonomousConfig {
             permissions: BotPermissions::text_only(),
             sync_api_key: false,
         }),
-    };
-
-    (
-        StatusCode::OK,
-        Bytes::from(serde_json::to_vec(&definition).unwrap()),
-    )
+    })
 }

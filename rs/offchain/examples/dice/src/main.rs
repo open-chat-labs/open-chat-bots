@@ -2,6 +2,7 @@ use crate::config::Config;
 use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::StatusCode;
+use axum::response::Json;
 use axum::routing::{get, post};
 use axum::{Extension, Router};
 use commands::coin::Coin;
@@ -15,6 +16,7 @@ use oc_bots_sdk_offchain::AgentRuntime;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
+use tracing::info;
 
 mod commands;
 mod config;
@@ -23,7 +25,7 @@ mod config;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Get config file path from the args, or if not set, use default
     let config_file_path = std::env::args()
-        .next()
+        .nth(1)
         .unwrap_or("./config.toml".to_string());
 
     // Load & parse config
@@ -35,6 +37,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } = Config::from_file(&config_file_path)?;
 
     tracing_subscriber::fmt::init();
+
+    info!("DiceBot starting");
 
     let agent = oc_bots_sdk_offchain::build_agent(ic_url, &pem_file).await;
 
@@ -62,6 +66,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let socket_addr = SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), port);
     let listener = tokio::net::TcpListener::bind(socket_addr).await?;
+
+    info!("DiceBot ready");
 
     axum::serve(listener, routes).await?;
     Ok(())
@@ -91,17 +97,12 @@ async fn execute_command(
     }
 }
 
-async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> (StatusCode, Bytes) {
-    let definition = BotDefinition {
+async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> Json<BotDefinition> {
+    Json(BotDefinition {
         description: "Use this bot to roll dice or toss coins".to_string(),
         commands: state.commands.definitions(),
         autonomous_config: None,
-    };
-
-    (
-        StatusCode::OK,
-        Bytes::from(serde_json::to_vec(&definition).unwrap()),
-    )
+    })
 }
 
 struct AppState {

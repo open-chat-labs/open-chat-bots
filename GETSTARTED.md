@@ -24,7 +24,55 @@ After a minute or so you should see the OpenChat frontend.
 
 ![Open chat frontend](./images/open-chat-frontend.png)
 
-### Step 2: Create Account and Test Group
+## Step 2: Deploy the Bots
+
+Below you can find automated scripts or READMEs to deploy the example bots.
+
+In each case the scripts will output the following which are needed in step 4 to register the bots with OpenChat:
+
+```
+  # example
+  Name: DiceBot
+  Principal: xojpk-xfq5f-kkflr-wiq6n-ihp2u-2lnwn-2r5wl-lho4l-ldv5o-n5vip-5ae
+  Endpoint: http://localhost:3000
+```
+
+### Canister bots
+
+- [GreetBot](./scripts/deploy_greet_bot.sh)
+
+```bash
+  ./scripts/deploy_greet_bot.sh
+```
+
+- [ReminderBot](./scripts/deploy_reminder_bot.sh)
+
+```bash
+  ./scripts/deploy_reminder_bot.sh
+```
+
+### Off-chain bots
+
+The DiceBot and LlamaBot will each need to be run in a separate terminal.
+
+- [DiceBot](./scripts/deploy_dice_bot.sh)
+
+```bash
+  ./scripts/deploy_dice_bot.sh
+```
+
+- [LlamaBot](./scripts/deploy_llama_bot.sh)
+
+```bash
+  ./scripts/deploy_llama_bot.sh
+```
+
+- [DiscordBot](./rs/offchain/examples/discord/README.md)
+- [Typescript bots](./ts/README.md)
+
+Note: the DiscordBot cannot be deployed locally because it needs to be reachable by Discord.
+
+## Step 3: Create Account and Test Group
 
 1. Signup and create an account
 
@@ -37,41 +85,22 @@ Navigate to the groups section and then click "New group" from the groups menu
 ![Create a group on open chat](./images/new-group.png)
 
 &nbsp;
-Enter the group name
-&nbsp;
-
-![Group names](./images/creategroup.png)
-
-&nbsp;
-Just pick default settings by clicking "next" until you reach the "Create Group" button
+Enter the group name and just pick default settings by clicking "next" until you reach the "Create Group" button.
 &nbsp;
 
 ![Create group](./images/group-name.png)
 
-### Step 3: Deploy the Bot
+## Step 4: Register the Bot
 
-To deploy the example bots for particular SDKs please follow these links:
+From your test group on the local OpenChat website enter `/register_bot` and fill in the fields
 
-- Canister bots
-  - [Rust](./rs/canister/README.md)
-  - [Motoko](./rs/motoko/README.md) (coming soon)
-- Off-chain bots
-  - [Rust](./rs/offchain/README.md)
-  - [Typescript](./ts/README.md)
-
-### Step 4: Register the Bot
-
-1. From your test group on the local OpenChat website enter `/register_bot` and fill in the fields
-
-2. If registering a canister bot then for the `Principal` field use the bot canister id from the endpoint URL
-
-3. This registers the bot on OpenChat for testing but it still needs to be installed into a group, community, or as a direct chat
+This registers the bot on OpenChat for testing but it still needs to be installed into a group, community, or as a direct chat
 
 &nbsp;
 
 ![Register bot](./images/register-reminder-bot.png)
 
-### Step 5: Add Bot to Group
+## Step 5: Add Bot to Group
 
 1. Open the group members in the right panel
 
