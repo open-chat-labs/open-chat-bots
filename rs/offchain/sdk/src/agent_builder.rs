@@ -1,9 +1,8 @@
 use ic_agent::identity::{BasicIdentity, Secp256k1Identity};
 use ic_agent::{Agent, Identity};
-use std::io::Cursor;
 
 pub async fn build_agent(url: String, pem_file: &str) -> Agent {
-    let identity = load_identity_from_pem_file_text(pem_file);
+    let identity = load_identity_from_pem_file(pem_file);
     let mainnet = is_mainnet(&url);
     let timeout = std::time::Duration::from_secs(60);
 
@@ -28,16 +27,15 @@ fn is_mainnet(url: &str) -> bool {
     url.contains("ic0.app")
 }
 
-fn load_identity_from_pem_file_text(pem_file_text: &str) -> Box<dyn Identity> {
-    let reader = Cursor::new(pem_file_text);
-    if let Ok(identity) = BasicIdentity::from_pem(reader) {
-        return Box::new(identity);
+fn load_identity_from_pem_file(pem_file: &str) -> Box<dyn Identity> {
+    if !matches!(std::fs::exists(pem_file), Ok(true)) {
+        panic!("PEM file does not exist");
     }
-
-    let reader = Cursor::new(pem_file_text);
-    if let Ok(identity) = Secp256k1Identity::from_pem(reader) {
-        return Box::new(identity);
+    if let Ok(identity) = BasicIdentity::from_pem_file(pem_file) {
+        Box::new(identity)
+    } else if let Ok(identity) = Secp256k1Identity::from_pem_file(pem_file) {
+        Box::new(identity)
+    } else {
+        panic!("Failed to create identity from pem");
     }
-
-    panic!("Failed to create identity from pem");
 }

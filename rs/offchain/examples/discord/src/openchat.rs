@@ -32,12 +32,12 @@ pub async fn init_openchat_client(
     oc_config: &OpenChatConfig,
     state: Arc<BotState>,
 ) -> Result<OcData, BotError> {
-    // Read the text from the pem file
-    let pem_file = std::fs::read_to_string(&oc_config.bot.private_key_path)
-        .map_err(BotError::FailedToReadPemFile)?;
-
     // Init OC agent
-    let oc_agent = oc_bots_sdk_offchain::build_agent(oc_config.ic_url.clone(), &pem_file).await;
+    let oc_agent = oc_bots_sdk_offchain::build_agent(
+        oc_config.ic_url.clone(),
+        &oc_config.bot.private_key_path,
+    )
+    .await;
 
     // Init client factory!
     let oc_client_factory = Arc::new(ClientFactory::new(AgentRuntime::new(

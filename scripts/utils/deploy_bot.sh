@@ -6,8 +6,9 @@ SCRIPT_DIR=$(dirname "$SCRIPT")
 cd $SCRIPT_DIR/../../rs
 
 BOT=$1
-MODE=$2
-ARGS=$3
+NAME=$2
+MODE=$3
+ARGS=$4
 
 if [ $MODE = "install" ]
 then
@@ -26,7 +27,7 @@ dfx canister install --quiet --mode $MODE $BOT --argument "$ARGS" || exit 1
 
 # Return the URL of the $BOT
 echo ""
-echo "Name: $BOT"
+echo "Name: $Name"
 echo "Principal: $CANISTER_ID"
 echo "Endpoint: http://$CANISTER_ID.raw.localhost:8080"
 echo ""

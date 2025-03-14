@@ -31,4 +31,4 @@ else
 fi
 
 # Deploy the reminder_bot with the given MODE and ARGS
-./utils/deploy_bot.sh reminder_bot $MODE "$ARGS"
+./utils/deploy_bot.sh reminder_bot ReminderBot $MODE "$ARGS"
