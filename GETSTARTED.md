@@ -26,7 +26,16 @@ After a minute or so you should see the OpenChat frontend.
 
 ## Step 2: Deploy the Bots
 
-You can find automated scripts or READMEs to deploy the example bots. In each case
+Below you can find automated scripts or READMEs to deploy the example bots.
+
+In each case the scripts will output the following which are needed in step 4 to register the bots with OpenChat:
+
+```
+  # example
+  Bot: DiceBot
+  Principal: xojpk-xfq5f-kkflr-wiq6n-ihp2u-2lnwn-2r5wl-lho4l-ldv5o-n5vip-5ae
+  Endpoint: http://localhost:3000
+```
 
 ### Canister bots
 
