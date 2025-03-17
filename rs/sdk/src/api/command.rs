@@ -63,7 +63,7 @@ pub enum CommandArgValue {
 
 impl CommandArgValue {
     pub fn as_string(&self) -> Option<&str> {
-        if let CommandArgValue::String(s) = self {
+        if let Self::String(s) = self {
             Some(s)
         } else {
             None
@@ -71,7 +71,7 @@ impl CommandArgValue {
     }
 
     pub fn as_integer(&self) -> Option<i64> {
-        if let CommandArgValue::Integer(n) = self {
+        if let Self::Integer(n) = self {
             Some(*n)
         } else {
             None
@@ -79,7 +79,7 @@ impl CommandArgValue {
     }
 
     pub fn as_decimal(&self) -> Option<f64> {
-        if let CommandArgValue::Decimal(n) = self {
+        if let Self::Decimal(n) = self {
             Some(*n)
         } else {
             None
@@ -87,7 +87,7 @@ impl CommandArgValue {
     }
 
     pub fn as_bool(&self) -> Option<bool> {
-        if let CommandArgValue::Boolean(b) = self {
+        if let Self::Boolean(b) = self {
             Some(*b)
         } else {
             None
@@ -95,7 +95,7 @@ impl CommandArgValue {
     }
 
     pub fn as_user(&self) -> Option<UserId> {
-        if let CommandArgValue::User(u) = self {
+        if let Self::User(u) = self {
             Some(*u)
         } else {
             None
@@ -103,7 +103,7 @@ impl CommandArgValue {
     }
 
     pub fn as_datetime(&self) -> Option<TimestampMillis> {
-        if let CommandArgValue::DateTime(a) = self {
+        if let Self::DateTime(a) = self {
             Some(*a)
         } else {
             None
