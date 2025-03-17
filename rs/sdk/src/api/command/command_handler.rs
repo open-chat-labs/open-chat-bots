@@ -275,7 +275,7 @@ fn direct_message_params() -> Vec<BotCommandParam> {
             }),
         },
         BotCommandParam {
-            name: "initiator_message_id".to_string(),
+            name: "user_message_id".to_string(),
             description: None,
             placeholder: None,
             required: true,
