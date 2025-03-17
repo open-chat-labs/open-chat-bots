@@ -56,7 +56,7 @@ impl CommandHandler<CanisterRuntime> for List {
 impl List {
     fn definition() -> BotCommandDefinition {
         BotCommandDefinition {
-            name: "remind_list".to_string(),
+            name: "list_reminders".to_string(),
             description: Some("List the reminders set in this chat with their IDs".to_string()),
             placeholder: None,
             params: vec![],

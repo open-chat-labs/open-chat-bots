@@ -263,18 +263,6 @@ fn set_api_key_params() -> Vec<BotCommandParam> {
 fn direct_message_params() -> Vec<BotCommandParam> {
     vec![
         BotCommandParam {
-            name: "initiator_message_id".to_string(),
-            description: None,
-            placeholder: None,
-            required: true,
-            param_type: BotCommandParamType::StringParam(StringParam {
-                min_length: 1,
-                max_length: 20,
-                choices: vec![],
-                multi_line: false,
-            }),
-        },
-        BotCommandParam {
             name: "message".to_string(),
             description: None,
             placeholder: None,
@@ -282,6 +270,18 @@ fn direct_message_params() -> Vec<BotCommandParam> {
             param_type: BotCommandParamType::StringParam(StringParam {
                 min_length: 1,
                 max_length: 10000,
+                choices: vec![],
+                multi_line: false,
+            }),
+        },
+        BotCommandParam {
+            name: "initiator_message_id".to_string(),
+            description: None,
+            placeholder: None,
+            required: true,
+            param_type: BotCommandParamType::StringParam(StringParam {
+                min_length: 1,
+                max_length: 20,
                 choices: vec![],
                 multi_line: false,
             }),

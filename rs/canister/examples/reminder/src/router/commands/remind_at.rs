@@ -90,20 +90,9 @@ impl RemindAt {
     fn definition() -> BotCommandDefinition {
         BotCommandDefinition {
             name: "remind_at".to_string(),
-            description: Some("/remind_at \"4pm tomorrow\" \"Go to dentist appointment\"".to_string()),
+            description: Some("/remind_at \"Go to dentist appointment\" \"4pm tomorrow\"".to_string()),
             placeholder: None,
             params: vec![
-                BotCommandParam {
-                    name: "when".to_string(),
-                    description: Some(
-                        "The date and time to send the reminder".to_string(),
-                    ),
-                    placeholder: Some("Pick a date/time to send the reminder...".to_string()),
-                    required: true,
-                    param_type: BotCommandParamType::DateTimeParam(DateTimeParam {
-                        future_only: true,
-                    }),
-                },
                 BotCommandParam {
                     name: "what".to_string(),
                     description: Some(
@@ -116,6 +105,17 @@ impl RemindAt {
                         min_length: 1,
                         max_length: 5000,
                         multi_line: true,
+                    }),
+                },
+                BotCommandParam {
+                    name: "when".to_string(),
+                    description: Some(
+                        "The date and time to send the reminder".to_string(),
+                    ),
+                    placeholder: Some("Pick a date/time to send the reminder...".to_string()),
+                    required: true,
+                    param_type: BotCommandParamType::DateTimeParam(DateTimeParam {
+                        future_only: true,
                     }),
                 },
             ],
