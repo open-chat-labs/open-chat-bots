@@ -1,4 +1,5 @@
 use crate::state;
+use echo::Echo;
 use fractal::Fractal;
 use greet::Greet;
 use joke::Joke;
@@ -12,6 +13,7 @@ use oc_bots_sdk_canister::OPENCHAT_CLIENT_FACTORY;
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse};
 use std::sync::LazyLock;
 
+mod echo;
 mod fractal;
 mod greet;
 mod joke;
@@ -19,10 +21,12 @@ mod message;
 
 static COMMANDS: LazyLock<CommandHandlerRegistry<CanisterRuntime>> = LazyLock::new(|| {
     CommandHandlerRegistry::new(OPENCHAT_CLIENT_FACTORY.clone())
+        .register(Echo)
         .register(Greet)
         .register(Joke)
         .register(Fractal)
         .register(Message)
+        .on_direct_message(Echo)
 });
 
 pub fn definitions() -> Vec<BotCommandDefinition> {

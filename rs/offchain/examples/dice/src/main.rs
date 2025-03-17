@@ -102,6 +102,7 @@ async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> Js
         description: "Use this bot to roll dice or toss coins".to_string(),
         commands: state.commands.definitions(),
         autonomous_config: None,
+        direct_messages: false,
     })
 }
 

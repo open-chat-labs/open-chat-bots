@@ -5,12 +5,12 @@ use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::client_factory::ClientFactory;
 use oc_bots_sdk::types::BotCommandContext;
 use oc_bots_sdk_offchain::AgentRuntime;
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 
 static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Prompt::definition);
 
 pub struct Prompt {
-    llm_canister_agent: LlmCanisterAgent,
+    llm_canister_agent: Arc<LlmCanisterAgent>,
 }
 
 #[async_trait]
@@ -39,7 +39,7 @@ impl CommandHandler<AgentRuntime> for Prompt {
 }
 
 impl Prompt {
-    pub fn new(llm_canister_agent: LlmCanisterAgent) -> Self {
+    pub fn new(llm_canister_agent: Arc<LlmCanisterAgent>) -> Self {
         Prompt { llm_canister_agent }
     }
 

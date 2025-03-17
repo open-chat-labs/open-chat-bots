@@ -83,6 +83,10 @@ impl State {
         self.rng_seed = seed;
     }
 
+    pub fn increment_echos_sent(&mut self) {
+        self.metrics.echos_sent += 1;
+    }
+
     pub fn increment_jokes_sent(&mut self) {
         self.metrics.jokes_sent += 1;
     }
@@ -145,6 +149,7 @@ pub struct Blob {
 pub struct Metrics {
     pub joke_count: u32,
     pub jokes_sent: u32,
+    pub echos_sent: u32,
     pub greets_sent: u32,
     pub fractals_sent: u32,
 }
