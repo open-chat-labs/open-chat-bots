@@ -19,7 +19,6 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
                     .with_message(&HashSet::from_iter(vec![MessagePermission::Text])),
                 sync_api_key: false,
             }),
-            direct_messages: true,
         },
     )
 }

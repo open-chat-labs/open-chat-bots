@@ -15,7 +15,6 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
                 permissions: BotPermissions::text_only(),
                 sync_api_key: true,
             }),
-            direct_messages: false,
         },
     )
 }

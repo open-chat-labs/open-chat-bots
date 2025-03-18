@@ -10,7 +10,6 @@ pub struct BotDefinition {
     pub commands: Vec<BotCommandDefinition>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub autonomous_config: Option<AutonomousConfig>,
-    pub direct_messages: bool,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -21,6 +20,7 @@ pub struct BotCommandDefinition {
     pub params: Vec<BotCommandParam>,
     pub permissions: BotPermissions,
     pub default_role: Option<ChatRole>,
+    pub direct_messages: bool,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Debug, Clone)]

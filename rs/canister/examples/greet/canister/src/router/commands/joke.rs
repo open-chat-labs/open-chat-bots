@@ -51,6 +51,7 @@ impl Joke {
             params: vec![],
             permissions: BotPermissions::text_only(),
             default_role: None,
+            direct_messages: false,
         }
     }
 }

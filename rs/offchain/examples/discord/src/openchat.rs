@@ -150,6 +150,5 @@ async fn bot_definition(State(oc_data): State<Arc<OcData>>) -> Json<BotDefinitio
             permissions: BotPermissions::text_only(),
             sync_api_key: false,
         }),
-        direct_messages: false,
     })
 }

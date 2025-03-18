@@ -94,6 +94,7 @@ impl Message {
             }],
             permissions: BotPermissions::from_chat_permission(ChatPermission::ReadMessages),
             default_role: None,
+            direct_messages: false,
         }
     }
 }

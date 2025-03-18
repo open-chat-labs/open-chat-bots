@@ -121,6 +121,7 @@ impl RemindAt {
             ],
             permissions: BotPermissions::default(),
             default_role: Some(ChatRole::Admin),
+            direct_messages: false,
         }
     }
 }
