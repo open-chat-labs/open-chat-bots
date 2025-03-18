@@ -92,6 +92,16 @@ TBD
 #### Bot permissions
 
 ```
+pub struct BotPermissions {
+    community: u32,
+    chat: u32,
+    message: u32,
+}
+```
+
+This struct bit encodes the permissions which otherwise can take considerable space when serialised, such as in JWTs or API keys. However, it provides an interface which allows you to consider it as a set of community permissions, a set of chat permissions and a set of message permissions - defined below.
+
+```
 pub enum CommunityPermission {
     ChangeRoles,
     UpdateDetails,
