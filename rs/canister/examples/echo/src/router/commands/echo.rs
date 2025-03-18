@@ -1,4 +1,3 @@
-use crate::state;
 use async_trait::async_trait;
 use oc_bots_sdk::api::command::{CommandHandler, SuccessResult};
 use oc_bots_sdk::api::definition::*;
@@ -29,10 +28,9 @@ impl CommandHandler<CanisterRuntime> for Echo {
         let message = oc_client_factory
             .build(cxt)
             .send_text_message(text)
+            .with_block_level_markdown(true)
             .execute_then_return_message(|args, response| match response {
-                Ok(send_message::Response::Success(_)) => {
-                    state::mutate(|state| state.increment_echos_sent());
-                }
+                Ok(send_message::Response::Success(_)) => {}
                 error => {
                     ic_cdk::println!("send_text_message: {args:?}, {error:?}");
                 }

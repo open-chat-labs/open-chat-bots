@@ -1,6 +1,12 @@
 {
   "dfx": "0.25.1-beta.1",
   "canisters": {
+    "echo_bot": {
+      "type": "rust",
+      "package": "echo_bot",
+      "candid": "canister/examples/echo/can.did",
+      "gzip": true
+    },
     "greet_bot": {
       "type": "rust",
       "package": "greet_bot",
