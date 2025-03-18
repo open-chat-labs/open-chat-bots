@@ -6,9 +6,7 @@ Bots are server components that can interact with OpenChat, typically by sending
 
 At a mimimum, in order to be registered on OpenChat, bots must return a `bot definition` in response to an HTTP GET to the path `/bot_definition`.
 
-Within the SDK is an [api](./src/api/) folder which represents the [Bot API](#bot-api) that bots provide to the OpenChat frontend.
-
-Also within the SDK is an [oc_api](./src/api/) folder which represents the [OpenChat API](#openchat-api) that the OpenChat backend provides to bots.
+Within the SDK is an `api` folder which reflects the [Bot API](#bot-api) that bots provide to the OpenChat frontend, and an `oc_api` folder which reflects the [OpenChat API](#openchat-api) the OpenChat backend provides to bots.
 
 ## Bot API
 
