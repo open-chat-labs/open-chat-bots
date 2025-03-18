@@ -61,7 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let routes = Router::new()
         .route("/execute_command", post(execute_command))
         .route_layer(ExtractJwtLayer::new())
-        .route("/", get(bot_definition))
+        .fallback(get(bot_definition))
         .layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http())

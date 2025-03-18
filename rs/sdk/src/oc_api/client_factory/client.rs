@@ -1,12 +1,11 @@
+use crate::oc_api::actions::chat_events::EventsSelectionCriteria;
+use crate::oc_api::Runtime;
+use crate::types::{ActionContext, ChannelId, MessageContentInitial, TextContent};
 use chat_details::ChatDetailsBuilder;
 use chat_events::ChatEventsBuilder;
 use create_channel::CreateChannelBuilder;
 use delete_channel::DeleteChannelBuilder;
 use send_message::SendMessageBuilder;
-
-use crate::oc_api::actions::chat_events::EventsSelectionCriteria;
-use crate::types::{ActionContext, ChannelId, MessageContentInitial, TextContent};
-use crate::Runtime;
 use std::sync::Arc;
 
 mod chat_details;

@@ -1,8 +1,7 @@
-use oc_bots_sdk::api::ApiKeyRegistry;
+use crate::model::reminders::{self, Reminders};
+use oc_bots_sdk::ApiKeyRegistry;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
-
-use crate::reminders::{self, Reminders};
 
 thread_local! {
     static STATE: RefCell<Option<State>> = RefCell::default();

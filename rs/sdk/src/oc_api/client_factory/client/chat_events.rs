@@ -1,8 +1,8 @@
 use super::Client;
 use crate::oc_api::actions::chat_events::*;
 use crate::oc_api::actions::ActionArgsBuilder;
+use crate::oc_api::Runtime;
 use crate::types::{CanisterId, ChannelId};
-use crate::Runtime;
 use std::sync::Arc;
 
 pub struct ChatEventsBuilder<R> {

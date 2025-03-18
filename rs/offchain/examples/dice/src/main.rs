@@ -60,7 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let routes = Router::new()
         .route("/execute_command", post(execute_command))
         .route_layer(ExtractJwtLayer::new())
-        .route("/", get(bot_definition))
+        .fallback(get(bot_definition))
         .layer(CorsLayer::permissive())
         .with_state(Arc::new(app_state));
 

@@ -32,7 +32,7 @@ impl CommandHandler<CanisterRuntime> for Greet {
             .send_text_message(text)
             .execute_then_return_message(|args, response| match response {
                 Ok(send_message::Response::Success(_)) => {
-                    state::mutate(|state| state.increment_jokes_sent());
+                    state::mutate(|state| state.increment_greets_sent());
                 }
                 error => {
                     ic_cdk::println!("send_text_message: {args:?}, {error:?}");

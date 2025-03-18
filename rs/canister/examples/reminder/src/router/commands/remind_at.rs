@@ -1,3 +1,5 @@
+use crate::model::reminders::{self, RemindWhen, Reminder};
+use crate::state;
 use async_trait::async_trait;
 use oc_bots_sdk::api::command::{CommandHandler, EphemeralMessageBuilder, SuccessResult};
 use oc_bots_sdk::api::definition::{
@@ -9,9 +11,6 @@ use oc_bots_sdk::types::{
 };
 use oc_bots_sdk_canister::{env, CanisterRuntime};
 use std::sync::LazyLock;
-
-use crate::reminders::{RemindWhen, Reminder};
-use crate::{reminders, state};
 
 static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(RemindAt::definition);
 

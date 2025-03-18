@@ -1,8 +1,8 @@
 use super::Client;
 use crate::oc_api::actions::delete_channel::*;
 use crate::oc_api::actions::ActionArgsBuilder;
+use crate::oc_api::Runtime;
 use crate::types::{CanisterId, ChannelId};
-use crate::Runtime;
 use std::sync::Arc;
 
 pub struct DeleteChannelBuilder<R> {

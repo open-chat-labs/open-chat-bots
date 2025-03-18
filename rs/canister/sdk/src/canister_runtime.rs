@@ -1,6 +1,8 @@
 use candid::utils::{ArgumentDecoder, ArgumentEncoder};
-use oc_bots_sdk::types::{CallResult, CanisterId, TimestampMillis};
-use oc_bots_sdk::Runtime;
+use oc_bots_sdk::{
+    oc_api::Runtime,
+    types::{CallResult, CanisterId, TimestampMillis},
+};
 use std::future::Future;
 
 #[derive(Clone, Default)]

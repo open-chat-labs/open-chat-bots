@@ -1,9 +1,9 @@
 use crate::api::command::Message;
 use crate::oc_api::actions::send_message::*;
 use crate::oc_api::actions::ActionArgsBuilder;
+use crate::oc_api::Runtime;
 use crate::types::CallResult;
 use crate::types::{CanisterId, ChannelId, MessageContentInitial, MessageId};
-use crate::Runtime;
 use std::sync::Arc;
 
 use super::Client;

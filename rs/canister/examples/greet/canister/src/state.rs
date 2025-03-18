@@ -83,10 +83,6 @@ impl State {
         self.rng_seed = seed;
     }
 
-    pub fn increment_echos_sent(&mut self) {
-        self.metrics.echos_sent += 1;
-    }
-
     pub fn increment_jokes_sent(&mut self) {
         self.metrics.jokes_sent += 1;
     }
@@ -128,10 +124,6 @@ impl State {
 
     pub fn get_blob(&self, id: u128) -> Option<&Blob> {
         self.blobs.get(&id)
-    }
-
-    pub fn joke_count(&self) -> u32 {
-        self.jokes.len() as u32
     }
 
     pub fn metrics(&self) -> &Metrics {

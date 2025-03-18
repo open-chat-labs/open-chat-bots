@@ -1,7 +1,7 @@
 use candid::utils::{ArgumentDecoder, ArgumentEncoder};
 use ic_agent::Agent;
+use oc_bots_sdk::oc_api::Runtime;
 use oc_bots_sdk::types::{CallResult, CanisterId, TimestampMillis};
-use oc_bots_sdk::Runtime;
 use std::future::Future;
 use std::time::SystemTime;
 

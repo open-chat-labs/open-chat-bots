@@ -1,5 +1,5 @@
+use super::Runtime;
 use crate::types::{CallResult, CanisterId};
-use crate::Runtime;
 use candid::CandidType;
 use serde::de::DeserializeOwned;
 use std::future::Future;
