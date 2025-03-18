@@ -49,11 +49,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Init Llama3 LLM canister agent
     let llama_agent = oc_bots_sdk_offchain::build_agent(IC_URL.to_string(), &config.pem_file).await;
-    let llm_canister_agent = Arc::new(LlmCanisterAgent::new(llama_agent));
 
     let commands = CommandHandlerRegistry::new(oc_client_factory)
-        .register(Prompt::new(llm_canister_agent.clone()))
-        .on_direct_message(Prompt::new(llm_canister_agent));
+        .register(Prompt::new(LlmCanisterAgent::new(llama_agent)));
 
     let app_state = AppState {
         oc_public_key: config.oc_public_key,
@@ -109,7 +107,6 @@ async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> Js
         description: "Use this bot to send prompts to the Llama3 LLM".to_string(),
         commands: state.commands.definitions(),
         autonomous_config: None,
-        direct_messages: true,
     })
 }
 

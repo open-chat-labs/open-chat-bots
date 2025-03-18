@@ -26,7 +26,6 @@ static COMMANDS: LazyLock<CommandHandlerRegistry<CanisterRuntime>> = LazyLock::n
         .register(Joke)
         .register(Fractal)
         .register(Message)
-        .on_direct_message(Echo)
 });
 
 pub fn definitions() -> Vec<BotCommandDefinition> {

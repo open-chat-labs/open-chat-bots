@@ -155,6 +155,7 @@ impl Fractal {
             ],
             permissions: BotPermissions::from_message_permission(MessagePermission::Image),
             default_role: None,
+            direct_messages: false,
         }
     }
 }
