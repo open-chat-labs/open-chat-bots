@@ -26,13 +26,15 @@ Let's do a deep dive...
 
 The first thing to notice is that it _doesn't_ contain the bot's `name`. This is because the bot name must be unique within OpenChat and so a name is chosen when the bot is registered.
 
-It does include the description of the bot which is shown in the OpenChat UI in various places associated with the bot.
+It _does_ include the `description` of the bot which is shown in the OpenChat UI in various places associated with the bot.
 
-It also defines a list of commands. When a bot is installed in a particular _location_ (community/group/direct chat), users within this location can issue commands by typing '/' in the message input. This pops up a list of available commands aggregated across all bots installed in this location. In the message entry, users can type further characters to filter the list of commands until they have selected the desired command.
+It also defines a list of [commands](#commands).
 
-Finally, the bot definition specifies the optional `AutonomousConfig`.
+Finally, the bot definition specifies an optional [AutonomousConfig](#autonomous-configuration).
 
 #### Commands
+
+When a bot is installed in a particular _location_ (community/group/direct chat), users within this location can issue commands by typing '/' in the message input. This pops up a list of available commands aggregated across all bots installed in this location. In the message entry, users can type further characters to filter the list of commands until they have selected the desired command.
 
 ```
 pub struct BotCommandDefinition {
