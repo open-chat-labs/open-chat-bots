@@ -45,6 +45,7 @@ app.post("/execute_command", createCommandChatClient(factory), executeCommand);
 app.post("/execute_action", createApiChatClient(factory), executeAction);
 app.post("/create_channel", createApiChatClient(factory), createChannel);
 app.post("/delete_channel", createApiChatClient(factory), deleteChannel);
+app.get("/bot_definition", schema);
 app.get("/", schema);
 
 export default app;
