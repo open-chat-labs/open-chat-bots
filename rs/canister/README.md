@@ -15,3 +15,7 @@ In the root of the repo there are scripts to deploy the Rust canister example bo
 ```bash
   ./scripts/deploy_reminder_bot.sh
 ```
+
+## SDK
+
+[Start here](../sdk/README.md)

@@ -18,4 +18,6 @@ Note: the DiscordBot cannot be deployed locally because it needs to be reachable
 
 - [DiscordBot](./rs/offchain/examples/discord/README.md)
 
-SDK docs coming soon...
+## SDK
+
+[Start here](../sdk/README.md)
