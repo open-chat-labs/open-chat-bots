@@ -85,11 +85,6 @@ where
             }
         }
 
-        let fut = self.inner.call(req);
-
-        Box::pin(async move {
-            let response = fut.await?;
-            Ok(response)
-        })
+        Box::pin(self.inner.call(req))
     }
 }
