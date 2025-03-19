@@ -2,7 +2,7 @@
 
 When you create an OpenChat bot, whether it is hosted in an IC canister or as an off-chain server, it must provide up to date metadata about its purpose and the commands it provides (including their arguments and the OpenChat permissions they require). This is referred to as the bot's _definition_.
 
-The bot definition _must_ be returned when a GET request is made to the root path of your bot's endpoint.
+The bot definition _must_ be returned when a GET request is made to the path "/bot_definition" of your bot's endpoint.
 
 The response that your bot makes to this GET request _must_ conform to the JSON schema defined [here](./bot_schema.json).
 
