@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "title": "OpenChat bot definition schema",
-  "description": "When a bot is registered with OpenChat it must expose its definition on a special endpoint called /schema. OpenChat will make a GET request to this endpoint and must receive a response which is valid against the following schema. This is so that OpenChat can determine how the user will interact with the bot i.e. which commands it supports and what their parameter are.",
+  "description": "When a bot is registered with OpenChat it must expose its definition on a special endpoint called /bot_definition. OpenChat will make a GET request to this endpoint and must receive a response which is valid against the following schema. This is so that OpenChat can determine how the user will interact with the bot i.e. which commands it supports and what their parameter are.",
   "properties": {
     "description": {
       "type": "string",
