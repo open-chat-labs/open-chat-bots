@@ -45,7 +45,7 @@ impl ActionContext for BotCommandContext {
         self.bot_id
     }
 
-    fn bot_api_gateway(&self) -> CanisterId {
+    fn api_gateway(&self) -> CanisterId {
         self.api_gateway
     }
 
@@ -148,7 +148,7 @@ impl ActionContext for BotApiKeyContext {
         self.bot_id
     }
 
-    fn bot_api_gateway(&self) -> CanisterId {
+    fn api_gateway(&self) -> CanisterId {
         self.api_gateway
     }
 

@@ -99,8 +99,8 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for CreateChannelBuilder
         self.client.runtime.clone()
     }
 
-    fn bot_api_gateway(&self) -> CanisterId {
-        self.client.context.bot_api_gateway()
+    fn api_gateway(&self) -> CanisterId {
+        self.client.context.api_gateway()
     }
 
     fn into_args(self) -> Args {
