@@ -47,7 +47,7 @@ impl<R, C> Client<R, C> {
 
 impl<R: Runtime, C: Into<ActionContext>> Client<R, C> {
     pub fn send_message(self, content: MessageContentInitial) -> SendMessageBuilder<R> {
-        SendMessageBuilder::new(self.erase_generic(), content)
+        SendMessageBuilder::new(self.convert_context(), content)
     }
 
     pub fn send_text_message(self, text: String) -> SendMessageBuilder<R> {
@@ -55,22 +55,22 @@ impl<R: Runtime, C: Into<ActionContext>> Client<R, C> {
     }
 
     pub fn create_channel(self, name: String, is_public: bool) -> CreateChannelBuilder<R> {
-        CreateChannelBuilder::new(self.erase_generic(), name, is_public)
+        CreateChannelBuilder::new(self.convert_context(), name, is_public)
     }
 
     pub fn delete_channel(self, channel_id: ChannelId) -> DeleteChannelBuilder<R> {
-        DeleteChannelBuilder::new(self.erase_generic(), channel_id)
+        DeleteChannelBuilder::new(self.convert_context(), channel_id)
     }
 
     pub fn chat_details(self) -> ChatDetailsBuilder<R> {
-        ChatDetailsBuilder::new(self.erase_generic())
+        ChatDetailsBuilder::new(self.convert_context())
     }
 
     pub fn chat_events(self, events: EventsSelectionCriteria) -> ChatEventsBuilder<R> {
-        ChatEventsBuilder::new(self.erase_generic(), events)
+        ChatEventsBuilder::new(self.convert_context(), events)
     }
 
-    fn erase_generic(self) -> Client<R> {
+    fn convert_context(self) -> Client<R> {
         Client {
             runtime: self.runtime,
             context: self.context.into(),
