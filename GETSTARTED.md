@@ -39,32 +39,32 @@ In each case the scripts will output the following which are needed in step 4 to
 
 ### Canister bots
 
-- [GreetBot](./scripts/deploy_greet_bot.sh)
+- [GreetBot](./rs/scripts/deploy_greet_bot.sh)
 
 ```bash
-  ./scripts/deploy_greet_bot.sh
+  ./rs/scripts/deploy_greet_bot.sh
 ```
 
-- [ReminderBot](./scripts/deploy_reminder_bot.sh)
+- [ReminderBot](./rs/scripts/deploy_reminder_bot.sh)
 
 ```bash
-  ./scripts/deploy_reminder_bot.sh
+  ./rs/scripts/deploy_reminder_bot.sh
 ```
 
 ### Off-chain bots
 
 The DiceBot and LlamaBot will each need to be run in a separate terminal.
 
-- [DiceBot](./scripts/deploy_dice_bot.sh)
+- [DiceBot](./rs/scripts/deploy_dice_bot.sh)
 
 ```bash
-  ./scripts/deploy_dice_bot.sh
+  ./rs/scripts/deploy_dice_bot.sh
 ```
 
-- [LlamaBot](./scripts/deploy_llama_bot.sh)
+- [LlamaBot](./rs/scripts/deploy_llama_bot.sh)
 
 ```bash
-  ./scripts/deploy_llama_bot.sh
+  ./rs/scripts/deploy_llama_bot.sh
 ```
 
 - [DiscordBot](./rs/offchain/examples/discord/README.md)

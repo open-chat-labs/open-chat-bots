@@ -16,22 +16,19 @@ MODE=${1:-install} # MODE is either install, reinstall or upgrade
 
 if [[ $MODE = "install" ]] || [[ $MODE = "reinstall" ]]
 then
-    # Extract the OpenChat public key from the user_index
-    OC_PUBLIC_KEY=$(./utils/get_oc_public_key.sh) || exit 1
+    # Read the OpenChat public key from the website
+    OC_PUBLIC_KEY=$(curl -s http://localhost:5001/public-key) || exit 1
 
-    # Get the principal of the current DFX identity
-    ADMINISTRATOR_PRINCIPAL=$(dfx identity get-principal)
-
-    # Build the greet_bot install args
-    ARGS="(variant { Init = record { oc_public_key = \"$OC_PUBLIC_KEY\"; administrator = principal \"$ADMINISTRATOR_PRINCIPAL\" } } )"
+    # Build the reminder_bot install args
+    ARGS="(variant { Init = record { oc_public_key = \"$OC_PUBLIC_KEY\" } })"
 elif [ $MODE = "upgrade" ]
 then
-    # Build the greet_bot upgrade args
+    # Build the reminder_bot upgrade args
     ARGS="(variant { Upgrade = record {} })"
 else
     echo "MODE must be either install, reinstall or upgrade"
     exit 1
 fi
 
-# Deploy the greet_bot with the given MODE and ARGS
-./utils/deploy_bot.sh greet_bot GreetBot $MODE "$ARGS"
+# Deploy the reminder_bot with the given MODE and ARGS
+./utils/deploy_bot.sh reminder_bot ReminderBot $MODE "$ARGS"

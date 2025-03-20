@@ -14,21 +14,11 @@ cd $SCRIPT_DIR
 
 MODE=${1:-install} # MODE is either install, reinstall or upgrade
 
-if [[ $MODE = "install" ]] || [[ $MODE = "reinstall" ]]
-then
-    # Extract the OpenChat public key from the user_index
-    OC_PUBLIC_KEY=$(./utils/get_oc_public_key.sh) || exit 1
+# Read the OpenChat public key from the website
+OC_PUBLIC_KEY=$(curl -s http://localhost:5001/public-key) || exit 1
 
-    # Build the reminder_bot install args
-    ARGS="(variant { Init = record { oc_public_key = \"$OC_PUBLIC_KEY\" } })"
-elif [ $MODE = "upgrade" ]
-then
-    # Build the reminder_bot upgrade args
-    ARGS="(variant { Upgrade = record {} })"
-else
-    echo "MODE must be either install, reinstall or upgrade"
-    exit 1
-fi
+# Build the echo_bot install args
+ARGS="(record { oc_public_key = \"$OC_PUBLIC_KEY\" } )"
 
-# Deploy the reminder_bot with the given MODE and ARGS
-./utils/deploy_bot.sh reminder_bot ReminderBot $MODE "$ARGS"
+# Deploy the echo_bot with the given MODE and ARGS
+./utils/deploy_bot.sh echo_bot EchoBot $MODE "$ARGS"

@@ -3,7 +3,7 @@
 # Capture the directory this script is installed in and cd into the rs folder
 SCRIPT=$(readlink -f "$0")
 SCRIPT_DIR=$(dirname "$SCRIPT")
-cd $SCRIPT_DIR/../../rs
+cd $SCRIPT_DIR/../..
 
 BOT=$1
 NAME=$2

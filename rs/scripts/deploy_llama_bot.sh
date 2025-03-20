@@ -10,14 +10,14 @@ PORT=${2:-4000} # The port the bot will listen on
 # The local IC URL
 IC_URL=http://127.0.0.1:8080
 
-# Query the OpenChat user_index canister for the OpenChat public key
-OC_PUBLIC_KEY=$(./utils/get_oc_public_key.sh) || exit 1
+# Read the OpenChat public key from the website
+OC_PUBLIC_KEY=$(curl -s http://localhost:5001/public-key) || exit 1
 
 # Get the principal for the bot identity creating it if it does not exist
 PRINCIPAL=$(./utils/get_bot_identity.sh $IDENTITY) || exit 1
 
 # CD into the DiceBot directory
-cd ../rs/offchain/examples/llama || exit 1
+cd ./offchain/examples/llama || exit 1
 
 # Extract the PEM file for the bot identity
 $(dfx identity export $IDENTITY > bot.pem) || exit 1
