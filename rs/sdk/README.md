@@ -2,17 +2,19 @@
 
 ## Overview
 
-Bots are server components that can interact with OpenChat, typically by sending messages, within particular _scopes_ (channels/groups/direct chats).
+Bots are server components that can interact with OpenChat, typically by sending messages, within particular _scopes_ (communities/channels/groups/direct chats) into which they are installed.
 
-At a mimimum, in order to be registered on OpenChat, bots must return a `bot definition` in response to an HTTP GET to the path `/bot_definition`.
+At a minimum, in order to be registered on OpenChat, bots must return a `bot definition` in response to an HTTP GET to the path `/bot_definition`.
 
-Within the SDK is an `api` folder which reflects the [Bot API](#bot-api) that bots provide to the OpenChat frontend, and an `oc_api` folder which reflects the [OpenChat API](#openchat-api) the OpenChat backend provides to bots.
+Within the SDK is an `api` folder which reflects the [Bot API](#bot-api) which bots provide to the OpenChat frontend, and an `oc_api` folder which reflects the [OpenChat API](#openchat-api) the OpenChat backend provides to bots.
 
 ## Bot API
 
-### Bot definition
+The Bot API defines the [bot definition](#bot-definition) which when serialised as JSON conforms to the [Bot definition _schema_](<(../../schema/bot_schema.json)>).
 
-The Bot API defines the [BotDefinition](./src/api/definition.rs) which when serialised as JSON conforms to the [Bot definition _schema_](<(../../schema/bot_schema.json)>).
+It also provides a [command handler registry](#command-handler-registry) which simplifies the process of digesting JWTs to handle commands.
+
+### Bot definition
 
 ```
 pub struct BotDefinition {
@@ -30,11 +32,11 @@ It _does_ include the `description` of the bot which is shown in the OpenChat UI
 
 It also defines a list of [commands](#commands).
 
-Finally, the bot definition specifies an optional [AutonomousConfig](#autonomous-configuration).
+Finally, the bot definition specifies an optional [autonomous_config](#autonomous-configuration).
 
 #### Commands
 
-When a bot is installed in a particular _location_ (community/group/direct chat), users within this location can issue commands by typing '/' in the message input. This pops up a list of available commands aggregated across all bots installed in this location. In the message entry, users can type further characters to filter the list of commands until they have selected the desired command.
+When a bot is installed in a particular _location_ (community/group/direct chat), users within this location can issue commands by typing '/' in the message input. This pops up a list of available commands aggregated across all bots installed in this location. In the message entry, users continue typing to filter the list of commands until they have found the desired command.
 
 ```
 pub struct BotCommandDefinition {
@@ -64,16 +66,16 @@ pub struct BotCommandParam {
 }
 ```
 
-When a user types a `/command` they can either select it from the popup, in which case if there are command parameters defined, a dialog box will be shown with appropriate UI input widgets for each type of parameter. Or, the user can fully type the `/command` and keep typing any parameter values (aka arguments) into the message entry field, in which case OpenChat will validate any inputs to ensure they conform to the parameter definitions. Each parameter has a `name` and optional `description`. It has an optional `placeholder` which is shown in the parameter input widget as a guide to the user. Next is a flag to indicate whether this is a `required` parameter. If not the user can leave it empty and the bot will use a default value. Finally the `param_type` is specified.
+When a user types a `/command` they can either select it from the popup, in which case if there are command parameters defined, a dialog box will be shown with appropriate UI input widgets for each type of parameter. Or, the user can fully type the `/command` and keep typing any parameter values (aka arguments) into the message entry field, in which case OpenChat will validate the inputs to ensure they conform to the parameter definitions. Each parameter has a `name` and optional `description`. It has an optional `placeholder` which is shown in the parameter input widget as a guide to the user. It also has a flag to indicate whether this is a `required` parameter. If not the user can leave it empty and the bot will use a default value. Finally the `param_type` is specified.
 
 ```
 pub enum BotCommandParamType {
-    UserParam,
     BooleanParam,
     StringParam(StringParam),
     IntegerParam(IntegerParam),
     DecimalParam(DecimalParam),
     DateTimeParam(DateTimeParam),
+    UserParam,
 }
 ```
 
@@ -83,11 +85,22 @@ Next up, are the command [permissions](#bot-permissions). This is the set of per
 
 Next, the command has an optional `default_role`. This can be either `Owner`, `Admin`, `Moderator` or `Participant` and defaults to the latter if none is specified. This is a hint to OpenChat to use this default when asking the bot installer which roles should be able to call this command. In fact, at the time of writing, OpenChat does _not_ ask the installer which roles can call each command, and so `default_role` actually allows the bot developer to specify which roles should be able to call this command. Roles are hierarchical, so for instance, if the `default_role` is `Admin` this means it can be called by all members with the `Admin` or `Owner` role.
 
-Finally, commands have a `direct_messages` flag. This indicates to OpenChat that this command should be used in a "direct message" scenario. This only applies when a bot is installed as a direct chat. In this case, if free text is entered in the message box rather than a `/command`, OpenChat will actually send this command to the bot, and will split the user text and bot response into two separate messages. This allows the user to interact in a conversational style particularly appropriate for AI bots. To take effect, the command must also specify a single string parameter. Logically, only one command should have `direct_messages` set to true but in case there are multiple, OpenChat will simply pick the first one.
+Finally, commands have a `direct_messages` flag, indicating to OpenChat that this command supports "direct messages". This only applies when a bot is installed as a direct chat. In this case, if free text is entered in the message box rather than a `/command`, OpenChat will implicitly send this command to the bot, and will split the user text and bot response into two separate messages. This allows the user to interact in a conversational style particularly appropriate for AI bots. To be eligible, the first parameter of the command must be a string and it can have no other required parameters. Logically, only one command should have `direct_messages` set to true but in case there are multiple, OpenChat will simply pick the first one.
 
 #### Autonomous configuration
 
-TBD
+In addition to acting in response to user commands, bots can take actions autonomously.
+
+```
+pub struct AutonomousConfig {
+    pub permissions: BotPermissions,
+    pub sync_api_key: bool,
+}
+```
+
+The optional `AutonomousConfig` tells OpenChat which permissions the bot would like in order to take autonomous actions. When a bot is installed, the user can choose which of these permissions to grant the bot within this scope. The installer can then generate an API key for the bot in this scope. The installer can give this API key to a 3rd party to enable a particular integration, say to a github action which calls the bot to send a message whenever a PR is created. Or if the `sync_api_key` flag is set, the UI will show a triangular "sync API key" button which will send the API key directly to the bot. In response the bot should store it in a map of scope to API key so it can subsequently take the permitted autonomous actions within these scopes. A map, [ApiKeyRegistry](./src/api_key_registry.rs), is provided by the SDK for this purpose.
+
+It is worth clarifying the different between _location_ and _scope_. The bot can be _installed_ into a _location_ which is either a community, group or direct chat. However, a bot can _act_ in a _scope_ which is ether a community, _channel_, group or direct chat. For groups and direct chats, location and scope are the same thing. Bots can be installed into communities but _not_ channels. However, API keys can be generated at the community scope, in which case the permissions cascade to all channels, or at the channel scope, in which case the API key can only be used with that specific channel.
 
 #### Bot permissions
 
@@ -143,9 +156,38 @@ pub enum MessagePermission {
 }
 ```
 
-### Bot command handling
+### Command Handler Registry
 
-TBD
+In addition to providing the bot definition, the api folder contains a [CommandHandlerRegistry](./src/api/command/command_handler.rs).
+
+Here is an example from the [ReminderBot](../canister/examples/reminder/src/router/commands.rs) of the `CommandHandlerRegistry` being initialised:
+
+```
+    CommandHandlerRegistry::new(OPENCHAT_CLIENT_FACTORY.clone())
+        .register(RemindRecurring)
+        .register(RemindAt)
+        .register(List)
+        .register(Delete)
+        .on_sync_api_key(Box::new(sync_api_key::callback))
+```
+
+In this case four command handlers are registered and a separate handler is provided for receiving API keys from OpenChat. Each command handler implements the [CommandHandler](./src/api/command/command_handler.rs#108) trait:
+
+```
+pub trait CommandHandler<R>: Send + Sync {
+    fn definition(&self) -> &BotCommandDefinition;
+
+    async fn execute(
+        &self,
+        context: BotCommandContext,
+        oc_client_factory: &ClientFactory<R>,
+    ) -> Result<SuccessResult, String>;
+
+    ...
+}
+```
+
+Each command handler implements it's portion of the [BotDefinition](#bot-definition) and an `execute` function where all the action happens! The execute function is passed a `context` with the command context, including its arguments, extracted from the JWT, and a reference to an `oc_client_factory` used to call into OpenChat which we'll cover in the [OpenChat API section](#openchat-api).
 
 ## OpenChat API
 

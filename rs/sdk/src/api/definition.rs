@@ -40,12 +40,12 @@ pub struct BotCommandParam {
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum BotCommandParamType {
-    UserParam,
     BooleanParam,
     StringParam(StringParam),
     IntegerParam(IntegerParam),
     DecimalParam(DecimalParam),
     DateTimeParam(DateTimeParam),
+    UserParam,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
