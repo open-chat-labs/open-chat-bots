@@ -21,10 +21,9 @@ impl CommandHandler<AgentRuntime> for Prompt {
 
     async fn execute(
         &self,
-        cxt: BotCommandContext,
-        oc_client: Client<AgentRuntime>,
+        oc_client: Client<AgentRuntime, BotCommandContext>,
     ) -> Result<SuccessResult, String> {
-        let message = cxt.command.arg("message");
+        let message = oc_client.context().command.arg("message");
 
         let llm_response = self.llm_canister_agent.prompt(message).await?;
 

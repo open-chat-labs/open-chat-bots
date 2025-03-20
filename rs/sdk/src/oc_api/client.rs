@@ -25,23 +25,29 @@ impl<R: Runtime> ClientFactory<R> {
         }
     }
 
-    pub fn build(&self, context: impl Into<ActionContext>) -> Client<R> {
-        Client::new(self.runtime.clone(), context.into())
+    pub fn build<C>(&self, context: C) -> Client<R, C> {
+        Client::new(self.runtime.clone(), context)
     }
 }
 
-pub struct Client<R> {
+pub struct Client<R, C = ActionContext> {
     runtime: Arc<R>,
-    context: ActionContext,
+    context: C,
 }
 
-impl<R: Runtime> Client<R> {
-    pub fn new(runtime: Arc<R>, context: ActionContext) -> Self {
+impl<R, C> Client<R, C> {
+    pub fn new(runtime: Arc<R>, context: C) -> Self {
         Client { runtime, context }
     }
 
+    pub fn context(&self) -> &C {
+        &self.context
+    }
+}
+
+impl<R: Runtime, C: Into<ActionContext>> Client<R, C> {
     pub fn send_message(self, content: MessageContentInitial) -> SendMessageBuilder<R> {
-        SendMessageBuilder::new(self, content)
+        SendMessageBuilder::new(self.erase_generic(), content)
     }
 
     pub fn send_text_message(self, text: String) -> SendMessageBuilder<R> {
@@ -49,18 +55,25 @@ impl<R: Runtime> Client<R> {
     }
 
     pub fn create_channel(self, name: String, is_public: bool) -> CreateChannelBuilder<R> {
-        CreateChannelBuilder::new(self, name, is_public)
+        CreateChannelBuilder::new(self.erase_generic(), name, is_public)
     }
 
     pub fn delete_channel(self, channel_id: ChannelId) -> DeleteChannelBuilder<R> {
-        DeleteChannelBuilder::new(self, channel_id)
+        DeleteChannelBuilder::new(self.erase_generic(), channel_id)
     }
 
     pub fn chat_details(self) -> ChatDetailsBuilder<R> {
-        ChatDetailsBuilder::new(self)
+        ChatDetailsBuilder::new(self.erase_generic())
     }
 
     pub fn chat_events(self, events: EventsSelectionCriteria) -> ChatEventsBuilder<R> {
-        ChatEventsBuilder::new(self, events)
+        ChatEventsBuilder::new(self.erase_generic(), events)
+    }
+
+    fn erase_generic(self) -> Client<R> {
+        Client {
+            runtime: self.runtime,
+            context: self.context.into(),
+        }
     }
 }

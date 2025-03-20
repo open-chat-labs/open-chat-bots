@@ -95,7 +95,7 @@ impl<R: Runtime> CommandHandlerRegistry<R> {
         }
 
         let result = command_handler
-            .execute(context.clone(), self.oc_client_factory.build(context))
+            .execute(self.oc_client_factory.build(context))
             .await;
 
         match result {
@@ -111,8 +111,7 @@ pub trait CommandHandler<R>: Send + Sync {
 
     async fn execute(
         &self,
-        context: BotCommandContext,
-        oc_client: Client<R>,
+        oc_client: Client<R, BotCommandContext>,
     ) -> Result<SuccessResult, String>;
 
     fn name(&self) -> &str {

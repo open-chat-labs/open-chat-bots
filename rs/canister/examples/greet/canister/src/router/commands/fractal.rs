@@ -24,9 +24,9 @@ impl CommandHandler<CanisterRuntime> for Fractal {
 
     async fn execute(
         &self,
-        cxt: BotCommandContext,
-        oc_client: Client<CanisterRuntime>,
+        oc_client: Client<CanisterRuntime, BotCommandContext>,
     ) -> Result<SuccessResult, String> {
+        let cxt = oc_client.context();
         let r = cxt.command.arg("real");
         let i = cxt.command.arg("imaginary");
 

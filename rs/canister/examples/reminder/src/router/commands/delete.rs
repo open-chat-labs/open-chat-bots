@@ -23,9 +23,9 @@ impl CommandHandler<CanisterRuntime> for Delete {
 
     async fn execute(
         &self,
-        cxt: BotCommandContext,
-        _oc_client: Client<CanisterRuntime>,
+        oc_client: Client<CanisterRuntime, BotCommandContext>,
     ) -> Result<SuccessResult, String> {
+        let cxt = oc_client.context();
         let text = match state::mutate(|state| {
             // Extract the chat
             let BotCommandScope::Chat(chat_scope) = &cxt.scope else {

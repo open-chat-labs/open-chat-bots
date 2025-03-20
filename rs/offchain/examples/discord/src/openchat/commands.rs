@@ -24,12 +24,12 @@ impl CommandHandler<AgentRuntime> for Status {
 
     async fn execute(
         &self,
-        ctx: BotCommandContext,
-        _oc_client: Client<AgentRuntime>,
+        oc_client: Client<AgentRuntime, BotCommandContext>,
     ) -> Result<SuccessResult, String> {
         info!("OpenChat :: executing status command.");
 
-        let key = OcChannelKey::from_bot_context(&ctx);
+        let cxt = oc_client.context();
+        let key = OcChannelKey::from_bot_context(cxt);
         let num_links: u32 = self
             .shared_state
             .relay_links
@@ -52,7 +52,7 @@ impl CommandHandler<AgentRuntime> for Status {
             } else {
                 "This channel is not linked to any Discord channels!".into()
             }),
-            ctx.scope.message_id().unwrap(),
+            cxt.scope.message_id().unwrap(),
         )
         .build()
         .into())

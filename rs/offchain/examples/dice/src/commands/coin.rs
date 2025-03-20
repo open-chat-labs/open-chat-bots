@@ -19,10 +19,9 @@ impl CommandHandler<AgentRuntime> for Coin {
 
     async fn execute(
         &self,
-        cxt: BotCommandContext,
-        oc_client: Client<AgentRuntime>,
+        oc_client: Client<AgentRuntime, BotCommandContext>,
     ) -> Result<SuccessResult, String> {
-        let count = cxt.command.maybe_arg("count").unwrap_or(1);
+        let count = oc_client.context().command.maybe_arg("count").unwrap_or(1);
 
         let mut text = String::new();
 

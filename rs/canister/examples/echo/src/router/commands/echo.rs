@@ -19,10 +19,9 @@ impl CommandHandler<CanisterRuntime> for Echo {
 
     async fn execute(
         &self,
-        cxt: BotCommandContext,
-        oc_client: Client<CanisterRuntime>,
+        oc_client: Client<CanisterRuntime, BotCommandContext>,
     ) -> Result<SuccessResult, String> {
-        let text = cxt.command.arg("message");
+        let text = oc_client.context().command.arg("message");
 
         // Send the message to OpenChat but don't wait for the response
         let message = oc_client

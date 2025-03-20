@@ -20,10 +20,9 @@ impl CommandHandler<CanisterRuntime> for Greet {
 
     async fn execute(
         &self,
-        cxt: BotCommandContext,
-        oc_client: Client<CanisterRuntime>,
+        oc_client: Client<CanisterRuntime, BotCommandContext>,
     ) -> Result<SuccessResult, String> {
-        let user_id = cxt.command.initiator;
+        let user_id = oc_client.context().command.initiator;
         let text = format!("hello @UserId({user_id})");
 
         // Send the message to OpenChat but don't wait for the response

@@ -19,9 +19,9 @@ impl CommandHandler<AgentRuntime> for Roll {
 
     async fn execute(
         &self,
-        cxt: BotCommandContext,
-        client: Client<AgentRuntime>,
+        oc_client: Client<AgentRuntime, BotCommandContext>,
     ) -> Result<SuccessResult, String> {
+        let cxt = oc_client.context();
         let sides = cxt.command.maybe_arg("sides").unwrap_or(6);
         let count = cxt.command.maybe_arg("count").unwrap_or(1);
 
@@ -35,7 +35,7 @@ impl CommandHandler<AgentRuntime> for Roll {
         }
 
         // Send the message to OpenChat but don't wait for the response
-        let message = client
+        let message = oc_client
             .send_text_message(text)
             .execute_then_return_message(|_, _| ());
 

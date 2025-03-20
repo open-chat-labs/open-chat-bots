@@ -20,9 +20,9 @@ impl CommandHandler<CanisterRuntime> for Message {
 
     async fn execute(
         &self,
-        cxt: BotCommandContext,
-        oc_client: Client<CanisterRuntime>,
+        oc_client: Client<CanisterRuntime, BotCommandContext>,
     ) -> Result<SuccessResult, String> {
+        let cxt = oc_client.context();
         let index: u32 = cxt.command.arg("index");
 
         let events = EventsSelectionCriteria::Window(EventsWindowArgs {

@@ -20,8 +20,7 @@ impl CommandHandler<CanisterRuntime> for Joke {
 
     async fn execute(
         &self,
-        _cxt: BotCommandContext,
-        oc_client: Client<CanisterRuntime>,
+        oc_client: Client<CanisterRuntime, BotCommandContext>,
     ) -> Result<SuccessResult, String> {
         let text = state::read(|state| state.get_random_joke());
 

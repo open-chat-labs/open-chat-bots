@@ -21,12 +21,12 @@ impl CommandHandler<CanisterRuntime> for List {
 
     async fn execute(
         &self,
-        cxt: BotCommandContext,
-        _oc_client: Client<CanisterRuntime>,
+        oc_client: Client<CanisterRuntime, BotCommandContext>,
     ) -> Result<SuccessResult, String> {
+        let scope = &oc_client.context().scope;
         let list = state::read(|state| {
             // Extract the chat
-            let BotCommandScope::Chat(chat_scope) = &cxt.scope else {
+            let BotCommandScope::Chat(chat_scope) = scope else {
                 return Err("This command can only be used in a chat".to_string());
             };
 
@@ -45,7 +45,7 @@ impl CommandHandler<CanisterRuntime> for List {
 
         Ok(EphemeralMessageBuilder::new(
             MessageContentInitial::from_text(text),
-            cxt.scope.message_id().unwrap(),
+            scope.message_id().unwrap(),
         )
         .build()
         .into())

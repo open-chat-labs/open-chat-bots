@@ -24,9 +24,9 @@ impl CommandHandler<CanisterRuntime> for RemindRecurring {
 
     async fn execute(
         &self,
-        cxt: BotCommandContext,
-        _oc_client: Client<CanisterRuntime>,
+        oc_client: Client<CanisterRuntime, BotCommandContext>,
     ) -> Result<SuccessResult, String> {
+        let cxt = oc_client.context();
         let what = cxt.command.arg("what");
         let when = cxt.command.arg("when");
         let timezone = cxt.command.timezone();
