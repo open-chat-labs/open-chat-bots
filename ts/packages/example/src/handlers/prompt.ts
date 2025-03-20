@@ -32,7 +32,7 @@ export default async function image(req: WithBotClient, res: Response) {
           .createTextMessage(
             answer ?? "Hmmm - I'm sorry I didn't find an answer"
           )
-          .then((msg) => msg.setFinalised(true))
+          .then((msg) => msg.setFinalised(true).setBlockLevelMarkdown(true))
           .then((msg) => client.sendMessage(msg));
       })
       .catch((err) => console.log("sendImageMessage failed with: ", err));
