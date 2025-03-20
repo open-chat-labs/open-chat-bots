@@ -34,7 +34,6 @@ impl CommandHandler<CanisterRuntime> for Message {
         let path = cxt.scope.path();
         let message_id = cxt.scope.message_id();
 
-        // Send the message to OpenChat but don't wait for the response
         let response = oc_client.chat_events(events).execute_async().await;
 
         let text = match response {

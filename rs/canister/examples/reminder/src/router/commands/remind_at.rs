@@ -55,7 +55,7 @@ impl CommandHandler<CanisterRuntime> for RemindAt {
                 RemindWhen::Once(when),
                 timezone,
                 cxt.command.initiator,
-                chat_scope.chat.clone(),
+                chat_scope.chat,
                 env::now(),
             ) {
                 Ok(result) => result,

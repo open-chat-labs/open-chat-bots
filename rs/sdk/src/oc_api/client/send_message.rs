@@ -2,14 +2,14 @@ use crate::api::command::Message;
 use crate::oc_api::actions::send_message::*;
 use crate::oc_api::actions::ActionArgsBuilder;
 use crate::oc_api::Runtime;
-use crate::types::CallResult;
+use crate::types::{ActionContext, CallResult};
 use crate::types::{CanisterId, ChannelId, MessageContentInitial, MessageId};
 use std::sync::Arc;
 
 use super::Client;
 
-pub struct SendMessageBuilder<R> {
-    client: Client<R>,
+pub struct SendMessageBuilder<'c, R, C> {
+    client: &'c Client<R, C>,
     content: MessageContentInitial,
     channel_id: Option<ChannelId>,
     message_id: Option<MessageId>,
@@ -17,8 +17,8 @@ pub struct SendMessageBuilder<R> {
     finalised: bool,
 }
 
-impl<R: Runtime> SendMessageBuilder<R> {
-    pub fn new(client: Client<R>, content: MessageContentInitial) -> Self {
+impl<'c, R: Runtime, C: ActionContext> SendMessageBuilder<'c, R, C> {
+    pub fn new(client: &'c Client<R, C>, content: MessageContentInitial) -> Self {
         let channel_id = client.context.channel_id();
         let message_id = client.context.message_id();
 
@@ -78,14 +78,14 @@ impl<R: Runtime> SendMessageBuilder<R> {
     }
 }
 
-impl<R: Runtime> ActionArgsBuilder<R> for SendMessageBuilder<R> {
+impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for SendMessageBuilder<'_, R, C> {
     type Action = SendMessageAction;
 
     fn runtime(&self) -> Arc<R> {
         self.client.runtime.clone()
     }
 
-    fn bot_api_gateway(&self) -> CanisterId {
+    fn api_gateway(&self) -> CanisterId {
         self.client.context.api_gateway()
     }
 
@@ -96,7 +96,7 @@ impl<R: Runtime> ActionArgsBuilder<R> for SendMessageBuilder<R> {
             message_id: self.message_id,
             block_level_markdown: self.block_level_markdown,
             finalised: self.finalised,
-            auth_token: self.client.context.into_token(),
+            auth_token: self.client.context.auth_token().clone(),
         }
     }
 }

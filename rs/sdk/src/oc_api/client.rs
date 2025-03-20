@@ -30,7 +30,7 @@ impl<R: Runtime> ClientFactory<R> {
     }
 }
 
-pub struct Client<R, C = ActionContext> {
+pub struct Client<R, C> {
     runtime: Arc<R>,
     context: C,
 }
@@ -45,35 +45,28 @@ impl<R, C> Client<R, C> {
     }
 }
 
-impl<R: Runtime, C: Into<ActionContext>> Client<R, C> {
-    pub fn send_message(self, content: MessageContentInitial) -> SendMessageBuilder<R> {
-        SendMessageBuilder::new(self.convert_context(), content)
+impl<R: Runtime, C: ActionContext> Client<R, C> {
+    pub fn send_message(&self, content: MessageContentInitial) -> SendMessageBuilder<R, C> {
+        SendMessageBuilder::new(self, content)
     }
 
-    pub fn send_text_message(self, text: String) -> SendMessageBuilder<R> {
+    pub fn send_text_message(&self, text: String) -> SendMessageBuilder<R, C> {
         self.send_message(MessageContentInitial::Text(TextContent { text }))
     }
 
-    pub fn create_channel(self, name: String, is_public: bool) -> CreateChannelBuilder<R> {
-        CreateChannelBuilder::new(self.convert_context(), name, is_public)
+    pub fn create_channel(&self, name: String, is_public: bool) -> CreateChannelBuilder<R, C> {
+        CreateChannelBuilder::new(self, name, is_public)
     }
 
-    pub fn delete_channel(self, channel_id: ChannelId) -> DeleteChannelBuilder<R> {
-        DeleteChannelBuilder::new(self.convert_context(), channel_id)
+    pub fn delete_channel(&self, channel_id: ChannelId) -> DeleteChannelBuilder<R, C> {
+        DeleteChannelBuilder::new(self, channel_id)
     }
 
-    pub fn chat_details(self) -> ChatDetailsBuilder<R> {
-        ChatDetailsBuilder::new(self.convert_context())
+    pub fn chat_details(&self) -> ChatDetailsBuilder<R, C> {
+        ChatDetailsBuilder::new(self)
     }
 
-    pub fn chat_events(self, events: EventsSelectionCriteria) -> ChatEventsBuilder<R> {
-        ChatEventsBuilder::new(self.convert_context(), events)
-    }
-
-    fn convert_context(self) -> Client<R> {
-        Client {
-            runtime: self.runtime,
-            context: self.context.into(),
-        }
+    pub fn chat_events(&self, events: EventsSelectionCriteria) -> ChatEventsBuilder<R, C> {
+        ChatEventsBuilder::new(self, events)
     }
 }

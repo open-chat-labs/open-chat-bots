@@ -2,11 +2,13 @@ use super::Client;
 use crate::oc_api::actions::create_channel::*;
 use crate::oc_api::actions::ActionArgsBuilder;
 use crate::oc_api::Runtime;
-use crate::types::{AccessGateConfig, CanisterId, ChatPermissions, Document, Milliseconds, Rules};
+use crate::types::{
+    AccessGateConfig, ActionContext, CanisterId, ChatPermissions, Document, Milliseconds, Rules,
+};
 use std::sync::Arc;
 
-pub struct CreateChannelBuilder<R> {
-    client: Client<R>,
+pub struct CreateChannelBuilder<'c, R, C> {
+    client: &'c Client<R, C>,
     name: String,
     is_public: bool,
     description: String,
@@ -20,8 +22,8 @@ pub struct CreateChannelBuilder<R> {
     external_url: Option<String>,
 }
 
-impl<R: Runtime> CreateChannelBuilder<R> {
-    pub fn new(client: Client<R>, name: String, is_public: bool) -> Self {
+impl<'c, R: Runtime, C: ActionContext> CreateChannelBuilder<'c, R, C> {
+    pub fn new(client: &'c Client<R, C>, name: String, is_public: bool) -> Self {
         CreateChannelBuilder {
             client,
             name,
@@ -90,20 +92,20 @@ impl<R: Runtime> CreateChannelBuilder<R> {
     }
 }
 
-impl<R: Runtime> ActionArgsBuilder<R> for CreateChannelBuilder<R> {
+impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for CreateChannelBuilder<'_, R, C> {
     type Action = CreateChannelAction;
 
     fn runtime(&self) -> Arc<R> {
         self.client.runtime.clone()
     }
 
-    fn bot_api_gateway(&self) -> CanisterId {
+    fn api_gateway(&self) -> CanisterId {
         self.client.context.api_gateway()
     }
 
     fn into_args(self) -> Args {
         Args {
-            auth_token: self.client.context.into_token(),
+            auth_token: self.client.context.auth_token().clone(),
             name: self.name,
             is_public: self.is_public,
             description: self.description,

@@ -23,7 +23,7 @@ pub trait ActionArgsBuilder<R: Runtime>: Sized {
 
     fn runtime(&self) -> Arc<R>;
 
-    fn bot_api_gateway(&self) -> CanisterId;
+    fn api_gateway(&self) -> CanisterId;
 
     fn into_args(self) -> <Self::Action as ActionDef>::Args;
 
@@ -41,13 +41,13 @@ pub trait ActionArgsBuilder<R: Runtime>: Sized {
         let runtime = self.runtime();
         let is_canister_runtime = runtime.is_canister();
         let runtime_clone = runtime.clone();
-        let bot_api_gateway = self.bot_api_gateway();
+        let api_gateway = self.api_gateway();
         let method_name = Self::Action::method_name(is_canister_runtime);
         let args = self.into_args();
 
         runtime.spawn(async move {
             let response = runtime_clone
-                .call_canister(bot_api_gateway, method_name, (args.clone(),))
+                .call_canister(api_gateway, method_name, (args.clone(),))
                 .await
                 .map(|(r,)| r);
 
@@ -59,14 +59,14 @@ pub trait ActionArgsBuilder<R: Runtime>: Sized {
         self,
     ) -> impl Future<Output = CallResult<<Self::Action as ActionDef>::Response>> + Send {
         let runtime = self.runtime();
-        let bot_api_gateway = self.bot_api_gateway();
+        let api_gateway = self.api_gateway();
         let is_canister_runtime = runtime.is_canister();
         let method_name = Self::Action::method_name(is_canister_runtime);
         let args = self.into_args();
 
         async move {
             runtime
-                .call_canister(bot_api_gateway, method_name, (args,))
+                .call_canister(api_gateway, method_name, (args,))
                 .await
                 .map(|(r,)| r)
         }

@@ -2,12 +2,11 @@ use crate::api::command::Command;
 use crate::jwt;
 use crate::jwt::Claims;
 use crate::types::{
-    AuthToken, BotActionByApiKeyClaims, BotActionByCommandClaims, BotApiKeyToken, BotPermissions,
-    CanisterId, ChannelId, Chat, TimestampMillis, TokenError, UserId,
+    ActionContext, ActionScope, AuthToken, BotActionByApiKeyClaims, BotActionByCommandClaims,
+    BotApiKeyToken, BotCommandScope, BotPermissions, CanisterId, ChannelId, Chat, MessageId,
+    MessageIndex, TimestampMillis, TokenError, UserId,
 };
 use crate::utils::base64;
-
-use super::{ActionScope, BotCommandScope};
 
 #[derive(Clone, Debug)]
 pub struct BotCommandContext {
@@ -38,6 +37,44 @@ impl BotCommandContext {
             granted_permissions: claims.granted_permissions,
             api_gateway: claims.bot_api_gateway,
         })
+    }
+}
+
+impl ActionContext for BotCommandContext {
+    fn bot_id(&self) -> UserId {
+        self.bot_id
+    }
+
+    fn api_gateway(&self) -> CanisterId {
+        self.api_gateway
+    }
+
+    fn scope(&self) -> ActionScope {
+        self.scope.clone().into()
+    }
+
+    fn granted_permissions(&self) -> Option<&BotPermissions> {
+        Some(&self.granted_permissions)
+    }
+
+    fn message_id(&self) -> Option<MessageId> {
+        if let BotCommandScope::Chat(chat) = &self.scope {
+            Some(chat.message_id)
+        } else {
+            None
+        }
+    }
+
+    fn thread(&self) -> Option<MessageIndex> {
+        if let BotCommandScope::Chat(chat) = &self.scope {
+            chat.thread
+        } else {
+            None
+        }
+    }
+
+    fn auth_token(&self) -> &AuthToken {
+        &self.token
     }
 }
 
@@ -103,6 +140,36 @@ impl BotApiKeyContext {
             ActionScope::Chat(Chat::Channel(_, channel_id)) => Some(channel_id),
             _ => None,
         }
+    }
+}
+
+impl ActionContext for BotApiKeyContext {
+    fn bot_id(&self) -> UserId {
+        self.bot_id
+    }
+
+    fn api_gateway(&self) -> CanisterId {
+        self.api_gateway
+    }
+
+    fn scope(&self) -> ActionScope {
+        self.scope
+    }
+
+    fn granted_permissions(&self) -> Option<&BotPermissions> {
+        Some(&self.granted_permissions)
+    }
+
+    fn message_id(&self) -> Option<MessageId> {
+        None
+    }
+
+    fn thread(&self) -> Option<MessageIndex> {
+        None
+    }
+
+    fn auth_token(&self) -> &AuthToken {
+        &self.token
     }
 }
 

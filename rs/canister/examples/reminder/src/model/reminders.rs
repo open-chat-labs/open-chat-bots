@@ -55,7 +55,7 @@ fn run() {
     mutate(|state| {
         while let Some(reminder) = state.reminders.pop_next_due_reminder(env::now()) {
             if let Some(api_key) = state.api_key_registry.get_key_with_required_permissions(
-                &ActionScope::Chat(reminder.chat.clone()),
+                &ActionScope::Chat(reminder.chat),
                 &BotPermissions::text_only(),
             ) {
                 ic_cdk::spawn(send_reminder(
@@ -164,7 +164,7 @@ impl Reminders {
                 return Err("Too many reminders in this chat".to_string());
             }
         } else {
-            self.per_chat.insert(chat.clone(), BTreeMap::new());
+            self.per_chat.insert(chat, BTreeMap::new());
         }
 
         let (timestamp, schedule) = match &when {

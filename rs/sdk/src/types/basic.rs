@@ -51,7 +51,7 @@ impl AuthToken {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum Chat {
     Direct(CanisterId),
     Group(CanisterId),
@@ -88,7 +88,7 @@ pub struct Document {
     pub data: Vec<u8>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum ActionScope {
     Chat(Chat),
     Community(CanisterId),
