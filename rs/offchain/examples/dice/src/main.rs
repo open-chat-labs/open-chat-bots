@@ -9,7 +9,7 @@ use commands::coin::Coin;
 use commands::roll::Roll;
 use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
 use oc_bots_sdk::api::definition::BotDefinition;
-use oc_bots_sdk::oc_api::client_factory::ClientFactory;
+use oc_bots_sdk::oc_api::client::ClientFactory;
 use oc_bots_sdk_offchain::env;
 use oc_bots_sdk_offchain::middleware::tower::{ExtractJwtLayer, OpenChatJwt};
 use oc_bots_sdk_offchain::AgentRuntime;

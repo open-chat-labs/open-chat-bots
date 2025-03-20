@@ -5,7 +5,7 @@ use oc_bots_sdk::api::command::{CommandHandler, SuccessResult};
 use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::create_thumbnail;
 use oc_bots_sdk::oc_api::actions::send_message;
-use oc_bots_sdk::oc_api::client_factory::ClientFactory;
+use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::MessageContentInitial;
 use oc_bots_sdk::types::{BlobReference, BotCommandContext, ImageContent};
 use oc_bots_sdk_canister::{env, CanisterRuntime};
@@ -25,7 +25,7 @@ impl CommandHandler<CanisterRuntime> for Fractal {
     async fn execute(
         &self,
         cxt: BotCommandContext,
-        oc_client_factory: &ClientFactory<CanisterRuntime>,
+        oc_client: Client<CanisterRuntime>,
     ) -> Result<SuccessResult, String> {
         let r = cxt.command.arg("real");
         let i = cxt.command.arg("imaginary");
@@ -63,8 +63,7 @@ impl CommandHandler<CanisterRuntime> for Fractal {
         };
 
         // Send the message to OpenChat but don't wait for the response
-        let message = oc_client_factory
-            .build(cxt)
+        let message = oc_client
             .send_message(MessageContentInitial::Image(content))
             .execute_then_return_message(|args, response| match response {
                 Ok(send_message::Response::Success(_)) => {

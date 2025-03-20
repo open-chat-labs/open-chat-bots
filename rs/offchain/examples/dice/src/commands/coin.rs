@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use oc_bots_sdk::api::command::{CommandHandler, SuccessResult};
 use oc_bots_sdk::api::definition::*;
-use oc_bots_sdk::oc_api::client_factory::ClientFactory;
+use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::BotCommandContext;
 use oc_bots_sdk_offchain::AgentRuntime;
 use rand::random;
@@ -20,7 +20,7 @@ impl CommandHandler<AgentRuntime> for Coin {
     async fn execute(
         &self,
         cxt: BotCommandContext,
-        oc_client_factory: &ClientFactory<AgentRuntime>,
+        oc_client: Client<AgentRuntime>,
     ) -> Result<SuccessResult, String> {
         let count = cxt.command.maybe_arg("count").unwrap_or(1);
 
@@ -35,8 +35,7 @@ impl CommandHandler<AgentRuntime> for Coin {
         }
 
         // Send the message to OpenChat but don't wait for the response
-        let message = oc_client_factory
-            .build(cxt)
+        let message = oc_client
             .send_text_message(text)
             .execute_then_return_message(|_, _| ());
 

@@ -1,6 +1,6 @@
 use crate::{config::OpenChatConfig, state::BotState};
 use oc_bots_sdk::api::command::CommandHandlerRegistry;
-use oc_bots_sdk::oc_api::client_factory::ClientFactory;
+use oc_bots_sdk::oc_api::client::ClientFactory;
 use oc_bots_sdk_offchain::AgentRuntime;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;

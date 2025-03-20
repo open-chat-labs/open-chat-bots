@@ -3,7 +3,7 @@ use crate::state::BotState;
 use async_trait::async_trait;
 use oc_bots_sdk::api::command::{CommandHandler, EphemeralMessageBuilder, SuccessResult};
 use oc_bots_sdk::api::definition::*;
-use oc_bots_sdk::oc_api::client_factory::ClientFactory;
+use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::{BotCommandContext, MessageContentInitial};
 use oc_bots_sdk_offchain::AgentRuntime;
 use std::sync::{Arc, LazyLock};
@@ -25,7 +25,7 @@ impl CommandHandler<AgentRuntime> for Status {
     async fn execute(
         &self,
         ctx: BotCommandContext,
-        _oc_client_factory: &ClientFactory<AgentRuntime>,
+        _oc_client: Client<AgentRuntime>,
     ) -> Result<SuccessResult, String> {
         info!("OpenChat :: executing status command.");
 

@@ -14,6 +14,22 @@ mod create_channel;
 mod delete_channel;
 mod send_message;
 
+pub struct ClientFactory<R> {
+    runtime: Arc<R>,
+}
+
+impl<R: Runtime> ClientFactory<R> {
+    pub fn new(runtime: R) -> Self {
+        Self {
+            runtime: Arc::new(runtime),
+        }
+    }
+
+    pub fn build(&self, context: impl Into<ActionContext>) -> Client<R> {
+        Client::new(self.runtime.clone(), context.into())
+    }
+}
+
 pub struct Client<R> {
     runtime: Arc<R>,
     context: ActionContext,

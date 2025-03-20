@@ -4,7 +4,7 @@ use oc_bots_sdk::api::command::{CommandHandler, EphemeralMessageBuilder, Success
 use oc_bots_sdk::api::definition::{
     BotCommandDefinition, BotCommandParam, BotCommandParamType, IntegerParam,
 };
-use oc_bots_sdk::oc_api::client_factory::ClientFactory;
+use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::{
     BotCommandContext, BotCommandScope, BotPermissions, ChatRole, MessageContentInitial,
 };
@@ -24,7 +24,7 @@ impl CommandHandler<CanisterRuntime> for Delete {
     async fn execute(
         &self,
         cxt: BotCommandContext,
-        _oc_client_factory: &ClientFactory<CanisterRuntime>,
+        _oc_client: Client<CanisterRuntime>,
     ) -> Result<SuccessResult, String> {
         let text = match state::mutate(|state| {
             // Extract the chat

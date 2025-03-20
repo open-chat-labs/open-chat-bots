@@ -9,7 +9,7 @@ use crate::utils::base64;
 
 use super::{ActionScope, BotCommandScope};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct BotCommandContext {
     pub token: AuthToken,
     pub bot_id: UserId,

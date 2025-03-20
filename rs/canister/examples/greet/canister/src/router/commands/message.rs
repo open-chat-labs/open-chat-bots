@@ -3,7 +3,7 @@ use oc_bots_sdk::api::command::{CommandHandler, EphemeralMessageBuilder, Success
 use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::actions::chat_events::{self, EventsSelectionCriteria, EventsWindowArgs};
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
-use oc_bots_sdk::oc_api::client_factory::ClientFactory;
+use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::{BotCommandContext, MessageContentInitial};
 use oc_bots_sdk_canister::CanisterRuntime;
 use std::sync::LazyLock;
@@ -21,7 +21,7 @@ impl CommandHandler<CanisterRuntime> for Message {
     async fn execute(
         &self,
         cxt: BotCommandContext,
-        oc_client_factory: &ClientFactory<CanisterRuntime>,
+        oc_client: Client<CanisterRuntime>,
     ) -> Result<SuccessResult, String> {
         let index: u32 = cxt.command.arg("index");
 
@@ -35,11 +35,7 @@ impl CommandHandler<CanisterRuntime> for Message {
         let message_id = cxt.scope.message_id();
 
         // Send the message to OpenChat but don't wait for the response
-        let response = oc_client_factory
-            .build(cxt)
-            .chat_events(events)
-            .execute_async()
-            .await;
+        let response = oc_client.chat_events(events).execute_async().await;
 
         let text = match response {
             Ok(chat_events::Response::Success(result)) => {

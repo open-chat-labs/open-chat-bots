@@ -5,7 +5,7 @@ use oc_bots_sdk::api::command::{CommandHandler, EphemeralMessageBuilder, Success
 use oc_bots_sdk::api::definition::{
     BotCommandDefinition, BotCommandParam, BotCommandParamType, DateTimeParam, StringParam,
 };
-use oc_bots_sdk::oc_api::client_factory::ClientFactory;
+use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::{
     BotCommandContext, BotCommandScope, BotPermissions, ChatRole, MessageContentInitial,
 };
@@ -25,7 +25,7 @@ impl CommandHandler<CanisterRuntime> for RemindAt {
     async fn execute(
         &self,
         cxt: BotCommandContext,
-        _oc_client_factory: &ClientFactory<CanisterRuntime>,
+        _oc_client: Client<CanisterRuntime>,
     ) -> Result<SuccessResult, String> {
         let what = cxt.command.arg("what");
         let when = cxt.command.arg("when");

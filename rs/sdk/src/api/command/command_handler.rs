@@ -2,7 +2,8 @@ use crate::api::command::*;
 use crate::api::definition::{
     BotCommandDefinition, BotCommandParam, BotCommandParamType, StringParam,
 };
-use crate::oc_api::client_factory::ClientFactory;
+use crate::oc_api::client::{Client, ClientFactory};
+use crate::oc_api::Runtime;
 use crate::types::{BotCommandContext, TimestampMillis, TokenError};
 use async_trait::async_trait;
 use std::sync::LazyLock;
@@ -17,7 +18,7 @@ pub struct CommandHandlerRegistry<R> {
 
 static SET_API_KEY_PARAMS: LazyLock<Vec<BotCommandParam>> = LazyLock::new(set_api_key_params);
 
-impl<R> CommandHandlerRegistry<R> {
+impl<R: Runtime> CommandHandlerRegistry<R> {
     pub fn new(oc_client_factory: Arc<ClientFactory<R>>) -> CommandHandlerRegistry<R> {
         Self {
             commands: HashMap::new(),
@@ -94,7 +95,7 @@ impl<R> CommandHandlerRegistry<R> {
         }
 
         let result = command_handler
-            .execute(context, &self.oc_client_factory)
+            .execute(context.clone(), self.oc_client_factory.build(context))
             .await;
 
         match result {
@@ -111,7 +112,7 @@ pub trait CommandHandler<R>: Send + Sync {
     async fn execute(
         &self,
         context: BotCommandContext,
-        oc_client_factory: &ClientFactory<R>,
+        oc_client: Client<R>,
     ) -> Result<SuccessResult, String>;
 
     fn name(&self) -> &str {

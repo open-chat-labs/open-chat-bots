@@ -2,7 +2,7 @@ use crate::llm_canister_agent::LlmCanisterAgent;
 use async_trait::async_trait;
 use oc_bots_sdk::api::command::{CommandHandler, SuccessResult};
 use oc_bots_sdk::api::definition::*;
-use oc_bots_sdk::oc_api::client_factory::ClientFactory;
+use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::BotCommandContext;
 use oc_bots_sdk_offchain::AgentRuntime;
 use std::sync::LazyLock;
@@ -22,15 +22,14 @@ impl CommandHandler<AgentRuntime> for Prompt {
     async fn execute(
         &self,
         cxt: BotCommandContext,
-        oc_client_factory: &ClientFactory<AgentRuntime>,
+        oc_client: Client<AgentRuntime>,
     ) -> Result<SuccessResult, String> {
         let message = cxt.command.arg("message");
 
         let llm_response = self.llm_canister_agent.prompt(message).await?;
 
         // Send the message to OpenChat but don't wait for the response
-        let message = oc_client_factory
-            .build(cxt)
+        let message = oc_client
             .send_text_message(llm_response)
             .execute_then_return_message(|_, _| ());
 

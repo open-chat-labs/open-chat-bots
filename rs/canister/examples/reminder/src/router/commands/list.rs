@@ -1,14 +1,13 @@
+use crate::state;
 use async_trait::async_trait;
 use oc_bots_sdk::api::command::{CommandHandler, EphemeralMessageBuilder, SuccessResult};
 use oc_bots_sdk::api::definition::BotCommandDefinition;
-use oc_bots_sdk::oc_api::client_factory::ClientFactory;
+use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::{
     BotCommandContext, BotCommandScope, BotPermissions, ChatRole, MessageContentInitial,
 };
 use oc_bots_sdk_canister::CanisterRuntime;
 use std::sync::LazyLock;
-
-use crate::state;
 
 static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(List::definition);
 
@@ -23,7 +22,7 @@ impl CommandHandler<CanisterRuntime> for List {
     async fn execute(
         &self,
         cxt: BotCommandContext,
-        _oc_client_factory: &ClientFactory<CanisterRuntime>,
+        _oc_client: Client<CanisterRuntime>,
     ) -> Result<SuccessResult, String> {
         let list = state::read(|state| {
             // Extract the chat
