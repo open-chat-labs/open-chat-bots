@@ -2,21 +2,21 @@ use super::Client;
 use crate::oc_api::actions::delete_channel::*;
 use crate::oc_api::actions::ActionArgsBuilder;
 use crate::oc_api::Runtime;
-use crate::types::{CanisterId, ChannelId};
+use crate::types::{ActionContext, CanisterId, ChannelId};
 use std::sync::Arc;
 
-pub struct DeleteChannelBuilder<R> {
-    client: Client<R>,
+pub struct DeleteChannelBuilder<'c, R, C> {
+    client: &'c Client<R, C>,
     channel_id: ChannelId,
 }
 
-impl<R: Runtime> DeleteChannelBuilder<R> {
-    pub fn new(client: Client<R>, channel_id: ChannelId) -> Self {
+impl<'c, R: Runtime, C: ActionContext> DeleteChannelBuilder<'c, R, C> {
+    pub fn new(client: &'c Client<R, C>, channel_id: ChannelId) -> Self {
         DeleteChannelBuilder { client, channel_id }
     }
 }
 
-impl<R: Runtime> ActionArgsBuilder<R> for DeleteChannelBuilder<R> {
+impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for DeleteChannelBuilder<'_, R, C> {
     type Action = DeleteChannelAction;
 
     fn runtime(&self) -> Arc<R> {
@@ -24,12 +24,12 @@ impl<R: Runtime> ActionArgsBuilder<R> for DeleteChannelBuilder<R> {
     }
 
     fn bot_api_gateway(&self) -> CanisterId {
-        self.client.context.api_gateway()
+        self.client.context.bot_api_gateway()
     }
 
     fn into_args(self) -> Args {
         Args {
-            auth_token: self.client.context.into_token(),
+            auth_token: self.client.context.auth_token().clone(),
             channel_id: self.channel_id,
         }
     }
