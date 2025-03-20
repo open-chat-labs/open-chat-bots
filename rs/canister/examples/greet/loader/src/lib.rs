@@ -52,6 +52,12 @@ pub async fn run(config: Config) -> Result<(), Box<dyn Error + Send + Sync>> {
         }
     }
 
+    // Send any remaining jokes
+    if !jokes.is_empty() {
+        let args = insert_jokes::Args { jokes };
+        make_update_call(&agent, &config.greet_bot_canister_id, "insert_jokes", &args).await?;
+    }
+
     Ok(())
 }
 
