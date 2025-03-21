@@ -17,7 +17,7 @@ OC_PUBLIC_KEY=$(curl -s http://localhost:5001/public-key) || exit 1
 PRINCIPAL=$(./utils/get_bot_identity.sh $IDENTITY) || exit 1
 
 # CD into the DiceBot directory
-cd ./offchain/examples/dice || exit 1
+cd ../offchain/examples/dice || exit 1
 
 # Extract the PEM file for the bot identity
 $(dfx identity export $IDENTITY > bot.pem) || exit 1
