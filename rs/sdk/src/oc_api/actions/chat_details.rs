@@ -15,6 +15,9 @@ impl ActionDef for ChatDetailsAction {
     type Response = Response;
 
     fn method_name(is_canister_runtime: bool) -> &'static str {
+        // `bot_chat_details` is a composite query which means it can't (currently) be called in
+        // replicated mode, so canisters must call `bot_chat_details_c2c` instead which is an update
+        // call.
         if is_canister_runtime {
             "bot_chat_details_c2c"
         } else {
