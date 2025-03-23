@@ -19,11 +19,21 @@ impl LlmCanisterAgent {
     }
 
     pub async fn prompt(&self, message: String) -> Result<String, String> {
+        // 日本語の指示文を追加
+        let modified_message = format!(
+            r#"
+あなたは日本に関する情報を提供する専門家です。日本の文化、観光、料理、言語などについて詳しく答えてください。常に日本語で回答してください。
+
+USER: {}
+ASSISTANT:"#,
+            message
+        );
+
         let args = ChatRequest {
             model: LLAMA_3_1_MODEL,
             messages: vec![ChatMessage {
                 role: Role::User,
-                content: message,
+                content: modified_message, // 修正したメッセージを使用
             }],
         };
 
