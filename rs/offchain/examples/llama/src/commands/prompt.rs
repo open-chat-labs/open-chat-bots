@@ -60,7 +60,7 @@ impl Prompt {
             }],
             permissions: BotPermissions::from_message_permission(MessagePermission::Text),
             default_role: None,
-            direct_messages: true,
+            direct_messages: Some(true),
         }
     }
 }

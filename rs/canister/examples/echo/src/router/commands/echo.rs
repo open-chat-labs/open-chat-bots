@@ -58,7 +58,7 @@ impl Echo {
             }],
             permissions: BotPermissions::text_only(),
             default_role: None,
-            direct_messages: true,
+            direct_messages: Some(true),
         }
     }
 }

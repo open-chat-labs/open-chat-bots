@@ -20,7 +20,7 @@ pub struct BotCommandDefinition {
     pub params: Vec<BotCommandParam>,
     pub permissions: BotPermissions,
     pub default_role: Option<ChatRole>,
-    pub direct_messages: bool,
+    pub direct_messages: Option<bool>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
