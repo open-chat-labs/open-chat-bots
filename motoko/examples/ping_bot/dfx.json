@@ -1,0 +1,25 @@
+{
+  "canisters": {
+    "ping_bot": {
+      "main": "src/main.mo",
+      "type": "motoko"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": "mops sources"
+    }
+  },
+  "output_env_file": ".env",
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8080",
+      "type": "ephemeral",
+      "replica": {
+        "subnet_type": "system"
+      }
+    }
+  },
+  "version": 1
+}
