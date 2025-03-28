@@ -28,7 +28,6 @@ export default function schema(_: Request, res: Response) {
       {
         name: "subscribe",
         default_role: "Owner",
-        direct_messages: false,
         description: "Start pinging this context",
         permissions: Permissions.encodePermissions({
           ...emptyPermissions,
@@ -39,7 +38,6 @@ export default function schema(_: Request, res: Response) {
       {
         name: "unsubscribe",
         default_role: "Owner",
-        direct_messages: false,
         description: "Stop pinging this context",
         permissions: Permissions.encodePermissions({
           ...emptyPermissions,
@@ -50,7 +48,6 @@ export default function schema(_: Request, res: Response) {
       {
         name: "numbers",
         default_role: "Participant",
-        direct_messages: false,
         description: "Handle different types of numbers",
         permissions: Permissions.encodePermissions({
           ...emptyPermissions,
@@ -114,7 +111,6 @@ export default function schema(_: Request, res: Response) {
       {
         name: "imagine",
         default_role: "Participant",
-        direct_messages: false,
         description: "Generate an image with AI",
         permissions: Permissions.encodePermissions({
           ...emptyPermissions,
@@ -141,7 +137,6 @@ export default function schema(_: Request, res: Response) {
       {
         name: "poll",
         default_role: "Participant",
-        direct_messages: false,
         description: "Send a random poll",
         permissions: Permissions.encodePermissions({
           ...emptyPermissions,
@@ -152,7 +147,6 @@ export default function schema(_: Request, res: Response) {
       {
         name: "news",
         default_role: "Participant",
-        direct_messages: false,
         description: "Show a list of the current news headlines",
         placeholder: "Searching for the headlines ...",
         permissions: Permissions.encodePermissions({
@@ -164,7 +158,6 @@ export default function schema(_: Request, res: Response) {
       {
         name: "image",
         default_role: "Participant",
-        direct_messages: false,
         description: "Post an image message",
         permissions: Permissions.encodePermissions({
           ...emptyPermissions,
@@ -175,7 +168,6 @@ export default function schema(_: Request, res: Response) {
       {
         name: "file",
         default_role: "Participant",
-        direct_messages: false,
         description: "Post a file message",
         permissions: Permissions.encodePermissions({
           ...emptyPermissions,
@@ -186,7 +178,6 @@ export default function schema(_: Request, res: Response) {
       {
         name: "artist",
         default_role: "Participant",
-        direct_messages: false,
         description: "Search for an artist on Spotify",
         permissions: Permissions.encodePermissions({
           ...emptyPermissions,
@@ -212,7 +203,6 @@ export default function schema(_: Request, res: Response) {
       {
         name: "song",
         default_role: "Participant",
-        direct_messages: false,
         description: "Search for a song on Spotify",
         placeholder: "Searching Spotify for your song ...",
         permissions: Permissions.encodePermissions({
@@ -239,7 +229,6 @@ export default function schema(_: Request, res: Response) {
       {
         name: "chat_details",
         default_role: "Participant",
-        direct_messages: false,
         description: "Return the details of the current chat",
         permissions: Permissions.encodePermissions({
           ...emptyPermissions,
@@ -251,7 +240,6 @@ export default function schema(_: Request, res: Response) {
       {
         name: "chat_events",
         default_role: "Participant",
-        direct_messages: false,
         description: "Return the most recent messages for this chat",
         permissions: Permissions.encodePermissions({
           ...emptyPermissions,
@@ -263,7 +251,6 @@ export default function schema(_: Request, res: Response) {
       {
         name: "album",
         default_role: "Participant",
-        direct_messages: false,
         description: "Search for an album on Spotify",
         permissions: Permissions.encodePermissions({
           ...emptyPermissions,

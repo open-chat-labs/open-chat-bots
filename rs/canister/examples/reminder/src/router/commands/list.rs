@@ -61,7 +61,7 @@ impl List {
             params: vec![],
             permissions: BotPermissions::default(),
             default_role: Some(ChatRole::Admin),
-            direct_messages: false,
+            direct_messages: None,
         }
     }
 }
