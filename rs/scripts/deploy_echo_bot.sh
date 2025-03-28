@@ -15,7 +15,12 @@ cd $SCRIPT_DIR
 MODE=${1:-install} # MODE is either install, reinstall or upgrade
 
 # Read the OpenChat public key from the website
-OC_PUBLIC_KEY=$(curl -s http://localhost:5001/public-key) || exit 1
+OC_PUBLIC_KEY=$(curl -s http://localhost:5001/public-key)
+
+if [ $? -ne 0 ]; then
+    echo "OpenChat is not running on http://localhost:5001."
+    exit 1
+fi
 
 # Build the echo_bot install args
 ARGS="(record { oc_public_key = \"$OC_PUBLIC_KEY\" } )"
