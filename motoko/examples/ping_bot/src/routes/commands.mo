@@ -1,6 +1,5 @@
 import Int32 "mo:base/Int32";
 import Error "mo:base/Error";
-import Debug "mo:base/Debug";
 import Text "mo:base/Text";
 import Json "mo:json";
 import Env "../sdk/env";
@@ -81,11 +80,9 @@ module {
         };
     };
 
-    public func execute(request : Http.Request, opt_state : ?Router.State) : async Http.Response {
-        let ?state = opt_state else {
-            Debug.trap("State not found");
-        };
+    //public func buildHandler() : 
 
+    public func execute(request : Http.Request, state : Router.State) : async Http.Response {
         let (statusCode, response) : (Nat16, Json.Json) = try {
             let commandResponse = await execute_inner(request, state.ocPublicKey, Env.now());
             switch (commandResponse) {

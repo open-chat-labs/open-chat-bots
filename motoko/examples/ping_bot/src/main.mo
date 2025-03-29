@@ -2,23 +2,20 @@ import HttpTypes "mo:http-types";
 import Text "mo:base/Text";
 import Http "sdk/http";
 import DER "sdk/der";
-import Definition "definition";
-import Command "routes/command";
+import Definition "routes/definition";
+import Commands "routes/commands";
 import Hello "routes/hello";
-import Router "routes/state";
 
 actor class PingBot(key: Text) {
     stable var ocPublicKey = DER.parsePublicKeyOrTrap(key);
 
-    let state : Router.State = {
+    let state = {
         ocPublicKey = ocPublicKey;
     };
 
-    let definition = Definition.build();
-
-    let router = Http.Router(?state)
+    let router = Http.Router(state)
         .get("/hello", Hello.handler)
-        .get("/*", func (_) { definition; })
+        .get("/*", Definition.build())
         .post("/execute_command", Command.execute);
 
     public query func http_request(request : HttpTypes.Request) : async HttpTypes.Response {

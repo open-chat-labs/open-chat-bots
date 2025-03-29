@@ -18,8 +18,7 @@ module {
         body: Blob;
     };
     
-    public class Router<S>(opt_state: ?S) = this {
-        let state : ?S = opt_state;
+    public class Router<S>(state: S) = this {
         var queryRoutes : [QueryRoute<S>] = [];
         var updateRoutes : [UpdateRoute<S>] = [];
 
@@ -132,8 +131,8 @@ module {
         };        
     };
 
-    public type UpdateHandler<S> = (Request, ?S) -> async Response;
-    public type QueryHandler<S> = (Request, ?S) -> Response;
+    public type UpdateHandler<S> = (Request, S) -> async Response;
+    public type QueryHandler<S> = (Request, S) -> Response;
 
     type Route = {
         pathExpr : Text;

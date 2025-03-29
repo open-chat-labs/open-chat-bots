@@ -1,9 +1,10 @@
-import Definition "sdk/definition";
-import Http "sdk/http";
-import HttpResponse "sdk/http/response";
+import Definition "../sdk/definition";
+import Http "../sdk/http";
+import HttpResponse "../sdk/http/response";
+import Router "state";
 
 module {
-    public func build() : Http.Response {
+    public func build() : Http.QueryHandler<Router.State> {
         let definition = {
             description = "Provides a ping command and an echo command";
             commands = [{
@@ -52,9 +53,13 @@ module {
             };    
         };
 
-        HttpResponse.Builder()
+        let response = HttpResponse.Builder()
             .withAllowHeaders()
             .with_json(Definition.serialize(definition))
             .build();
+
+        func (_ : Http.Request, _ : Router.State) : Http.Response {
+            response;
+        };
     };
 }
