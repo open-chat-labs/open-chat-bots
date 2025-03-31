@@ -9,12 +9,12 @@ module {
     public type BotDefinition = {
         description : Text;
         commands : [BotCommandDefinition];
-        autonomousConfig : ?AutonomousConfig;
+        autonomous_config : ?AutonomousConfig;
     };
 
     public type AutonomousConfig = {
         permissions : ?BotPermissions;
-        syncApiKey : Bool;
+        sync_api_key : Bool;
     };
 
     public type BotCommandDefinition = {
@@ -23,8 +23,8 @@ module {
         placeholder : ?Text;
         params : [BotCommandParam];
         permissions : BotPermissions;
-        defaultRole: ?ChatRole;
-        directMessages: ?Bool;
+        default_role: ?ChatRole;
+        direct_messages: ?Bool;
     };
 
     public type BotCommandParam = {
@@ -32,39 +32,39 @@ module {
         description : Text;
         placeholder : ?Text;
         required : Bool;
-        paramType : BotCommandParamType;
+        param_type : BotCommandParamType;
     };
 
     public type BotCommandParamType = {
-        #userParam;
-        #booleanParam;
-        #stringParam : StringParam;
-        #integerParam : IntegerParam;
-        #decimalParam : DecimalParam;
-        #dateTimeParam : DateTimeParam;
+        #UserParam;
+        #BooleanParam;
+        #StringParam : StringParam;
+        #IntegerParam : IntegerParam;
+        #DecimalParam : DecimalParam;
+        #DateTimeParam : DateTimeParam;
     };
 
     public type StringParam = {
-        minLength : Nat;
-        maxLength : Nat;
+        min_length : Nat;
+        max_length : Nat;
         choices : [BotCommandOptionChoice<Text>];
-        multiLine : Bool;
+        multi_line : Bool;
     };
 
     public type IntegerParam = {
-        minValue : Int;
-        maxValue : Int;
+        min_value : Int;
+        max_value : Int;
         choices : [BotCommandOptionChoice<Int>];
     };
 
     public type DecimalParam = {
-        minValue : Float;
-        maxValue : Float;
+        min_value : Float;
+        max_value : Float;
         choices : [BotCommandOptionChoice<Float>];
     };
 
     public type DateTimeParam = {
-        futureOnly : Bool;
+        future_only : Bool;
     };
 
     public type BotCommandOptionChoice<T> = {
@@ -73,15 +73,15 @@ module {
     };
 
     public type AuthToken = {
-        #jwt : Text;
-        #apiKey : Text;
+        #Jwt : Text;
+        #ApiKey : Text;
     };
 
     public type ChatRole = {
-        #owner;
-        #admin;
-        #moderator;
-        #participant;
+        #Owner;
+        #Admin;
+        #Moderator;
+        #Participant;
     };
 
     public func serialize(definition : BotDefinition) : Json.Json {
@@ -89,7 +89,7 @@ module {
             ("description", #string(definition.description)),
             ("commands", Serialize.arrayOfValues(definition.commands, serializeBotCommand)),
         ];
-        switch (definition.autonomousConfig) {
+        switch (definition.autonomous_config) {
             case (null) ();
             case (?config) fields := Array.append(fields, [("autonomous_config", serializeAutonomousConfig(config))]);
         };
@@ -99,7 +99,7 @@ module {
 
     private func serializeAutonomousConfig(config : AutonomousConfig) : Json.Json {
         var fields : [(Text, Json.Json)] = [
-            ("sync_api_key", #bool(config.syncApiKey)),
+            ("sync_api_key", #bool(config.sync_api_key)),
         ];
         switch (config.permissions) {
             case (null) ();
@@ -120,11 +120,11 @@ module {
             case (null) ();
             case (?placeholder) fields := Array.append(fields, [("placeholder", #string(placeholder))]);
         };
-        switch (command.defaultRole) {
+        switch (command.default_role) {
             case (null) ();
             case (?default_role) fields := Array.append(fields, [("default_role", serializeChatRole(default_role))]);
         };
-        switch (command.directMessages) {
+        switch (command.direct_messages) {
             case (null) ();
             case (?direct_messages) fields := Array.append(fields, [("direct_messages", #bool(direct_messages))]);
         };
@@ -134,10 +134,10 @@ module {
 
     private func serializeChatRole(chat_role : ChatRole) : Json.Json {
         switch (chat_role) {
-            case (#owner) #string("Owner");
-            case (#admin) #string("Admin");
-            case (#moderator) #string("Moderator");
-            case (#participant) #string("Participant");
+            case (#Owner) #string("Owner");
+            case (#Admin) #string("Admin");
+            case (#Moderator) #string("Moderator");
+            case (#Participant) #string("Participant");
         };
     };
 
@@ -146,7 +146,7 @@ module {
             ("name", #string(param.name)),
             ("description", #string(param.description)),
             ("required", #bool(param.required)),
-            ("param_type", serializeParamType(param.paramType)),
+            ("param_type", serializeParamType(param.param_type)),
         ];
         switch (param.placeholder) {
             case (null) ();
@@ -158,30 +158,30 @@ module {
 
     private func serializeParamType(paramType : BotCommandParamType) : Json.Json {
         switch (paramType) {
-            case (#userParam) #string("UserParam");
-            case (#booleanParam) #string("BooleanParam");
-            case (#stringParam(strParam)) #object_([("StringParam", serializeStringParam(strParam))]);
-            case (#integerParam(numParam)) #object_([("IntegerParam", serializeIntegerParam(numParam))]);
-            case (#decimalParam(decParam)) #object_([("DecimalParam", serializeDecimalParam(decParam))]);
-            case (#dateTimeParam(dateTimeParam)) #object_([("DateTimeParam", serializeDateTimeParam(dateTimeParam))]);
+            case (#UserParam) #string("UserParam");
+            case (#BooleanParam) #string("BooleanParam");
+            case (#StringParam(strParam)) #object_([("StringParam", serializeStringParam(strParam))]);
+            case (#IntegerParam(numParam)) #object_([("IntegerParam", serializeIntegerParam(numParam))]);
+            case (#DecimalParam(decParam)) #object_([("DecimalParam", serializeDecimalParam(decParam))]);
+            case (#DateTimeParam(dateTimeParam)) #object_([("DateTimeParam", serializeDateTimeParam(dateTimeParam))]);
         };
     };
 
     private func serializeStringParam(param : StringParam) : Json.Json {
         let choiceSerializer = func(choice : BotCommandOptionChoice<Text>) : Json.Json = serializeChoice<Text>(choice.name, #string(choice.value));
         #object_([
-            ("min_length", #number(#int(param.minLength))),
-            ("max_length", #number(#int(param.maxLength))),
+            ("min_length", #number(#int(param.min_length))),
+            ("max_length", #number(#int(param.max_length))),
             ("choices", Serialize.arrayOfValues(param.choices, choiceSerializer)),
-            ("multi_line", #bool(param.multiLine)),
+            ("multi_line", #bool(param.multi_line)),
         ]);
     };
 
     private func serializeIntegerParam(param : IntegerParam) : Json.Json {
         let choiceSerializer = func(choice : BotCommandOptionChoice<Int>) : Json.Json = serializeChoice<Int>(choice.name, #number(#int(choice.value)));
         #object_([
-            ("min_value", #number(#int(param.minValue))),
-            ("max_value", #number(#int(param.maxValue))),
+            ("min_value", #number(#int(param.min_value))),
+            ("max_value", #number(#int(param.max_value))),
             ("choices", Serialize.arrayOfValues(param.choices, choiceSerializer)),
         ]);
     };
@@ -189,15 +189,15 @@ module {
     private func serializeDecimalParam(param : DecimalParam) : Json.Json {
         let choiceSerializer = func(choice : BotCommandOptionChoice<Float>) : Json.Json = serializeChoice<Float>(choice.name, #number(#float(choice.value)));
         #object_([
-            ("min_value", #number(#float(param.minValue))),
-            ("max_value", #number(#float(param.maxValue))),
+            ("min_value", #number(#float(param.min_value))),
+            ("max_value", #number(#float(param.max_value))),
             ("choices", Serialize.arrayOfValues(param.choices, choiceSerializer)),
         ]);
     };
 
     private func serializeDateTimeParam(param : DateTimeParam) : Json.Json {
         #object_([
-            ("future_only", #bool(param.futureOnly)),
+            ("future_only", #bool(param.future_only)),
         ]);
     };
 

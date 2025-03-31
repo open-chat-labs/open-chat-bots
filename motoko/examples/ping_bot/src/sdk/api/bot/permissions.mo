@@ -10,40 +10,40 @@ module {
     };
 
     public type CommunityPermission = {
-        #changeRoles;
-        #updateDetails;
-        #inviteUsers;
-        #removeMembers;
-        #createPublicChannel;
-        #createPrivateChannel;
-        #manageUserGroups;
+        #ChangeRoles;
+        #UpdateDetails;
+        #InviteUsers;
+        #RemoveMembers;
+        #CreatePublicChannel;
+        #CreatePrivateChannel;
+        #ManageUserGroups;
     };
 
     public type GroupPermission = {
-        #changeRoles;
-        #updateGroup;
-        #addMembers;
-        #inviteUsers;
-        #removeMembers;
-        #deleteMessages;
-        #pinMessages;
-        #reactToMessages;
-        #mentionAllMembers;
-        #startVideoCall;
+        #ChangeRoles;
+        #UpdateGroup;
+        #AddMembers;
+        #InviteUsers;
+        #RemoveMembers;
+        #DeleteMessages;
+        #PinMessages;
+        #ReactToMessages;
+        #MentionAllMembers;
+        #StartVideoCall;
     };
 
     public type MessagePermission = {
-        #text;
-        #image;
-        #video;
-        #audio;
-        #file;
-        #poll;
-        #crypto;
-        #giphy;
-        #prize;
-        #p2pSwap;
-        #videoCall;
+        #Text;
+        #Image;
+        #Video;
+        #Audio;
+        #File;
+        #Poll;
+        #Crypto;
+        #Giphy;
+        #Prize;
+        #P2pSwap;
+        #VideoCall;
     };
 
     public func serializeBotPermissions(permissions : BotPermissions) : Json.Json {
@@ -85,44 +85,44 @@ module {
 
     private func encodeCommunityPermission(permission : CommunityPermission) : Nat {
         switch (permission) {
-            case (#changeRoles) 0;
-            case (#updateDetails) 1;
-            case (#inviteUsers) 2;
-            case (#removeMembers) 3;
-            case (#createPublicChannel) 4;
-            case (#createPrivateChannel) 5;
-            case (#manageUserGroups) 6;
+            case (#ChangeRoles) 0;
+            case (#UpdateDetails) 1;
+            case (#InviteUsers) 2;
+            case (#RemoveMembers) 3;
+            case (#CreatePublicChannel) 4;
+            case (#CreatePrivateChannel) 5;
+            case (#ManageUserGroups) 6;
         };
     };
 
     private func encodeGroupPermission(permission : GroupPermission) : Nat {
         switch (permission) {
-            case (#changeRoles) 0;
-            case (#updateGroup) 1;
-            case (#addMembers) 2;
-            case (#inviteUsers) 3;
-            case (#removeMembers) 4;
-            case (#deleteMessages) 5;
-            case (#pinMessages) 6;
-            case (#reactToMessages) 7;
-            case (#mentionAllMembers) 8;
-            case (#startVideoCall) 9;
+            case (#ChangeRoles) 0;
+            case (#UpdateGroup) 1;
+            case (#AddMembers) 2;
+            case (#InviteUsers) 3;
+            case (#RemoveMembers) 4;
+            case (#DeleteMessages) 5;
+            case (#PinMessages) 6;
+            case (#ReactToMessages) 7;
+            case (#MentionAllMembers) 8;
+            case (#StartVideoCall) 9;
         };
     };
 
     private func encodeMessagePermission(permission : MessagePermission) : Nat {
         switch (permission) {
-            case (#text) 0;
-            case (#image) 1;
-            case (#video) 2;
-            case (#audio) 3;
-            case (#file) 4;
-            case (#poll) 5;
-            case (#crypto) 6;
-            case (#giphy) 7;
-            case (#prize) 8;
-            case (#p2pSwap) 9;
-            case (#videoCall) 10;
+            case (#Text) 0;
+            case (#Image) 1;
+            case (#Video) 2;
+            case (#Audio) 3;
+            case (#File) 4;
+            case (#Poll) 5;
+            case (#Crypto) 6;
+            case (#Giphy) 7;
+            case (#Prize) 8;
+            case (#P2pSwap) 9;
+            case (#VideoCall) 10;
         };
     };
 }

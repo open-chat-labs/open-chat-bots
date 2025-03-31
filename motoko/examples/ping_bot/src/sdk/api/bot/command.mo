@@ -30,29 +30,29 @@ module {
     };
 
     public type Response = {
-        #success : SuccessResult;
-        #badRequest : BadRequestResult;
-        #internalError : InternalErrorResult;
+        #Success : SuccessResult;
+        #BadRequest : BadRequestResult;
+        #InternalError : InternalErrorResult;
     };
 
     public type BadRequestResult = {
-        #accessTokenNotFound;
-        #accessTokenInvalid : Text;
-        #accessTokenExpired;
-        #commandNotFound;
-        #argsInvalid;
+        #AccessTokenNotFound;
+        #AccessTokenInvalid : Text;
+        #AccessTokenExpired;
+        #CommandNotFound;
+        #ArgsInvalid;
     };
 
     public type InternalErrorResult = {
-        #invalid : Text;
-        #canisterError : CanisterError;
-        #c2cError : C2CError;
+        #Invalid : Text;
+        #CanisterError : CanisterError;
+        #C2CError : C2CError;
     };
 
     public type CanisterError = {
-        #notAuthorized;
-        #frozen;
-        #other : Text;
+        #NotAuthorized;
+        #Frozen;
+        #Other : Text;
     };
 
     public type C2CError = (Int32, Text);

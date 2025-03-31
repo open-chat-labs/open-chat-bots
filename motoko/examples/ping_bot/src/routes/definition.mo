@@ -4,7 +4,7 @@ import HttpResponse "../sdk/http/response";
 
 module {
     public func handler() : Http.QueryHandler {
-        let definition = {
+        let definition : Definition.BotDefinition = {
             description = "Provides a ping command and an echo command";
             commands = [{
                 name = "ping";
@@ -14,10 +14,10 @@ module {
                 permissions = {
                     community = [];
                     chat = [];
-                    message =[#text];
+                    message =[#Text];
                 };
-                defaultRole = ?#admin;
-                directMessages = null;
+                default_role = ?#Admin;
+                direct_messages = null;
             }, {
                 name = "echo";
                 description = "Echos the given text";
@@ -27,28 +27,28 @@ module {
                     description = "The text to echo";
                     placeholder = null;
                     required = true;
-                    paramType = #stringParam {
-                        maxLength = 1000;
-                        minLength = 1;
-                        multiLine = true;
+                    param_type = #StringParam {
+                        max_length = 1000;
+                        min_length = 1;
+                        multi_line = true;
                         choices = [];
                     };
                 }];
                 permissions = {
                     community = [];
                     chat = [];
-                    message =[#text, #giphy];
+                    message =[#Text, #Giphy];
                 };
-                defaultRole = null;
-                directMessages = ?true;
+                default_role = null;
+                direct_messages = ?true;
             }];
-            autonomousConfig = ?{
+            autonomous_config = ?{
                 permissions = ?{
                     community = [];
                     chat = [];
-                    message = [#text];
+                    message = [#Text];
                 };
-                syncApiKey = true;
+                sync_api_key = true;
             };    
         };
 

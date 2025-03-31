@@ -21,37 +21,37 @@ module {
         let (statusCode, response) : (Nat16, Json.Json) = try {
             let commandResponse = await execute_inner(request, ocPublicKey, now);
             switch (commandResponse) {
-                case (#success(success)) (200, CommandSerializer.success(success));
-                case (#badRequest(badRequest)) (400, CommandSerializer.badRequest(badRequest));
-                case (#internalError(error)) (500, CommandSerializer.internalError(error));
+                case (#Success(success)) (200, CommandSerializer.success(success));
+                case (#BadRequest(badRequest)) (400, CommandSerializer.badRequest(badRequest));
+                case (#InternalError(error)) (500, CommandSerializer.internalError(error));
             };
         } catch (e) {
-            (500, CommandSerializer.internalError(#invalid("Internal error: " # Error.message(e))));
+            (500, CommandSerializer.internalError(#Invalid("Internal error: " # Error.message(e))));
         };
 
         HttpResponse.json(statusCode, response);
     };
 
     func execute_inner(request : Http.Request, ocPublicKey : DER.DerPublicKey, now : Time.Time) : async Command.Response {
-        let ?jwt = HttpRequest.header(request, "x-oc-jwt") else return #badRequest(#accessTokenNotFound);
+        let ?jwt = HttpRequest.header(request, "x-oc-jwt") else return #BadRequest(#AccessTokenNotFound);
 
         let result = switch (Jwt.verify(jwt, ocPublicKey, now)) {
-            case (#err(#invalidSignature)) return #badRequest(#accessTokenInvalid("JWT: Invalid signature"));
-            case (#err(#expired(_))) return #badRequest(#accessTokenExpired);
-            case (#err(#parseError(reason))) return #badRequest(#accessTokenInvalid("JWT: Parse error: " # reason));
-            case (#err(#invalidClaims)) return #badRequest(#accessTokenInvalid("JWT: Invalid claims"));
+            case (#err(#invalidSignature)) return #BadRequest(#AccessTokenInvalid("JWT: Invalid signature"));
+            case (#err(#expired(_))) return #BadRequest(#AccessTokenExpired);
+            case (#err(#parseError(reason))) return #BadRequest(#AccessTokenInvalid("JWT: Parse error: " # reason));
+            case (#err(#invalidClaims)) return #BadRequest(#AccessTokenInvalid("JWT: Invalid claims"));
             case (#ok(data)) data;
         };
 
         let message : Command.Message = {
             id = 0;
-            content = #text( { text = Json.stringify(result.data, null) |> escapeJsonString(_); });
+            content = #Text( { text = Json.stringify(result.data, null) |> escapeJsonString(_); });
             finalised = true;
             blockLevelMarkdown = false;
             ephemeral = true;
         };
 
-        #success {
+        #Success {
             message = ?message;
         };
     };

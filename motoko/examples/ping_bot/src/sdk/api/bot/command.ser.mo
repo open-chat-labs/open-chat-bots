@@ -1,8 +1,8 @@
 import J "mo:json";
 import Nat64 "mo:base/Nat64";
 import Int32 "mo:base/Int32";
-import M "../common/message_content";
 import Serialize "../common/serialization";
+import MessageContentSerializer "../common/message_content.ser";
 import Command "command";
 
 module {
@@ -16,34 +16,34 @@ module {
 
     public func badRequest(badRequest : Command.BadRequestResult) : J.Json {
         switch (badRequest) {
-            case (#accessTokenNotFound) #string("AccessTokenNotFound");
-            case (#accessTokenInvalid(reason)) Serialize.variantWithValue("AccessTokenInvalid", #string(reason));
-            case (#accessTokenExpired) #string("AccessTokenExpired");
-            case (#commandNotFound) #string("CommandNotFound");
-            case (#argsInvalid) #string("ArgsInvalid");
+            case (#AccessTokenNotFound) #string("AccessTokenNotFound");
+            case (#AccessTokenInvalid(reason)) Serialize.variantWithValue("AccessTokenInvalid", #string(reason));
+            case (#AccessTokenExpired) #string("AccessTokenExpired");
+            case (#CommandNotFound) #string("CommandNotFound");
+            case (#ArgsInvalid) #string("ArgsInvalid");
         };
     };
 
     public func internalError(error : Command.InternalErrorResult) : J.Json {
         switch (error) {
-            case (#invalid(invalid)) Serialize.variantWithValue("Invalid", #string(invalid));
-            case (#canisterError(canisterError)) Serialize.variantWithValue("CanisterError", serializeCanisterError(canisterError));
-            case (#c2cError((code, message))) Serialize.variantWithValue("C2CError", #array([#number(#int(Int32.toInt(code))), #string(message)]));
+            case (#Invalid(invalid)) Serialize.variantWithValue("Invalid", #string(invalid));
+            case (#CanisterError(canisterError)) Serialize.variantWithValue("CanisterError", serializeCanisterError(canisterError));
+            case (#C2CError((code, message))) Serialize.variantWithValue("C2CError", #array([#number(#int(Int32.toInt(code))), #string(message)]));
         };
     };
 
     func serializeCanisterError(canisterError : Command.CanisterError) : J.Json {
         switch (canisterError) {
-            case (#notAuthorized) #string("NotAuthorized");
-            case (#frozen) #string("Frozen");
-            case (#other(other)) Serialize.variantWithValue("Other", #string(other));
+            case (#NotAuthorized) #string("NotAuthorized");
+            case (#Frozen) #string("Frozen");
+            case (#Other(other)) Serialize.variantWithValue("Other", #string(other));
         };
     };
 
     func serializeMessage(message : Command.Message) : J.Json {
         #object_([
             ("id", #string(Nat64.toText(message.id))),
-            ("content", M.serializeMessageContent(message.content)),
+            ("content", MessageContentSerializer.messageContent(message.content)),
             ("finalised", #bool(message.finalised)),
         ]);
     };
