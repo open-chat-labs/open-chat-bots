@@ -1,6 +1,6 @@
 import HttpTypes "mo:http-types";
 import Text "mo:base/Text";
-import Http "sdk/http";
+import Router "sdk/http/router";
 import DER "sdk/utils/der";
 import Definition "routes/definition";
 import Commands "routes/commands";
@@ -9,7 +9,7 @@ import Hello "routes/hello";
 actor class PingBot(key: Text) {
     stable let ocPublicKey = DER.parsePublicKeyOrTrap(key);
 
-    let router = Http.Router()
+    let router = Router.Router()
         .get("/hello", Hello.handler)
         .get("/*", Definition.handler())
         .post("/execute_command", Commands.handler(ocPublicKey));

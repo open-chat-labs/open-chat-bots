@@ -1,9 +1,9 @@
 import Http "../sdk/http";
-import HttpResponse "../sdk/http/response";
+import ResponseBuilder "../sdk/http/response_builder";
 
 module {
     public func handler(_request : Http.Request) : Http.Response {
-        HttpResponse.Builder()
+        ResponseBuilder.Builder()
             .withAllowHeaders()
             .with_body("Hello, world!", "text/plain")
             .build();

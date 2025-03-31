@@ -1,23 +1,11 @@
 import Array "mo:base/Array";
-import Blob "mo:base/Blob";
 import HttpTypes "mo:http-types";
 import HttpParser "mo:http-parser";
-import Response "http/response";
+import Http "lib";
 import Text "mo:base/Text";
+import ResponseBuilder "response_builder";
 
 module {
-    public type Request = {
-        url: Text;
-        body: Blob;
-        headers: [(Text, Text)];
-    };
-
-    public type Response = {
-        status_code : Nat16;
-        headers : [(Text, Text)];
-        body: Blob;
-    };
-    
     public class Router() = this {
         var queryRoutes : [QueryRoute] = [];
         var updateRoutes : [UpdateRoute] = [];
@@ -55,7 +43,7 @@ module {
                     mapResponse(handleInnerQuery(request));
                 };
                 case (_) {
-                    Response.methodNotAllowed();
+                    ResponseBuilder.methodNotAllowed();
                 };
             };            
         };
@@ -66,12 +54,12 @@ module {
                     mapResponse(await handleInnerUpdate(request));
                 };
                 case (_) {
-                    Response.methodNotAllowed();
+                    ResponseBuilder.methodNotAllowed();
                 };
             };            
         };
 
-        func handleInnerQuery(request: HttpTypes.UpdateRequest) : Response {
+        func handleInnerQuery(request: HttpTypes.UpdateRequest) : Http.Response {
             let matchingRoute = findMatchingRoute(request, queryRoutes);
             
             switch (matchingRoute) {
@@ -79,12 +67,12 @@ module {
                     route.handler(request);
                 };
                 case _ {
-                    Response.notFound();
+                    ResponseBuilder.notFound();
                 };
             };
         };
 
-        func handleInnerUpdate(request: HttpTypes.UpdateRequest) : async Response {
+        func handleInnerUpdate(request: HttpTypes.UpdateRequest) : async Http.Response {
             let matchingRoute = findMatchingRoute(request, updateRoutes);
             
             switch (matchingRoute) {
@@ -92,7 +80,7 @@ module {
                     await route.handler(request);
                 };
                 case _ {
-                    Response.notFound();
+                    ResponseBuilder.notFound();
                 };
             };
         };
@@ -113,14 +101,14 @@ module {
         };
 
         func upgrade(): HttpTypes.Response {
-            Response.Builder()
+            ResponseBuilder.Builder()
                 .withStatus(200)
                 .withAllowHeaders()
                 .withUpgrade()
                 .build();
         };
 
-        func mapResponse(response: Response) : HttpTypes.Response {
+        func mapResponse(response: Http.Response) : HttpTypes.Response {
             {
                 status_code = response.status_code;
                 headers = response.headers;
@@ -131,8 +119,8 @@ module {
         };        
     };
 
-    public type UpdateHandler = Request -> async Response;
-    public type QueryHandler = Request -> Response;
+    public type UpdateHandler = Http.Request -> async Http.Response;
+    public type QueryHandler = Http.Request -> Http.Response;
 
     type Route = {
         pathExpr : Text;

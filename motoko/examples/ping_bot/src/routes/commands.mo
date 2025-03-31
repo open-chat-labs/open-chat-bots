@@ -3,15 +3,15 @@ import Text "mo:base/Text";
 import Time "mo:base/Time";
 import Json "mo:json";
 import Http "../sdk/http";
+import ResponseBuilder "../sdk/http/response_builder";
+import Router "../sdk/http/router";
 import DER "../sdk/utils/der";
 import Jwt "../sdk/utils/jwt";
-import HttpRequest "../sdk/http/request";
-import HttpResponse "../sdk/http/response";
 import Command "../sdk/api/bot/command";
 import CommandSerializer "../sdk/api/bot/command.ser";
 
 module {
-    public func handler(ocPublicKey : DER.DerPublicKey) : Http.UpdateHandler {
+    public func handler(ocPublicKey : DER.DerPublicKey) : Router.UpdateHandler {
         func (request: Http.Request) : async Http.Response {
             await execute(request, ocPublicKey, Time.now());
         };
@@ -29,11 +29,11 @@ module {
             (500, CommandSerializer.internalError(#Invalid("Internal error: " # Error.message(e))));
         };
 
-        HttpResponse.json(statusCode, response);
+        ResponseBuilder.json(statusCode, response);
     };
 
     func execute_inner(request : Http.Request, ocPublicKey : DER.DerPublicKey, now : Time.Time) : async Command.Response {
-        let ?jwt = HttpRequest.header(request, "x-oc-jwt") else return #BadRequest(#AccessTokenNotFound);
+        let ?jwt = Http.requestHeader(request, "x-oc-jwt") else return #BadRequest(#AccessTokenNotFound);
 
         let result = switch (Jwt.verify(jwt, ocPublicKey, now)) {
             case (#err(#invalidSignature)) return #BadRequest(#AccessTokenInvalid("JWT: Invalid signature"));

@@ -1,9 +1,10 @@
 import Definition "../sdk/api/bot/definition";
 import Http "../sdk/http";
-import HttpResponse "../sdk/http/response";
+import Router "../sdk/http/router";
+import ResponseBuilder "../sdk/http/response_builder";
 
 module {
-    public func handler() : Http.QueryHandler {
+    public func handler() : Router.QueryHandler {
         let definition : Definition.BotDefinition = {
             description = "Provides a ping command and an echo command";
             commands = [{
@@ -52,7 +53,7 @@ module {
             };    
         };
 
-        let response = HttpResponse.Builder()
+        let response = ResponseBuilder.Builder()
             .withAllowHeaders()
             .with_json(Definition.serialize(definition))
             .build();
