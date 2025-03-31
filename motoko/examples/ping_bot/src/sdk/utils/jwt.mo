@@ -1,63 +1,30 @@
-import R "mo:base/Result";
+import Result "mo:base/Result";
 import Json "mo:json";
 import Text "mo:base/Text";
 import Iter "mo:base/Iter";
 import Blob "mo:base/Blob";
 import Debug "mo:base/Debug";
 import Time "mo:base/Time";
-import DER "der";
 import ECDSA "mo:ecdsa";
 import Curve "mo:ecdsa/curve";
 import Base64 "mo:base64";
+import DER "der";
 
 module {
-    // public type BotActionByCommandClaims = {
-    //     bot_api_gateway : T.CanisterId;
-    //     bot : T.UserId;
-    //     scope : BotCommandScope;
-    //     granted_permissions : P.BotPermissions;
-    //     command : C.Command;
-    // };
-
-    // public type BotCommandScope = {
-    //     #chat : BotActionChatDetails;
-    //     #community : BotActionCommunityDetails;
-    // };
-
-    // public type BotCommandContext = {
-    //     jwt : Text;
-    //     botId : T.UserId;
-    //     apiGateway : T.CanisterId;
-    //     command : C.Command;
-    //     scope : S.BotCommandScope;
-    //     grantedPermissions : P.BotPermissions;
-    // };
-
-    // public func parseCommandToken(jwt : Text, ocPublicKey : DER.DerPublicKey, now : T.TimestampMillis) : R.Result<BotCommandContext, VerifyJwtError> {
-    //     let _json = switch (verify(jwt, ocPublicKey, now)) {
-    //         case (#err(e)) return #err(e);
-    //         case (#ok(json)) json;
-    //     };
-
-    //     // TODO: Check if the claimType is "BotActionByCommand" and if not, return an error
-
-    //     #err(#invalidClaims);
-    // };
-
-    type JwtData = {
+    public type JWT = {
         claimType : Text;
         expiry : Time.Time;
         data : Json.Json;
     };
 
-    type VerifyJwtError = {
+    public type VerifyError = {
         #parseError : Text;
         #expired : Time.Time;
         #invalidSignature;
         #invalidClaims;
     };
 
-    public func verify(jwt : Text, derPublicKey : DER.DerPublicKey, now : Time.Time) : R.Result<JwtData, VerifyJwtError> {
+    public func verify(jwt : Text, derPublicKey : DER.PublicKey, now : Time.Time) : Result.Result<JWT, VerifyError> {
         let base64Engine = Base64.Base64(#v(Base64.V2), ?true);
 
         // Split JWT into parts
@@ -90,7 +57,7 @@ module {
         // Decode and parse claims
         let claimsBytes = base64Engine.decode(claimsJson); // TODO handle error
         let ?claimsText = Text.decodeUtf8(Blob.fromArray(claimsBytes)) else return #err(#parseError("Unable to parse claims"));
-        
+
         switch (Json.parse(claimsText)) {
             case (#err(e)) return #err(#parseError("Invalid claims JSON: " # debug_show (e)));
             case (#ok(claims)) {

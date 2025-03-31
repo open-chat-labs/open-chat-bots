@@ -103,7 +103,7 @@ module {
         ];
         switch (config.permissions) {
             case (null) ();
-            case (?permissions) fields := Array.append(fields, [("permissions", Permissions.serializeBotPermissions(permissions))]);
+            case (?permissions) fields := Array.append(fields, [("permissions", Permissions.serialize(permissions))]);
         };
 
         #object_(fields);
@@ -114,7 +114,7 @@ module {
             ("name", #string(command.name)),
             ("description", #string(command.description)),
             ("params", Serialize.arrayOfValues(command.params, serializeBotCommandParam)),
-            ("permissions", Permissions.serializeBotPermissions(command.permissions)),
+            ("permissions", Permissions.serialize(command.permissions)),
         ];
         switch (command.placeholder) {
             case (null) ();

@@ -13,12 +13,12 @@ module {
         parameters : ?Text; // Optional parameters OID
     };
 
-    public type DerPublicKey = {
+    public type PublicKey = {
         key : [Nat8]; // The actual public key bytes
         algorithm : AlgorithmIdentifier;
     };
 
-    public func parsePublicKeyOrTrap(key : Text) : DerPublicKey {
+    public func parsePublicKeyOrTrap(key : Text) : PublicKey {
         let ?derPublicKey = parsePublicKey(key) else Debug.trap("Failed to parse public key");
 
         if (derPublicKey.algorithm.oid != "1.2.840.10045.2.1") {
@@ -32,7 +32,7 @@ module {
         return derPublicKey;
     };
 
-    public func parsePublicKey(key : Text) : ?DerPublicKey {
+    public func parsePublicKey(key : Text) : ?PublicKey {
 
         // First normalize line endings
         let normalizedKey = Text.replace(key, #text("\r\n"), "\n");
@@ -120,7 +120,7 @@ module {
     };
 
     /// Helper function to parse DER encoded public key
-    private func parseDERPublicKey(derText : Text) : ?DerPublicKey {
+    private func parseDERPublicKey(derText : Text) : ?PublicKey {
 
         let base64Engine = Base64.Base64(#v(Base64.V2), ?true);
         let bytesArray = base64Engine.decode(derText);

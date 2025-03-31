@@ -1,41 +1,41 @@
 import Error "mo:base/Error";
-import Text "mo:base/Text";
 import Time "mo:base/Time";
+import Debug "mo:base/Debug";
 import Json "mo:json";
 import Http "../sdk/http";
 import ResponseBuilder "../sdk/http/response_builder";
 import Router "../sdk/http/router";
 import DER "../sdk/utils/der";
-import Jwt "../sdk/utils/jwt";
 import Command "../sdk/api/bot/command";
-import CommandSerializer "../sdk/api/bot/command.ser";
+import CommandContext "../sdk/api/bot/command_context";
+import Scope "../sdk/api/common/scope";
 
 module {
-    public func handler(ocPublicKey : DER.DerPublicKey) : Router.UpdateHandler {
+    public func handler(ocPublicKey : DER.PublicKey) : Router.UpdateHandler {
         func (request: Http.Request) : async Http.Response {
             await execute(request, ocPublicKey, Time.now());
         };
     };
 
-    func execute(request : Http.Request, ocPublicKey : DER.DerPublicKey, now : Time.Time) : async Http.Response {
+    func execute(request : Http.Request, ocPublicKey : DER.PublicKey, now : Time.Time) : async Http.Response {
         let (statusCode, response) : (Nat16, Json.Json) = try {
-            let commandResponse = await execute_inner(request, ocPublicKey, now);
+            let commandResponse = await executeInner(request, ocPublicKey, now);
             switch (commandResponse) {
-                case (#Success(success)) (200, CommandSerializer.success(success));
-                case (#BadRequest(badRequest)) (400, CommandSerializer.badRequest(badRequest));
-                case (#InternalError(error)) (500, CommandSerializer.internalError(error));
+                case (#Success(success)) (200, Command.serializeSuccess(success));
+                case (#BadRequest(badRequest)) (400, Command.serializeBadRequest(badRequest));
+                case (#InternalError(error)) (500, Command.serializeInternalError(error));
             };
         } catch (e) {
-            (500, CommandSerializer.internalError(#Invalid("Internal error: " # Error.message(e))));
+            (500, Command.serializeInternalError(#Invalid("Internal error: " # Error.message(e))));
         };
 
         ResponseBuilder.json(statusCode, response);
     };
 
-    func execute_inner(request : Http.Request, ocPublicKey : DER.DerPublicKey, now : Time.Time) : async Command.Response {
+    func executeInner(request : Http.Request, ocPublicKey : DER.PublicKey, now : Time.Time) : async Command.Response {
         let ?jwt = Http.requestHeader(request, "x-oc-jwt") else return #BadRequest(#AccessTokenNotFound);
 
-        let result = switch (Jwt.verify(jwt, ocPublicKey, now)) {
+        let context = switch (CommandContext.parseJwt(jwt, ocPublicKey, now)) {
             case (#err(#invalidSignature)) return #BadRequest(#AccessTokenInvalid("JWT: Invalid signature"));
             case (#err(#expired(_))) return #BadRequest(#AccessTokenExpired);
             case (#err(#parseError(reason))) return #BadRequest(#AccessTokenInvalid("JWT: Parse error: " # reason));
@@ -43,26 +43,14 @@ module {
             case (#ok(data)) data;
         };
 
-        let message : Command.Message = {
-            id = 0;
-            content = #Text( { text = Json.stringify(result.data, null) |> escapeJsonString(_); });
-            finalised = true;
-            blockLevelMarkdown = false;
-            ephemeral = true;
-        };
+        let ?messageId = context.scope |> Scope.messageId(_) else Debug.trap("Invalid scope");
+
+        let message = Command.EphemeralMessageBuilder(#Text( { text = context.command.name }), messageId)
+            .withBlockLevelMarkdown(true)
+            .build();
 
         #Success {
             message = ?message;
         };
-    };
-
-    func escapeJsonString(text : Text) : Text {
-        var escaped = text;
-        escaped := Text.replace(escaped, #char '\\', "\\\\"); // Backslash first
-        escaped := Text.replace(escaped, #char '\"', "\\\"");
-        escaped := Text.replace(escaped, #char '\n', "\\n");
-        escaped := Text.replace(escaped, #char '\r', "\\r");
-        escaped := Text.replace(escaped, #char '\t', "\\t");
-        escaped;
     };
 }

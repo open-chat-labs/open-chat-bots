@@ -21,7 +21,18 @@ module {
         #Direct : T.CanisterId;
         #Group : T.CanisterId;
         #Channel: (T.CanisterId, T.ChannelId);
-    }
+    };
+
+    public func messageId(scope : BotCommandScope) : ?T.MessageId {
+        switch (scope)  {
+            case (#Chat(details)) {
+                ?details.message_id;
+            };
+            case (#Community(_)) {
+                null;
+            };
+        };
+    };
 
 // impl Chat {
 //     pub fn channel_id(&self) -> Option<ChannelId> {
