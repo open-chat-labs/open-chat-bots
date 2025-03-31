@@ -1,5 +1,6 @@
-import T "lib";
-import M "message";
+import Int32 "mo:base/Int32";
+import M "../common/message_content";
+import T "../common/base";
 
 module {
     public type Command = {
@@ -28,19 +29,15 @@ module {
         #datetime : T.TimestampMillis;
     };
 
-    public type CommandResponse = {
+    public type Response = {
         #success : SuccessResult;
         #badRequest : BadRequestResult;
         #internalError : InternalErrorResult;
     };
 
-    public type SuccessResult = {
-        message : ?M.Message;
-    };
-
     public type BadRequestResult = {
         #accessTokenNotFound;
-        #accessTokenInvalid;
+        #accessTokenInvalid : Text;
         #accessTokenExpired;
         #commandNotFound;
         #argsInvalid;
@@ -58,5 +55,17 @@ module {
         #other : Text;
     };
 
-    public type C2CError = (Int, Text);
+    public type C2CError = (Int32, Text);
+
+    public type SuccessResult = {
+        message : ?Message;
+    };
+
+    public type Message = {
+        id : T.MessageId;
+        content : M.MessageContentInitial;
+        finalised : Bool;
+        blockLevelMarkdown : Bool;
+        ephemeral : Bool;
+    };
 }

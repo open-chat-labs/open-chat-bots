@@ -1,19 +1,11 @@
 import B "mo:base64";
 import J "mo:json";
-import T "lib";
 import Principal "mo:base/Principal";
 import Nat64 "mo:base/Nat64";
 import Serialize "serialization";
+import T "base";
 
 module {
-    public type Message = {
-        id : T.MessageId;
-        content : MessageContentInitial;
-        finalised : Bool;
-        blockLevelMarkdown : Bool;
-        ephemeral : Bool;
-    };
-
     public type MessageContentInitial = {
         #text : TextContent;
         #image : ImageContent;
@@ -102,15 +94,7 @@ module {
         data : [Nat8];
     };
 
-    public func serialize(message : Message) : J.Json {
-        #object_([
-            ("id", #string(Nat64.toText(message.id))),
-            ("content", serializeMessageContent(message.content)),
-            ("finalised", #bool(message.finalised)),
-        ]);
-    };
-
-    private func serializeMessageContent(content : MessageContentInitial) : J.Json {
+    public func serializeMessageContent(content : MessageContentInitial) : J.Json {
         let (kind, value) : (Text, J.Json) = switch (content) {
             case (#text(text)) ("Text", serializeTextContent(text));
             case (#image(image)) ("Image", serializeImageContent(image));

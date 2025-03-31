@@ -1,5 +1,3 @@
-import Principal "mo:base/Principal";
-
 module {
     public type CanisterId = Principal;
     public type UserId = Principal;

@@ -1,103 +1,38 @@
-import Int32 "mo:base/Int32";
 import Error "mo:base/Error";
 import Text "mo:base/Text";
+import Time "mo:base/Time";
 import Json "mo:json";
-import Env "../sdk/env";
-import T "../sdk/lib";
 import Http "../sdk/http";
-import DER "../sdk/der";
-import Jwt "../sdk/jwt";
+import DER "../sdk/utils/der";
+import Jwt "../sdk/utils/jwt";
 import HttpRequest "../sdk/http/request";
 import HttpResponse "../sdk/http/response";
-import Serialize "../sdk/serialization";
-import Message "../sdk/message";
-import Router "state";
+import Command "../sdk/api/bot/command";
+import CommandSerializer "../sdk/api/bot/command.ser";
 
 module {
-    public type CommandResponse = {
-        #success : SuccessResult;
-        #badRequest : BadRequestResult;
-        #internalError : InternalErrorResult;
-    };
-
-    public type SuccessResult = {
-        message : ?Message.Message;
-    };
-
-    public type BadRequestResult = {
-        #accessTokenNotFound;
-        #accessTokenInvalid : Text;
-        #accessTokenExpired;
-        #commandNotFound;
-        #argsInvalid;
-    };
-
-    public type InternalErrorResult = {
-        #invalid : Text;
-        #canisterError : CanisterError;
-        #c2cError : C2CError;
-    };
-
-    public type CanisterError = {
-        #notAuthorized;
-        #frozen;
-        #other : Text;
-    };
-
-    public type C2CError = (Int32, Text);
-
-    func serializeSuccess(success : SuccessResult) : Json.Json {
-        let fields : [(Text, Json.Json)] = switch (success.message) {
-            case (null) [];
-            case (?message) [("message", Message.serialize(message))];
-        };
-        #object_(fields);
-    };
-
-    func serializeBadRequest(badRequest : BadRequestResult) : Json.Json {
-        switch (badRequest) {
-            case (#accessTokenNotFound) #string("AccessTokenNotFound");
-            case (#accessTokenInvalid(reason)) Serialize.variantWithValue("AccessTokenInvalid", #string(reason));
-            case (#accessTokenExpired) #string("AccessTokenExpired");
-            case (#commandNotFound) #string("CommandNotFound");
-            case (#argsInvalid) #string("ArgsInvalid");
+    public func handler(ocPublicKey : DER.DerPublicKey) : Http.UpdateHandler {
+        func (request: Http.Request) : async Http.Response {
+            await execute(request, ocPublicKey, Time.now());
         };
     };
 
-    func serializeInternalError(error : InternalErrorResult) : Json.Json {
-        switch (error) {
-            case (#invalid(invalid)) Serialize.variantWithValue("Invalid", #string(invalid));
-            case (#canisterError(canisterError)) Serialize.variantWithValue("CanisterError", serializeCanisterError(canisterError));
-            case (#c2cError((code, message))) Serialize.variantWithValue("C2CError", #array([#number(#int(Int32.toInt(code))), #string(message)]));
-        };
-    };
-
-    func serializeCanisterError(canisterError : CanisterError) : Json.Json {
-        switch (canisterError) {
-            case (#notAuthorized) #string("NotAuthorized");
-            case (#frozen) #string("Frozen");
-            case (#other(other)) Serialize.variantWithValue("Other", #string(other));
-        };
-    };
-
-    //public func buildHandler() : 
-
-    public func execute(request : Http.Request, state : Router.State) : async Http.Response {
+    func execute(request : Http.Request, ocPublicKey : DER.DerPublicKey, now : Time.Time) : async Http.Response {
         let (statusCode, response) : (Nat16, Json.Json) = try {
-            let commandResponse = await execute_inner(request, state.ocPublicKey, Env.now());
+            let commandResponse = await execute_inner(request, ocPublicKey, now);
             switch (commandResponse) {
-                case (#success(success)) (200, serializeSuccess(success));
-                case (#badRequest(badRequest)) (400, serializeBadRequest(badRequest));
-                case (#internalError(error)) (500, serializeInternalError(error));
+                case (#success(success)) (200, CommandSerializer.success(success));
+                case (#badRequest(badRequest)) (400, CommandSerializer.badRequest(badRequest));
+                case (#internalError(error)) (500, CommandSerializer.internalError(error));
             };
         } catch (e) {
-            (500, serializeInternalError(#invalid("Internal error: " # Error.message(e))));
+            (500, CommandSerializer.internalError(#invalid("Internal error: " # Error.message(e))));
         };
 
         HttpResponse.json(statusCode, response);
     };
 
-    func execute_inner(request : Http.Request, ocPublicKey : DER.DerPublicKey, now : T.TimestampMillis) : async CommandResponse {
+    func execute_inner(request : Http.Request, ocPublicKey : DER.DerPublicKey, now : Time.Time) : async Command.Response {
         let ?jwt = HttpRequest.header(request, "x-oc-jwt") else return #badRequest(#accessTokenNotFound);
 
         let result = switch (Jwt.verify(jwt, ocPublicKey, now)) {
@@ -108,7 +43,7 @@ module {
             case (#ok(data)) data;
         };
 
-        let message : Message.Message = {
+        let message : Command.Message = {
             id = 0;
             content = #text( { text = Json.stringify(result.data, null) |> escapeJsonString(_); });
             finalised = true;

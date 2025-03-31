@@ -1,7 +1,7 @@
 import Array "mo:base/Array";
 import Json "mo:json";
 import Permissions "permissions";
-import Serialize "serialization";
+import Serialize "../common/serialization";
 
 module {
     public type BotPermissions = Permissions.BotPermissions;    

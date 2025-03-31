@@ -18,15 +18,15 @@ module {
         body: Blob;
     };
     
-    public class Router<S>(state: S) = this {
-        var queryRoutes : [QueryRoute<S>] = [];
-        var updateRoutes : [UpdateRoute<S>] = [];
+    public class Router() = this {
+        var queryRoutes : [QueryRoute] = [];
+        var updateRoutes : [UpdateRoute] = [];
 
         public func get(
             pathExpr : Text,
-            handler: QueryHandler<S>
-        ) : Router<S> {
-            let route: QueryRoute<S> = {
+            handler: QueryHandler
+        ) : Router {
+            let route: QueryRoute = {
                 pathExpr = pathExpr;
                 handler = handler;
             };
@@ -36,9 +36,9 @@ module {
 
         public func post(
             pathExpr : Text,
-            handler: UpdateHandler<S>
-        ) : Router<S> {
-            let route: UpdateRoute<S> = {
+            handler: UpdateHandler
+        ) : Router {
+            let route: UpdateRoute = {
                 pathExpr = pathExpr;
                 handler = handler;
             };
@@ -76,7 +76,7 @@ module {
             
             switch (matchingRoute) {
                 case (?route) {
-                    route.handler(request, state);
+                    route.handler(request);
                 };
                 case _ {
                     Response.notFound();
@@ -89,7 +89,7 @@ module {
             
             switch (matchingRoute) {
                 case (?route) {
-                    await route.handler(request, state);
+                    await route.handler(request);
                 };
                 case _ {
                     Response.notFound();
@@ -131,18 +131,18 @@ module {
         };        
     };
 
-    public type UpdateHandler<S> = (Request, S) -> async Response;
-    public type QueryHandler<S> = (Request, S) -> Response;
+    public type UpdateHandler = Request -> async Response;
+    public type QueryHandler = Request -> Response;
 
     type Route = {
         pathExpr : Text;
     };
 
-    public type UpdateRoute<S> = Route and {
-        handler : UpdateHandler<S>;
+    public type UpdateRoute = Route and {
+        handler : UpdateHandler;
     };
 
-    public type QueryRoute<S> = Route and {
-        handler : QueryHandler<S>;
+    public type QueryRoute = Route and {
+        handler : QueryHandler;
     };
 };

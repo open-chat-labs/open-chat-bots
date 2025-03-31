@@ -1,14 +1,10 @@
-import C "command";
-import P "permissions";
 import R "mo:base/Result";
-import S "scope";
-import T "lib";
 import Json "mo:json";
 import Text "mo:base/Text";
 import Iter "mo:base/Iter";
 import Blob "mo:base/Blob";
 import Debug "mo:base/Debug";
-import Nat64 "mo:base/Nat64";
+import Time "mo:base/Time";
 import DER "der";
 import ECDSA "mo:ecdsa";
 import Curve "mo:ecdsa/curve";
@@ -28,40 +24,40 @@ module {
     //     #community : BotActionCommunityDetails;
     // };
 
-    public type BotCommandContext = {
-        jwt : Text;
-        botId : T.UserId;
-        apiGateway : T.CanisterId;
-        command : C.Command;
-        scope : S.BotCommandScope;
-        grantedPermissions : P.BotPermissions;
-    };
+    // public type BotCommandContext = {
+    //     jwt : Text;
+    //     botId : T.UserId;
+    //     apiGateway : T.CanisterId;
+    //     command : C.Command;
+    //     scope : S.BotCommandScope;
+    //     grantedPermissions : P.BotPermissions;
+    // };
 
-    public func parseCommandToken(jwt : Text, ocPublicKey : DER.DerPublicKey, now : T.TimestampMillis) : R.Result<BotCommandContext, VerifyJwtError> {
-        let _json = switch (verify(jwt, ocPublicKey, now)) {
-            case (#err(e)) return #err(e);
-            case (#ok(json)) json;
-        };
+    // public func parseCommandToken(jwt : Text, ocPublicKey : DER.DerPublicKey, now : T.TimestampMillis) : R.Result<BotCommandContext, VerifyJwtError> {
+    //     let _json = switch (verify(jwt, ocPublicKey, now)) {
+    //         case (#err(e)) return #err(e);
+    //         case (#ok(json)) json;
+    //     };
 
-        // TODO: Check if the claimType is "BotActionByCommand" and if not, return an error
+    //     // TODO: Check if the claimType is "BotActionByCommand" and if not, return an error
 
-        #err(#invalidClaims);
-    };
+    //     #err(#invalidClaims);
+    // };
 
     type JwtData = {
         claimType : Text;
-        expiry : T.TimestampMillis;
+        expiry : Time.Time;
         data : Json.Json;
     };
 
     type VerifyJwtError = {
         #parseError : Text;
-        #expired : T.TimestampMillis;
+        #expired : Time.Time;
         #invalidSignature;
         #invalidClaims;
     };
 
-    public func verify(jwt : Text, derPublicKey : DER.DerPublicKey, now : T.TimestampMillis) : R.Result<JwtData, VerifyJwtError> {
+    public func verify(jwt : Text, derPublicKey : DER.DerPublicKey, now : Time.Time) : R.Result<JwtData, VerifyJwtError> {
         let base64Engine = Base64.Base64(#v(Base64.V2), ?true);
 
         // Split JWT into parts
@@ -94,11 +90,12 @@ module {
         // Decode and parse claims
         let claimsBytes = base64Engine.decode(claimsJson); // TODO handle error
         let ?claimsText = Text.decodeUtf8(Blob.fromArray(claimsBytes)) else return #err(#parseError("Unable to parse claims"));
+        
         switch (Json.parse(claimsText)) {
             case (#err(e)) return #err(#parseError("Invalid claims JSON: " # debug_show (e)));
             case (#ok(claims)) {
-                let expiryTimestamp = switch (Json.getAsNat(claims, "exp")) {
-                    case (#ok(exp)) Nat64.fromNat(exp * 1_000); // seconds to milliseconds
+                let expiryTimestamp = switch (Json.getAsInt(claims, "exp")) {
+                    case (#ok(expInt)) expInt * 1_000_000_000; // seconds to nanoseconds
                     case (#err(e)) return #err(#parseError("Invalid 'exp' field in claims: " # debug_show (e)));
                 };
                 if (expiryTimestamp < now) {

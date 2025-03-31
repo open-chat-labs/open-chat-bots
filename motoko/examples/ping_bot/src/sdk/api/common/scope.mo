@@ -1,4 +1,4 @@
-import T "lib";
+import T "base";
 
 module {
     public type BotCommandScope = {
