@@ -3,11 +3,11 @@ import Time "mo:base/Time";
 import Debug "mo:base/Debug";
 import Json "mo:json";
 import Http "../sdk/http";
-import ResponseBuilder "../sdk/http/response_builder";
+import ResponseBuilder "../sdk/http/responseBuilder";
 import Router "../sdk/http/router";
 import DER "../sdk/utils/der";
 import Command "../sdk/api/bot/command";
-import CommandContext "../sdk/api/bot/command_context";
+import CommandContext "../sdk/api/bot/commandContext";
 import Scope "../sdk/api/common/scope";
 
 module {

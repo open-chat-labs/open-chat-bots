@@ -1,5 +1,5 @@
 import Http "../sdk/http";
-import ResponseBuilder "../sdk/http/response_builder";
+import ResponseBuilder "../sdk/http/responseBuilder";
 
 module {
     public func handler(_request : Http.Request) : Http.Response {

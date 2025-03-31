@@ -1,7 +1,7 @@
 import Definition "../sdk/api/bot/definition";
 import Http "../sdk/http";
 import Router "../sdk/http/router";
-import ResponseBuilder "../sdk/http/response_builder";
+import ResponseBuilder "../sdk/http/responseBuilder";
 
 module {
     public func handler() : Router.QueryHandler {

@@ -4,9 +4,8 @@ import Result "mo:base/Result";
 import Int64 "mo:base/Int64";
 import Json "mo:json";
 import Serialize "../common/serialization";
-import M "../common/message_content";
 import T "../common/base";
-import MessageContent "../common/message_content";
+import MessageContent "../common/messageContent";
 import Deserialize "../common/deserialization";
 
 module {
@@ -70,7 +69,7 @@ module {
 
     public type Message = {
         id : T.MessageId;
-        content : M.MessageContentInitial;
+        content : MessageContent.MessageContentInitial;
         finalised : Bool;
         block_level_markdown : Bool;
         ephemeral : Bool;
@@ -92,7 +91,7 @@ module {
         Des.deserializeCommand(commandJson);
     };  
 
-    public class EphemeralMessageBuilder(content : M.MessageContentInitial, messageId : T.MessageId) = this {
+    public class EphemeralMessageBuilder(content : MessageContent.MessageContentInitial, messageId : T.MessageId) = this {
         var blockLevelMarkdown : Bool = false;
 
         public func withBlockLevelMarkdown(value : Bool) : EphemeralMessageBuilder {

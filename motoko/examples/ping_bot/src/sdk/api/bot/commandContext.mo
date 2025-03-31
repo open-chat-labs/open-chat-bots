@@ -40,19 +40,17 @@ module {
     };
 
     // type ParseResult = Result.Result<BotCommandContext, JWT.VerifyError>;
-    // 
+    
     // public func parseJwt2(text : Text, publicKey : DER.PublicKey, now : Time.Time) : ParseResult {
-    //     func deserializeClaims(jwt : JWT.JWT) : ParseResult {
-    //         if (jwt.claimType != "BotActionByCommand") {
-    //             return #err(#invalidClaims);
-    //         };
-
-    //         Des.deserializeContext(jwt.data, text) 
-    //             |> Result.mapErr(_, func(_err : Text) : JWT.VerifyError {#invalidClaims})
-    //     };
-
     //     JWT.verify(text, publicKey, now) 
-    //         |> Result.mapOk(_, deserializeClaims) 
+    //         |> Result.mapOk(_, func (jwt : JWT.JWT) : ParseResult {
+    //             if (jwt.claimType != "BotActionByCommand") {
+    //                 return #err(#invalidClaims);
+    //             };
+
+    //             Des.deserializeContext(jwt.data, text) 
+    //                 |> Result.mapErr(_, func(_err : Text) : JWT.VerifyError { #invalidClaims })
+    //         }) 
     //         |> Result.flatten(_);
     // };
 

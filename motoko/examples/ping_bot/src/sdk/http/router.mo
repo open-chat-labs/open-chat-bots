@@ -3,7 +3,7 @@ import HttpTypes "mo:http-types";
 import HttpParser "mo:http-parser";
 import Http "lib";
 import Text "mo:base/Text";
-import ResponseBuilder "response_builder";
+import ResponseBuilder "responseBuilder";
 
 module {
     public class Router() = this {
