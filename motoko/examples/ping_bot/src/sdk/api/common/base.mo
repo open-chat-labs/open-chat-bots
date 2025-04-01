@@ -1,3 +1,5 @@
+import Result "mo:base/Result";
+import Error "mo:base/Error";
 module {
     public type CanisterId = Principal;
     public type UserId = Principal;
@@ -10,4 +12,18 @@ module {
     public type MessageIndex = Nat32;
     public type EventIndex = Nat32;
     public type Hash = [Nat8]; // 32 bytes
+
+    public type CallResult<T> = Result.Result<T, Error.Error>;
+
+    public type AuthToken = {
+        #Jwt : Text;
+        #ApiKey : Text;
+    };
+
+    public type ChatRole = {
+        #Owner;
+        #Admin;
+        #Moderator;
+        #Participant;
+    };
 }

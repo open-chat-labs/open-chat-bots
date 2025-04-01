@@ -1,18 +1,16 @@
-import Int32 "mo:base/Int32";
-import Nat64 "mo:base/Nat64";
 import Result "mo:base/Result";
 import Int64 "mo:base/Int64";
+import Debug "mo:base/Debug";
+import Option "mo:base/Option";
 import Json "mo:json";
-import Serialize "../common/serialization";
-import T "../common/base";
-import MessageContent "../common/messageContent";
+import B "../common/base";
 import Deserialize "../common/deserialization";
 
 module {
     public type Command = {
         name : Text;
         args : [CommandArg];
-        initiator : T.UserId;
+        initiator : B.UserId;
         meta : ?CommandMeta;
     };
 
@@ -31,132 +29,35 @@ module {
         #Integer : Int64;
         #Decimal : Float;
         #Boolean : Bool;
-        #User : T.UserId;
-        #Datetime : T.TimestampMillis;
+        #User : B.UserId;
+        #Datetime : B.TimestampMillis;
     };
 
-    public type Response = {
-        #Success : SuccessResult;
-        #BadRequest : BadRequestResult;
-        #InternalError : InternalErrorResult;
+    public func arg<T>(command : Command, name : Text) : T {
+        let ?value = maybeArg(command, name) else Debug.trap("Command arg not found");
+        value;
     };
 
-    public type BadRequestResult = {
-        #AccessTokenNotFound;
-        #AccessTokenInvalid : Text;
-        #AccessTokenExpired;
-        #CommandNotFound;
-        #ArgsInvalid;
+    public func maybeArg<T>(command : Command, name : Text) : ?T {
+        // TODO
+        null;
     };
 
-    public type InternalErrorResult = {
-        #Invalid : Text;
-        #CanisterError : CanisterError;
-        #C2CError : C2CError;
+    public func timezone(command : Command) : Text {
+        Option.map(command.meta, func (meta : CommandMeta) : Text { meta.timezone }) 
+            |> Option.get(_, "UTC");
     };
 
-    public type CanisterError = {
-        #NotAuthorized;
-        #Frozen;
-        #Other : Text;
-    };
-
-    public type C2CError = (Int32, Text);
-
-    public type SuccessResult = {
-        message : ?Message;
-    };
-
-    public type Message = {
-        id : T.MessageId;
-        content : MessageContent.MessageContentInitial;
-        finalised : Bool;
-        block_level_markdown : Bool;
-        ephemeral : Bool;
-    };
-
-    public func serializeSuccess(success : SuccessResult) : Json.Json {
-        Ser.serializeSuccess(success);
-    };
-
-    public func serializeBadRequest(badRequest : BadRequestResult) : Json.Json {
-        Ser.serializeBadRequest(badRequest);
-    };
-
-    public func serializeInternalError(error : InternalErrorResult) : Json.Json {
-        Ser.serializeInternalError(error);
+    public func language(command : Command) : Text {
+        Option.map(command.meta, func (meta : CommandMeta) : Text { meta.language }) 
+            |> Option.get(_, "en");
     };
 
     public func deserialize(commandJson : Json.Json) : Result.Result<Command, Text> {
         Des.deserializeCommand(commandJson);
     };  
 
-    public class EphemeralMessageBuilder(content : MessageContent.MessageContentInitial, messageId : T.MessageId) = this {
-        var blockLevelMarkdown : Bool = false;
-
-        public func withBlockLevelMarkdown(value : Bool) : EphemeralMessageBuilder {
-            blockLevelMarkdown := value;
-            this;
-        };
-
-        public func build() : Message {
-            {
-                id = messageId;
-                content = content;
-                finalised = true;
-                block_level_markdown = blockLevelMarkdown;
-                ephemeral = true;
-            };
-        };
-    };
-
-    module Ser {
-        public func serializeSuccess(success : SuccessResult) : Json.Json {
-            let fields : [(Text, Json.Json)] = switch (success.message) {
-                case (null) [];
-                case (?message) [("message", serializeMessage(message))];
-            };
-            #object_(fields);
-        };
-
-        public func serializeBadRequest(badRequest : BadRequestResult) : Json.Json {
-            switch (badRequest) {
-                case (#AccessTokenNotFound) #string("AccessTokenNotFound");
-                case (#AccessTokenInvalid(reason)) Serialize.variantWithValue("AccessTokenInvalid", #string(reason));
-                case (#AccessTokenExpired) #string("AccessTokenExpired");
-                case (#CommandNotFound) #string("CommandNotFound");
-                case (#ArgsInvalid) #string("ArgsInvalid");
-            };
-        };
-
-        public func serializeInternalError(error : InternalErrorResult) : Json.Json {
-            switch (error) {
-                case (#Invalid(invalid)) Serialize.variantWithValue("Invalid", #string(invalid));
-                case (#CanisterError(canisterError)) Serialize.variantWithValue("CanisterError", serializeCanisterError(canisterError));
-                case (#C2CError((code, message))) Serialize.variantWithValue("C2CError", #array([#number(#int(Int32.toInt(code))), #string(message)]));
-            };
-        };
-
-        func serializeCanisterError(canisterError : CanisterError) : Json.Json {
-            switch (canisterError) {
-                case (#NotAuthorized) #string("NotAuthorized");
-                case (#Frozen) #string("Frozen");
-                case (#Other(other)) Serialize.variantWithValue("Other", #string(other));
-            };
-        };
-
-        func serializeMessage(message : Message) : Json.Json {
-            #object_([
-                ("id", #string(Nat64.toText(message.id))),
-                ("content", MessageContent.Ser.serialize(message.content)),
-                ("finalised", #bool(message.finalised)),
-                ("block_level_markdown", #bool(message.block_level_markdown)),
-                ("ephemeral", #bool(message.ephemeral)),
-            ]);
-        };        
-    };
-
-    module Des {
+   module Des {
         public func deserializeCommand(commandJson : Json.Json) : Result.Result<Command, Text> {
             let commandName = switch (Json.getAsText(commandJson, "name")) {
                 case (#ok(v)) v;

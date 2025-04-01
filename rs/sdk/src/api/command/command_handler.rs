@@ -41,10 +41,6 @@ impl<R: Runtime> CommandHandlerRegistry<R> {
         self
     }
 
-    pub fn get(&self, name: &str) -> Option<&dyn CommandHandler<R>> {
-        self.commands.get(name).map(|v| &**v)
-    }
-
     pub fn definitions(&self) -> Vec<BotCommandDefinition> {
         self.commands
             .values()
@@ -102,6 +98,10 @@ impl<R: Runtime> CommandHandlerRegistry<R> {
             Ok(success) => CommandResponse::Success(success),
             Err(error) => CommandResponse::InternalError(InternalError::CommandError(error)),
         }
+    }
+
+    fn get(&self, name: &str) -> Option<&dyn CommandHandler<R>> {
+        self.commands.get(name).map(|v| &**v)
     }
 }
 

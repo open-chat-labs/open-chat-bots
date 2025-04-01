@@ -1,11 +1,24 @@
-import B "mo:base64";
+import Base64 "mo:base64";
 import J "mo:json";
 import Principal "mo:base/Principal";
 import Nat64 "mo:base/Nat64";
 import Serialize "serialization";
-import T "base";
+import B "base";
 
 module {
+    public type MessageContent = {
+        #Text : TextContent;
+        #Image : ImageContent;
+        #Video : VideoContent;
+        #Audio : AudioContent;
+        #File : FileContent;
+        #Poll : PollContent;
+        #Deleted : DeletedBy;
+        #Giphy : GiphyContent;
+        #Custom : CustomContent;
+        #Unsupported : UnsupportedContent;
+    };
+
     public type MessageContentInitial = {
         #Text : TextContent;
         #Image : ImageContent;
@@ -33,7 +46,7 @@ module {
     public type ThumbnailData = (Text);
 
     public type BlobReference = {
-        canister : T.CanisterId;
+        canister : B.CanisterId;
         blob_id : Nat;
     };
 
@@ -68,7 +81,7 @@ module {
     public type PollConfig = {
         text : ?Text;
         options : [Text];
-        end_date : ?T.TimestampMillis;
+        end_date : ?B.TimestampMillis;
         anonymous : Bool;
         show_votes_before_end_date : Bool;
         allow_multiple_votes_per_user : Bool;
@@ -92,6 +105,15 @@ module {
     public type CustomContent = {
         kind : Text;
         data : [Nat8];
+    };
+
+    public type DeletedBy = {
+        deleted_by : B.UserId;
+        timestamp : B.TimestampMillis;
+    };
+
+    public type UnsupportedContent = {
+        kind : Text;
     };
 
     public module Ser {
@@ -212,7 +234,7 @@ module {
         };
 
         private func serializeCustomContent(custom : CustomContent) : J.Json {
-            let base64Engine = B.Base64(#v(B.V2), ?false);
+            let base64Engine = Base64.Base64(#v(Base64.V2), ?false);
             let dataText = base64Engine.encode(#bytes(custom.data));
             #object_([
                 ("kind", #string(custom.kind)),

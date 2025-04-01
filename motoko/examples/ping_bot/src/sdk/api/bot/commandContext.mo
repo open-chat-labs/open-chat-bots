@@ -5,22 +5,39 @@ import Nat64 "mo:base/Nat64";
 import Option "mo:base/Option";
 import Nat32 "mo:base/Nat32";
 import Time "mo:base/Time";
-import T "../common/base";
+import B "../common/base";
 import Scope "../common/scope";
-import Command "command";
-import Permissions "permissions";
+import Command "../common/command";
+import Permissions "../common/permissions";
 import Deserialize "../common/deserialization";
 import DER "../../utils/der";
 import JWT "../../utils/jwt";
+import ActionContext "actionContext";
 
 module {
     public type BotCommandContext = {
         jwt : Text;
-        botId : T.UserId;
-        apiGateway : T.CanisterId;
-        command : Command.Command;
+        botId : B.UserId;
+        apiGateway : B.CanisterId;
         scope : Scope.BotCommandScope;
         grantedPermissions : Permissions.BotPermissions;
+        command : Command.Command;
+    };
+
+    public class BotCommandContextWrapper(context : BotCommandContext) : ActionContext.ActionContext {
+        public func botId() : B.UserId { context.botId };
+        public func apiGateway() : B.CanisterId { context.apiGateway };
+        public func authToken() : B.AuthToken { #Jwt(context.jwt) };
+        public func grantedPermissions() : ?Permissions.BotPermissions { ?context.grantedPermissions };
+        public func messageId() : ?B.MessageId { Scope.messageId(context.scope) };
+        public func thread() : ?B.MessageIndex { Scope.thread(context.scope) };
+        public func scope() : Scope.ActionScope {
+            switch (context.scope) {
+                case (#Chat(details)) #Chat(details.chat);
+                case (#Community(details)) #Community(details.community_id);
+            };
+        };
+        public func command() : Command.Command { context.command };
     };
 
     public func parseJwt(text : Text, publicKey : DER.PublicKey, now : Time.Time) : Result.Result<BotCommandContext, JWT.VerifyError> {

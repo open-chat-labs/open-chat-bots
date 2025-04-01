@@ -1,6 +1,11 @@
-import T "base";
+import B "base";
 
 module {
+    public type ActionScope = {
+        #Chat : Chat;
+        #Community : B.CanisterId;
+    };
+
     public type BotCommandScope = {
         #Chat : BotActionChatDetails;
         #Community : BotActionCommunityDetails;
@@ -8,22 +13,22 @@ module {
 
     public type BotActionChatDetails = {
         chat : Chat;
-        thread : ?T.MessageIndex;
-        message_id  : T.MessageId;
-        user_message_id : ?T.MessageId;
+        thread : ?B.MessageIndex;
+        message_id  : B.MessageId;
+        user_message_id : ?B.MessageId;
     };
 
     public type BotActionCommunityDetails = {
-        community_id : T.CanisterId;
+        community_id : B.CanisterId;
     };
 
     public type Chat = {
-        #Direct : T.CanisterId;
-        #Group : T.CanisterId;
-        #Channel: (T.CanisterId, T.ChannelId);
+        #Direct : B.CanisterId;
+        #Group : B.CanisterId;
+        #Channel: (B.CanisterId, B.ChannelId);
     };
 
-    public func messageId(scope : BotCommandScope) : ?T.MessageId {
+    public func messageId(scope : BotCommandScope) : ?B.MessageId {
         switch (scope)  {
             case (#Chat(details)) {
                 ?details.message_id;
@@ -34,6 +39,17 @@ module {
         };
     };
 
+    public func thread(scope : BotCommandScope) : ?B.MessageIndex {
+        switch (scope)  {
+            case (#Chat(details)) {
+                details.thread;
+            };
+            case (#Community(_)) {
+                null;
+            };
+        };
+    };
+    
 // impl Chat {
 //     pub fn channel_id(&self) -> Option<ChannelId> {
 //         match self {

@@ -1,14 +1,15 @@
 import Array "mo:base/Array";
 import Json "mo:json";
-import Permissions "permissions";
+import Permissions "../common/permissions";
 import Serialize "../common/serialization";
+import B "../common/base";
 
 module {
     public type BotPermissions = Permissions.BotPermissions;    
 
-    public type BotDefinition = {
+    public type Bot = {
         description : Text;
-        commands : [BotCommandDefinition];
+        commands : [BotCommand];
         autonomous_config : ?AutonomousConfig;
     };
 
@@ -17,13 +18,13 @@ module {
         sync_api_key : Bool;
     };
 
-    public type BotCommandDefinition = {
+    public type BotCommand = {
         name : Text;
         description : Text;
         placeholder : ?Text;
         params : [BotCommandParam];
         permissions : BotPermissions;
-        default_role: ?ChatRole;
+        default_role: ?B.ChatRole;
         direct_messages: ?Bool;
     };
 
@@ -72,19 +73,7 @@ module {
         value : T;
     };
 
-    public type AuthToken = {
-        #Jwt : Text;
-        #ApiKey : Text;
-    };
-
-    public type ChatRole = {
-        #Owner;
-        #Admin;
-        #Moderator;
-        #Participant;
-    };
-
-    public func serialize(definition : BotDefinition) : Json.Json {
+    public func serialize(definition : Bot) : Json.Json {
         var fields = [
             ("description", #string(definition.description)),
             ("commands", Serialize.arrayOfValues(definition.commands, serializeBotCommand)),
@@ -109,7 +98,7 @@ module {
         #object_(fields);
     };
 
-    private func serializeBotCommand(command : BotCommandDefinition) : Json.Json {
+    private func serializeBotCommand(command : BotCommand) : Json.Json {
         var fields : [(Text, Json.Json)] = [
             ("name", #string(command.name)),
             ("description", #string(command.description)),
@@ -132,7 +121,7 @@ module {
         #object_(fields);
     };
 
-    private func serializeChatRole(chat_role : ChatRole) : Json.Json {
+    private func serializeChatRole(chat_role : B.ChatRole) : Json.Json {
         switch (chat_role) {
             case (#Owner) #string("Owner");
             case (#Admin) #string("Admin");

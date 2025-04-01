@@ -5,7 +5,7 @@ import ResponseBuilder "../sdk/http/responseBuilder";
 
 module {
     public func handler() : Router.QueryHandler {
-        let definition : Definition.BotDefinition = {
+        let definition : Definition.Bot = {
             description = "Provides a ping command and an echo command";
             commands = [{
                 name = "ping";
