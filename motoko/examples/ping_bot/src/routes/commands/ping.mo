@@ -1,10 +1,8 @@
-import Client "../../sdk/client";
 import CommandHandler "../../sdk/commandHandler";
 import CommandResponse "../../sdk/api/bot/commandResponse";
 import Definition "../../sdk/api/bot/definition";
 import Result "mo:base/Result";
-import SendMessage "../../sdk/client/sendMessage";
-import CommandContext "../../sdk/api/bot/commandContext";
+import Client "../../sdk/client";
 
 module {
     public func build() : CommandHandler.CommandHandler {
@@ -14,10 +12,10 @@ module {
         };
     };
 
-    func execute(client : Client.Client<CommandContext.BotCommandContextWrapper>) : async Result.Result<CommandResponse.SuccessResult, Text> {
-        let message = await client  
+    func execute(client : Client.CommandClient) : async Result.Result<CommandResponse.SuccessResult, Text> {
+        let message = await client
             .sendTextMessage("pong")
-            .executeThenReturnMessage(func (result : SendMessage.Result) {});
+            .executeThenReturnMessage(null);
 
         return #ok { message = message };
     };

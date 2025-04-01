@@ -1,17 +1,15 @@
-import Client "client";
 import Text "mo:base/Text";
 import Result "mo:base/Result";
 import Array "mo:base/Array";
-import Time "mo:base/Time";
 import Definition "api/bot/definition";
 import CommandResponse "api/bot/commandResponse";
-import Der "utils/der";
 import CommandContext "api/bot/commandContext";
+import Client "client";
 
 module {
     public type CommandHandler = {
         definition : Definition.BotCommand;
-        execute : (Client.Client<CommandContext.BotCommandContextWrapper>) -> async Result.Result<CommandResponse.SuccessResult, Text>;
+        execute : (Client.CommandClient) -> async Result.Result<CommandResponse.SuccessResult, Text>;
     };
 
     public class Registry() = this {

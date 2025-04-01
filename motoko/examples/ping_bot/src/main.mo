@@ -20,7 +20,7 @@ actor class PingBot(key: Text) {
 
     let router = Router.Router()
         .get("/hello", Hello.handler)
-        .get("/*", Definition.handler())
+        .get("/*", Definition.handler(registry.definitions()))
         .post("/execute_command", func (request: Http.Request) : async Http.Response {
             await CommandAdaptor.execute(registry, request, ocPublicKey, Time.now());
         });

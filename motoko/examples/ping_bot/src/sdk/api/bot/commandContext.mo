@@ -24,20 +24,19 @@ module {
         command : Command.Command;
     };
 
-    public class BotCommandContextWrapper(context : BotCommandContext) : ActionContext.ActionContext {
-        public func botId() : B.UserId { context.botId };
-        public func apiGateway() : B.CanisterId { context.apiGateway };
-        public func authToken() : B.AuthToken { #Jwt(context.jwt) };
-        public func grantedPermissions() : ?Permissions.BotPermissions { ?context.grantedPermissions };
-        public func messageId() : ?B.MessageId { Scope.messageId(context.scope) };
-        public func thread() : ?B.MessageIndex { Scope.thread(context.scope) };
-        public func scope() : Scope.ActionScope {
-            switch (context.scope) {
+    public func toActionContext(context : BotCommandContext) : ActionContext.ActionContext {
+        {
+            botId = context.botId;
+            apiGateway = context.apiGateway;
+            authToken = #Jwt(context.jwt);
+            grantedPermissions = ?context.grantedPermissions;
+            messageId = Scope.messageId(context.scope);
+            thread = Scope.thread(context.scope);
+            scope = switch (context.scope) {
                 case (#Chat(details)) #Chat(details.chat);
                 case (#Community(details)) #Community(details.community_id);
             };
         };
-        public func command() : Command.Command { context.command };
     };
 
     public func parseJwt(text : Text, publicKey : DER.PublicKey, now : Time.Time) : Result.Result<BotCommandContext, JWT.VerifyError> {

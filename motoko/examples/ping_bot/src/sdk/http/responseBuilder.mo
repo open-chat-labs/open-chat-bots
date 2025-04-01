@@ -17,7 +17,7 @@ module {
             this;
         };
 
-        public func add_header(key: Text, value: Text) : Builder {
+        public func addHeader(key: Text, value: Text) : Builder {
             headers := List.push((key, value), headers);
             this;
         };
@@ -28,11 +28,11 @@ module {
             this;
         };
 
-        public func with_json(json: Json.Json) : Builder {
-            Json.stringify(json, null) |> Text.encodeUtf8(_) |> with_body(_, "application/json");
+        public func withJson(json: Json.Json) : Builder {
+            Json.stringify(json, null) |> Text.encodeUtf8(_) |> withBody(_, "application/json");
         };
 
-        public func with_body(blob: Blob, mime_type: Text) : Builder {
+        public func withBody(blob: Blob, mime_type: Text) : Builder {
             body := blob;
             headers := List.push(("content-Type", mime_type), headers);
             headers := List.push(("content-length", Nat.toText(body.size())), headers);
@@ -59,7 +59,7 @@ module {
         Builder()
             .withStatus(status)
             .withAllowHeaders()
-            .with_json(json)
+            .withJson(json)
             .build();
     };
 

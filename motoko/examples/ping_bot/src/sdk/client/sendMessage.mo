@@ -12,7 +12,7 @@ import CommandResponse "../api/bot/commandResponse";
 module {
     public class Builder(context : ActionContext.ActionContext, content : MessageContent.MessageContentInitial) = this {
         var channelId : ?B.ChannelId = ActionContext.channelId(context);
-        var messageId : ?B.MessageId = context.messageId();
+        var messageId : ?B.MessageId = context.messageId;
         var blockLevelMarkdown : Bool = false;
         var finalised : Bool = false;
 
@@ -43,9 +43,9 @@ module {
             this;
         };
 
-        public func executeThenReturnMessage(onResponse : Result -> ()) : async ?CommandResponse.Message {
+        public func executeThenReturnMessage(onResponseOpt : ?(Result -> ())) : async ?CommandResponse.Message {
             // Only return a message if the context has a message id
-            let message = Option.map(context.messageId(), func (messageId : B.MessageId) : CommandResponse.Message {
+            let message = Option.map(context.messageId, func (messageId : B.MessageId) : CommandResponse.Message {
                 {
                     id = messageId;
                     content = content;
@@ -55,21 +55,28 @@ module {
                 }
             });
 
-            let botApiActor = actor (Principal.toText(context.apiGateway())) : SendMessage.Actor;
+            let botApiActor = actor (Principal.toText(context.apiGateway)) : SendMessage.Actor;
 
             // Ingore the send message call
             ignore try {
                 let response = await botApiActor.bot_send_message({
-                channel_id = channelId;
-                message_id = messageId;
-                content = content;
-                block_level_markdown = blockLevelMarkdown;
-                finalised = finalised;
-                auth_token = context.authToken();
-            });
-                onResponse(#ok response);
+                    channel_id = channelId;
+                    message_id = messageId;
+                    content = content;
+                    block_level_markdown = blockLevelMarkdown;
+                    finalised = finalised;
+                    auth_token = context.authToken;
+                });
+
+                switch (onResponseOpt) {
+                    case (?onResponse) onResponse(#ok response);
+                    case null ();
+                }
             } catch (error) {
-                onResponse(#err error);
+                switch (onResponseOpt) {
+                    case (?onResponse) onResponse(#err error);
+                    case null ();
+                }
             };
 
             return message;
