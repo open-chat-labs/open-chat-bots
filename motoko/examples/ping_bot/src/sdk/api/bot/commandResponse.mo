@@ -21,7 +21,7 @@ module {
     };
 
     public type InternalErrorResult = {
-        #Invalid : Text;
+        #CommandError : Text;
         #CanisterError : CanisterError;
         #C2CError : C2CError;
     };
@@ -98,7 +98,7 @@ module {
 
         public func serializeInternalError(error : InternalErrorResult) : Json.Json {
             switch (error) {
-                case (#Invalid(invalid)) Serialize.variantWithValue("Invalid", #string(invalid));
+                case (#CommandError(invalid)) Serialize.variantWithValue("CommandError", #string(invalid));
                 case (#CanisterError(canisterError)) Serialize.variantWithValue("CanisterError", serializeCanisterError(canisterError));
                 case (#C2CError((code, message))) Serialize.variantWithValue("C2CError", #array([#number(#int(Int32.toInt(code))), #string(message)]));
             };
