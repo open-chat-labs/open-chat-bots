@@ -1,6 +1,5 @@
 import HttpTypes "mo:http-types";
 import Text "mo:base/Text";
-import Time "mo:base/Time";
 import Router "sdk/http/router";
 import DER "sdk/utils/der";
 import Definition "routes/definition";
@@ -10,6 +9,7 @@ import Ping "routes/commands/ping";
 import Http "sdk/http";
 import CommandAdaptor "sdk/commandAdaptor";
 import Echo "routes/commands/echo";
+import Env "sdk/env";
 
 actor class PingBot(key: Text) {
     stable let ocPublicKey = DER.parsePublicKeyOrTrap(key);
@@ -22,7 +22,7 @@ actor class PingBot(key: Text) {
         .get("/hello", Hello.handler)
         .get("/*", Definition.handler(registry.definitions()))
         .post("/execute_command", func (request: Http.Request) : async Http.Response {
-            await CommandAdaptor.execute(registry, request, ocPublicKey, Time.now());
+            await CommandAdaptor.execute(registry, request, ocPublicKey, Env.nowMillis());
         });
 
     public query func http_request(request : HttpTypes.Request) : async HttpTypes.Response {

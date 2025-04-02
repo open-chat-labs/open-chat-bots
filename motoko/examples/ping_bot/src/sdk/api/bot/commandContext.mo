@@ -4,7 +4,6 @@ import Nat "mo:base/Nat";
 import Nat64 "mo:base/Nat64";
 import Option "mo:base/Option";
 import Nat32 "mo:base/Nat32";
-import Time "mo:base/Time";
 import B "../common/base";
 import Scope "../common/scope";
 import Command "../common/command";
@@ -39,7 +38,7 @@ module {
         };
     };
 
-    public func parseJwt(text : Text, publicKey : DER.PublicKey, now : Time.Time) : Result.Result<BotCommandContext, JWT.VerifyError> {
+    public func parseJwt(text : Text, publicKey : DER.PublicKey, now : B.TimestampMillis) : Result.Result<BotCommandContext, JWT.VerifyError> {
         switch (JWT.verify(text, publicKey, now)) {
             case (#ok(result)) {
                 if (result.claimType != "BotActionByCommand") {
@@ -57,7 +56,7 @@ module {
 
     // type ParseResult = Result.Result<BotCommandContext, JWT.VerifyError>;
     
-    // public func parseJwt2(text : Text, publicKey : DER.PublicKey, now : Time.Time) : ParseResult {
+    // public func parseJwt2(text : Text, publicKey : DER.PublicKey, now : B.TimestampMillis) : ParseResult {
     //     JWT.verify(text, publicKey, now) 
     //         |> Result.mapOk(_, func (jwt : JWT.JWT) : ParseResult {
     //             if (jwt.claimType != "BotActionByCommand") {

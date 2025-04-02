@@ -2,6 +2,8 @@ import Result "mo:base/Result";
 import Int64 "mo:base/Int64";
 import Debug "mo:base/Debug";
 import Option "mo:base/Option";
+import Array "mo:base/Array";
+import Nat64 "mo:base/Nat64";
 import Json "mo:json";
 import B "../common/base";
 import Deserialize "../common/deserialization";
@@ -30,17 +32,79 @@ module {
         #Decimal : Float;
         #Boolean : Bool;
         #User : B.UserId;
-        #Datetime : B.TimestampMillis;
+        #DateTime : B.TimestampMillis;
     };
 
-    public func arg<T>(command : Command, name : Text) : T {
-        let ?value = maybeArg(command, name) else Debug.trap("Command arg not found");
+    public func argText(command : Command, name : Text) : Text {
+        let ?value = maybeArgText(command, name) else Debug.trap("Command arg not found");
         value;
     };
 
-    public func maybeArg<T>(command : Command, name : Text) : ?T {
-        // TODO
-        null;
+    public func maybeArgText(command : Command, name : Text) : ?Text {
+        switch (getArgValue(command, name)) {
+            case (?#String(v)) ?v;
+            case _ null;
+        }
+    };
+
+    public func argInt(command : Command, name : Text) : Int {
+        let ?value = maybeArgInt(command, name) else Debug.trap("Command arg not found");
+        value;
+    };
+
+    public func maybeArgInt(command : Command, name : Text) : ?Int {
+        switch (getArgValue(command, name)) {
+            case (?#Integer(v)) ?Int64.toInt(v);
+            case _ null;
+        }
+    };
+
+    public func argFloat(command : Command, name : Text) : Float {
+        let ?value = maybeArgFloat(command, name) else Debug.trap("Command arg not found");
+        value;
+    };
+
+    public func maybeArgFloat(command : Command, name : Text) : ?Float {
+        switch (getArgValue(command, name)) {
+            case (?#Decimal(v)) ?v;
+            case _ null;
+        }
+    };
+
+    public func argBool(command : Command, name : Text) : Bool {
+        let ?value = maybeArgBool(command, name) else Debug.trap("Command arg not found");
+        value;
+    };
+
+    public func maybeArgBool(command : Command, name : Text) : ?Bool {
+        switch (getArgValue(command, name)) {
+            case (?#Boolean(v)) ?v;
+            case _ null;
+        }
+    };
+
+    public func argUser(command : Command, name : Text) : B.UserId {
+        let ?value = maybeArgUser(command, name) else Debug.trap("Command arg not found");
+        value;
+    };
+
+    public func maybeArgUser(command : Command, name : Text) : ?B.UserId {
+        switch (getArgValue(command, name)) {
+            case (?#User(v)) ?v;
+            case _ null;
+        }
+    };
+
+    public func argTimestamp(command : Command, name : Text) : B.TimestampMillis {
+        let ?value = maybeArgTimestamp(command, name) else Debug.trap("Command arg not found");
+        value;
+    };
+
+    public func maybeArgTimestamp(command : Command, name : Text) : ?B.TimestampMillis {
+        switch (getArgValue(command, name)) {
+            case (?#DateTime(v)) ?v;
+            case _ null;
+        }
     };
 
     public func timezone(command : Command) : Text {
@@ -56,6 +120,11 @@ module {
     public func deserialize(commandJson : Json.Json) : Result.Result<Command, Text> {
         Des.deserializeCommand(commandJson);
     };  
+
+    func getArgValue(command : Command, name : Text) : ?CommandArgValue {
+        Array.find(command.args, func (arg : CommandArg) : Bool { arg.name == name })
+            |> Option.map(_, func (arg : CommandArg) : CommandArgValue { arg.value });    
+    };
 
    module Des {
         public func deserializeCommand(commandJson : Json.Json) : Result.Result<Command, Text> {
@@ -133,6 +202,10 @@ module {
                 case ("User") switch (Deserialize.principal(valueTypeValue, "")) {
                     case (#ok(p)) #User(p);
                     case (#err(e)) return #err("Invalid 'User' value in CommandArg: " # debug_show (e));
+                };
+                case ("DateTime") switch (Json.getAsInt(valueTypeValue, "")) {
+                    case (#ok(int)) #DateTime(Nat64.fromIntWrap(int));
+                    case (#err(e)) return #err("Invalid 'DateTime' value in CommandArg: " # debug_show (e));
                 };
                 case (_) return #err("Invalid value variant type: " # valueType);
             };

@@ -4,27 +4,28 @@ import Text "mo:base/Text";
 import Iter "mo:base/Iter";
 import Blob "mo:base/Blob";
 import Debug "mo:base/Debug";
-import Time "mo:base/Time";
+import Nat64 "mo:base/Nat64";
 import ECDSA "mo:ecdsa";
 import Curve "mo:ecdsa/curve";
 import Base64 "mo:base64";
 import DER "der";
+import Base "../api/common/base";
 
 module {
     public type JWT = {
         claimType : Text;
-        expiry : Time.Time;
+        expiry : Base.TimestampMillis;
         data : Json.Json;
     };
 
     public type VerifyError = {
         #parseError : Text;
-        #expired : Time.Time;
+        #expired : Base.TimestampMillis;
         #invalidSignature;
         #invalidClaims;
     };
 
-    public func verify(jwt : Text, derPublicKey : DER.PublicKey, now : Time.Time) : Result.Result<JWT, VerifyError> {
+    public func verify(jwt : Text, derPublicKey : DER.PublicKey, now : Base.TimestampMillis) : Result.Result<JWT, VerifyError> {
         let base64Engine = Base64.Base64(#v(Base64.V2), ?true);
 
         // Split JWT into parts
@@ -62,7 +63,7 @@ module {
             case (#err(e)) return #err(#parseError("Invalid claims JSON: " # debug_show (e)));
             case (#ok(claims)) {
                 let expiryTimestamp = switch (Json.getAsInt(claims, "exp")) {
-                    case (#ok(expInt)) expInt * 1_000_000_000; // seconds to nanoseconds
+                    case (#ok(expInt)) Nat64.fromIntWrap(expInt * 1_000); // seconds to milliseconds
                     case (#err(e)) return #err(#parseError("Invalid 'exp' field in claims: " # debug_show (e)));
                 };
                 if (expiryTimestamp < now) {

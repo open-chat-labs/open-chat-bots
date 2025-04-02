@@ -20,7 +20,7 @@ module {
 
     public type BotCommand = {
         name : Text;
-        description : Text;
+        description : ?Text;
         placeholder : ?Text;
         params : [BotCommandParam];
         permissions : BotPermissions;
@@ -30,7 +30,7 @@ module {
 
     public type BotCommandParam = {
         name : Text;
-        description : Text;
+        description : ?Text;
         placeholder : ?Text;
         required : Bool;
         param_type : BotCommandParamType;
@@ -101,10 +101,13 @@ module {
     private func serializeBotCommand(command : BotCommand) : Json.Json {
         var fields : [(Text, Json.Json)] = [
             ("name", #string(command.name)),
-            ("description", #string(command.description)),
             ("params", Serialize.arrayOfValues(command.params, serializeBotCommandParam)),
             ("permissions", Permissions.serialize(command.permissions)),
         ];
+        switch (command.description) {
+            case (null) ();
+            case (?description) fields := Array.append(fields, [("description", #string(description))]);
+        };
         switch (command.placeholder) {
             case (null) ();
             case (?placeholder) fields := Array.append(fields, [("placeholder", #string(placeholder))]);
@@ -133,10 +136,13 @@ module {
     private func serializeBotCommandParam(param : BotCommandParam) : Json.Json {
         var fields : [(Text, Json.Json)] = [
             ("name", #string(param.name)),
-            ("description", #string(param.description)),
             ("required", #bool(param.required)),
             ("param_type", serializeParamType(param.param_type)),
         ];
+        switch (param.description) {
+            case (null) ();
+            case (?description) fields := Array.append(fields, [("description", #string(description))]);
+        };
         switch (param.placeholder) {
             case (null) ();
             case (?placeholder) fields := Array.append(fields, [("placeholder", #string(placeholder))]);

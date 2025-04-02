@@ -14,7 +14,7 @@ module {
         var channelId : ?B.ChannelId = ActionContext.channelId(context);
         var messageId : ?B.MessageId = context.messageId;
         var blockLevelMarkdown : Bool = false;
-        var finalised : Bool = false;
+        var finalised : Bool = true;
 
         // This only takes effect for community scope
         public func withChannelId(value : B.ChannelId) : Builder {

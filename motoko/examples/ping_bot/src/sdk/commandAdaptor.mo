@@ -1,17 +1,17 @@
 import Json "mo:json";
-import Time "mo:base/Time";
 import Der "utils/der";
 import CommandHandler "commandHandler";
 import Http "http";
 import CommandResponse "api/bot/commandResponse";
 import ResponseBuilder "http/responseBuilder";
+import Base "api/common/base";
 
 module {
     public func execute(
         registry : CommandHandler.Registry, 
         request : Http.Request, 
         ocPublicKey : Der.PublicKey, 
-        now : Time.Time) 
+        now : Base.TimestampMillis) 
     : async Http.Response {
         let commandResponse = await executeInner(registry, request, ocPublicKey, now);
 
@@ -29,7 +29,7 @@ module {
         registry : CommandHandler.Registry, 
         request : Http.Request, 
         ocPublicKey : Der.PublicKey, 
-        now : Time.Time) 
+        now : Base.TimestampMillis) 
     : async CommandResponse.Response {
         let ?jwt = Http.requestHeader(request, "x-oc-jwt") else {
             return #BadRequest(#AccessTokenNotFound);

@@ -23,7 +23,7 @@ module {
     func definition() : Definition.BotCommand {
         {
             name = "ping";
-            description = "Responds with pong";
+            description = ?"Responds with pong";
             placeholder = null;
             params = [];
             permissions = {

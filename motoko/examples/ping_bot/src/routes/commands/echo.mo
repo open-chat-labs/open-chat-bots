@@ -14,7 +14,7 @@ module {
     };
 
     func execute(client : Client.CommandClient) : async Result.Result<CommandResponse.SuccessResult, Text> {
-        let text = Command.arg(client.context.command, "message");
+        let text = Command.argText(client.context.command, "text");
 
         let message = await client
             .sendTextMessage(text)
@@ -26,11 +26,11 @@ module {
     func definition() : Definition.BotCommand {
         {
             name = "echo";
-            description = "Echos the given text";
+            description = ?"Echos the given text";
             placeholder = null;
             params = [{
                 name = "text";
-                description = "The text to echo";
+                description = ?"The text to echo";
                 placeholder = null;
                 required = true;
                 param_type = #StringParam {
