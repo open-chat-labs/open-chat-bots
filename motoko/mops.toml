@@ -1,0 +1,16 @@
+[dependencies]
+base = "0.14.4"
+base64 = "1.0.0"
+ecdsa = "1.0.0"
+http-types = "1.0.1"
+http-parser = "0.3.4"
+itertools = "0.2.2"
+json = "1.0.1"
+
+[package]
+name = "openchat-bot-sdk"
+version = "0.1.0"
+description = "An SDK for developing bots which plugin to the OpenChat bot framework + examples"
+repository = "https://github.com/open-chat-labs/open-chat-bots"
+keywords = [ "openchat", "sdk", "bots", "examples" ]
+license = "MIT"

@@ -1,18 +1,14 @@
-import CommandHandler "../../sdk/commandHandler";
-import CommandResponse "../../sdk/api/bot/commandResponse";
-import Definition "../../sdk/api/bot/definition";
-import Result "mo:base/Result";
-import Client "../../sdk/client";
+import Sdk "mo:openchat-bot-sdk";
 
 module {
-    public func build() : CommandHandler.CommandHandler {
+    public func build() : Sdk.Command.Handler {
         {
             definition = definition();
             execute = execute;    
         };
     };
 
-    func execute(client : Client.CommandClient) : async Result.Result<CommandResponse.SuccessResult, Text> {
+    func execute(client : Sdk.OpenChat.Client) : async Sdk.Command.Result {
         let message = await client
             .sendTextMessage("pong")
             .executeThenReturnMessage(null);
@@ -20,7 +16,7 @@ module {
         return #ok { message = message };
     };
 
-    func definition() : Definition.BotCommand {
+    func definition() : Sdk.Definition.Command {
         {
             name = "ping";
             description = ?"Responds with pong";
@@ -31,7 +27,7 @@ module {
                 chat = [];
                 message =[#Text];
             };
-            default_role = ?#Admin;
+            default_role = null;
             direct_messages = null;
         }
     };

@@ -4,12 +4,12 @@ import Permissions "../common/permissions";
 import Serialize "../common/serialization";
 import B "../common/base";
 
-module {
+module Definition {
     public type BotPermissions = Permissions.BotPermissions;    
 
     public type Bot = {
         description : Text;
-        commands : [BotCommand];
+        commands : [Command];
         autonomous_config : ?AutonomousConfig;
     };
 
@@ -18,25 +18,25 @@ module {
         sync_api_key : Bool;
     };
 
-    public type BotCommand = {
+    public type Command = {
         name : Text;
         description : ?Text;
         placeholder : ?Text;
-        params : [BotCommandParam];
+        params : [CommandParam];
         permissions : BotPermissions;
         default_role: ?B.ChatRole;
         direct_messages: ?Bool;
     };
 
-    public type BotCommandParam = {
+    public type CommandParam = {
         name : Text;
         description : ?Text;
         placeholder : ?Text;
         required : Bool;
-        param_type : BotCommandParamType;
+        param_type : CommandParamType;
     };
 
-    public type BotCommandParamType = {
+    public type CommandParamType = {
         #UserParam;
         #BooleanParam;
         #StringParam : StringParam;
@@ -98,7 +98,7 @@ module {
         #object_(fields);
     };
 
-    private func serializeBotCommand(command : BotCommand) : Json.Json {
+    private func serializeBotCommand(command : Command) : Json.Json {
         var fields : [(Text, Json.Json)] = [
             ("name", #string(command.name)),
             ("params", Serialize.arrayOfValues(command.params, serializeBotCommandParam)),
@@ -133,7 +133,7 @@ module {
         };
     };
 
-    private func serializeBotCommandParam(param : BotCommandParam) : Json.Json {
+    private func serializeBotCommandParam(param : CommandParam) : Json.Json {
         var fields : [(Text, Json.Json)] = [
             ("name", #string(param.name)),
             ("required", #bool(param.required)),
@@ -151,7 +151,7 @@ module {
         #object_(fields);
     };
 
-    private func serializeParamType(paramType : BotCommandParamType) : Json.Json {
+    private func serializeParamType(paramType : CommandParamType) : Json.Json {
         switch (paramType) {
             case (#UserParam) #string("UserParam");
             case (#BooleanParam) #string("BooleanParam");

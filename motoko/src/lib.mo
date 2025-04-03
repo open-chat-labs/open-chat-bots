@@ -1,0 +1,63 @@
+import Client "client";
+import CommandHandler "commandHandler";
+import DefinitionInternal "api/bot/definition";
+import Der "utils/der";
+import RouterInternal "http/router";
+import HttpInternal "http";
+import Builder "http/responseBuilder";
+import CommandAdaptor "commandAdaptor";
+import CommandResponse "api/bot/commandResponse";
+import Result "mo:base/Result";
+import CommandInternal "api/common/command";
+
+module {
+    public module Definition {
+        public type Bot = DefinitionInternal.Bot;
+        public type Command = DefinitionInternal.Command;
+        public type AutonomousConfig = DefinitionInternal.AutonomousConfig;
+        public let serialize = DefinitionInternal.serialize;
+    };
+
+    public module Http {
+        public type Request = HttpInternal.Request;
+        public type Response = HttpInternal.Response;
+
+        public type Router = RouterInternal.Router;
+        public func Router() : Router = RouterInternal.Router();
+        public type QueryHandler = RouterInternal.QueryHandler;
+        public type UpdateHandler = RouterInternal.UpdateHandler;
+
+        public type ResponseBuilder = Builder.Builder;
+        public func ResponseBuilder() : ResponseBuilder = Builder.Builder();
+    };
+
+    public module Command {
+        public type Handler = CommandHandler.CommandHandler;
+        public type SuccessResult = CommandResponse.SuccessResult;
+        public type Result = Result.Result<SuccessResult, Text>;
+        public type Registry = CommandHandler.Registry;
+        public func Registry() : Registry = CommandHandler.Registry();
+
+        public module Arg {
+            public let text = CommandInternal.argText;
+            public let int = CommandInternal.argInt;
+            public let float = CommandInternal.argFloat;
+            public let bool = CommandInternal.argBool;
+            public let user = CommandInternal.argUser;
+            public let timestamp = CommandInternal.argTimestamp;
+            public let maybeText = CommandInternal.maybeArgText;
+            public let maybeInt = CommandInternal.maybeArgInt;
+            public let maybeFloat = CommandInternal.maybeArgFloat;
+            public let maybeBool = CommandInternal.maybeArgBool;
+            public let maybeUser = CommandInternal.maybeArgUser;
+            public let maybeTimestamp = CommandInternal.maybeArgTimestamp;
+        };
+    };
+
+    public module OpenChat {
+        public type Client = Client.CommandClient;
+    };
+
+    public let parsePublicKeyOrTrap = Der.parsePublicKeyOrTrap;
+    public let executeCommand = CommandAdaptor.execute;
+};

@@ -132,16 +132,16 @@ fn check_args_internal(
         return false;
     }
 
-    for p in params.iter() {
-        let Some(arg) = args.iter().find(|a| a.name == p.name) else {
-            if p.required {
+    for param in params.iter() {
+        let Some(arg) = args.iter().find(|a| a.name == param.name) else {
+            if param.required {
                 return false;
             }
 
             continue;
         };
 
-        match &p.param_type {
+        match &param.param_type {
             BotCommandParamType::StringParam(p) => {
                 let Some(value) = arg.value.as_string() else {
                     return false;

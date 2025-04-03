@@ -14,7 +14,7 @@ import Base "api/common/base";
 
 module {
     public type CommandHandler = {
-        definition : Definition.BotCommand;
+        definition : Definition.Command;
         execute : (Client.CommandClient) -> async Result.Result<CommandResponse.SuccessResult, Text>;
     };
 
@@ -23,7 +23,7 @@ module {
     public class Registry() = this {
         var handlers : [CommandHandler] = [];
         var syncApiKeyHandler : ?SyncHandler = null;
-        let syncApiKeyParams : [Definition.BotCommandParam] = buildSyncApiKeyParams();
+        let syncApiKeyParams : [Definition.CommandParam] = buildSyncApiKeyParams();
 
         public func register(handler : CommandHandler) : Registry {
             handlers := Array.append(handlers, [handler]);
@@ -35,8 +35,8 @@ module {
             this;
         };
 
-        public func definitions() : [Definition.BotCommand] {
-            Array.map(handlers, func(handler : CommandHandler) : Definition.BotCommand {
+        public func definitions() : [Definition.Command] {
+            Array.map(handlers, func(handler : CommandHandler) : Definition.Command {
                 handler.definition
             });
         };
@@ -88,7 +88,7 @@ module {
 
         func checkArgs(
             args: [Command.CommandArg],
-            params: [Definition.BotCommandParam],
+            params: [Definition.CommandParam],
             now: Base.TimestampMillis,
         ) : Bool {
             if (args.size() > params.size()) {
@@ -207,7 +207,7 @@ module {
         };
     };
 
-    func buildSyncApiKeyParams() : [Definition.BotCommandParam] {
+    func buildSyncApiKeyParams() : [Definition.CommandParam] {
         [
             {
                 name = "api_key";

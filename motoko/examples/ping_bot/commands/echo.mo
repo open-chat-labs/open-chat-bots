@@ -1,20 +1,15 @@
-import CommandHandler "../../sdk/commandHandler";
-import CommandResponse "../../sdk/api/bot/commandResponse";
-import Definition "../../sdk/api/bot/definition";
-import Result "mo:base/Result";
-import Command "../../sdk/api/common/command";
-import Client "../../sdk/client";
+import Sdk "mo:openchat-bot-sdk";
 
 module {
-    public func build() : CommandHandler.CommandHandler {
+    public func build() : Sdk.Command.Handler {
         {
             definition = definition();
             execute = execute;    
         };
     };
 
-    func execute(client : Client.CommandClient) : async Result.Result<CommandResponse.SuccessResult, Text> {
-        let text = Command.argText(client.context.command, "text");
+    func execute(client : Sdk.OpenChat.Client) : async Sdk.Command.Result {
+        let text = Sdk.Command.Arg.text(client.context.command, "text");
 
         let message = await client
             .sendTextMessage(text)
@@ -23,7 +18,7 @@ module {
         return #ok { message = message };
     };
 
-    func definition() : Definition.BotCommand {
+    func definition() : Sdk.Definition.Command {
         {
             name = "echo";
             description = ?"Echos the given text";
