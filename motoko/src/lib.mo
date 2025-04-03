@@ -9,6 +9,7 @@ import CommandAdaptor "commandAdaptor";
 import CommandResponse "api/bot/commandResponse";
 import Result "mo:base/Result";
 import CommandInternal "api/common/command";
+//import ApiKeyRegistry "apiKeyRegistry";
 
 module {
     public module Definition {
@@ -21,22 +22,17 @@ module {
     public module Http {
         public type Request = HttpInternal.Request;
         public type Response = HttpInternal.Response;
-
-        public type Router = RouterInternal.Router;
-        public func Router() : Router = RouterInternal.Router();
         public type QueryHandler = RouterInternal.QueryHandler;
         public type UpdateHandler = RouterInternal.UpdateHandler;
-
-        public type ResponseBuilder = Builder.Builder;
-        public func ResponseBuilder() : ResponseBuilder = Builder.Builder();
+        public let Router = RouterInternal.Router;
+        public let ResponseBuilder = Builder.Builder;
     };
 
     public module Command {
         public type Handler = CommandHandler.CommandHandler;
         public type SuccessResult = CommandResponse.SuccessResult;
         public type Result = Result.Result<SuccessResult, Text>;
-        public type Registry = CommandHandler.Registry;
-        public func Registry() : Registry = CommandHandler.Registry();
+        public let Registry = CommandHandler.Registry;
 
         public module Arg {
             public let text = CommandInternal.argText;
@@ -60,4 +56,6 @@ module {
 
     public let parsePublicKeyOrTrap = Der.parsePublicKeyOrTrap;
     public let executeCommand = CommandAdaptor.execute;
+
+    //public type ApiKeyRegistry = ApiKeyRegistry.ApiKeyRegistry;
 };

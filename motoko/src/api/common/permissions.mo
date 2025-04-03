@@ -5,7 +5,8 @@ import Nat32 "mo:base/Nat32";
 import Buffer "mo:base/Buffer";
 import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
-import Deserialize "../common/deserialization";
+import Deserialize "deserialization";
+import Array "../../utils/array";
 
 module {
     public type BotPermissions = {
@@ -59,6 +60,17 @@ module {
         Des.deserializeBotPermissions(dataJson);
     };
 
+    // Is 'b' a subset of 'a'
+    public func isSubset(a : BotPermissions, b : BotPermissions) : Bool {
+        Array.isSubset(a.community, b.community, communityEqual)
+         and Array.isSubset(a.chat, b.chat, groupEqual)
+         and Array.isSubset(a.message, b.message, messageEqual);
+    };
+
+    private func communityEqual(a : CommunityPermission, b : CommunityPermission) : Bool { a == b };
+    private func groupEqual(a : GroupPermission, b : GroupPermission) : Bool { a == b };
+    private func messageEqual(a : MessagePermission, b : MessagePermission) : Bool { a == b };
+    
     module Ser {
         public func serializeBotPermissions(permissions : BotPermissions) : Json.Json {
             let encodedCommunityPermissions = encodePermissions(

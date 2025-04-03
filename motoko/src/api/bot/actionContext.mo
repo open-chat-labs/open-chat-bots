@@ -1,5 +1,5 @@
 import Permissions "../common/permissions";
-import Scope "../common/scope";
+import Scope "../common/actionScope";
 import B "../common/base";
 
 module {
@@ -8,9 +8,9 @@ module {
         apiGateway : B.CanisterId;
         scope : Scope.ActionScope;
         grantedPermissions : ?Permissions.BotPermissions;
+        authToken : B.AuthToken;
         messageId : ?B.MessageId;
         thread : ?B.MessageIndex;
-        authToken : B.AuthToken;
     };
 
     public func channelId(context : ActionContext) : ?B.ChannelId {

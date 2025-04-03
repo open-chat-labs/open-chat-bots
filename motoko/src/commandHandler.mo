@@ -18,7 +18,7 @@ module {
         execute : (Client.CommandClient) -> async Result.Result<CommandResponse.SuccessResult, Text>;
     };
 
-    public type SyncHandler = CommandContext.BotCommandContext -> CommandResponse.Response;
+    public type SyncHandler = CommandContext.CommandContext -> CommandResponse.Response;
 
     public class Registry() = this {
         var handlers : [CommandHandler] = [];

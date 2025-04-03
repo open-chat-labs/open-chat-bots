@@ -1,18 +1,14 @@
 import B "base";
+import Chat "chat";
 
 module {
-    public type ActionScope = {
-        #Chat : Chat;
-        #Community : B.CanisterId;
-    };
-
     public type BotCommandScope = {
         #Chat : BotActionChatDetails;
         #Community : BotActionCommunityDetails;
     };
 
     public type BotActionChatDetails = {
-        chat : Chat;
+        chat : Chat.Chat;
         thread : ?B.MessageIndex;
         message_id  : B.MessageId;
         user_message_id : ?B.MessageId;
@@ -20,12 +16,6 @@ module {
 
     public type BotActionCommunityDetails = {
         community_id : B.CanisterId;
-    };
-
-    public type Chat = {
-        #Direct : B.CanisterId;
-        #Group : B.CanisterId;
-        #Channel: (B.CanisterId, B.ChannelId);
     };
 
     public func messageId(scope : BotCommandScope) : ?B.MessageId {

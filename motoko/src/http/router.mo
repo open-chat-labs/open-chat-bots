@@ -6,14 +6,18 @@ import Text "mo:base/Text";
 import ResponseBuilder "responseBuilder";
 
 module {
-    public class Router() = this {
+    public class Router<S>(_state : S) = this {
         var queryRoutes : [QueryRoute] = [];
         var updateRoutes : [UpdateRoute] = [];
+
+        public func state() : S {
+            _state;
+        };
 
         public func get(
             pathExpr : Text,
             handler: QueryHandler
-        ) : Router {
+        ) : Router<S> {
             let route: QueryRoute = {
                 pathExpr = pathExpr;
                 handler = handler;
@@ -25,7 +29,7 @@ module {
         public func post(
             pathExpr : Text,
             handler: UpdateHandler
-        ) : Router {
+        ) : Router<S> {
             let route: UpdateRoute = {
                 pathExpr = pathExpr;
                 handler = handler;

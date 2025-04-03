@@ -4,7 +4,7 @@ import SendMessage "client/sendMessage";
 import ActionContext "api/bot/actionContext";
 
 module {
-    public class CommandClient(commandContext : CommandContext.BotCommandContext) {
+    public class CommandClient(commandContext : CommandContext.CommandContext) {
         public let context = commandContext;
 
         let actionContext : ActionContext.ActionContext = CommandContext.toActionContext(context);

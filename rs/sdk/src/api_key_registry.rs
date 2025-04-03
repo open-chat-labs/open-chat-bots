@@ -44,20 +44,29 @@ impl ApiKeyRegistry {
         scope: &ActionScope,
         required_permissions: &BotPermissions,
     ) -> Option<&ApiKeyRecord> {
+        self.get_matching_record(scope, required_permissions)
+            .or_else(|| {
+                // If an API Key with the required permissions cannot be found at the
+                // channel scope then check the community scope
+                if let ActionScope::Chat(Chat::Channel(community_id, _)) = scope {
+                    self.get_matching_record(
+                        &ActionScope::Community(*community_id),
+                        required_permissions,
+                    )
+                } else {
+                    None
+                }
+            })
+    }
+
+    fn get_matching_record(
+        &self,
+        scope: &ActionScope,
+        required_permissions: &BotPermissions,
+    ) -> Option<&ApiKeyRecord> {
         if let Some(record) = self.api_keys.get(scope) {
             if required_permissions.is_subset(&record.granted_permissions) {
                 return Some(record);
-            }
-        }
-
-        // If an API Key with the required permissions cannot be found at the
-        // channel scope then check the community scope
-        if let ActionScope::Chat(Chat::Channel(community_id, _)) = &scope {
-            let community_scope = ActionScope::Community(*community_id);
-            if let Some(record) = self.api_keys.get(&community_scope) {
-                if required_permissions.is_subset(&record.granted_permissions) {
-                    return Some(record);
-                }
             }
         }
 
