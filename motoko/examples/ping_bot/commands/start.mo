@@ -1,25 +1,55 @@
 import Sdk "mo:openchat-bot-sdk";
+import CommandHandler "mo:openchat-bot-sdk/commandHandler";
 import CommandResponse "mo:openchat-bot-sdk/api/bot/commandResponse";
 import Scope "mo:openchat-bot-sdk/api/common/commandScope";
 import Option "mo:base/Option";
-import Float "mo:base/Float";
+import Int "mo:base/Int";
+import S "../state";
+import Permissions "mo:openchat-bot-sdk/api/common/permissions";
 
 module {
-    public func build() : Sdk.Command.Handler {
+    public func build(state : S.State) : Sdk.Command.Handler {
         {
             definition = definition();
-            execute = execute;    
+            execute = execute(state);
         };
     };
 
-    func execute(client : Sdk.OpenChat.Client) : async Sdk.Command.Result {
-        let n = Sdk.Command.Arg.maybeFloat(client.context.command, "n") |> Option.get(_, 1.0);
-        let text = "Start pinging every " # Float.toText(n) # " seconds";    
-        let ?messageId = Scope.messageId(client.context.scope) else return #err "Expected Chat scope";        
+    func execute(state : S.State) : CommandHandler.Execute {
+        func (client : Sdk.OpenChat.Client) : async Sdk.Command.Result {
+            let n = Sdk.Command.Arg.maybeInt(client.context.command, "n") |> Option.get(_, 5) |> Int.abs(_);
+            let ?chatDetails = Scope.chatDetails(client.context.scope) else return #err "Expected Chat scope";
 
-        let message = CommandResponse.EphemeralMessageBuilder(#Text { text = text }, messageId).build();
+            // Check if there is an API Key registered at the required scope and with the required permissions
+            let text = switch (state
+                .apiKeyRegistry
+                .getKeyWithRequiredPermissions(
+                    #Chat(chatDetails.chat),
+                    Permissions.textOnly(),
+                )) {
+                case (?apiKeyRecord) {
+                    let sub = {
+                        chat = chatDetails.chat;
+                        interval = n;
+                        apiKey = apiKeyRecord.key;
+                    };
 
-        return #ok { message = ?message };
+                    let prefix = switch (state.subscriptions.set<system>(sub)) {
+                        case false "Start pinging every";
+                        case true "Update ping interval to";
+                    };
+
+                    prefix # " " # Int.toText(n) # " seconds";                    
+                };
+                case null {
+                    "You must first register an API key for this chat and grant the 'send text message' permission";
+                };
+            };
+
+            let message = CommandResponse.EphemeralMessageBuilder(#Text { text = text }, chatDetails.message_id).build();
+
+            return #ok { message = ?message };
+        };
     };
 
     func definition() : Sdk.Definition.Command {
@@ -29,12 +59,12 @@ module {
             placeholder = null;
             params = [{
                 name = "n";
-                description = ?"The delay between pings in the range 1 - 10 seconds";
+                description = ?"The delay in seconds between pings or 5 if undefined";
                 placeholder = null;
                 required = false;
-                param_type = #DecimalParam {
-                    max_value = 10.0;
-                    min_value = 1.0;
+                param_type = #IntegerParam {
+                    max_value = 1000;
+                    min_value = 2;
                     choices = [];
                 };
             }];

@@ -7,23 +7,26 @@ import Greet "commands/greet";
 import Ping "commands/ping";
 import Start "commands/start";
 import Stop "commands/stop";
-import ApiKeyRegistry "mo:openchat-bot-sdk/apiKeyRegistry";
+import State "state";
+import SyncApiKey "commands/syncApiKey";
+import Metrics "metrics";
 
 actor class GreetBot(key: Text) {
-    let ocPublicKey = Sdk.parsePublicKeyOrTrap(key);
+    stable var stableState = State.new();    
 
-    var apiKeyRegistry = ApiKeyRegistry.new([]);
+    transient let ocPublicKey = Sdk.parsePublicKeyOrTrap(key);
+    transient var state = State.fromStable<system>(stableState);
 
-    stable var apiKeys : [Text] = [];
-
-    let registry = Sdk.Command.Registry()
+    transient let registry = Sdk.Command.Registry()
         .register(Echo.build())
         .register(Greet.build())
         .register(Ping.build())
-        .register(Start.build())
-        .register(Stop.build());
+        .register(Start.build(state))
+        .register(Stop.build(state))
+        .onSyncApiKey(SyncApiKey.handler(state));
 
-    let router = Sdk.Http.Router(apiKeyRegistry)
+    transient let router = Sdk.Http.Router()
+        .get("/metrics", Metrics.handler(state))
         .get("/*", Definition.handler(registry.definitions()))
         .post("/execute_command", func (request: Sdk.Http.Request) : async Sdk.Http.Response {
             await Sdk.executeCommand(registry, request, ocPublicKey, Env.nowMillis());
@@ -38,10 +41,10 @@ actor class GreetBot(key: Text) {
     };
 
     system func preupgrade() {
-        apiKeys := apiKeyRegistry.getApiKeys();
+        stableState := State.toStable(state);
     };
 
     system func postupgrade() {
-        apiKeyRegistry := ApiKeyRegistry.new(apiKeys);
+        state := State.fromStable<system>(stableState);
     };
 }

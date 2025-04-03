@@ -5,7 +5,7 @@ import Serialize "../common/serialization";
 import B "../common/base";
 
 module Definition {
-    public type BotPermissions = Permissions.BotPermissions;    
+    public type Permissions = Permissions.Permissions;    
 
     public type Bot = {
         description : Text;
@@ -14,7 +14,7 @@ module Definition {
     };
 
     public type AutonomousConfig = {
-        permissions : ?BotPermissions;
+        permissions : ?Permissions;
         sync_api_key : Bool;
     };
 
@@ -23,7 +23,7 @@ module Definition {
         description : ?Text;
         placeholder : ?Text;
         params : [CommandParam];
-        permissions : BotPermissions;
+        permissions : Permissions;
         default_role: ?B.ChatRole;
         direct_messages: ?Bool;
     };

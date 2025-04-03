@@ -9,7 +9,7 @@ import Deserialize "deserialization";
 import Array "../../utils/array";
 
 module {
-    public type BotPermissions = {
+    public type Permissions = {
         chat : [GroupPermission];
         community : [CommunityPermission];
         message : [MessagePermission];
@@ -52,16 +52,24 @@ module {
         #VideoCall;
     };
 
-    public func serialize(permissions : BotPermissions) : Json.Json {
-        Ser.serializeBotPermissions(permissions);
+    public func textOnly() : Permissions {
+        {
+            chat = [];
+            community = [];
+            message = [#Text];
+        };
     };
 
-    public func deserialize(dataJson : Json.Json) : Result.Result<BotPermissions, Text> {
-        Des.deserializeBotPermissions(dataJson);
+    public func serialize(permissions : Permissions) : Json.Json {
+        Ser.serializePermissions(permissions);
+    };
+
+    public func deserialize(dataJson : Json.Json) : Result.Result<Permissions, Text> {
+        Des.deserializePermissions(dataJson);
     };
 
     // Is 'b' a subset of 'a'
-    public func isSubset(a : BotPermissions, b : BotPermissions) : Bool {
+    public func isSubset(a : Permissions, b : Permissions) : Bool {
         Array.isSubset(a.community, b.community, communityEqual)
          and Array.isSubset(a.chat, b.chat, groupEqual)
          and Array.isSubset(a.message, b.message, messageEqual);
@@ -72,7 +80,7 @@ module {
     private func messageEqual(a : MessagePermission, b : MessagePermission) : Bool { a == b };
     
     module Ser {
-        public func serializeBotPermissions(permissions : BotPermissions) : Json.Json {
+        public func serializePermissions(permissions : Permissions) : Json.Json {
             let encodedCommunityPermissions = encodePermissions(
                 permissions.community,
                 encodeCommunityPermission,
@@ -154,7 +162,7 @@ module {
     };
 
     module Des {
-        public func deserializeBotPermissions(dataJson : Json.Json) : Result.Result<BotPermissions, Text> {
+        public func deserializePermissions(dataJson : Json.Json) : Result.Result<Permissions, Text> {
             func getPermissions<T>(name : Text, getPermission : Nat -> ?T, deserializePermission : Json.Json -> Result.Result<T, Text>) : Result.Result<[T], Text> {
                 switch (Json.get(dataJson, name)) {
                     case (?#number(#int(encodedPermissions))) switch (decodePermissions<T>(encodedPermissions, getPermission)) {

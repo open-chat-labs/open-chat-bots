@@ -7,7 +7,7 @@ import ResponseBuilder "http/responseBuilder";
 import Base "api/common/base";
 
 module {
-    public func execute(
+    public func execute<S>(
         registry : CommandHandler.Registry, 
         request : Http.Request, 
         ocPublicKey : Der.PublicKey, 
@@ -25,7 +25,7 @@ module {
         ResponseBuilder.json(statusCode, response);            
     };
 
-    func executeInner(
+    func executeInner<S>(
         registry : CommandHandler.Registry, 
         request : Http.Request, 
         ocPublicKey : Der.PublicKey, 

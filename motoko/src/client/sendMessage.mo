@@ -17,9 +17,9 @@ module {
         var finalised : Bool = true;
 
         // This only takes effect for community scope
-        public func withChannelId(value : B.ChannelId) : Builder {
+        public func withChannelId(value : ?B.ChannelId) : Builder {
             if (channelId == null) {
-                channelId := ?value;
+                channelId := value;
             };
             this;
         };
@@ -80,6 +80,25 @@ module {
             };
 
             return message;
+        };
+
+        public func execute() : async Result.Result<SendMessage.Response, (Error.ErrorCode, Text)> {
+            let botApiActor = actor (Principal.toText(context.apiGateway)) : SendMessage.Actor;
+
+            try {
+                let response = await botApiActor.bot_send_message({
+                    channel_id = channelId;
+                    message_id = messageId;
+                    content = content;
+                    block_level_markdown = blockLevelMarkdown;
+                    finalised = finalised;
+                    auth_token = context.authToken;
+                });
+
+                #ok response;
+            } catch (error) {
+                #err((Error.code(error), Error.message(error)));
+            }
         };
     };
 

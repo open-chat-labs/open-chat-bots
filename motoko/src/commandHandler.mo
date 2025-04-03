@@ -15,8 +15,10 @@ import Base "api/common/base";
 module {
     public type CommandHandler = {
         definition : Definition.Command;
-        execute : (Client.CommandClient) -> async Result.Result<CommandResponse.SuccessResult, Text>;
+        execute : Execute;
     };
+
+    public type Execute = Client.CommandClient -> async Result.Result<CommandResponse.SuccessResult, Text>;
 
     public type SyncHandler = CommandContext.CommandContext -> CommandResponse.Response;
 

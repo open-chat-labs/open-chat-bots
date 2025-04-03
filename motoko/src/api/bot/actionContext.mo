@@ -7,7 +7,7 @@ module {
         botId : B.UserId;
         apiGateway : B.CanisterId;
         scope : Scope.ActionScope;
-        grantedPermissions : ?Permissions.BotPermissions;
+        grantedPermissions : ?Permissions.Permissions;
         authToken : B.AuthToken;
         messageId : ?B.MessageId;
         thread : ?B.MessageIndex;

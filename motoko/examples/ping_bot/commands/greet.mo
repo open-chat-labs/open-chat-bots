@@ -10,8 +10,8 @@ module {
     };
 
     func execute(client : Sdk.OpenChat.Client) : async Sdk.Command.Result {
-        let user_id = client.context.command.initiator;
-        let text = "hello @UserId(" # Principal.toText(user_id) # ")";
+        let userId = client.context.command.initiator;
+        let text = "hello @UserId(" # Principal.toText(userId)  # ")";
 
         let message = await client
             .sendTextMessage(text)
@@ -23,8 +23,8 @@ module {
     func definition() : Sdk.Definition.Command {
         {
             name = "greet";
-            description = ?"Greet the caller by name";
-            placeholder = ?"Please wait";
+            description = ?"Responds with pong";
+            placeholder = null;
             params = [];
             permissions = {
                 community = [];

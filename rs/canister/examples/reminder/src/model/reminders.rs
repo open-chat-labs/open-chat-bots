@@ -77,6 +77,7 @@ async fn send_reminder(context: BotApiKeyContext, text: String, chat: Chat, chat
     match OPENCHAT_CLIENT_FACTORY
         .build(context)
         .send_message(MessageContentInitial::Text(TextContent { text }))
+        .with_channel_id(chat.channel_id())
         .with_block_level_markdown(true)
         .execute_async()
         .await

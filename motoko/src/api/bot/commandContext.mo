@@ -20,7 +20,7 @@ module {
         botId : B.UserId;
         apiGateway : B.CanisterId;
         scope : Scope.BotCommandScope;
-        grantedPermissions : Permissions.BotPermissions;
+        grantedPermissions : Permissions.Permissions;
         command : Command.Command;
     };
 

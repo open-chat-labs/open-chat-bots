@@ -33,9 +33,9 @@ impl<'c, R: Runtime, C: ActionContext> SendMessageBuilder<'c, R, C> {
     }
 
     // This only takes effect for community scope
-    pub fn with_channel_id(mut self, channel_id: ChannelId) -> Self {
+    pub fn with_channel_id(mut self, channel_id: Option<ChannelId>) -> Self {
         if self.channel_id.is_none() {
-            self.channel_id = Some(channel_id);
+            self.channel_id = channel_id;
         }
         self
     }

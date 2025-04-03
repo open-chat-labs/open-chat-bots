@@ -13,6 +13,14 @@ module {
         #Channel: (B.CanisterId, B.ChannelId);
     };
 
+    public func channelId(chat : Chat) : ?B.ChannelId {
+        switch (chat) {
+            case (#Direct(_)) null;
+            case (#Group(_)) null;
+            case (#Channel(_, channelId)) ?channelId;
+        };
+    };
+
     public func equal(a : Chat, b : Chat) : Bool {
         switch (a, b) {
             case (#Direct(aId), #Direct(bId)) {

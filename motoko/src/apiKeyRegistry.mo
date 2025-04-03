@@ -7,11 +7,6 @@ import Array "mo:base/Array";
 import Iter "mo:base/Iter";
 
 module {
-    public type ApiKeyRecord = {
-        key : Text;
-        grantedPermissions : Permissions.BotPermissions;
-    };
-
     public func new(apiKeys : [Text]) : ApiKeyRegistry {
         var registry = ApiKeyRegistry();
 
@@ -23,7 +18,7 @@ module {
     };
 
     public class ApiKeyRegistry() {
-        var map = HashMap.HashMap<Scope.ActionScope, ApiKeyRecord>(10, Scope.equal, Scope.hash);
+        var map = HashMap.HashMap<Scope.ActionScope, Record>(10, Scope.equal, Scope.hash);
 
         public func insert(apiKey : Text) : Result.Result<(), Text> {
             let cxt = switch (ApiKeyContext.parse(apiKey)) {
@@ -40,10 +35,10 @@ module {
         };
 
         public func getApiKeys() : [Text] {
-            map.vals() |> Iter.toArray(_) |> Array.map(_, func (record : ApiKeyRecord) : Text { record.key });
+            map.vals() |> Iter.toArray(_) |> Array.map(_, func (record : Record) : Text { record.key });
         };
 
-        public func get(scope: Scope.ActionScope) : ?ApiKeyRecord {
+        public func get(scope: Scope.ActionScope) : ?Record {
             map.get(scope);
         };
 
@@ -57,8 +52,8 @@ module {
 
         public func getKeyWithRequiredPermissions(
             scope: Scope.ActionScope, 
-            requiredPermissions: Permissions.BotPermissions) 
-        : ?ApiKeyRecord {
+            requiredPermissions: Permissions.Permissions) 
+        : ?Record {
             switch (getMatchingRecord(scope, requiredPermissions)) {
                 case (?record) {
                     return ?record;
@@ -79,8 +74,8 @@ module {
 
         func getMatchingRecord(
             scope: Scope.ActionScope, 
-            requiredPermissions: Permissions.BotPermissions) 
-        : ?ApiKeyRecord {
+            requiredPermissions: Permissions.Permissions) 
+        : ?Record {
             switch (get(scope)) {
                 case (?record) {
                     if (Permissions.isSubset(requiredPermissions, record.grantedPermissions)) {
@@ -93,5 +88,10 @@ module {
 
             null;
         };
+    };
+
+    public type Record = {
+        key : Text;
+        grantedPermissions : Permissions.Permissions;
     };
 };

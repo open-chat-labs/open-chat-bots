@@ -16,7 +16,7 @@ module {
         botId : B.UserId;
         apiGateway : B.CanisterId;
         scope : Scope.ActionScope;
-        grantedPermissions : Permissions.BotPermissions;
+        grantedPermissions : Permissions.Permissions;
     };
 
     public func toActionContext(context : ApiKeyContext) : ActionContext.ActionContext {
