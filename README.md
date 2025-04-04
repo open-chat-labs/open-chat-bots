@@ -16,4 +16,4 @@ This repo has SDKs for different languages:
 
 - For bots written in Rust, [see the rs readme](./rs/README.md).
 - For bots written in typescript, [see the ts readme](./ts/README.md).
-- For bots written in Motoko, [see the motoko readme](./motoko/README.md) (coming soon).
+- For bots written in Motoko, [see the motoko readme](./motoko/README.md).
