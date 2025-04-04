@@ -65,7 +65,9 @@ module {
         };
 
         func sendPing(chat : Chat.Chat, apiKey : Text) : () -> async () {
-            let ?apiKeyContext = ApiKeyContext.parse(apiKey) |> Result.toOption(_) else Debug.trap("Invalid API Key");
+            let ?apiKeyContext = ApiKeyContext.parse(apiKey) |> Result.toOption(_) else {
+                Debug.trap("Invalid API Key");
+            };
             let context = ApiKeyContext.toActionContext(apiKeyContext);
             let client = Client.AutonomousClient(context);
             

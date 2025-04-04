@@ -7,8 +7,8 @@ import Greet "commands/greet";
 import Ping "commands/ping";
 import Start "commands/start";
 import Stop "commands/stop";
-import State "state";
 import SyncApiKey "commands/syncApiKey";
+import State "state";
 import Metrics "metrics";
 
 actor class GreetBot(key: Text) {
