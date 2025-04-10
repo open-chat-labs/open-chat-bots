@@ -1,5 +1,5 @@
-import { Request, Response } from "express";
 import { Permissions } from "@open-ic/openchat-botclient-ts";
+import { Request, Response } from "express";
 
 const emptyPermissions = {
   chat: [],
@@ -247,6 +247,24 @@ export default function schema(_: Request, res: Response) {
           chat: ["ReadChatDetails", "ReadMessages"],
         }),
         params: [],
+      },
+      {
+        name: "say_hello",
+        description: "Say hello to a user",
+        default_role: "Participant",
+        permissions: Permissions.encodePermissions({
+          ...emptyPermissions,
+          message: ["Text"],
+        }),
+        params: [
+          {
+            name: "user",
+            required: true,
+            description: "The user to say hello to",
+            placeholder: "Please select a user",
+            param_type: "UserParam",
+          },
+        ],
       },
       {
         name: "album",
