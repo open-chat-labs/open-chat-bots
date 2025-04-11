@@ -3,7 +3,7 @@ import B "../common/base";
 import P "../common/chatPermissions";
 
 module {
-    public type BotApiActor = actor {
+    public type Actor = actor {
         bot_chat_details : (Args) -> async Response;
     };
 

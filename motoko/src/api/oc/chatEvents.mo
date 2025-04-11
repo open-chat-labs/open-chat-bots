@@ -5,7 +5,6 @@ import MessageContent "../common/messageContent";
 import Command "../common/command";
 
 type UserId = B.UserId;
-
 type ChannelId = B.ChannelId;
 type TimestampMillis = B.TimestampMillis;
 type Milliseconds = B.Milliseconds;
@@ -16,7 +15,7 @@ type AuthToken = B.AuthToken;
 type ChatRole = B.ChatRole;
 
 module {
-    public type BotApiActor = actor {
+    public type Actor = actor {
         bot_chat_events : (Args) -> async Response;
     };
 

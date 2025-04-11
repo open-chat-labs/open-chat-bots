@@ -1,7 +1,8 @@
+import ActionContext "api/bot/actionContext";
 import CommandContext "api/bot/commandContext";
 import MessageContent "api/common/messageContent";
+import ChatDetails "client/chatDetails";
 import SendMessage "client/sendMessage";
-import ActionContext "api/bot/actionContext";
 
 module {
     public class CommandClient(commandContext : CommandContext.CommandContext) {
@@ -17,9 +18,9 @@ module {
             sendMessage(#Text { text = text });
         };
 
-    // pub fn chat_details(&self) -> ChatDetailsBuilder<R, C> {
-    //     ChatDetailsBuilder::new(self)
-    // }
+        public func chatDetails() : ChatDetails.Builder {
+            ChatDetails.Builder(actionContext);
+        }
 
     // pub fn chat_events(&self, events: EventsSelectionCriteria) -> ChatEventsBuilder<R, C> {
     //     ChatEventsBuilder::new(self, events)
@@ -35,9 +36,9 @@ module {
             sendMessage(#Text { text = text });
         };
 
-    // pub fn chat_details(&self) -> ChatDetailsBuilder<R, C> {
-    //     ChatDetailsBuilder::new(self)
-    // }
+        public func chatDetails() : ChatDetails.Builder {
+            ChatDetails.Builder(context)
+        }
 
     // pub fn chat_events(&self, events: EventsSelectionCriteria) -> ChatEventsBuilder<R, C> {
     //     ChatEventsBuilder::new(self, events)

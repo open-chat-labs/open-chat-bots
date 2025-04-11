@@ -1,7 +1,7 @@
 import B "../common/base";
 
 module {
-    public type BotApiActor = actor {
+    public type Actor = actor {
         bot_delete_channel : (Args) -> async Response;
     };
 
