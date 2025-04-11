@@ -10,7 +10,7 @@ module {
 
         let actionContext : ActionContext.ActionContext = CommandContext.toActionContext(context);
 
-        public func sendMessage(content: MessageContent.MessageContentInitial) : SendMessage.Builder {
+        public func sendMessage(content : MessageContent.MessageContentInitial) : SendMessage.Builder {
             SendMessage.Builder(actionContext, content);
         };
 
@@ -20,7 +20,7 @@ module {
 
         public func chatDetails() : ChatDetails.Builder {
             ChatDetails.Builder(actionContext);
-        }
+        };
 
     // pub fn chat_events(&self, events: EventsSelectionCriteria) -> ChatEventsBuilder<R, C> {
     //     ChatEventsBuilder::new(self, events)
@@ -38,7 +38,7 @@ module {
 
         public func chatDetails() : ChatDetails.Builder {
             ChatDetails.Builder(context)
-        }
+        };
 
     // pub fn chat_events(&self, events: EventsSelectionCriteria) -> ChatEventsBuilder<R, C> {
     //     ChatEventsBuilder::new(self, events)
