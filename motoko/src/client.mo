@@ -1,7 +1,9 @@
 import ActionContext "api/bot/actionContext";
 import CommandContext "api/bot/commandContext";
 import MessageContent "api/common/messageContent";
+import ChatEventsApi "api/oc/chatEvents";
 import ChatDetails "client/chatDetails";
+import ChatEvents "client/chatEvents";
 import SendMessage "client/sendMessage";
 
 module {
@@ -22,9 +24,9 @@ module {
             ChatDetails.Builder(actionContext);
         };
 
-    // pub fn chat_events(&self, events: EventsSelectionCriteria) -> ChatEventsBuilder<R, C> {
-    //     ChatEventsBuilder::new(self, events)
-    // }
+        public func chatEvents(events: ChatEventsApi.EventsSelectionCriteria) : ChatEvents.Builder {
+            ChatEvents.Builder(actionContext, events)
+        };
     };
 
     public class AutonomousClient(context : ActionContext.ActionContext) {
@@ -40,8 +42,8 @@ module {
             ChatDetails.Builder(context)
         };
 
-    // pub fn chat_events(&self, events: EventsSelectionCriteria) -> ChatEventsBuilder<R, C> {
-    //     ChatEventsBuilder::new(self, events)
-    // }
+        public func chatEvents(events: ChatEventsApi.EventsSelectionCriteria) : ChatEvents.Builder {
+            ChatEvents.Builder(context, events)
+        };
     }
 }

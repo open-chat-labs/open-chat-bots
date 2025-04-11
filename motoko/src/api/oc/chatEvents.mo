@@ -4,17 +4,17 @@ import P "../common/chatPermissions";
 import MessageContent "../common/messageContent";
 import Command "../common/command";
 
-type UserId = B.UserId;
-type ChannelId = B.ChannelId;
-type TimestampMillis = B.TimestampMillis;
-type Milliseconds = B.Milliseconds;
-type MessageId = B.MessageId;
-type MessageIndex = B.MessageIndex;
-type EventIndex = B.EventIndex;
-type AuthToken = B.AuthToken;
-type ChatRole = B.ChatRole;
-
 module {
+    type UserId = B.UserId;
+    type ChannelId = B.ChannelId;
+    type TimestampMillis = B.TimestampMillis;
+    type Milliseconds = B.Milliseconds;
+    type MessageId = B.MessageId;
+    type MessageIndex = B.MessageIndex;
+    type EventIndex = B.EventIndex;
+    type AuthToken = B.AuthToken;
+    type ChatRole = B.ChatRole;
+
     public type Actor = actor {
         bot_chat_events : (Args) -> async Response;
     };
@@ -296,8 +296,6 @@ module {
         chat_if_other : ?(Chat, ?MessageIndex);
         event_index : EventIndex;
     };
-
-    public type ChannelId = Nat32;
 
     public type Chat = {
         #Direct : B.CanisterId;
