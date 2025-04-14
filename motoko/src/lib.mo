@@ -1,14 +1,15 @@
-import Client "client";
-import CommandHandler "commandHandler";
+import Result "mo:base/Result";
+
+import CommandResponse "api/bot/commandResponse";
 import DefinitionInternal "api/bot/definition";
-import Der "utils/der";
-import RouterInternal "http/router";
+import CommandInternal "api/common/command";
+import Client "client";
+import CommandAdaptor "commandAdaptor";
+import CommandHandler "commandHandler";
 import HttpInternal "http";
 import Builder "http/responseBuilder";
-import CommandAdaptor "commandAdaptor";
-import CommandResponse "api/bot/commandResponse";
-import Result "mo:base/Result";
-import CommandInternal "api/common/command";
+import RouterInternal "http/router";
+import Der "utils/der";
 //import ApiKeyRegistry "apiKeyRegistry";
 
 module {

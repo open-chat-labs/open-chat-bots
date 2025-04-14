@@ -65,4 +65,4 @@ module {
         frozen_by : B.UserId;
         reason : ?Text;
     };
-}
+};

@@ -1,9 +1,10 @@
 import Int32 "mo:base/Int32";
 import Nat64 "mo:base/Nat64";
 import Json "mo:json";
-import Serialize "../common/serialization";
+
 import B "../common/base";
 import MessageContent "../common/messageContent";
+import Serialize "../common/serialization";
 
 module {
     public type Response = {
@@ -120,6 +121,6 @@ module {
                 ("block_level_markdown", #bool(message.block_level_markdown)),
                 ("ephemeral", #bool(message.ephemeral)),
             ]);
-        };        
+        };
     };
-}
+};

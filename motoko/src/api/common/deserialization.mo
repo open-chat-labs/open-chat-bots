@@ -1,9 +1,9 @@
-import Json "mo:json";
-import Result "mo:base/Result";
 import Buffer "mo:base/Buffer";
 import Nat "mo:base/Nat";
-import IterTools "mo:itertools/Iter";
 import Principal "mo:base/Principal";
+import Result "mo:base/Result";
+import IterTools "mo:itertools/Iter";
+import Json "mo:json";
 
 module {
     public func arrayOfValues<T>(json : [Json.Json], deserialize : Json.Json -> Result.Result<T, Text>) : Result.Result<[T], Text> {
@@ -22,5 +22,5 @@ module {
             case (#ok(v)) #ok(Principal.fromText(v));
             case (#err(e)) return #err(e);
         };
-    }
-}
+    };
+};

@@ -1,18 +1,19 @@
-import Json "mo:json";
-import Result "mo:base/Result";
 import Nat "mo:base/Nat";
+import Nat32 "mo:base/Nat32";
 import Nat64 "mo:base/Nat64";
 import Option "mo:base/Option";
-import Nat32 "mo:base/Nat32";
-import B "../common/base";
-import Scope "../common/commandScope";
-import Command "../common/command";
-import Permissions "../common/permissions";
-import Deserialize "../common/deserialization";
+import Result "mo:base/Result";
+import Json "mo:json";
+
 import DER "../../utils/der";
 import JWT "../../utils/jwt";
-import ActionContext "actionContext";
+import B "../common/base";
 import Chat "../common/chat";
+import Command "../common/command";
+import Scope "../common/commandScope";
+import Deserialize "../common/deserialization";
+import Permissions "../common/permissions";
+import ActionContext "actionContext";
 
 module {
     public type CommandContext = {
@@ -49,29 +50,29 @@ module {
                 switch (Des.deserializeContext(result.data, text)) {
                     case (#ok(context)) #ok(context);
                     case (#err(_)) return #err(#invalidClaims);
-                }
+                };
             };
             case (#err(e)) return #err(e);
         };
     };
 
     // type ParseResult = Result.Result<CommandContext, JWT.VerifyError>;
-    
+
     // public func parseJwt2(text : Text, publicKey : DER.PublicKey, now : B.TimestampMillis) : ParseResult {
-    //     JWT.verify(text, publicKey, now) 
+    //     JWT.verify(text, publicKey, now)
     //         |> Result.mapOk(_, func (jwt : JWT.JWT) : ParseResult {
     //             if (jwt.claimType != "BotActionByCommand") {
     //                 return #err(#invalidClaims);
     //             };
 
-    //             Des.deserializeContext(jwt.data, text) 
+    //             Des.deserializeContext(jwt.data, text)
     //                 |> Result.mapErr(_, func(_err : Text) : JWT.VerifyError { #invalidClaims })
-    //         }) 
+    //         })
     //         |> Result.flatten(_);
     // };
 
     module Des {
-        public func deserializeContext(dataJson : Json.Json, jwt : Text) :  Result.Result<CommandContext, Text> {
+        public func deserializeContext(dataJson : Json.Json, jwt : Text) : Result.Result<CommandContext, Text> {
             let (scopeType, scopeTypeValue) = switch (Json.getAsObject(dataJson, "scope")) {
                 case (#ok(scopeObj)) scopeObj[0];
                 case (#err(e)) return #err("Invalid 'scope' field: " # debug_show (e));
@@ -119,7 +120,7 @@ module {
                 grantedPermissions = grantedPermissions;
                 command = command;
             });
-            
+
         };
 
         private func deserializeBotActionChatDetails(dataJson : Json.Json) : Result.Result<Scope.BotActionChatDetails, Text> {
@@ -191,4 +192,4 @@ module {
             });
         };
     };
-}
+};

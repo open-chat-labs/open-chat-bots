@@ -1,11 +1,12 @@
 import Array "mo:base/Array";
 import Json "mo:json";
+
+import B "../common/base";
 import Permissions "../common/permissions";
 import Serialize "../common/serialization";
-import B "../common/base";
 
 module Definition {
-    public type Permissions = Permissions.Permissions;    
+    public type Permissions = Permissions.Permissions;
 
     public type Bot = {
         description : Text;
@@ -24,8 +25,8 @@ module Definition {
         placeholder : ?Text;
         params : [CommandParam];
         permissions : Permissions;
-        default_role: ?B.ChatRole;
-        direct_messages: ?Bool;
+        default_role : ?B.ChatRole;
+        direct_messages : ?Bool;
     };
 
     public type CommandParam = {
@@ -202,4 +203,4 @@ module Definition {
             ("value", value),
         ]);
     };
-}
+};

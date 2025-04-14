@@ -1,6 +1,6 @@
-import Permissions "../common/permissions";
 import Scope "../common/actionScope";
 import B "../common/base";
+import Permissions "../common/permissions";
 
 module {
     public type ActionContext = {
@@ -23,7 +23,7 @@ module {
                     case _ null;
                 };
             };
-            case _ null;            
+            case _ null;
         };
     };
-}
+};

@@ -1,13 +1,14 @@
 import Bool "mo:base/Bool";
-import Principal "mo:base/Principal";
-import Option "mo:base/Option";
-import Result "mo:base/Result";
 import Error "mo:base/Error";
+import Option "mo:base/Option";
+import Principal "mo:base/Principal";
+import Result "mo:base/Result";
+
 import ActionContext "../api/bot/actionContext";
-import MessageContent "../api/common/messageContent";
-import B "../api/common/base";
-import SendMessage "../api/oc/sendMessage";
 import CommandResponse "../api/bot/commandResponse";
+import B "../api/common/base";
+import MessageContent "../api/common/messageContent";
+import SendMessage "../api/oc/sendMessage";
 
 module {
     public class Builder(context : ActionContext.ActionContext, content : MessageContent.MessageContentInitial) = this {
@@ -71,12 +72,12 @@ module {
                 switch (onResponseOpt) {
                     case (?onResponse) onResponse(#ok response);
                     case null ();
-                }
+                };
             } catch (error) {
                 switch (onResponseOpt) {
                     case (?onResponse) onResponse(#err error);
                     case null ();
-                }
+                };
             };
 
             return message;
@@ -98,9 +99,9 @@ module {
                 #ok response;
             } catch (error) {
                 #err((Error.code(error), Error.message(error)));
-            }
+            };
         };
     };
 
     public type Result = Result.Result<SendMessage.Response, Error.Error>;
-}
+};

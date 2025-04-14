@@ -1,6 +1,6 @@
-import Json "mo:json";
 import Iter "mo:base/Iter";
 import Nat64 "mo:base/Nat64";
+import Json "mo:json";
 
 module {
     public func text(option : Text) : Json.Json = #string(option);
@@ -21,4 +21,4 @@ module {
     public func variantWithValue(variant : Text, value : Json.Json) : Json.Json {
         #object_([(variant, value)]);
     };
-}
+};

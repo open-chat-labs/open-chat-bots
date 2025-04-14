@@ -1,9 +1,10 @@
+import Nat64 "mo:base/Nat64";
+import Principal "mo:base/Principal";
 import Base64 "mo:base64";
 import J "mo:json";
-import Principal "mo:base/Principal";
-import Nat64 "mo:base/Nat64";
-import Serialize "serialization";
+
 import B "base";
+import Serialize "serialization";
 
 module {
     public type MessageContent = {
@@ -260,5 +261,5 @@ module {
                 ),
             ]);
         };
-    }
-}
+    };
+};

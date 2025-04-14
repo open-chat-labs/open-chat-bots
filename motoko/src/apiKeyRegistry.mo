@@ -1,10 +1,11 @@
-import Permissions "api/common/permissions";
-import Scope "api/common/actionScope";
-import ApiKeyContext "api/bot/apiKeyContext";
-import HashMap "mo:base/HashMap";
-import Result "mo:base/Result";
 import Array "mo:base/Array";
+import HashMap "mo:base/HashMap";
 import Iter "mo:base/Iter";
+import Result "mo:base/Result";
+
+import ApiKeyContext "api/bot/apiKeyContext";
+import Scope "api/common/actionScope";
+import Permissions "api/common/permissions";
 
 module {
     public func new(apiKeys : [Text]) : ApiKeyRegistry {
@@ -26,23 +27,26 @@ module {
                 case (#err(e)) return #err(e);
             };
 
-            map.put(cxt.scope, {
-                key = cxt.key;
-                grantedPermissions = cxt.grantedPermissions; 
-            });
+            map.put(
+                cxt.scope,
+                {
+                    key = cxt.key;
+                    grantedPermissions = cxt.grantedPermissions;
+                },
+            );
 
             #ok();
         };
 
         public func getApiKeys() : [Text] {
-            map.vals() |> Iter.toArray(_) |> Array.map(_, func (record : Record) : Text { record.key });
+            map.vals() |> Iter.toArray(_) |> Array.map(_, func(record : Record) : Text { record.key });
         };
 
-        public func get(scope: Scope.ActionScope) : ?Record {
+        public func get(scope : Scope.ActionScope) : ?Record {
             map.get(scope);
         };
 
-        public func remove(scope: Scope.ActionScope) {
+        public func remove(scope : Scope.ActionScope) {
             map.delete(scope);
         };
 
@@ -51,15 +55,14 @@ module {
         };
 
         public func getKeyWithRequiredPermissions(
-            scope: Scope.ActionScope, 
-            requiredPermissions: Permissions.Permissions) 
-        : ?Record {
+            scope : Scope.ActionScope,
+            requiredPermissions : Permissions.Permissions,
+        ) : ?Record {
             switch (getMatchingRecord(scope, requiredPermissions)) {
                 case (?record) {
                     return ?record;
                 };
-                case (null) {
-                };
+                case (null) {};
             };
 
             // If an API Key with the required permissions cannot be found at the
@@ -73,17 +76,16 @@ module {
         };
 
         func getMatchingRecord(
-            scope: Scope.ActionScope, 
-            requiredPermissions: Permissions.Permissions) 
-        : ?Record {
+            scope : Scope.ActionScope,
+            requiredPermissions : Permissions.Permissions,
+        ) : ?Record {
             switch (get(scope)) {
                 case (?record) {
                     if (Permissions.isSubset(requiredPermissions, record.grantedPermissions)) {
                         return ?record;
                     };
                 };
-                case (null) {
-                };
+                case (null) {};
             };
 
             null;

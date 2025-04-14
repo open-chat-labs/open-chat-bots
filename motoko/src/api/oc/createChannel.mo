@@ -45,4 +45,4 @@ module {
     public type SuccessResult = {
         channel_id : B.ChannelId;
     };
-}
+};

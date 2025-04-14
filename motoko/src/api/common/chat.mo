@@ -1,16 +1,17 @@
-import Json "mo:json";
-import B "base";
-import Principal "mo:base/Principal";
 import Hash "mo:base/Hash";
-import Result "mo:base/Result";
 import Nat32 "mo:base/Nat32";
+import Principal "mo:base/Principal";
+import Result "mo:base/Result";
+import Json "mo:json";
+
+import B "base";
 import Deserialize "deserialization";
 
 module {
     public type Chat = {
         #Direct : B.CanisterId;
         #Group : B.CanisterId;
-        #Channel: (B.CanisterId, B.ChannelId);
+        #Channel : (B.CanisterId, B.ChannelId);
     };
 
     public func channelId(chat : Chat) : ?B.ChannelId {
@@ -85,4 +86,4 @@ module {
             #ok(chat);
         };
     };
-}
+};

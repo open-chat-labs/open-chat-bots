@@ -1,10 +1,10 @@
-import Text "mo:base/Text";
-import Nat8 "mo:base/Nat8";
-import Iter "mo:base/Iter";
-import Nat "mo:base/Nat";
-import Base64 "mo:base64";
 import Buffer "mo:base/Buffer";
 import Debug "mo:base/Debug";
+import Iter "mo:base/Iter";
+import Nat "mo:base/Nat";
+import Nat8 "mo:base/Nat8";
+import Text "mo:base/Text";
+import Base64 "mo:base64";
 import IterTools "mo:itertools/Iter";
 
 module {

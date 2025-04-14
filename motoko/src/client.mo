@@ -24,13 +24,13 @@ module {
             ChatDetails.Builder(actionContext);
         };
 
-        public func chatEvents(events: ChatEventsApi.EventsSelectionCriteria) : ChatEvents.Builder {
-            ChatEvents.Builder(actionContext, events)
+        public func chatEvents(events : ChatEventsApi.EventsSelectionCriteria) : ChatEvents.Builder {
+            ChatEvents.Builder(actionContext, events);
         };
     };
 
     public class AutonomousClient(context : ActionContext.ActionContext) {
-        public func sendMessage(content: MessageContent.MessageContentInitial) : SendMessage.Builder {
+        public func sendMessage(content : MessageContent.MessageContentInitial) : SendMessage.Builder {
             SendMessage.Builder(context, content);
         };
 
@@ -39,11 +39,11 @@ module {
         };
 
         public func chatDetails() : ChatDetails.Builder {
-            ChatDetails.Builder(context)
+            ChatDetails.Builder(context);
         };
 
-        public func chatEvents(events: ChatEventsApi.EventsSelectionCriteria) : ChatEvents.Builder {
-            ChatEvents.Builder(context, events)
+        public func chatEvents(events : ChatEventsApi.EventsSelectionCriteria) : ChatEvents.Builder {
+            ChatEvents.Builder(context, events);
         };
-    }
-}
+    };
+};

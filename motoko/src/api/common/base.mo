@@ -1,5 +1,6 @@
-import Result "mo:base/Result";
 import Error "mo:base/Error";
+import Result "mo:base/Result";
+
 module {
     public type CanisterId = Principal;
     public type UserId = Principal;
@@ -26,4 +27,4 @@ module {
         #Moderator;
         #Participant;
     };
-}
+};

@@ -3,20 +3,20 @@ import Option "mo:base/Option";
 
 module {
     public type Request = {
-        url: Text;
-        body: Blob;
-        headers: [(Text, Text)];
+        url : Text;
+        body : Blob;
+        headers : [(Text, Text)];
     };
 
     public type Response = {
         status_code : Nat16;
         headers : [(Text, Text)];
-        body: Blob;
+        body : Blob;
     };
-    
-    public func requestHeader(req : Request, name: Text) : ?Text {
-        req.headers 
-            |> Array.find(_, func((k: Text, _v: Text)) : Bool = name == k) 
-            |> Option.map(_, func((_k: Text, v: Text)) : Text { v });
+
+    public func requestHeader(req : Request, name : Text) : ?Text {
+        req.headers
+        |> Array.find(_, func((k : Text, _v : Text)) : Bool = name == k)
+        |> Option.map(_, func((_k : Text, v : Text)) : Text { v });
     };
-}
+};

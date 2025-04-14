@@ -5,7 +5,7 @@ module {
         if (a.size() > b.size()) {
             return false;
         };
-        
+
         for (p in a.vals()) {
             if (Array.indexOf(p, b, equal) == null) {
                 return false;
@@ -14,4 +14,4 @@ module {
 
         true;
     };
-}
+};

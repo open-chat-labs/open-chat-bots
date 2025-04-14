@@ -1,8 +1,8 @@
 import A "../common/accessGates";
 import B "../common/base";
 import P "../common/chatPermissions";
-import MessageContent "../common/messageContent";
 import Command "../common/command";
+import MessageContent "../common/messageContent";
 
 module {
     type UserId = B.UserId;
@@ -304,4 +304,4 @@ module {
     };
 
     public type Tips = [(B.CanisterId, [(B.UserId, Nat)])];
-}
+};

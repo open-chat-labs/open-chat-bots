@@ -1,5 +1,5 @@
-import MessageContent "../common/messageContent";
 import B "../common/base";
+import MessageContent "../common/messageContent";
 
 module {
     public type Actor = actor {
@@ -33,4 +33,4 @@ module {
         timestamp : B.TimestampMillis;
         expires_at : ?B.TimestampMillis;
     };
-}
+};

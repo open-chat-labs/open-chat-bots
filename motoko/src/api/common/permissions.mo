@@ -1,12 +1,13 @@
-import Json "mo:json";
-import Result "mo:base/Result";
-import Int "mo:base/Int";
-import Nat32 "mo:base/Nat32";
 import Buffer "mo:base/Buffer";
+import Int "mo:base/Int";
 import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
-import Deserialize "deserialization";
+import Nat32 "mo:base/Nat32";
+import Result "mo:base/Result";
+import Json "mo:json";
+
 import Array "../../utils/array";
+import Deserialize "deserialization";
 
 module {
     public type Permissions = {
@@ -71,8 +72,8 @@ module {
     // Is 'b' a subset of 'a'
     public func isSubset(a : Permissions, b : Permissions) : Bool {
         Array.isSubset(a.community, b.community, communityEqual)
-         and Array.isSubset(a.chat, b.chat, groupEqual)
-         and Array.isSubset(a.message, b.message, messageEqual);
+            and Array.isSubset(a.chat, b.chat, groupEqual)
+            and Array.isSubset(a.message, b.message, messageEqual);
     };
 
     private func communityEqual(a : CommunityPermission, b : CommunityPermission) : Bool { a == b };
@@ -348,6 +349,6 @@ module {
                 case (_) return #err("Invalid community permission: " # permissionString);
             };
             #ok(permission);
-        };        
+        };
     };
-}
+};

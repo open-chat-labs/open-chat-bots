@@ -1,15 +1,16 @@
-import Result "mo:base/Result";
-import Json "mo:json";
-import Text "mo:base/Text";
-import Iter "mo:base/Iter";
 import Blob "mo:base/Blob";
 import Debug "mo:base/Debug";
+import Iter "mo:base/Iter";
 import Nat64 "mo:base/Nat64";
+import Result "mo:base/Result";
+import Text "mo:base/Text";
+import Base64 "mo:base64";
 import ECDSA "mo:ecdsa";
 import Curve "mo:ecdsa/curve";
-import Base64 "mo:base64";
-import DER "der";
+import Json "mo:json";
+
 import Base "../api/common/base";
+import DER "der";
 
 module {
     public type JWT = {
@@ -78,8 +79,8 @@ module {
                     claimType = claimType;
                     expiry = expiryTimestamp;
                     data = claims;
-                })
+                });
             };
         };
     };
-}
+};

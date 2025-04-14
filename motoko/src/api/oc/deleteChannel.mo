@@ -19,4 +19,4 @@ module {
         #Frozen;
         #C2CError : (Int32, Text);
     };
-}
+};

@@ -1,7 +1,8 @@
-import B "base";
-import Chat "chat";
 import Hash "mo:base/Hash";
 import Principal "mo:base/Principal";
+
+import B "base";
+import Chat "chat";
 
 module {
     public type ActionScope = {
@@ -31,6 +32,6 @@ module {
             case (#Community(id)) {
                 Principal.hash(id);
             };
-        };        
-    }
-}
+        };
+    };
+};

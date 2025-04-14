@@ -1,8 +1,9 @@
 import Array "mo:base/Array";
-import HttpTypes "mo:http-types";
-import HttpParser "mo:http-parser";
-import Http "lib";
 import Text "mo:base/Text";
+import HttpParser "mo:http-parser";
+import HttpTypes "mo:http-types";
+
+import Http "lib";
 import ResponseBuilder "responseBuilder";
 
 module {
@@ -12,9 +13,9 @@ module {
 
         public func get(
             pathExpr : Text,
-            handler: QueryHandler
+            handler : QueryHandler,
         ) : Router {
-            let route: QueryRoute = {
+            let route : QueryRoute = {
                 pathExpr = pathExpr;
                 handler = handler;
             };
@@ -24,9 +25,9 @@ module {
 
         public func post(
             pathExpr : Text,
-            handler: UpdateHandler
+            handler : UpdateHandler,
         ) : Router {
-            let route: UpdateRoute = {
+            let route : UpdateRoute = {
                 pathExpr = pathExpr;
                 handler = handler;
             };
@@ -34,7 +35,7 @@ module {
             this;
         };
 
-        public func handleQuery(request: HttpTypes.UpdateRequest) : HttpTypes.Response {
+        public func handleQuery(request : HttpTypes.UpdateRequest) : HttpTypes.Response {
             switch (request.method) {
                 case ("POST") {
                     upgrade();
@@ -45,10 +46,10 @@ module {
                 case (_) {
                     ResponseBuilder.methodNotAllowed();
                 };
-            };            
+            };
         };
 
-        public func handleUpdate(request: HttpTypes.UpdateRequest) : async HttpTypes.Response {
+        public func handleUpdate(request : HttpTypes.UpdateRequest) : async HttpTypes.Response {
             switch (request.method) {
                 case ("POST") {
                     mapResponse(await handleInnerUpdate(request));
@@ -56,12 +57,12 @@ module {
                 case (_) {
                     ResponseBuilder.methodNotAllowed();
                 };
-            };            
+            };
         };
 
-        func handleInnerQuery(request: HttpTypes.UpdateRequest) : Http.Response {
+        func handleInnerQuery(request : HttpTypes.UpdateRequest) : Http.Response {
             let matchingRoute = findMatchingRoute(request, queryRoutes);
-            
+
             switch (matchingRoute) {
                 case (?route) {
                     route.handler(request);
@@ -72,9 +73,9 @@ module {
             };
         };
 
-        func handleInnerUpdate(request: HttpTypes.UpdateRequest) : async Http.Response {
+        func handleInnerUpdate(request : HttpTypes.UpdateRequest) : async Http.Response {
             let matchingRoute = findMatchingRoute(request, updateRoutes);
-            
+
             switch (matchingRoute) {
                 case (?route) {
                     await route.handler(request);
@@ -85,30 +86,29 @@ module {
             };
         };
 
-        func findMatchingRoute<R <: Route>(request: HttpTypes.UpdateRequest, routes: [R]) : ?R {
+        func findMatchingRoute<R <: Route>(request : HttpTypes.UpdateRequest, routes : [R]) : ?R {
             let lower_path = HttpParser.parse(request) |> _.url.path.original |> Text.toLowercase _;
 
-            Array.find(routes, func(route : R) : Bool  {
-                doesPathMatch(route.pathExpr, lower_path);
-            });
+            Array.find(
+                routes,
+                func(route : R) : Bool {
+                    doesPathMatch(route.pathExpr, lower_path);
+                },
+            );
         };
 
-        func doesPathMatch(pathExpr: Text, path: Text) : Bool {
+        func doesPathMatch(pathExpr : Text, path : Text) : Bool {
             switch (Text.stripEnd(pathExpr, #char '*')) {
                 case null path == pathExpr;
                 case (?prefix) Text.startsWith(path, #text prefix);
             };
         };
 
-        func upgrade(): HttpTypes.Response {
-            ResponseBuilder.Builder()
-                .withStatus(200)
-                .withAllowHeaders()
-                .withUpgrade()
-                .build();
+        func upgrade() : HttpTypes.Response {
+            ResponseBuilder.Builder().withStatus(200).withAllowHeaders().withUpgrade().build();
         };
 
-        func mapResponse(response: Http.Response) : HttpTypes.Response {
+        func mapResponse(response : Http.Response) : HttpTypes.Response {
             {
                 status_code = response.status_code;
                 headers = response.headers;
@@ -116,7 +116,7 @@ module {
                 upgrade = null;
                 streaming_strategy = null;
             };
-        };        
+        };
     };
 
     public type UpdateHandler = Http.Request -> async Http.Response;

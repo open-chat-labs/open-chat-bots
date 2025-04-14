@@ -1,10 +1,11 @@
-import Result "mo:base/Result";
-import Int64 "mo:base/Int64";
-import Debug "mo:base/Debug";
-import Option "mo:base/Option";
 import Array "mo:base/Array";
+import Debug "mo:base/Debug";
+import Int64 "mo:base/Int64";
 import Nat64 "mo:base/Nat64";
+import Option "mo:base/Option";
+import Result "mo:base/Result";
 import Json "mo:json";
+
 import B "../common/base";
 import Deserialize "../common/deserialization";
 
@@ -44,7 +45,7 @@ module {
         switch (getArgValue(command, name)) {
             case (?#String(v)) ?v;
             case _ null;
-        }
+        };
     };
 
     public func argInt(command : Command, name : Text) : Int {
@@ -56,7 +57,7 @@ module {
         switch (getArgValue(command, name)) {
             case (?#Integer(v)) ?Int64.toInt(v);
             case _ null;
-        }
+        };
     };
 
     public func argFloat(command : Command, name : Text) : Float {
@@ -68,7 +69,7 @@ module {
         switch (getArgValue(command, name)) {
             case (?#Decimal(v)) ?v;
             case _ null;
-        }
+        };
     };
 
     public func argBool(command : Command, name : Text) : Bool {
@@ -80,7 +81,7 @@ module {
         switch (getArgValue(command, name)) {
             case (?#Boolean(v)) ?v;
             case _ null;
-        }
+        };
     };
 
     public func argUser(command : Command, name : Text) : B.UserId {
@@ -92,7 +93,7 @@ module {
         switch (getArgValue(command, name)) {
             case (?#User(v)) ?v;
             case _ null;
-        }
+        };
     };
 
     public func argTimestamp(command : Command, name : Text) : B.TimestampMillis {
@@ -104,29 +105,29 @@ module {
         switch (getArgValue(command, name)) {
             case (?#DateTime(v)) ?v;
             case _ null;
-        }
+        };
     };
 
     public func timezone(command : Command) : Text {
-        Option.map(command.meta, func (meta : CommandMeta) : Text { meta.timezone }) 
-            |> Option.get(_, "UTC");
+        Option.map(command.meta, func(meta : CommandMeta) : Text { meta.timezone })
+        |> Option.get(_, "UTC");
     };
 
     public func language(command : Command) : Text {
-        Option.map(command.meta, func (meta : CommandMeta) : Text { meta.language }) 
-            |> Option.get(_, "en");
+        Option.map(command.meta, func(meta : CommandMeta) : Text { meta.language })
+        |> Option.get(_, "en");
     };
 
     public func deserialize(commandJson : Json.Json) : Result.Result<Command, Text> {
         Des.deserializeCommand(commandJson);
-    };  
-
-    func getArgValue(command : Command, name : Text) : ?CommandArgValue {
-        Array.find(command.args, func (arg : CommandArg) : Bool { arg.name == name })
-            |> Option.map(_, func (arg : CommandArg) : CommandArgValue { arg.value });    
     };
 
-   module Des {
+    func getArgValue(command : Command, name : Text) : ?CommandArgValue {
+        Array.find(command.args, func(arg : CommandArg) : Bool { arg.name == name })
+        |> Option.map(_, func(arg : CommandArg) : CommandArgValue { arg.value });
+    };
+
+    module Des {
         public func deserializeCommand(commandJson : Json.Json) : Result.Result<Command, Text> {
             let commandName = switch (Json.getAsText(commandJson, "name")) {
                 case (#ok(v)) v;
@@ -213,6 +214,6 @@ module {
                 name = name;
                 value = value;
             });
-        };        
+        };
     };
-}
+};

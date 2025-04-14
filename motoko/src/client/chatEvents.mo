@@ -1,6 +1,7 @@
+import Error "mo:base/Error";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
-import Error "mo:base/Error";
+
 import ActionContext "../api/bot/actionContext";
 import B "../api/common/base";
 import ChatEvents "../api/oc/chatEvents";
@@ -30,9 +31,9 @@ module {
                 #ok response;
             } catch (error) {
                 #err((Error.code(error), Error.message(error)));
-            }
+            };
         };
     };
 
     public type Result = Result.Result<ChatEvents.Response, Error.Error>;
-}
+};

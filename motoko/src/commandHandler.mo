@@ -1,16 +1,17 @@
-import Text "mo:base/Text";
-import Result "mo:base/Result";
 import Array "mo:base/Array";
 import Float "mo:base/Float";
 import Int "mo:base/Int";
 import Int64 "mo:base/Int64";
-import Definition "api/bot/definition";
-import CommandResponse "api/bot/commandResponse";
+import Result "mo:base/Result";
+import Text "mo:base/Text";
+
 import CommandContext "api/bot/commandContext";
+import CommandResponse "api/bot/commandResponse";
+import Definition "api/bot/definition";
+import Base "api/common/base";
+import Command "api/common/command";
 import Client "client";
 import Der "utils/der";
-import Command "api/common/command";
-import Base "api/common/base";
 
 module {
     public type CommandHandler = {
@@ -38,9 +39,12 @@ module {
         };
 
         public func definitions() : [Definition.Command] {
-            Array.map(handlers, func(handler : CommandHandler) : Definition.Command {
-                handler.definition
-            });
+            Array.map(
+                handlers,
+                func(handler : CommandHandler) : Definition.Command {
+                    handler.definition;
+                },
+            );
         };
 
         public func execute(jwt : Text, ocPublicKey : Der.PublicKey, now : Base.TimestampMillis) : async CommandResponse.Response {
@@ -74,33 +78,39 @@ module {
                 return #BadRequest(#ArgsInvalid);
             };
 
-            switch(await handler.execute(Client.CommandClient(context))) {
+            switch (await handler.execute(Client.CommandClient(context))) {
                 case (#ok(result)) return #Success(result);
                 case (#err(error)) {
                     return #InternalError(#CommandError(error));
                 };
-            }
+            };
         };
-                
+
         func findHandler(name : Text) : ?CommandHandler {
-            Array.find(handlers, func(handler : CommandHandler) : Bool {
-                handler.definition.name == name
-            })
-        };       
+            Array.find(
+                handlers,
+                func(handler : CommandHandler) : Bool {
+                    handler.definition.name == name;
+                },
+            );
+        };
 
         func checkArgs(
-            args: [Command.CommandArg],
-            params: [Definition.CommandParam],
-            now: Base.TimestampMillis,
+            args : [Command.CommandArg],
+            params : [Definition.CommandParam],
+            now : Base.TimestampMillis,
         ) : Bool {
             if (args.size() > params.size()) {
                 return false;
             };
 
             label l for (param in params.values()) {
-                let ?arg = Array.find(args, func(arg : Command.CommandArg) : Bool {
-                    arg.name == param.name
-                }) else {
+                let ?arg = Array.find(
+                    args,
+                    func(arg : Command.CommandArg) : Bool {
+                        arg.name == param.name;
+                    },
+                ) else {
                     if (param.required) {
                         return false;
                     };
@@ -171,7 +181,7 @@ module {
 
                         if (p.future_only and value < now) {
                             return false;
-                        }
+                        };
                     };
                     case (#BooleanParam) {
                         switch (arg.value) {
@@ -196,33 +206,36 @@ module {
                 return true;
             };
 
-            switch (Array.find(array, func(choice : Definition.BotCommandOptionChoice<T>) : Bool {
-                valueEq(choice.value, value);
-            })) {
+            switch (
+                Array.find(
+                    array,
+                    func(choice : Definition.BotCommandOptionChoice<T>) : Bool {
+                        valueEq(choice.value, value);
+                    },
+                )
+            ) {
                 case (?_) return true;
                 case null return false;
-            }
+            };
         };
 
         func floatEqual(a : Float, b : Float) : Bool {
-            Float.equalWithin(a, b, 1e-8)
+            Float.equalWithin(a, b, 1e-8);
         };
     };
 
     func buildSyncApiKeyParams() : [Definition.CommandParam] {
-        [
-            {
-                name = "api_key";
-                description = null;
-                placeholder = null;
-                required = true;
-                param_type = #StringParam {
-                    max_length = 1000;
-                    min_length = 10;
-                    multi_line = false;
-                    choices = [];
-                };
-            }
-        ]
+        [{
+            name = "api_key";
+            description = null;
+            placeholder = null;
+            required = true;
+            param_type = #StringParam {
+                max_length = 1000;
+                min_length = 10;
+                multi_line = false;
+                choices = [];
+            };
+        }];
     };
-}
+};

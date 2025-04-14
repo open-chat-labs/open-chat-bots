@@ -1,14 +1,15 @@
-import Base64 "mo:base64";
-import Json "mo:json";
+import Blob "mo:base/Blob";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
-import Blob "mo:base/Blob";
-import B "../common/base";
+import Base64 "mo:base64";
+import Json "mo:json";
+
 import Scope "../common/actionScope";
-import Permissions "../common/permissions";
-import Deserialize "../common/deserialization";
-import ActionContext "actionContext";
+import B "../common/base";
 import Chat "../common/chat";
+import Deserialize "../common/deserialization";
+import Permissions "../common/permissions";
+import ActionContext "actionContext";
 
 module {
     public type ApiKeyContext = {
@@ -37,7 +38,7 @@ module {
         let ?apiKeyText = base64Engine.decode(text) |> Blob.fromArray(_) |> Text.decodeUtf8(_) else {
             return #err("Failed to decode api key as UTF-8");
         };
-        
+
         let apiKeyJson = switch (Json.parse(apiKeyText)) {
             case (#ok(json)) json;
             case (#err(e)) return #err("Failed to parse api key json: " # debug_show (e));
@@ -100,4 +101,4 @@ module {
             };
         };
     };
-}
+};
