@@ -1,11 +1,13 @@
+import Int "mo:base/Int";
+import Nat8 "mo:base/Nat8";
+import Option "mo:base/Option";
 import Sdk "mo:openchat-bot-sdk";
-import CommandHandler "mo:openchat-bot-sdk/commandHandler";
 import CommandResponse "mo:openchat-bot-sdk/api/bot/commandResponse";
 import Scope "mo:openchat-bot-sdk/api/common/commandScope";
-import Option "mo:base/Option";
-import Int "mo:base/Int";
-import S "../state";
 import Permissions "mo:openchat-bot-sdk/api/common/permissions";
+import CommandHandler "mo:openchat-bot-sdk/commandHandler";
+
+import S "../state";
 
 module {
     public func build(state : S.State) : Sdk.Command.Handler {
@@ -32,6 +34,7 @@ module {
                         chat = chatDetails.chat;
                         interval = n;
                         apiKey = apiKeyRecord.key;
+                        iterations = 0 : Nat8;
                     };
 
                     let prefix = switch (state.subscriptions.set<system>(sub)) {

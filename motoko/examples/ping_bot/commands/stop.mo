@@ -1,7 +1,8 @@
 import Sdk "mo:openchat-bot-sdk";
-import CommandHandler "mo:openchat-bot-sdk/commandHandler";
 import CommandResponse "mo:openchat-bot-sdk/api/bot/commandResponse";
 import Scope "mo:openchat-bot-sdk/api/common/commandScope";
+import CommandHandler "mo:openchat-bot-sdk/commandHandler";
+
 import S "../state";
 
 module {

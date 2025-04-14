@@ -12,7 +12,7 @@ module {
                     message = [#Text];
                 };
                 sync_api_key = true;
-            };    
+            };
         };
 
         let response = Sdk.Http.ResponseBuilder()
@@ -20,8 +20,8 @@ module {
             .withJson(Sdk.Definition.serialize(definition))
             .build();
 
-        func (_ : Sdk.Http.Request) : Sdk.Http.Response {
+        func(_ : Sdk.Http.Request) : Sdk.Http.Response {
             response;
         };
     };
-}
+};

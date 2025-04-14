@@ -4,7 +4,7 @@ module {
     public func build() : Sdk.Command.Handler {
         {
             definition = definition();
-            execute = execute;    
+            execute = execute;
         };
     };
 
@@ -25,10 +25,10 @@ module {
             permissions = {
                 community = [];
                 chat = [];
-                message =[#Text];
+                message = [#Text];
             };
             default_role = null;
             direct_messages = null;
-        }
+        };
     };
-}
+};
