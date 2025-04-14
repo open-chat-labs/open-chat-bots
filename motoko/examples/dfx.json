@@ -1,6 +1,10 @@
 {
-  "dfx": "0.26.0-beta.1",
+  "dfx": "0.26.0",
   "canisters": {
+    "hello_bot": {
+      "main": "hello_bot/main.mo",
+      "type": "motoko"
+    },
     "ping_bot": {
       "main": "ping_bot/main.mo",
       "type": "motoko"
