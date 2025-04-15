@@ -4,6 +4,7 @@ import Int "mo:base/Int";
 import Int64 "mo:base/Int64";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
+import Ecdsa "mo:ecdsa";
 
 import CommandContext "api/bot/commandContext";
 import CommandResponse "api/bot/commandResponse";
@@ -11,7 +12,6 @@ import Definition "api/bot/definition";
 import Base "api/common/base";
 import Command "api/common/command";
 import Client "client";
-import Der "utils/der";
 
 module {
     public type CommandHandler = {
@@ -47,8 +47,8 @@ module {
             );
         };
 
-        public func execute(jwt : Text, ocPublicKey : Der.PublicKey, now : Base.TimestampMillis) : async CommandResponse.Response {
-            let context = switch (CommandContext.parseJwt(jwt, ocPublicKey, now)) {
+        public func execute(jwt : Text, ocPublicKey : Ecdsa.PublicKey, now : Base.TimestampMillis) : async CommandResponse.Response {
+            let context = switch (CommandContext.parseJwt(jwt, ocPublicKey)) {
                 case (#err(#invalidSignature)) return #BadRequest(#AccessTokenInvalid("JWT: Invalid signature"));
                 case (#err(#expired(_))) return #BadRequest(#AccessTokenExpired);
                 case (#err(#parseError(reason))) return #BadRequest(#AccessTokenInvalid("JWT: Parse error: " # reason));

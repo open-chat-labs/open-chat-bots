@@ -1,11 +1,12 @@
 [dependencies]
 base = "0.14.4"
 base64 = "1.0.0"
-ecdsa = "1.0.0"
+ecdsa = "5.0.1"
 http-types = "1.0.1"
 http-parser = "0.3.4"
 itertools = "0.2.2"
 json = "1.0.1"
+jwt = "0.0.2"
 
 [package]
 name = "openchat-bot-sdk"

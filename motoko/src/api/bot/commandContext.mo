@@ -1,12 +1,13 @@
+import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
 import Nat64 "mo:base/Nat64";
 import Option "mo:base/Option";
 import Result "mo:base/Result";
+import EDCSA "mo:ecdsa";
 import Json "mo:json";
+import JWT "mo:jwt";
 
-import DER "../../utils/der";
-import JWT "../../utils/jwt";
 import B "../common/base";
 import Chat "../common/chat";
 import Command "../common/command";
@@ -40,36 +41,45 @@ module {
         };
     };
 
-    public func parseJwt(text : Text, publicKey : DER.PublicKey, now : B.TimestampMillis) : Result.Result<CommandContext, JWT.VerifyError> {
-        switch (JWT.verify(text, publicKey, now)) {
-            case (#ok(result)) {
-                if (result.claimType != "BotActionByCommand") {
+    public type VerifyError = {
+        #parseError : Text;
+        #expired : B.TimestampMillis;
+        #invalidSignature;
+        #invalidClaims;
+    };
+
+    public func parseJwt(text : Text, ocPublicKey : EDCSA.PublicKey) : Result.Result<CommandContext, VerifyError> {
+
+        switch (JWT.parse(text)) {
+            case (#ok(token)) {
+                if (JWT.getPayloadValue(token, "claim_type") != ?#string("BotActionByCommand")) {
                     return #err(#invalidClaims);
                 };
 
-                switch (Des.deserializeContext(result.data, text)) {
+                let validationOptions : JWT.ValidationOptions = {
+                    expiration = true;
+                    notBefore = true;
+                    issuer = #skip;
+                    audience = #skip;
+                    signature = #key(#ecdsa(ocPublicKey));
+                };
+
+                switch (JWT.validate(token, validationOptions)) {
+                    case (#ok()) {};
+                    case (#err(e)) {
+                        Debug.print("JWT validation error: " # debug_show (e));
+                        return #err(#invalidSignature)
+                    };
+                };
+
+                switch (Des.deserializeContext(Json.obj(token.payload), text)) {
                     case (#ok(context)) #ok(context);
                     case (#err(_)) return #err(#invalidClaims);
                 };
             };
-            case (#err(e)) return #err(e);
-        };
+            case (#err(e)) return #err(#parseError(e));
+        }
     };
-
-    // type ParseResult = Result.Result<CommandContext, JWT.VerifyError>;
-
-    // public func parseJwt2(text : Text, publicKey : DER.PublicKey, now : B.TimestampMillis) : ParseResult {
-    //     JWT.verify(text, publicKey, now)
-    //         |> Result.mapOk(_, func (jwt : JWT.JWT) : ParseResult {
-    //             if (jwt.claimType != "BotActionByCommand") {
-    //                 return #err(#invalidClaims);
-    //             };
-
-    //             Des.deserializeContext(jwt.data, text)
-    //                 |> Result.mapErr(_, func(_err : Text) : JWT.VerifyError { #invalidClaims })
-    //         })
-    //         |> Result.flatten(_);
-    // };
 
     module Des {
         public func deserializeContext(dataJson : Json.Json, jwt : Text) : Result.Result<CommandContext, Text> {

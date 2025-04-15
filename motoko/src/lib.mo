@@ -9,7 +9,7 @@ import CommandHandler "commandHandler";
 import HttpInternal "http";
 import Builder "http/responseBuilder";
 import RouterInternal "http/router";
-import Der "utils/der";
+import Ecdsa "utils/ecdsa";
 //import ApiKeyRegistry "apiKeyRegistry";
 
 module {
@@ -55,7 +55,7 @@ module {
         public type Client = Client.CommandClient;
     };
 
-    public let parsePublicKeyOrTrap = Der.parsePublicKeyOrTrap;
+    public let parsePublicKeyOrTrap = Ecdsa.parsePublicKeyOrTrap;
     public let executeCommand = CommandAdaptor.execute;
 
     //public type ApiKeyRegistry = ApiKeyRegistry.ApiKeyRegistry;

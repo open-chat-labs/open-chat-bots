@@ -1,3 +1,4 @@
+import Ecdsa "mo:ecdsa";
 import Json "mo:json";
 
 import CommandResponse "api/bot/commandResponse";
@@ -5,13 +6,12 @@ import Base "api/common/base";
 import CommandHandler "commandHandler";
 import Http "http";
 import ResponseBuilder "http/responseBuilder";
-import Der "utils/der";
 
 module {
     public func execute<S>(
         registry : CommandHandler.Registry,
         request : Http.Request,
-        ocPublicKey : Der.PublicKey,
+        ocPublicKey : Ecdsa.PublicKey,
         now : Base.TimestampMillis,
     ) : async Http.Response {
         let commandResponse = await executeInner(registry, request, ocPublicKey, now);
@@ -28,7 +28,7 @@ module {
     func executeInner<S>(
         registry : CommandHandler.Registry,
         request : Http.Request,
-        ocPublicKey : Der.PublicKey,
+        ocPublicKey : Ecdsa.PublicKey,
         now : Base.TimestampMillis,
     ) : async CommandResponse.Response {
         let ?jwt = Http.requestHeader(request, "x-oc-jwt") else {
