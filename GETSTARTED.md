@@ -51,6 +51,18 @@ In each case the scripts will output the following which are needed in step 4 to
   ./rs/scripts/deploy_reminder_bot.sh
 ```
 
+- [HelloBot](./motoko/deploy.sh)
+
+```bash
+  ./motoko/deploy.sh hello_bot
+```
+
+- [PingBot](./motoko/deploy.sh)
+
+```bash
+  ./motoko/deploy.sh ping_bot
+```
+
 ### Off-chain bots
 
 The DiceBot and LlamaBot will each need to be run in a separate terminal.
