@@ -31,7 +31,7 @@ Use the [deploy script](https://github.com/open-chat-labs/open-chat-bots/tree/ma
 
 # Thanks
 
-Special thanks to OpenChat user @gekctek, who built an interim Mokoto SDK before this one was ready. We have used large chunks of his SDK, especially the JSON serializing/deserializing, in this SDK.
+Special thanks to [@gekctek](https://github.com/Gekctek), who built an interim Mokoto SDK before this one was ready. We have used large chunks of his SDK, especially the JSON serializing/deserializing, in this SDK.
 
 You can find his repo here:
 https://github.com/edjcase/motoko_oc_bot_sdk
