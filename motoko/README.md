@@ -2,11 +2,6 @@
 
 This is an SDK for building OpenChat canister bots in Motoko with some example bots.
 
-Special thanks to OpenChat user Gekctek, who built an interim Mokoto SDK before this one was ready. We have used large chunks of his SDK, especially the JSON serializing/deserializing, in this SDK.
-
-You can find his repo here:
-https://github.com/edjcase/motoko_oc_bot_sdk
-
 # Package
 
 ### MOPS
@@ -33,3 +28,10 @@ Use the [deploy script](https://github.com/open-chat-labs/open-chat-bots/tree/ma
 ./deploy.sh hello_bot
 ./deploy.sh ping_bot
 ```
+
+# Thanks
+
+Special thanks to OpenChat user @gekctek, who built an interim Mokoto SDK before this one was ready. We have used large chunks of his SDK, especially the JSON serializing/deserializing, in this SDK.
+
+You can find his repo here:
+https://github.com/edjcase/motoko_oc_bot_sdk
