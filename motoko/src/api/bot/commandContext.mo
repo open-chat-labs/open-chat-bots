@@ -4,7 +4,7 @@ import Nat32 "mo:base/Nat32";
 import Nat64 "mo:base/Nat64";
 import Option "mo:base/Option";
 import Result "mo:base/Result";
-import EDCSA "mo:ecdsa";
+import Ecdsa "mo:ecdsa";
 import Json "mo:json";
 import JWT "mo:jwt";
 
@@ -48,7 +48,7 @@ module {
         #invalidClaims;
     };
 
-    public func parseJwt(text : Text, ocPublicKey : EDCSA.PublicKey) : Result.Result<CommandContext, VerifyError> {
+    public func parseJwt(text : Text, ocPublicKey : Ecdsa.PublicKey) : Result.Result<CommandContext, VerifyError> {
 
         switch (JWT.parse(text)) {
             case (#ok(token)) {
