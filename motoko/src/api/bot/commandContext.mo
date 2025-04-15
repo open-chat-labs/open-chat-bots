@@ -56,19 +56,22 @@ module {
                     return #err(#invalidClaims);
                 };
 
-                let validationOptions : JWT.ValidationOptions = {
-                    expiration = true;
-                    notBefore = true;
-                    issuer = #skip;
-                    audience = #skip;
-                    signature = #key(#ecdsa(ocPublicKey));
-                };
-
-                switch (JWT.validate(token, validationOptions)) {
+                switch (
+                    JWT.validate(
+                        token,
+                        {
+                            expiration = true;
+                            notBefore = true;
+                            issuer = #skip;
+                            audience = #skip;
+                            signature = #key(#ecdsa(ocPublicKey));
+                        },
+                    )
+                ) {
                     case (#ok()) {};
                     case (#err(e)) {
                         Debug.print("JWT validation error: " # debug_show (e));
-                        return #err(#invalidSignature)
+                        return #err(#invalidSignature);
                     };
                 };
 
@@ -78,7 +81,7 @@ module {
                 };
             };
             case (#err(e)) return #err(#parseError(e));
-        }
+        };
     };
 
     module Des {
