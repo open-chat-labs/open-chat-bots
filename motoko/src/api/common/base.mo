@@ -27,4 +27,15 @@ module {
         #Moderator;
         #Participant;
     };
+
+    public type Rules = {
+        text : Text;
+        enabled : Bool;
+    };
+
+    public type Document = {
+        id : Nat;
+        mime_type : Text;
+        data : [Nat8];
+    };
 };

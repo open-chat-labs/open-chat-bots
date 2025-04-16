@@ -134,15 +134,9 @@ module {
     };
 
     public type AvatarChanged = {
-        new_avatar : ?Document;
-        previous_avatar : ?Document;
+        new_avatar : ?B.Document;
+        previous_avatar : ?B.Document;
         changed_by : UserId;
-    };
-
-    public type Document = {
-        id : Nat;
-        mime_type : Text;
-        data : [Nat8];
     };
 
     public type MembersAdded = {

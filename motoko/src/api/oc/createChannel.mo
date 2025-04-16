@@ -11,8 +11,8 @@ module {
         is_public : Bool;
         name : Text;
         description : Text;
-        rules : Rules;
-        avatar : ?Document;
+        rules : B.Rules;
+        avatar : ?B.Document;
         history_visible_to_new_joiners : Bool;
         messages_visible_to_non_members : Bool;
         permissions : ?P.ChatPermissions;
@@ -20,17 +20,6 @@ module {
         gate_config : ?A.AccessGateConfig;
         external_url : ?Text;
         auth_token : B.AuthToken;
-    };
-
-    public type Rules = {
-        text : Text;
-        enabled : Bool;
-    };
-
-    public type Document = {
-        id : Nat;
-        mime_type : Text;
-        data : [Nat8];
     };
 
     public type Response = {
