@@ -2,7 +2,8 @@ use candid::{CandidType, Deserialize};
 use serde::Serialize;
 
 use crate::types::{
-    AuthToken, ChannelId, ChatEvent, EventIndex, EventWrapper, MessageIndex, TimestampMillis,
+    AuthToken, ChannelId, ChatEvent, EventIndex, EventWrapper, MessageIndex, OCError,
+    TimestampMillis,
 };
 
 use super::ActionDef;
@@ -39,7 +40,7 @@ pub enum Response {
     NotAuthorized,
     NotFound,
     InternalError(String),
-    Error(u16, Option<String>),
+    Error(OCError),
 }
 
 #[derive(CandidType, Serialize, Deserialize, Debug)]

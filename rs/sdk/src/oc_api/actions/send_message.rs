@@ -1,6 +1,6 @@
 use crate::oc_api::actions::ActionDef;
 use crate::types::{
-    AuthToken, ChannelId, EventIndex, MessageContentInitial, MessageId, MessageIndex,
+    AuthToken, ChannelId, EventIndex, MessageContentInitial, MessageId, MessageIndex, OCError,
     TimestampMillis,
 };
 use candid::{CandidType, Deserialize};
@@ -37,7 +37,7 @@ pub enum Response {
     ThreadNotFound,
     MessageAlreadyFinalised,
     C2CError(i32, String),
-    Error(u16, Option<String>),
+    Error(OCError),
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]

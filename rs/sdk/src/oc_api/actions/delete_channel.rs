@@ -1,5 +1,5 @@
 use crate::oc_api::actions::ActionDef;
-use crate::types::{AuthToken, ChannelId};
+use crate::types::{AuthToken, ChannelId, OCError};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
@@ -29,5 +29,5 @@ pub enum Response {
     NotAuthorized,
     Frozen,
     C2CError(i32, String),
-    Error(u16, Option<String>),
+    Error(OCError),
 }

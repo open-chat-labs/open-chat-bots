@@ -15,6 +15,9 @@ pub type TimestampNanos = u64;
 pub type CallResult<T> = Result<T, CallError>;
 pub type CallError = (i32, String);
 
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct OCError(u16, Option<String>);
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Copy, Eq, PartialEq)]
 pub struct UserId(CanisterId);
 
