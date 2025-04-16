@@ -1,9 +1,12 @@
 import ActionContext "api/bot/actionContext";
 import CommandContext "api/bot/commandContext";
+import B "api/common/base";
 import MessageContent "api/common/messageContent";
 import ChatEventsApi "api/oc/chatEvents";
 import ChatDetails "client/chatDetails";
 import ChatEvents "client/chatEvents";
+import CreateChannel "client/createChannel";
+import DeleteChannel "client/deleteChannel";
 import SendMessage "client/sendMessage";
 
 module {
@@ -44,6 +47,14 @@ module {
 
         public func chatEvents(events : ChatEventsApi.EventsSelectionCriteria) : ChatEvents.Builder {
             ChatEvents.Builder(context, events);
+        };
+
+        public func createChannel(name : Text, isPublic : Bool) : CreateChannel.Builder {
+            CreateChannel.Builder(context, name, isPublic);
+        };
+
+        public func deleteChannel(channelId : B.ChannelId) : DeleteChannel.Builder {
+            DeleteChannel.Builder(context, channelId);
         };
     };
 };
