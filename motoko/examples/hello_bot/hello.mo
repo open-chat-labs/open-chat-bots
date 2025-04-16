@@ -9,7 +9,7 @@ module {
         };
     };
 
-    func execute(client : Sdk.OpenChat.Client) : async Sdk.Command.Result {
+    func execute(client : Sdk.OpenChat.CommandClient) : async Sdk.Command.Result {
         let userId = client.context.command.initiator;
         let text = "hello @UserId(" # Principal.toText(userId) # ")";
 

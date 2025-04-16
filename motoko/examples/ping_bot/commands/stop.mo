@@ -14,7 +14,7 @@ module {
     };
 
     func execute(state : S.State) : CommandHandler.Execute {
-        func (client : Sdk.OpenChat.Client) : async Sdk.Command.Result {
+        func (client : Sdk.OpenChat.CommandClient) : async Sdk.Command.Result {
             let ?chatDetails = Scope.chatDetails(client.context.scope) else return #err "Expected Chat scope";
 
             state.subscriptions.remove(chatDetails.chat);

@@ -4,6 +4,7 @@ import Option "mo:base/Option";
 module {
     public type Request = {
         url : Text;
+        method : Text;
         body : Blob;
         headers : [(Text, Text)];
     };

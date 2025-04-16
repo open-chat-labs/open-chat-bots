@@ -37,26 +37,16 @@ module {
 
         public func handleQuery(request : HttpTypes.UpdateRequest) : HttpTypes.Response {
             switch (request.method) {
-                case ("POST") {
-                    upgrade();
-                };
-                case ("GET") {
-                    mapResponse(handleInnerQuery(request));
-                };
-                case (_) {
-                    ResponseBuilder.methodNotAllowed();
-                };
+                case "POST" upgrade();
+                case "GET" mapResponse(handleInnerQuery(request));
+                case _ ResponseBuilder.methodNotAllowed();
             };
         };
 
         public func handleUpdate(request : HttpTypes.UpdateRequest) : async HttpTypes.Response {
             switch (request.method) {
-                case ("POST") {
-                    mapResponse(await handleInnerUpdate(request));
-                };
-                case (_) {
-                    ResponseBuilder.methodNotAllowed();
-                };
+                case "POST" mapResponse(await handleInnerUpdate(request));
+                case _ ResponseBuilder.methodNotAllowed();
             };
         };
 
@@ -64,12 +54,8 @@ module {
             let matchingRoute = findMatchingRoute(request, queryRoutes);
 
             switch (matchingRoute) {
-                case (?route) {
-                    route.handler(request);
-                };
-                case _ {
-                    ResponseBuilder.notFound();
-                };
+                case (?route) route.handler(request);
+                case _ ResponseBuilder.notFound();
             };
         };
 
@@ -77,22 +63,18 @@ module {
             let matchingRoute = findMatchingRoute(request, updateRoutes);
 
             switch (matchingRoute) {
-                case (?route) {
-                    await route.handler(request);
-                };
-                case _ {
-                    ResponseBuilder.notFound();
-                };
+                case (?route) await route.handler(request);
+                case _ ResponseBuilder.notFound();
             };
         };
 
         func findMatchingRoute<R <: Route>(request : HttpTypes.UpdateRequest, routes : [R]) : ?R {
-            let lower_path = HttpParser.parse(request) |> _.url.path.original |> Text.toLowercase _;
+            let lowerPath = HttpParser.parse(request) |> _.url.path.original |> Text.toLowercase _;
 
             Array.find(
                 routes,
                 func(route : R) : Bool {
-                    doesPathMatch(route.pathExpr, lower_path);
+                    doesPathMatch(route.pathExpr, lowerPath);
                 },
             );
         };
@@ -105,7 +87,11 @@ module {
         };
 
         func upgrade() : HttpTypes.Response {
-            ResponseBuilder.Builder().withStatus(200).withAllowHeaders().withUpgrade().build();
+            ResponseBuilder.Builder()
+                .withStatus(200)
+                .withAllowHeaders()
+                .withUpgrade()
+                .build();
         };
 
         func mapResponse(response : Http.Response) : HttpTypes.Response {

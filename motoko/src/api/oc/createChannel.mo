@@ -29,6 +29,7 @@ module {
         #NotAuthorized;
         #Frozen;
         #C2CError : (Int32, Text);
+        #Error : (Nat16, ?Text);
     };
 
     public type SuccessResult = {

@@ -32,6 +32,10 @@ module {
             Json.stringify(json, null) |> Text.encodeUtf8(_) |> withBody(_, "application/json");
         };
 
+        public func withText(text : Text) : Builder {
+            Text.encodeUtf8(text) |> withBody(_, "text/plain");
+        };
+
         public func withBody(blob : Blob, mime_type : Text) : Builder {
             body := blob;
             headers := List.push(("content-Type", mime_type), headers);
@@ -55,11 +59,32 @@ module {
         };
     };
 
+    public func text(status : Nat16, text : Text) : HttpTypes.Response {
+        Builder()
+            .withStatus(status)
+            .withAllowHeaders()
+            .withText(text)
+            .build();
+    };
+
     public func json(status: Nat16, json: Json.Json) : HttpTypes.Response {
         Builder()
             .withStatus(status)
             .withAllowHeaders()
             .withJson(json)
+            .build();
+    };
+
+    public func success() : HttpTypes.Response {
+        Builder()
+            .withStatus(200)
+            .build();
+    };
+
+    public func badRequest(text : Text) : HttpTypes.Response {
+        Builder()
+            .withStatus(400)
+            .withText(text)
             .build();
     };
 
@@ -72,6 +97,13 @@ module {
     public func methodNotAllowed() : HttpTypes.Response {
         Builder()
             .withStatus(405)
+            .build();
+    };
+
+    public func internalServerError(text : Text) : HttpTypes.Response {
+        Builder()
+            .withStatus(500)
+            .withText(text)
             .build();
     };
 }

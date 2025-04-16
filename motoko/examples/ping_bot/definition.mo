@@ -7,7 +7,7 @@ module {
             commands = commands;
             autonomous_config = ?{
                 permissions = ?{
-                    community = [];
+                    community = [#CreatePublicChannel, #CreatePrivateChannel];
                     chat = [];
                     message = [#Text];
                 };

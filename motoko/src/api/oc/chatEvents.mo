@@ -54,6 +54,7 @@ module {
         #NotAuthorized;
         #NotFound;
         #InternalError : Text;
+        #Error : (Nat16, ?Text);
     };
 
     public type EventsResponse = {
