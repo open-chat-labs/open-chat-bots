@@ -29,4 +29,5 @@ pub enum Response {
     NotAuthorized,
     Frozen,
     C2CError(i32, String),
+    Error(u16, Option<String>),
 }

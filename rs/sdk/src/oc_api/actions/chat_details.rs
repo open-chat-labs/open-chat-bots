@@ -41,6 +41,7 @@ pub enum Response {
     NotAuthorized,
     NotFound,
     InternalError(String),
+    Error(u16, Option<String>),
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
