@@ -55,7 +55,9 @@ pub fn verify<T: DeserializeOwned>(jwt: &str, public_key_pem: &str) -> Result<T,
     let signature = ecdsa::Signature::from_slice(&signature_bytes)?;
     let authenticated = format!("{header_json}.{claims_json}");
 
-    let verifying_key = ecdsa::VerifyingKey::from_public_key_pem(public_key_pem)?;
+    let verifying_key = ecdsa::VerifyingKey::from_public_key_pem(public_key_pem)
+        .map_err(|e| format!("OC public key invalid: {e}"))?;
+
     verifying_key.verify(authenticated.as_bytes(), &signature)?;
 
     decode_from_json(claims_json)
