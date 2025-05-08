@@ -2,37 +2,43 @@ import { HttpAgent } from "@dfinity/agent";
 import type {
     AuthToken,
     BotClientConfig,
-    Message,
-    SendMessageResponse,
+    ChatDetailsResponse,
+    ChatEventsCriteria,
+    ChatEventsResponse,
+    ChatSubscriptionType,
     CreateChannelResponse,
     DeleteChannelResponse,
-    ChatDetailsResponse,
-    ChatEventsResponse,
-    ChatEventsCriteria,
+    Message,
+    SendMessageResponse,
+    UnitResult,
 } from "../../domain";
 import type { Channel } from "../../domain/channel";
-import { MsgpackCanisterAgent } from "../canisterAgent/msgpack";
 import {
     apiAuthToken,
-    sendMessageResponse,
-    createChannelResponse,
-    deleteChannelResponse,
+    apiChatEventsCriteria,
     chatDetailsResponse,
     chatEventsResponse,
-    apiChatEventsCriteria,
+    createChannelResponse,
+    deleteChannelResponse,
+    sendMessageResponse,
+    subscriptionEventType,
+    unitResult,
 } from "../../mapping";
 import {
-    LocalUserIndexBotDeleteChannelArgs as BotDeleteChannelArgs,
-    LocalUserIndexBotSendMessageArgs as BotSendMessageArgs,
-    LocalUserIndexBotCreateChannelArgs as BotCreateChannelArgs,
-    LocalUserIndexBotDeleteChannelResponse as BotDeleteChannelResponse,
-    LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
-    LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
+    UnitResult as ApiUnitResult,
     LocalUserIndexBotChatDetailsArgs as BotChatDetailsArgs,
     LocalUserIndexBotChatDetailsResponse as BotChatDetailsResponse,
     LocalUserIndexBotChatEventsArgs as BotChatEventsArgs,
     LocalUserIndexBotChatEventsResponse as BotChatEventsResponse,
+    LocalUserIndexBotCreateChannelArgs as BotCreateChannelArgs,
+    LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
+    LocalUserIndexBotDeleteChannelArgs as BotDeleteChannelArgs,
+    LocalUserIndexBotDeleteChannelResponse as BotDeleteChannelResponse,
+    LocalUserIndexBotSendMessageArgs as BotSendMessageArgs,
+    LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
+    LocalUserIndexBotSubscribeToChatEventsArgs as BotSubscribeToChatEventsArgs,
 } from "../../typebox/typebox";
+import { MsgpackCanisterAgent } from "../canisterAgent/msgpack";
 
 export class BotGatewayClient extends MsgpackCanisterAgent {
     constructor(
@@ -52,6 +58,30 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
             BotSendMessageResponse,
         ).catch((err) => {
             console.error("Call to bot_send_message failed with: ", JSON.stringify(err));
+            throw err;
+        });
+    }
+
+    subscribeToChatEvents(
+        apiKey: string,
+        subscriptionTypes: ChatSubscriptionType[],
+        channelId?: bigint,
+    ): Promise<UnitResult> {
+        return this.executeMsgpackUpdate(
+            "bot_subscribe_to_chat_events",
+            {
+                api_key: apiKey,
+                channel_id: channelId,
+                event_types: subscriptionTypes.map(subscriptionEventType),
+            },
+            unitResult,
+            BotSubscribeToChatEventsArgs,
+            ApiUnitResult,
+        ).catch((err) => {
+            console.error(
+                "Call to bot_subscribe_to_chat_events failed with: ",
+                JSON.stringify(err),
+            );
             throw err;
         });
     }

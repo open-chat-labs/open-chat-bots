@@ -700,3 +700,5 @@ export type ChatEventsWindow = {
     maxMessages: number;
     maxEvents: number;
 };
+
+export type ChatSubscriptionType = "message" | "membership_update" | "chat_details_update";

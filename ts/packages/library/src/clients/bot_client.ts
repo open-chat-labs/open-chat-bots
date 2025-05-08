@@ -1,9 +1,5 @@
-import jwt from "jsonwebtoken";
-import { BadRequestError } from "../utils/error_response";
 import { HttpAgent } from "@dfinity/agent";
-import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
-import { BotCommandArg, BotCommand } from "../typebox/typebox";
-import { DataClient } from "../services/data/data.client";
+import jwt from "jsonwebtoken";
 import {
     FileMessage,
     ImageMessage,
@@ -11,25 +7,31 @@ import {
     TextMessage,
     type AuthToken,
     type BotClientConfig,
-    type DecodedJwt,
-    type DecodedPayload,
-    type Message,
-    type SendMessageResponse,
-    type CreateChannelResponse,
-    type DeleteChannelResponse,
-    type MergedActionScope,
-    type MergedActionChatScope,
-    type MergedActionCommunityScope,
-    type ChatIdentifier,
-    type RawCommandJwt,
-    type RawApiKeyJwt,
     type ChatDetailsResponse,
     type ChatEventsCriteria,
     type ChatEventsResponse,
+    type ChatIdentifier,
+    type ChatSubscriptionType,
+    type CreateChannelResponse,
+    type DecodedJwt,
+    type DecodedPayload,
+    type DeleteChannelResponse,
+    type MergedActionChatScope,
+    type MergedActionCommunityScope,
+    type MergedActionScope,
+    type Message,
+    type RawApiKeyJwt,
+    type RawCommandJwt,
+    type SendMessageResponse,
+    type UnitResult,
 } from "../domain";
 import type { Channel } from "../domain/channel";
 import { apiOptional, mapApiKeyJwt, mapCommandJwt, principalBytesToString } from "../mapping";
+import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
+import { DataClient } from "../services/data/data.client";
+import { BotCommand, BotCommandArg } from "../typebox/typebox";
 import { decodeApiKey } from "../utils/decoding";
+import { BadRequestError } from "../utils/error_response";
 
 export class BotClient {
     #botService: BotGatewayClient;
@@ -137,6 +139,14 @@ export class BotClient {
             }
             return resp;
         });
+    }
+
+    public subscribeToChatEvents(
+        apiKey: string,
+        subscriptionTypes: ChatSubscriptionType[],
+        channelId?: bigint,
+    ): Promise<UnitResult> {
+        return this.#botService.subscribeToChatEvents(apiKey, subscriptionTypes, channelId);
     }
 
     public createChannel(channel: Channel): Promise<CreateChannelResponse> {

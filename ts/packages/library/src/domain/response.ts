@@ -27,7 +27,12 @@ export type ChatEventWrapper = {
     event: ChatEvent;
 };
 
-export type ChatEventsFailure = FailedAuthentication | NotAuthorized | NotFound | ServerError;
+export type ChatEventsFailure =
+    | FailedAuthentication
+    | NotAuthorized
+    | NotFound
+    | ServerError
+    | UnitResult;
 
 export type ChatDetailsSuccess = {
     kind: "success";
@@ -117,3 +122,5 @@ export type ThreadNotFound = { kind: "thread_not_found" };
 export type MessageAlreadyFinalized = { kind: "message_already_finalized" };
 export type ServerError = { kind: "server_error" };
 export type ChannelNotFound = { kind: "channel_not_found" };
+
+export type UnitResult = { kind: "success" } | { kind: "error"; code: number; message?: string };
