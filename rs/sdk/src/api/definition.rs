@@ -1,4 +1,6 @@
-use crate::types::ChatRole;
+use std::collections::HashSet;
+
+use crate::types::{ChatEventType, ChatRole, CommunityEventType};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
@@ -10,6 +12,8 @@ pub struct BotDefinition {
     pub commands: Vec<BotCommandDefinition>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub autonomous_config: Option<AutonomousConfig>,
+    pub default_subscriptions: Option<BotSubscriptions>,
+    pub data_encoding: Option<BotDataEncoding>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -26,7 +30,6 @@ pub struct BotCommandDefinition {
 #[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
 pub struct AutonomousConfig {
     pub permissions: BotPermissions,
-    pub sync_api_key: bool,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -80,4 +83,17 @@ pub struct BotCommandOptionChoice<T> {
 #[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
 pub struct DateTimeParam {
     pub future_only: bool,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
+pub struct BotSubscriptions {
+    pub community: HashSet<CommunityEventType>,
+    pub chat: HashSet<ChatEventType>,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, Default)]
+pub enum BotDataEncoding {
+    #[default]
+    Json,
+    Candid,
 }

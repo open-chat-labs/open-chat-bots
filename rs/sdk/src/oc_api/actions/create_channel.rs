@@ -1,6 +1,7 @@
 use crate::oc_api::actions::ActionDef;
 use crate::types::{
-    AccessGateConfig, AuthToken, ChannelId, ChatPermissions, Document, Milliseconds, OCError, Rules,
+    AccessGateConfig, ChannelId, ChatPermissions, CommunityId, Document, Milliseconds, OCError,
+    Rules,
 };
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
@@ -12,12 +13,13 @@ impl ActionDef for CreateChannelAction {
     type Response = Response;
 
     fn method_name(_: bool) -> &'static str {
-        "bot_create_channel"
+        "bot_create_channel_v2"
     }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Args {
+    pub community_id: CommunityId,
     pub is_public: bool,
     pub name: String,
     pub description: String,
@@ -29,17 +31,11 @@ pub struct Args {
     pub events_ttl: Option<Milliseconds>,
     pub gate_config: Option<AccessGateConfig>,
     pub external_url: Option<String>,
-    pub auth_token: AuthToken,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Debug)]
 pub enum Response {
     Success(SuccessResult),
-    FailedAuthentication(String),
-    InvalidRequest(String),
-    NotAuthorized,
-    Frozen,
-    C2CError(i32, String),
     Error(OCError),
 }
 

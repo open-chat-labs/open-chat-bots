@@ -5,11 +5,14 @@ use serde::de::DeserializeOwned;
 use std::future::Future;
 use std::sync::Arc;
 
+pub mod add_reaction;
 pub mod chat_details;
 pub mod chat_events;
 pub mod create_channel;
 pub mod delete_channel;
+pub mod delete_messages;
 pub mod send_message;
+pub mod subscribe_to_events;
 
 pub trait ActionDef {
     type Args: CandidType + Clone + Send + 'static;

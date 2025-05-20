@@ -1,34 +1,34 @@
 use super::Client;
-use crate::oc_api::actions::chat_events::*;
+use crate::oc_api::actions::subscribe_to_events::*;
 use crate::oc_api::actions::ActionArgsBuilder;
 use crate::oc_api::Runtime;
 use crate::types::{ActionContext, CanisterId, ChannelId};
+use std::collections::HashSet;
 use std::sync::Arc;
 
-pub struct ChatEventsBuilder<'c, R, C> {
+pub struct UnsubscribeFromChatEventsBuilder<'c, R, C> {
     client: &'c Client<R, C>,
     channel_id: Option<ChannelId>,
-    events: EventsSelectionCriteria,
 }
 
-impl<'c, R: Runtime, C: ActionContext> ChatEventsBuilder<'c, R, C> {
-    pub fn new(client: &'c Client<R, C>, events: EventsSelectionCriteria) -> Self {
-        ChatEventsBuilder {
+impl<'c, R: Runtime, C: ActionContext> UnsubscribeFromChatEventsBuilder<'c, R, C> {
+    pub fn new(client: &'c Client<R, C>) -> Self {
+        UnsubscribeFromChatEventsBuilder {
             client,
             channel_id: None,
-            events,
         }
     }
 
-    // This only takes effect for community scope
     pub fn with_channel_id(mut self, channel_id: ChannelId) -> Self {
         self.channel_id = Some(channel_id);
         self
     }
 }
 
-impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for ChatEventsBuilder<'_, R, C> {
-    type Action = ChatEventsAction;
+impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R>
+    for UnsubscribeFromChatEventsBuilder<'_, R, C>
+{
+    type Action = SubscribeToChatEventsAction;
 
     fn runtime(&self) -> Arc<R> {
         self.client.runtime.clone()
@@ -40,8 +40,9 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for ChatEventsBuilder<'_
 
     fn into_args(self) -> Args {
         Args {
-            chat_context: self.client.context.chat_context(self.channel_id).unwrap(),
-            events: self.events,
+            scope: self.client.context.scope(),
+            community_events: HashSet::new(),
+            chat_events: HashSet::new(),
         }
     }
 }

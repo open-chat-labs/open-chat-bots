@@ -1,5 +1,5 @@
 use oc_bots_sdk::types::AuthToken;
-use oc_bots_sdk::types::{ActionScope, BotApiKeyContext, Chat, TokenError};
+use oc_bots_sdk::types::{AutonomousScope, BotApiKeyContext, Chat, TokenError};
 use oc_bots_sdk::types::{
     BotActionChatDetails, BotActionCommunityDetails, BotCommandContext, BotCommandScope,
 };
@@ -24,12 +24,12 @@ impl OcChannelKey {
     pub fn from_api_key(api_key: String) -> Result<Self, TokenError> {
         let BotApiKeyContext { scope, .. } = BotApiKeyContext::parse_api_key(api_key)?;
         let key = match scope {
-            ActionScope::Chat(Chat::Direct(canister_id)) => canister_id.to_string(),
-            ActionScope::Chat(Chat::Group(canister_id)) => canister_id.to_string(),
-            ActionScope::Chat(Chat::Channel(canister_id, channel_id)) => {
+            AutonomousScope::Chat(Chat::Direct(canister_id)) => canister_id.to_string(),
+            AutonomousScope::Chat(Chat::Group(canister_id)) => canister_id.to_string(),
+            AutonomousScope::Chat(Chat::Channel(canister_id, channel_id)) => {
                 format!("{}_{}", canister_id, channel_id)
             }
-            ActionScope::Community(canister_id) => canister_id.to_string(),
+            AutonomousScope::Community(canister_id) => canister_id.to_string(),
         };
 
         Ok(Self(key))

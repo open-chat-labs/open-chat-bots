@@ -17,8 +17,9 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
                         CommunityPermission::CreatePrivateChannel,
                     ]))
                     .with_message(&HashSet::from_iter(vec![MessagePermission::Text])),
-                sync_api_key: false,
             }),
+            default_subscriptions: None,
+            data_encoding: None,
         },
     )
 }
