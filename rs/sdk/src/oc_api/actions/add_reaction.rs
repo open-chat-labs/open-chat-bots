@@ -1,23 +1,25 @@
 use crate::oc_api::actions::ActionDef;
-use crate::types::{ChannelId, CommunityId, UnitResult};
+use crate::types::{BotChatContext, MessageId, MessageIndex, Reaction, UnitResult};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
-pub struct DeleteChannelAction;
+pub struct AddReactionAction;
 
-impl ActionDef for DeleteChannelAction {
+impl ActionDef for AddReactionAction {
     type Args = Args;
     type Response = Response;
 
     fn method_name(_: bool) -> &'static str {
-        "bot_delete_channel_v2"
+        "bot_add_reaction_v2"
     }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Args {
-    pub community_id: CommunityId,
-    pub channel_id: ChannelId,
+    pub chat_context: BotChatContext,
+    pub thread: Option<MessageIndex>,
+    pub message_id: MessageId,
+    pub reaction: Reaction,
 }
 
 pub type Response = UnitResult;

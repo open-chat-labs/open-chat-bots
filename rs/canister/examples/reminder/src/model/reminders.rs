@@ -6,8 +6,8 @@ use english_to_cron::str_cron_syntax;
 use ic_cdk_timers::TimerId;
 use oc_bots_sdk::oc_api::actions::{send_message, ActionArgsBuilder};
 use oc_bots_sdk::types::{
-    ActionScope, BotApiKeyContext, BotPermissions, Chat, MessageContentInitial, TextContent,
-    TimestampMillis, UserId,
+    AutonomousContext, AutonomousScope, BotPermissions, CanisterId, Chat, CommunityId,
+    InstallationLocation, MessageContentInitial, TextContent, TimestampMillis, UserId,
 };
 use oc_bots_sdk_canister::{env, OPENCHAT_CLIENT_FACTORY};
 use serde::{Deserialize, Serialize};
@@ -54,18 +54,15 @@ fn run() {
 
     mutate(|state| {
         while let Some(reminder) = state.reminders.pop_next_due_reminder(env::now()) {
-            if let Some(api_key) = state.api_key_registry.get_key_with_required_permissions(
-                &ActionScope::Chat(reminder.chat),
-                &BotPermissions::text_only(),
-            ) {
-                ic_cdk::spawn(send_reminder(
-                    api_key.to_context(),
-                    reminder.message.clone(),
-                    reminder.chat,
-                    reminder.chat_reminder_id,
-                ));
-            } else {
-                continue;
+            if let Some(record) = state.installation_registry.get(&reminder.chat.into()) {
+                if BotPermissions::text_only().is_subset(&record.granted_autonomous_permissions) {
+                    ic_cdk::spawn(send_reminder(
+                        record.api_gateway,
+                        reminder.chat,
+                        reminder.message.clone(),
+                        reminder.chat_reminder_id,
+                    ));
+                }
             }
         }
 
@@ -73,11 +70,15 @@ fn run() {
     });
 }
 
-async fn send_reminder(context: BotApiKeyContext, text: String, chat: Chat, chat_reminder_id: u8) {
+async fn send_reminder(api_gateway: CanisterId, chat: Chat, text: String, chat_reminder_id: u8) {
+    let context = AutonomousContext {
+        scope: AutonomousScope::Chat(chat),
+        api_gateway,
+    };
+
     match OPENCHAT_CLIENT_FACTORY
         .build(context)
         .send_message(MessageContentInitial::Text(TextContent { text }))
-        .with_channel_id(chat.channel_id())
         .with_block_level_markdown(true)
         .execute_async()
         .await
@@ -269,6 +270,35 @@ impl Reminders {
         }
 
         Some(reminder)
+    }
+
+    pub fn delete_from_location(&mut self, location: &InstallationLocation) {
+        match location {
+            InstallationLocation::Community(community_id) => self.delete_community(*community_id),
+            InstallationLocation::Group(chat_id) => self.delete_chat(&Chat::Group(*chat_id)),
+            InstallationLocation::User(chat_id) => self.delete_chat(&Chat::Direct(*chat_id)),
+        }
+    }
+
+    fn delete_community(&mut self, community_id: CommunityId) {
+        let chats_to_delete: Vec<_> = self
+            .per_chat
+            .keys()
+            .filter(|chat| chat.canister_id() == community_id)
+            .cloned()
+            .collect();
+
+        for chat in chats_to_delete {
+            self.delete_chat(&chat);
+        }
+    }
+
+    fn delete_chat(&mut self, chat: &Chat) {
+        if let Some(chat_reminders) = self.per_chat.remove(chat) {
+            for (_, global_id) in chat_reminders {
+                self.reminders.remove(&global_id);
+            }
+        }
     }
 
     pub fn delete(&mut self, chat: &Chat, chat_reminder_id: u8) -> Result<Reminder, String> {

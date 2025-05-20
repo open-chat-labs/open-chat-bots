@@ -2,8 +2,7 @@ use candid::{CandidType, Deserialize};
 use serde::Serialize;
 
 use crate::types::{
-    AuthToken, ChannelId, ChatEvent, EventIndex, EventWrapper, MessageIndex, OCError,
-    TimestampMillis,
+    BotChatContext, ChatEvent, EventIndex, EventWrapper, MessageIndex, OCError, TimestampMillis,
 };
 
 use super::ActionDef;
@@ -19,27 +18,22 @@ impl ActionDef for ChatEventsAction {
         // replicated mode, so canisters must call `bot_chat_events_c2c` instead which is an update
         // call.
         if is_canister_runtime {
-            "bot_chat_events_c2c"
+            "bot_chat_events_c2c_v2"
         } else {
-            "bot_chat_events"
+            "bot_chat_events_v2"
         }
     }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Args {
-    pub channel_id: Option<ChannelId>,
+    pub chat_context: BotChatContext,
     pub events: EventsSelectionCriteria,
-    pub auth_token: AuthToken,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Debug)]
 pub enum Response {
     Success(EventsResponse),
-    FailedAuthentication(String),
-    NotAuthorized,
-    NotFound,
-    InternalError(String),
     Error(OCError),
 }
 

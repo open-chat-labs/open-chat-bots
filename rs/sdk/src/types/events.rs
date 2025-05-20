@@ -1,8 +1,9 @@
 use crate::api::command::Command;
 
 use super::{
-    AccessGateConfig, CanisterId, Chat, ChatPermissions, ChatRole, EventIndex, MessageContent,
-    MessageId, MessageIndex, Milliseconds, TimestampMillis, UserId,
+    AccessGateConfig, BotPermissions, CanisterId, Chat, ChatPermissions, ChatRole, EventIndex,
+    InstallationLocation, MessageContent, MessageId, MessageIndex, Milliseconds, TimestampMillis,
+    UserId,
 };
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
@@ -94,10 +95,10 @@ pub struct BotMessageContext {
 
 #[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
 #[repr(u8)]
-pub enum ChatEventType {
-    Message = 0,           // Messages + edits, reaction, tips, etc.
-    MembershipUpdate = 1,  // User added, blocked, invited, role changed, etc.
-    ChatDetailsUpdate = 2, // Name, description, rules, permissions changed, etc.
+pub enum ChatEventCategory {
+    Message = 0,    // Messages + edits, reaction, tips, etc.
+    Membership = 1, // User added, blocked, invited, role changed, etc.
+    Details = 2,    // Name, description, rules, permissions changed, etc.
 }
 
 type Events = Vec<EventWrapper<ChatEvent>>;
@@ -352,9 +353,9 @@ pub struct BotUpdated {
 }
 
 impl ChatEvent {
-    pub fn event_type(&self) -> Option<ChatEventType> {
+    pub fn event_category(&self) -> Option<ChatEventCategory> {
         match self {
-            ChatEvent::Message(_) => Some(ChatEventType::Message),
+            ChatEvent::Message(_) => Some(ChatEventCategory::Message),
             ChatEvent::GroupChatCreated(_)
             | ChatEvent::DirectChatCreated(_)
             | ChatEvent::GroupNameChanged(_)
@@ -370,7 +371,7 @@ impl ChatEvent {
             | ChatEvent::ChatUnfrozen(_)
             | ChatEvent::EventsTimeToLiveUpdated(_)
             | ChatEvent::GroupGateUpdated(_)
-            | ChatEvent::ExternalUrlUpdated(_) => Some(ChatEventType::ChatDetailsUpdate),
+            | ChatEvent::ExternalUrlUpdated(_) => Some(ChatEventCategory::Details),
             ChatEvent::ParticipantsAdded(_)
             | ChatEvent::ParticipantsRemoved(_)
             | ChatEvent::ParticipantJoined(_)
@@ -382,8 +383,217 @@ impl ChatEvent {
             | ChatEvent::MembersAddedToDefaultChannel(_)
             | ChatEvent::BotAdded(_)
             | ChatEvent::BotRemoved(_)
-            | ChatEvent::BotUpdated(_) => Some(ChatEventType::MembershipUpdate),
+            | ChatEvent::BotUpdated(_) => Some(ChatEventCategory::Membership),
             ChatEvent::Empty | ChatEvent::FailedToDeserialize => None,
         }
     }
+}
+
+#[derive(
+    CandidType, Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord,
+)]
+#[repr(u8)]
+pub enum CommunityEventCategory {
+    Membership = 0, // User added, blocked, invited, role changed, etc.
+    Details = 1,    // Name, description, rules, permissions changed, etc.
+}
+
+#[derive(
+    CandidType, Serialize, Deserialize, Clone, Debug, Copy, Hash, PartialEq, Eq, PartialOrd, Ord,
+)]
+pub enum ChatEventType {
+    // Message category
+    Message,
+    MessageEdited,
+    MessageReaction,
+    MessageTipped,
+    MessageDeleted,
+    MessagePollVote,
+    MessagePollEnded,
+    MessagePrizeClaim,
+    MessagePrizePayment,
+    MessageProposalVote,
+    MessageProposalUpdated,
+    MessageP2pSwap,
+    MessageReported,
+    MessageThreadSummary,
+    MessageReminder,
+    MessageVideoCall,
+    MessageOther,
+
+    // Details category
+    Created,
+    NameChanged,
+    DescriptionChanged,
+    RulesChanged,
+    AvatarChanged,
+    ExternalUrlUpdated,
+    PermissionsChanged,
+    VisibilityChanged,
+    InviteCodeChanged,
+    Frozen,
+    Unfrozen,
+    EventsTTLUpdated,
+    GateUpdated,
+    MessagePinned,
+    MessageUnpinned,
+
+    // Membership category
+    MembersJoined,
+    MembersLeft,
+    RoleChanged,
+    UsersInvited,
+    BotAdded,
+    BotRemoved,
+    BotUpdated,
+    UsersBlocked,
+    UsersUnblocked,
+}
+
+impl From<ChatEventType> for ChatEventCategory {
+    fn from(value: ChatEventType) -> Self {
+        match value {
+            ChatEventType::Message
+            | ChatEventType::MessageEdited
+            | ChatEventType::MessageReaction
+            | ChatEventType::MessageTipped
+            | ChatEventType::MessageDeleted
+            | ChatEventType::MessagePollVote
+            | ChatEventType::MessagePollEnded
+            | ChatEventType::MessagePrizeClaim
+            | ChatEventType::MessagePrizePayment
+            | ChatEventType::MessageProposalVote
+            | ChatEventType::MessageProposalUpdated
+            | ChatEventType::MessageP2pSwap
+            | ChatEventType::MessageReported
+            | ChatEventType::MessageThreadSummary
+            | ChatEventType::MessageReminder
+            | ChatEventType::MessageVideoCall
+            | ChatEventType::MessageOther => ChatEventCategory::Message,
+            ChatEventType::Created
+            | ChatEventType::NameChanged
+            | ChatEventType::DescriptionChanged
+            | ChatEventType::RulesChanged
+            | ChatEventType::AvatarChanged
+            | ChatEventType::ExternalUrlUpdated
+            | ChatEventType::PermissionsChanged
+            | ChatEventType::VisibilityChanged
+            | ChatEventType::InviteCodeChanged
+            | ChatEventType::Frozen
+            | ChatEventType::Unfrozen
+            | ChatEventType::EventsTTLUpdated
+            | ChatEventType::GateUpdated
+            | ChatEventType::MessagePinned
+            | ChatEventType::MessageUnpinned => ChatEventCategory::Details,
+            ChatEventType::MembersJoined
+            | ChatEventType::MembersLeft
+            | ChatEventType::RoleChanged
+            | ChatEventType::UsersInvited
+            | ChatEventType::BotAdded
+            | ChatEventType::BotRemoved
+            | ChatEventType::BotUpdated
+            | ChatEventType::UsersBlocked
+            | ChatEventType::UsersUnblocked => ChatEventCategory::Membership,
+        }
+    }
+}
+
+#[derive(
+    CandidType, Serialize, Deserialize, Clone, Debug, Copy, Hash, PartialEq, Eq, PartialOrd, Ord,
+)]
+pub enum CommunityEventType {
+    // Details category
+    Created,
+    NameChanged,
+    DescriptionChanged,
+    RulesChanged,
+    AvatarChanged,
+    BannerChanged,
+    PermissionsChanged,
+    VisibilityChanged,
+    InviteCodeChanged,
+    Frozen,
+    Unfrozen,
+    EventsTTLUpdated,
+    GateUpdated,
+    MessagePinned,
+    MessageUnpinned,
+    PrimaryLanguageChanged,
+    GroupImported,
+    ChannelCreated,
+    ChannelDeleted,
+
+    // Membership category
+    MembersJoined,
+    MembersLeft,
+    RoleChanged,
+    UsersInvited,
+    BotAdded,
+    BotRemoved,
+    BotUpdated,
+    UsersBlocked,
+    UsersUnblocked,
+}
+
+impl From<CommunityEventType> for CommunityEventCategory {
+    fn from(value: CommunityEventType) -> Self {
+        match value {
+            CommunityEventType::Created
+            | CommunityEventType::NameChanged
+            | CommunityEventType::DescriptionChanged
+            | CommunityEventType::RulesChanged
+            | CommunityEventType::AvatarChanged
+            | CommunityEventType::BannerChanged
+            | CommunityEventType::PermissionsChanged
+            | CommunityEventType::VisibilityChanged
+            | CommunityEventType::InviteCodeChanged
+            | CommunityEventType::Frozen
+            | CommunityEventType::Unfrozen
+            | CommunityEventType::EventsTTLUpdated
+            | CommunityEventType::GateUpdated
+            | CommunityEventType::PrimaryLanguageChanged
+            | CommunityEventType::GroupImported
+            | CommunityEventType::ChannelCreated
+            | CommunityEventType::ChannelDeleted
+            | CommunityEventType::MessagePinned
+            | CommunityEventType::MessageUnpinned => CommunityEventCategory::Details,
+            CommunityEventType::MembersJoined
+            | CommunityEventType::MembersLeft
+            | CommunityEventType::RoleChanged
+            | CommunityEventType::UsersInvited
+            | CommunityEventType::BotAdded
+            | CommunityEventType::BotRemoved
+            | CommunityEventType::BotUpdated
+            | CommunityEventType::UsersBlocked
+            | CommunityEventType::UsersUnblocked => CommunityEventCategory::Membership,
+        }
+    }
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct BotRegisteredEvent {
+    #[serde(rename = "i")]
+    pub bot_id: UserId,
+    #[serde(rename = "n")]
+    pub bot_name: String,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct BotInstalledEvent {
+    #[serde(rename = "u")]
+    pub installed_by: UserId,
+    #[serde(rename = "l")]
+    pub location: InstallationLocation,
+    #[serde(rename = "p")]
+    pub granted_command_permissions: BotPermissions,
+    #[serde(rename = "a")]
+    pub granted_autonomous_permissions: BotPermissions,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct BotUninstalledEvent {
+    #[serde(rename = "u")]
+    pub uninstalled_by: UserId,
+    #[serde(rename = "l")]
+    pub location: InstallationLocation,
 }

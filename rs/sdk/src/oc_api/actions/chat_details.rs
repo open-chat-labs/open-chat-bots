@@ -2,8 +2,8 @@ use candid::{CandidType, Deserialize};
 use serde::Serialize;
 
 use crate::types::{
-    AccessGateConfig, AuthToken, ChannelId, ChatPermissions, EventIndex, FrozenGroupInfo,
-    MessageIndex, Milliseconds, OCError, TimestampMillis, VersionedRules, VideoCall,
+    AccessGateConfig, BotChatContext, ChatPermissions, EventIndex, FrozenGroupInfo, MessageIndex,
+    Milliseconds, OCError, TimestampMillis, VersionedRules, VideoCall,
 };
 
 use super::ActionDef;
@@ -19,28 +19,22 @@ impl ActionDef for ChatDetailsAction {
         // replicated mode, so canisters must call `bot_chat_details_c2c` instead which is an update
         // call.
         if is_canister_runtime {
-            "bot_chat_details_c2c"
+            "bot_chat_details_c2c_v2"
         } else {
-            "bot_chat_details"
+            "bot_chat_details_v2"
         }
     }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
 pub struct Args {
-    pub channel_id: Option<ChannelId>,
-    pub auth_token: AuthToken,
+    pub chat_context: BotChatContext,
 }
 
 #[allow(clippy::large_enum_variant)]
 #[derive(CandidType, Serialize, Deserialize, Debug)]
 pub enum Response {
     Success(ChatDetails),
-    FailedAuthentication(String),
-    DirectChatUnsupported,
-    NotAuthorized,
-    NotFound,
-    InternalError(String),
     Error(OCError),
 }
 
