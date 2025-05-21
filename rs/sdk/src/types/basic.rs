@@ -96,6 +96,20 @@ impl AutonomousScope {
             AutonomousScope::Community(community_id) => Some(*community_id),
         }
     }
+
+    pub fn from_location(location: &InstallationLocation, channel_id: Option<ChannelId>) -> Self {
+        match location {
+            InstallationLocation::Community(community_id) => {
+                if let Some(channel_id) = channel_id {
+                    AutonomousScope::Chat(Chat::Channel(*community_id, channel_id))
+                } else {
+                    AutonomousScope::Community(*community_id)
+                }
+            }
+            InstallationLocation::Group(chat_id) => AutonomousScope::Chat(Chat::Group(*chat_id)),
+            InstallationLocation::User(user_id) => AutonomousScope::Chat(Chat::Direct(*user_id)),
+        }
+    }
 }
 
 #[derive(
