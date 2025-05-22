@@ -1,9 +1,6 @@
 use crate::async_handler::{AsyncHandler, BoxedHandler};
 use ic_http_certification::HttpRequest as CanisterHttpRequest;
 use ic_http_certification::HttpResponse as CanisterHttpResponse;
-use oc_bots_sdk::types::BotApiKeyContext;
-use oc_bots_sdk::types::TimestampMillis;
-use oc_bots_sdk::types::TokenError;
 use serde::Deserialize;
 use serde::Serialize;
 use std::str::FromStr;
@@ -114,21 +111,6 @@ impl HttpRequest {
             Err(error) => Err(HttpResponse::text(400, format!("Args invalid: {}", error))),
         }
     }
-
-    pub fn extract_context(
-        &self,
-        public_key: &str,
-        now: TimestampMillis,
-    ) -> Result<BotApiKeyContext, HttpResponse> {
-        if let Some(jwt) = self.get_header("x-oc-jwt") {
-            BotApiKeyContext::parse_jwt(jwt.to_string(), public_key, now)
-        } else if let Some(api_key) = self.get_header("x-oc-api-key") {
-            BotApiKeyContext::parse_api_key(api_key.to_string())
-        } else {
-            Err(TokenError::Invalid("No auth token found".to_string()))
-        }
-        .map_err(|err| HttpResponse::text(400, format!("{err:?}")))
-    }
 }
 
 impl From<CanisterHttpRequest> for HttpRequest {
@@ -172,8 +154,8 @@ impl HttpResponse {
         )
     }
 
-    pub fn text(status_code: u16, text: String) -> HttpResponse {
-        Self::new(status_code, text.into_bytes(), "text/plain")
+    pub fn text(status_code: u16, text: impl Into<String>) -> HttpResponse {
+        Self::new(status_code, text.into().into_bytes(), "text/plain")
     }
 
     pub fn not_found() -> Self {

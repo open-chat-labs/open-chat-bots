@@ -105,7 +105,7 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for CreateChannelBuilder
 
     fn into_args(self) -> Args {
         Args {
-            auth_token: self.client.context.auth_token().clone(),
+            community_id: self.client.context.scope().community_id().unwrap(),
             name: self.name,
             is_public: self.is_public,
             description: self.description,

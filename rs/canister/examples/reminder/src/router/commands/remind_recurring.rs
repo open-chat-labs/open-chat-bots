@@ -37,17 +37,14 @@ impl CommandHandler<CanisterRuntime> for RemindRecurring {
                 return "This command can only be used in a chat".to_string();
             };
 
-            // Check if there is an API Key registered at the required scope and with the required permissions
-            if state
-                .api_key_registry
-                .get_key_with_required_permissions(
-                    &cxt.scope.clone().into(),
-                    &BotPermissions::text_only(),
-                )
-                .is_none()
-            {
-                return "You must first register an API key for this chat with the \"send text message\" permission".to_string();
-            }
+            // Check if the installed bot has the required permissions
+            let Some(record) = state.installation_registry.get(&cxt.scope.clone().into()) else {
+                return "The bot does not have a record of this location - please update the bot installation".to_string();
+            };
+
+            if !BotPermissions::text_only().is_subset(&record.granted_autonomous_permissions) {
+                return "The bot must first be granted the text message permission".to_string();
+            };
 
             // Add the reminder to the state
             let result = match state.reminders.add(

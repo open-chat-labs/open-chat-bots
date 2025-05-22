@@ -1,4 +1,4 @@
-use super::{ActionScope, BotPermissions, CanisterId, Chat, MessageId, MessageIndex, UserId};
+use super::{AutonomousScope, BotPermissions, CanisterId, Chat, MessageId, MessageIndex, UserId};
 use crate::api::command::Command;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
@@ -28,14 +28,6 @@ pub struct BotActionByCommandClaims {
     pub scope: BotCommandScope,
     pub granted_permissions: BotPermissions,
     pub command: Command,
-}
-
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct BotActionByApiKeyClaims {
-    pub bot_api_gateway: CanisterId,
-    pub bot: UserId,
-    pub scope: ActionScope,
-    pub granted_permissions: BotPermissions,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -73,11 +65,11 @@ impl BotCommandScope {
     }
 }
 
-impl From<BotCommandScope> for ActionScope {
+impl From<BotCommandScope> for AutonomousScope {
     fn from(value: BotCommandScope) -> Self {
         match value {
-            BotCommandScope::Chat(details) => ActionScope::Chat(details.chat),
-            BotCommandScope::Community(details) => ActionScope::Community(details.community_id),
+            BotCommandScope::Chat(details) => AutonomousScope::Chat(details.chat),
+            BotCommandScope::Community(details) => AutonomousScope::Community(details.community_id),
         }
     }
 }

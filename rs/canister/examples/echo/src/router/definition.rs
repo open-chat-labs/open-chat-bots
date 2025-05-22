@@ -11,6 +11,8 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
                     .to_string(),
             commands: commands::definitions(),
             autonomous_config: None,
+            default_subscriptions: None,
+            data_encoding: None,
         },
     )
 }

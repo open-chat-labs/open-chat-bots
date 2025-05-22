@@ -2,6 +2,7 @@ use crate::api::command::Message;
 use crate::oc_api::actions::send_message::*;
 use crate::oc_api::actions::ActionArgsBuilder;
 use crate::oc_api::Runtime;
+use crate::types::MessageIndex;
 use crate::types::{ActionContext, CallResult};
 use crate::types::{CanisterId, ChannelId, MessageContentInitial, MessageId};
 use std::sync::Arc;
@@ -12,6 +13,7 @@ pub struct SendMessageBuilder<'c, R, C> {
     client: &'c Client<R, C>,
     content: MessageContentInitial,
     channel_id: Option<ChannelId>,
+    thread: Option<MessageIndex>,
     message_id: Option<MessageId>,
     block_level_markdown: bool,
     finalised: bool,
@@ -19,13 +21,13 @@ pub struct SendMessageBuilder<'c, R, C> {
 
 impl<'c, R: Runtime, C: ActionContext> SendMessageBuilder<'c, R, C> {
     pub fn new(client: &'c Client<R, C>, content: MessageContentInitial) -> Self {
-        let channel_id = client.context.channel_id();
         let message_id = client.context.message_id();
 
         Self {
             client,
             content,
-            channel_id,
+            channel_id: None,
+            thread: None,
             message_id,
             block_level_markdown: false,
             finalised: true,
@@ -34,9 +36,12 @@ impl<'c, R: Runtime, C: ActionContext> SendMessageBuilder<'c, R, C> {
 
     // This only takes effect for community scope
     pub fn with_channel_id(mut self, channel_id: Option<ChannelId>) -> Self {
-        if self.channel_id.is_none() {
-            self.channel_id = channel_id;
-        }
+        self.channel_id = channel_id;
+        self
+    }
+
+    pub fn with_thread(mut self, thread: Option<MessageIndex>) -> Self {
+        self.thread = thread;
         self
     }
 
@@ -91,12 +96,12 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for SendMessageBuilder<'
 
     fn into_args(self) -> Args {
         Args {
-            content: self.content,
-            channel_id: self.channel_id,
+            chat_context: self.client.context.chat_context(self.channel_id).unwrap(),
+            thread: self.thread,
             message_id: self.message_id,
+            content: self.content,
             block_level_markdown: self.block_level_markdown,
             finalised: self.finalised,
-            auth_token: self.client.context.auth_token().clone(),
         }
     }
 }

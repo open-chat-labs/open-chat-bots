@@ -1,5 +1,5 @@
 use crate::oc_api::actions::ActionDef;
-use crate::types::{AuthToken, ChannelId, OCError};
+use crate::types::{ChannelId, CommunityId, UnitResult};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
@@ -10,24 +10,14 @@ impl ActionDef for DeleteChannelAction {
     type Response = Response;
 
     fn method_name(_: bool) -> &'static str {
-        "bot_delete_channel"
+        "bot_delete_channel_v2"
     }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Args {
+    pub community_id: CommunityId,
     pub channel_id: ChannelId,
-    pub auth_token: AuthToken,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug)]
-pub enum Response {
-    Success,
-    ChannelNotFound,
-    FailedAuthentication(String),
-    InvalidRequest(String),
-    NotAuthorized,
-    Frozen,
-    C2CError(i32, String),
-    Error(OCError),
-}
+pub type Response = UnitResult;

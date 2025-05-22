@@ -1,5 +1,5 @@
 use crate::model::reminders::{self, Reminders};
-use oc_bots_sdk::ApiKeyRegistry;
+use oc_bots_sdk::InstallationRegistry;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 
@@ -10,7 +10,7 @@ thread_local! {
 #[derive(Serialize, Deserialize)]
 pub struct State {
     oc_public_key: String,
-    pub api_key_registry: ApiKeyRegistry,
+    pub installation_registry: InstallationRegistry,
     pub reminders: Reminders,
 }
 
@@ -43,7 +43,7 @@ impl State {
     pub fn new(oc_public_key: String) -> State {
         State {
             oc_public_key,
-            api_key_registry: ApiKeyRegistry::default(),
+            installation_registry: InstallationRegistry::new(),
             reminders: Reminders::default(),
         }
     }
@@ -62,7 +62,7 @@ impl State {
 
     pub fn metrics(&self) -> Metrics {
         Metrics {
-            api_keys: self.api_key_registry.count(),
+            installations: self.installation_registry.count(),
             reminders: self.reminders.count(),
             chats_with_reminders: self.reminders.chats_count(),
         }
@@ -71,7 +71,7 @@ impl State {
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct Metrics {
-    pub api_keys: usize,
+    pub installations: usize,
     pub reminders: usize,
     pub chats_with_reminders: usize,
 }

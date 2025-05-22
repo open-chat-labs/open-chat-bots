@@ -1,18 +1,30 @@
 use crate::oc_api::actions::chat_events::EventsSelectionCriteria;
 use crate::oc_api::Runtime;
-use crate::types::{ActionContext, ChannelId, MessageContentInitial, TextContent};
+use crate::types::{
+    ActionContext, ChannelId, ChatEventType, CommunityEventType, MessageContentInitial, MessageId,
+    Reaction, TextContent,
+};
+use add_reaction::AddReactionBuilder;
 use chat_details::ChatDetailsBuilder;
 use chat_events::ChatEventsBuilder;
 use create_channel::CreateChannelBuilder;
 use delete_channel::DeleteChannelBuilder;
+use delete_messages::DeleteMessagesBuilder;
 use send_message::SendMessageBuilder;
+use std::collections::HashSet;
 use std::sync::Arc;
+use subscribe_to_chat_events::SubscribeToChatEventsBuilder;
+use unsubscribe_from_chat_events::UnsubscribeFromChatEventsBuilder;
 
+mod add_reaction;
 mod chat_details;
 mod chat_events;
 mod create_channel;
 mod delete_channel;
+mod delete_messages;
 mod send_message;
+mod subscribe_to_chat_events;
+mod unsubscribe_from_chat_events;
 
 pub struct ClientFactory<R> {
     runtime: Arc<R>,
@@ -46,12 +58,20 @@ impl<R, C> Client<R, C> {
 }
 
 impl<R: Runtime, C: ActionContext> Client<R, C> {
-    pub fn send_message(&self, content: MessageContentInitial) -> SendMessageBuilder<R, C> {
-        SendMessageBuilder::new(self, content)
+    pub fn add_reaction(
+        &self,
+        message_id: MessageId,
+        reaction: Reaction,
+    ) -> AddReactionBuilder<R, C> {
+        AddReactionBuilder::new(self, message_id, reaction)
     }
 
-    pub fn send_text_message(&self, text: String) -> SendMessageBuilder<R, C> {
-        self.send_message(MessageContentInitial::Text(TextContent { text }))
+    pub fn chat_details(&self) -> ChatDetailsBuilder<R, C> {
+        ChatDetailsBuilder::new(self)
+    }
+
+    pub fn chat_events(&self, events: EventsSelectionCriteria) -> ChatEventsBuilder<R, C> {
+        ChatEventsBuilder::new(self, events)
     }
 
     pub fn create_channel(&self, name: String, is_public: bool) -> CreateChannelBuilder<R, C> {
@@ -62,11 +82,27 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
         DeleteChannelBuilder::new(self, channel_id)
     }
 
-    pub fn chat_details(&self) -> ChatDetailsBuilder<R, C> {
-        ChatDetailsBuilder::new(self)
+    pub fn delete_messages(&self, message_ids: Vec<MessageId>) -> DeleteMessagesBuilder<R, C> {
+        DeleteMessagesBuilder::new(self, message_ids)
     }
 
-    pub fn chat_events(&self, events: EventsSelectionCriteria) -> ChatEventsBuilder<R, C> {
-        ChatEventsBuilder::new(self, events)
+    pub fn send_message(&self, content: MessageContentInitial) -> SendMessageBuilder<R, C> {
+        SendMessageBuilder::new(self, content)
+    }
+
+    pub fn send_text_message(&self, text: String) -> SendMessageBuilder<R, C> {
+        self.send_message(MessageContentInitial::Text(TextContent { text }))
+    }
+
+    pub fn subscribe_to_chat_events(
+        &self,
+        chat_events: HashSet<ChatEventType>,
+        community_events: HashSet<CommunityEventType>,
+    ) -> SubscribeToChatEventsBuilder<R, C> {
+        SubscribeToChatEventsBuilder::new(self, chat_events, community_events)
+    }
+
+    pub fn unsubscribe_from_chat_events(&self) -> UnsubscribeFromChatEventsBuilder<R, C> {
+        UnsubscribeFromChatEventsBuilder::new(self)
     }
 }
