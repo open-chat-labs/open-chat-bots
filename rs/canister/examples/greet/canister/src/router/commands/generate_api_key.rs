@@ -37,13 +37,18 @@ impl CommandHandler<CanisterRuntime> for GenerateApiKey {
 
             let webhooks = match location {
                 InstallationLocation::Community(_) => {
-                    "created_channel, deleted_channel, send_message"
+                    "`created_channel`, `deleted_channel`, and `send_message` webhooks"
                 }
-                _ => "send_message",
+                _ => "`send_message` webhook",
+            };
+
+            let scope = match location {
+                InstallationLocation::Community(_) => "community",
+                _ => "chat",
             };
 
             // Return the API key
-            format!("This API key allows an external system to call the webhooks provided by this bot to act within this installation scope: `{}`. ```{}``` Make sure to store this key somewhere secure and don't share it.", webhooks, api_key)
+            format!("This API key allows an external system to call this bot's {} acting within this {}:\n\n```{}```\n\nMake sure to store this key somewhere secure and don't share it.", webhooks, scope, api_key)
         });
 
         // Reply to the initiator with an ephemeral message
