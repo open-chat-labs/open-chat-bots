@@ -1,10 +1,10 @@
-import { decodeApiKey } from "../utils/decoding";
 import {
     CommunityIdentifier,
     MergedActionCommunityScope,
     type DecodedApiKey,
     type MergedActionScope,
 } from ".";
+import { decodeApiKey } from "../utils/decoding";
 
 /**
  * This class makes it easy to maintain a map between MergedBotActionScopes and ApiKeys
@@ -13,6 +13,14 @@ export class ActionScopeToApiKeyMap {
     #map: Map<string, string>;
     constructor() {
         this.#map = new Map();
+    }
+
+    toMap() {
+        return this.#map;
+    }
+
+    fromMap(map: Map<string, string>) {
+        this.#map = map;
     }
 
     #bestMatch(scope: MergedActionScope): string | undefined {
