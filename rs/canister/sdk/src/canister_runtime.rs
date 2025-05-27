@@ -15,7 +15,7 @@ impl Runtime for CanisterRuntime {
         method_name: &str,
         args: A,
     ) -> CallResult<R> {
-        match ic_cdk::api::call::call(canister_id, method_name, args).await {
+        match ic_cdk::api::call::call(canister_id.into(), method_name, args).await {
             Ok(result) => Ok(result),
             Err((code, msg)) => Err((code as i32, msg)),
         }

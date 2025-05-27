@@ -4,9 +4,12 @@ use std::fmt::{Debug, Display, Formatter};
 
 use super::{BotCommandScope, OCError};
 
-pub type CanisterId = Principal;
-pub type CommunityId = Principal;
-pub type ChatId = Principal;
+#[derive(CandidType, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CanisterId(Principal);
+
+pub type CommunityId = CanisterId;
+pub type ChatId = CanisterId;
+pub type UserId = CanisterId;
 pub type ChannelId = u32;
 pub type EventIndex = u32;
 pub type Hash = [u8; 32];
@@ -25,24 +28,27 @@ pub enum UnitResult {
     Error(OCError),
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Eq, PartialEq)]
-pub struct UserId(CanisterId);
-
-impl Display for UserId {
+impl Display for CanisterId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(&self.0, f)
     }
 }
 
-impl Debug for UserId {
+impl Debug for CanisterId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(&self.0, f)
     }
 }
 
-impl From<Principal> for UserId {
+impl From<Principal> for CanisterId {
     fn from(principal: Principal) -> Self {
-        UserId(principal)
+        CanisterId(principal)
+    }
+}
+
+impl From<CanisterId> for Principal {
+    fn from(canister_id: CanisterId) -> Self {
+        canister_id.0
     }
 }
 

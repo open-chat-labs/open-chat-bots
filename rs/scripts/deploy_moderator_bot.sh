@@ -21,7 +21,8 @@ then
 
     # Get the principal of the current DFX identity
     ADMINISTRATOR_PRINCIPAL=$(dfx identity get-principal)
-else
+elif [ $MODE != "upgrade" ]
+then
     echo "MODE must be either install, reinstall or upgrade"
     exit 1
 fi

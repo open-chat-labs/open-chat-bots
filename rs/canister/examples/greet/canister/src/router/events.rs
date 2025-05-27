@@ -7,8 +7,16 @@ use oc_bots_sdk_canister::{HttpRequest, HttpResponse};
 use crate::state;
 
 pub async fn execute(request: HttpRequest) -> HttpResponse {
-    let Some(event_wrapper) = serde_json::from_slice::<BotEventWrapper>(&request.body).ok() else {
-        return HttpResponse::status(400);
+    let event_wrapper = match serde_json::from_slice::<BotEventWrapper>(&request.body) {
+        Ok(result) => result,
+        Err(error) => {
+            ic_cdk::println!(
+                "Failed to parse event: {:?}, error: {:?}",
+                request.body,
+                error
+            );
+            return HttpResponse::status(400);
+        }
     };
 
     if let BotEvent::Lifecycle(lifecycle_event) = event_wrapper.event {

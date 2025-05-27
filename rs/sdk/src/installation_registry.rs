@@ -7,7 +7,7 @@ pub struct InstallationRegistry {
     locations: HashMap<InstallationLocation, InstallationRecord>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct InstallationRecord {
     pub api_gateway: CanisterId,
     pub granted_command_permissions: BotPermissions,
