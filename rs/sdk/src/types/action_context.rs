@@ -1,21 +1,24 @@
 use super::{
-    ActionScope, AuthToken, BotPermissions, CanisterId, ChannelId, MessageId, MessageIndex,
+    AutonomousScope, BotChatContext, CanisterId, ChannelId, Chat, MessageId, MessageIndex,
 };
-use crate::types::{Chat, UserId};
 
 pub trait ActionContext {
-    fn bot_id(&self) -> UserId;
     fn api_gateway(&self) -> CanisterId;
-    fn scope(&self) -> ActionScope;
-    fn granted_permissions(&self) -> Option<&BotPermissions>;
+    fn scope(&self) -> AutonomousScope;
     fn message_id(&self) -> Option<MessageId>;
     fn thread(&self) -> Option<MessageIndex>;
-    fn auth_token(&self) -> &AuthToken;
+    fn jwt(&self) -> Option<String>;
 
-    fn channel_id(&self) -> Option<ChannelId> {
+    fn chat_context(&self, channel_id: Option<ChannelId>) -> Option<BotChatContext> {
+        if let Some(jwt) = self.jwt() {
+            return Some(BotChatContext::Command(jwt));
+        }
+
         match self.scope() {
-            ActionScope::Chat(Chat::Channel(_, channel_id)) => Some(channel_id),
-            _ => None,
+            AutonomousScope::Chat(chat) => Some(BotChatContext::Autonomous(chat)),
+            AutonomousScope::Community(community_id) => channel_id.map(|channel_id| {
+                BotChatContext::Autonomous(Chat::Channel(community_id, channel_id))
+            }),
         }
     }
 }

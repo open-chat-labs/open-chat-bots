@@ -12,16 +12,15 @@ pub struct ChatDetailsBuilder<'c, R, C> {
 
 impl<'c, R: Runtime, C: ActionContext> ChatDetailsBuilder<'c, R, C> {
     pub fn new(client: &'c Client<R, C>) -> Self {
-        let channel_id = client.context.channel_id();
-
-        ChatDetailsBuilder { client, channel_id }
+        ChatDetailsBuilder {
+            client,
+            channel_id: None,
+        }
     }
 
     // This only takes effect for community scope
     pub fn with_channel_id(mut self, channel_id: ChannelId) -> Self {
-        if self.channel_id.is_none() {
-            self.channel_id = Some(channel_id);
-        }
+        self.channel_id = Some(channel_id);
         self
     }
 }
@@ -39,8 +38,7 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for ChatDetailsBuilder<'
 
     fn into_args(self) -> Args {
         Args {
-            auth_token: self.client.context.auth_token().clone(),
-            channel_id: self.channel_id,
+            chat_context: self.client.context.chat_context(self.channel_id).unwrap(),
         }
     }
 }

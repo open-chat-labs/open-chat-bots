@@ -29,7 +29,7 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for DeleteChannelBuilder
 
     fn into_args(self) -> Args {
         Args {
-            auth_token: self.client.context.auth_token().clone(),
+            community_id: self.client.context.scope().community_id().unwrap(),
             channel_id: self.channel_id,
         }
     }

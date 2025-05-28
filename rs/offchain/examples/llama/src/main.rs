@@ -107,6 +107,8 @@ async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> Js
         description: "Use this bot to send prompts to the Llama3 LLM".to_string(),
         commands: state.commands.definitions(),
         autonomous_config: None,
+        default_subscriptions: None,
+        data_encoding: None,
     })
 }
 

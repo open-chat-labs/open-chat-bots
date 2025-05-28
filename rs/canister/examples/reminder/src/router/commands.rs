@@ -16,7 +16,6 @@ mod delete;
 mod list;
 mod remind_at;
 mod remind_recurring;
-mod sync_api_key;
 
 static COMMANDS: LazyLock<CommandHandlerRegistry<CanisterRuntime>> = LazyLock::new(|| {
     CommandHandlerRegistry::new(OPENCHAT_CLIENT_FACTORY.clone())
@@ -24,7 +23,6 @@ static COMMANDS: LazyLock<CommandHandlerRegistry<CanisterRuntime>> = LazyLock::n
         .register(RemindAt)
         .register(List)
         .register(Delete)
-        .on_sync_api_key(Box::new(sync_api_key::callback))
 });
 
 pub fn definitions() -> Vec<BotCommandDefinition> {

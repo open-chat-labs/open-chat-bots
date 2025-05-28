@@ -119,6 +119,41 @@ impl BotPermissions {
     }
 }
 
+#[derive(Default)]
+pub struct BotPermissionsBuilder {
+    community: HashSet<CommunityPermission>,
+    chat: HashSet<ChatPermission>,
+    message: HashSet<MessagePermission>,
+}
+
+impl BotPermissionsBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_community(mut self, permission: CommunityPermission) -> Self {
+        self.community.insert(permission);
+        self
+    }
+
+    pub fn with_chat(mut self, permission: ChatPermission) -> Self {
+        self.chat.insert(permission);
+        self
+    }
+
+    pub fn with_message(mut self, permission: MessagePermission) -> Self {
+        self.message.insert(permission);
+        self
+    }
+
+    pub fn build(self) -> BotPermissions {
+        BotPermissions::default()
+            .with_community(&self.community)
+            .with_chat(&self.chat)
+            .with_message(&self.message)
+    }
+}
+
 fn intersect_bits(x: u32, y: u32) -> u32 {
     let mut intersection = [0; 4];
     for (i, (x_byte, y_byte)) in x.to_be_bytes().into_iter().zip(y.to_be_bytes()).enumerate() {

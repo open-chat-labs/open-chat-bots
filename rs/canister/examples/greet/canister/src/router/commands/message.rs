@@ -4,7 +4,7 @@ use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::actions::chat_events::{self, EventsSelectionCriteria, EventsWindowArgs};
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
 use oc_bots_sdk::oc_api::client::Client;
-use oc_bots_sdk::types::{BotCommandContext, MessageContentInitial};
+use oc_bots_sdk::types::{BotCommandContext, MessageContentInitial, OCErrorCode};
 use oc_bots_sdk_canister::CanisterRuntime;
 use std::sync::LazyLock;
 
@@ -50,7 +50,11 @@ impl CommandHandler<CanisterRuntime> for Message {
                     _ => None,
                 })
             }
-            Ok(chat_events::Response::NotFound) => None,
+            Ok(chat_events::Response::Error(err))
+                if err.matches_code(OCErrorCode::MessageNotFound) =>
+            {
+                None
+            }
             response => {
                 return Err(format!("Failed to retrieve message: {:?}", response));
             }

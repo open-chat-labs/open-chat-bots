@@ -1,17 +1,15 @@
-use crate::model::reminders::{self, Reminders};
 use oc_bots_sdk::InstallationRegistry;
 use serde::{Deserialize, Serialize};
-use std::cell::RefCell;
+use std::{cell::RefCell, collections::HashSet};
 
 thread_local! {
     static STATE: RefCell<Option<State>> = RefCell::default();
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct State {
-    oc_public_key: String,
+    banned_words_lower: HashSet<String>,
     pub installation_registry: InstallationRegistry,
-    pub reminders: Reminders,
 }
 
 const STATE_ALREADY_INITIALIZED: &str = "State has already been initialized";
@@ -40,38 +38,17 @@ pub fn take() -> State {
 }
 
 impl State {
-    pub fn new(oc_public_key: String) -> State {
+    pub fn new() -> State {
         State {
-            oc_public_key,
+            banned_words_lower: ["cunt", "nigger"]
+                .iter()
+                .map(|w| w.to_ascii_lowercase())
+                .collect(),
             installation_registry: InstallationRegistry::new(),
-            reminders: Reminders::default(),
         }
     }
 
-    pub fn update(&mut self, oc_public_key: Option<String>) {
-        if let Some(oc_public_key) = oc_public_key {
-            self.oc_public_key = oc_public_key;
-        }
-
-        reminders::start_job_if_required(self);
+    pub fn banned_words(&self) -> &HashSet<String> {
+        &self.banned_words_lower
     }
-
-    pub fn oc_public_key(&self) -> &str {
-        &self.oc_public_key
-    }
-
-    pub fn metrics(&self) -> Metrics {
-        Metrics {
-            installations: self.installation_registry.count(),
-            reminders: self.reminders.count(),
-            chats_with_reminders: self.reminders.chats_count(),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Default)]
-pub struct Metrics {
-    pub installations: usize,
-    pub reminders: usize,
-    pub chats_with_reminders: usize,
 }

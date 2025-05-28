@@ -2,7 +2,11 @@ use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 
+use super::{BotCommandScope, OCError};
+
 pub type CanisterId = Principal;
+pub type CommunityId = Principal;
+pub type ChatId = Principal;
 pub type ChannelId = u32;
 pub type EventIndex = u32;
 pub type Hash = [u8; 32];
@@ -15,8 +19,11 @@ pub type TimestampNanos = u64;
 pub type CallResult<T> = Result<T, CallError>;
 pub type CallError = (i32, String);
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct OCError(u16, Option<String>);
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub enum UnitResult {
+    Success,
+    Error(OCError),
+}
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Copy, Eq, PartialEq)]
 pub struct UserId(CanisterId);
@@ -39,26 +46,11 @@ impl From<Principal> for UserId {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub enum AuthToken {
-    Jwt(String),
-    ApiKey(String),
-}
-
-impl AuthToken {
-    pub fn into(self) -> String {
-        match self {
-            AuthToken::Jwt(jwt) => jwt,
-            AuthToken::ApiKey(api_key) => api_key,
-        }
-    }
-}
-
 #[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum Chat {
-    Direct(CanisterId),
-    Group(CanisterId),
-    Channel(CanisterId, ChannelId),
+    Direct(ChatId),
+    Group(ChatId),
+    Channel(CommunityId, ChannelId),
 }
 
 impl Chat {
@@ -92,7 +84,59 @@ pub struct Document {
 }
 
 #[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub enum ActionScope {
+pub enum AutonomousScope {
     Chat(Chat),
-    Community(CanisterId),
+    Community(CommunityId),
+}
+
+impl AutonomousScope {
+    pub fn community_id(&self) -> Option<CommunityId> {
+        match self {
+            AutonomousScope::Chat(_) => None,
+            AutonomousScope::Community(community_id) => Some(*community_id),
+        }
+    }
+}
+
+#[derive(
+    CandidType, Serialize, Deserialize, Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash,
+)]
+pub struct Reaction(String);
+
+#[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum InstallationLocation {
+    Community(CommunityId),
+    Group(ChatId),
+    User(ChatId),
+}
+
+impl InstallationLocation {
+    pub fn canister_id(&self) -> CanisterId {
+        match self {
+            InstallationLocation::Community(c) => *c,
+            InstallationLocation::Group(g) => *g,
+            InstallationLocation::User(u) => *u,
+        }
+    }
+}
+
+impl From<Chat> for InstallationLocation {
+    fn from(value: Chat) -> Self {
+        match value {
+            Chat::Channel(community_id, _) => InstallationLocation::Community(community_id),
+            Chat::Group(g) => InstallationLocation::Group(g),
+            Chat::Direct(u) => InstallationLocation::User(u),
+        }
+    }
+}
+
+impl From<BotCommandScope> for InstallationLocation {
+    fn from(value: BotCommandScope) -> Self {
+        match value {
+            BotCommandScope::Chat(details) => details.chat.into(),
+            BotCommandScope::Community(details) => {
+                InstallationLocation::Community(details.community_id)
+            }
+        }
+    }
 }
