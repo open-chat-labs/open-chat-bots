@@ -25,7 +25,7 @@ impl Runtime for AgentRuntime {
     ) -> CallResult<R> {
         match self
             .agent
-            .update(&canister_id, method_name)
+            .update(&canister_id.into(), method_name)
             .with_arg(candid::encode_args(args).unwrap())
             .call_and_wait()
             .await

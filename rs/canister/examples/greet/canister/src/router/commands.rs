@@ -1,8 +1,4 @@
 use crate::state;
-use fractal::Fractal;
-use greet::Greet;
-use joke::Joke;
-use message::Message;
 use oc_bots_sdk::api::command::CommandHandlerRegistry;
 use oc_bots_sdk::api::definition::BotCommandDefinition;
 use oc_bots_sdk_canister::env::now;
@@ -13,16 +9,18 @@ use oc_bots_sdk_canister::{HttpRequest, HttpResponse};
 use std::sync::LazyLock;
 
 mod fractal;
+mod generate_api_key;
 mod greet;
 mod joke;
 mod message;
 
 static COMMANDS: LazyLock<CommandHandlerRegistry<CanisterRuntime>> = LazyLock::new(|| {
     CommandHandlerRegistry::new(OPENCHAT_CLIENT_FACTORY.clone())
-        .register(Greet)
-        .register(Joke)
-        .register(Fractal)
-        .register(Message)
+        .register(generate_api_key::GenerateApiKey)
+        .register(greet::Greet)
+        .register(joke::Joke)
+        .register(fractal::Fractal)
+        .register(message::Message)
 });
 
 pub fn definitions() -> Vec<BotCommandDefinition> {
