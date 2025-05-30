@@ -1,5 +1,5 @@
 import { mapCommandScope } from "../mapping";
-import type { BotCommand, BotPermissions } from "../typebox/typebox";
+import type { BotCommand } from "../typebox/typebox";
 import type { BotChatContext, CommandActionScope, RawCommandJwt } from "./bot";
 import { ChannelIdentifier } from "./identifiers";
 import type { ChatPermission, CommunityPermission, MessagePermission } from "./permissions";
@@ -21,25 +21,29 @@ function threadFromCommandScope(scope: CommandActionScope): number | undefined {
 }
 
 export class ActionContext {
-    #perm: Permissions;
-
     constructor(
         public apiGateway: string,
         public scope: ActionScope,
-        public permissions: BotPermissions,
+        public permissions: Permissions,
         public command?: BotCommand,
         public messageId?: bigint,
         public thread?: number,
         public jwt?: string,
-    ) {
-        this.#perm = new Permissions(permissions);
+    ) {}
+
+    static inAutonomousContext(
+        scope: ActionScope,
+        apiGateway: string,
+        autonomousPermissions: Permissions,
+    ): ActionContext {
+        return new ActionContext(apiGateway, scope, autonomousPermissions);
     }
 
     static fromCommand(token: string, jwt: RawCommandJwt): ActionContext {
         return new ActionContext(
             jwt.bot_api_gateway,
             mapCommandScope(jwt.scope),
-            jwt.granted_permissions,
+            new Permissions(jwt.granted_permissions),
             jwt.command,
             messageIdFromCommandScope(jwt.scope),
             threadFromCommandScope(jwt.scope),
@@ -48,15 +52,15 @@ export class ActionContext {
     }
 
     hasMessagePermission(perm: MessagePermission) {
-        return this.#perm.hasMessagePermission(perm);
+        return this.permissions.hasMessagePermission(perm);
     }
 
     hasChatPermission(perm: ChatPermission) {
-        return this.#perm.hasChatPermission(perm);
+        return this.permissions.hasChatPermission(perm);
     }
 
     hasCommunityPermission(perm: CommunityPermission) {
-        return this.#perm.hasCommunityPermission(perm);
+        return this.permissions.hasCommunityPermission(perm);
     }
 
     chatContext(channelId?: bigint): BotChatContext {

@@ -1,9 +1,13 @@
 import {
-  ActionScopeToApiKeyMap,
   BotClientFactory,
-  MergedActionScope,
+  ChatActionScope,
+  chatIdentifierToInstallationLocation,
+  InstallationLocation,
+  InstallationRecord,
   OCErrorCode,
+  Permissions,
 } from "@open-ic/openchat-botclient-ts";
+import { InstallationRegistry } from "./install_registry";
 
 /**
  * This is class that will ping a message to OpenChat on a schedule when it is running and do nothing when it is not
@@ -11,33 +15,27 @@ import {
 export class Ping {
   #timer: NodeJS.Timeout | undefined = undefined;
   #interval = 5000;
-  #apiKeys = new ActionScopeToApiKeyMap();
-  #subscriptions = new Map<string, Set<string>>();
+  #installs = new InstallationRegistry();
+  #subscriptions = new Set<string>();
 
   constructor(private factory: BotClientFactory) {
     this.start();
   }
 
-  async #pingScope(apiKey: string, scope: MergedActionScope) {
-    const client = this.factory.createClientFromApiKey(apiKey);
+  async #pingScope(
+    scope: ChatActionScope,
+    apiGateway: string,
+    permissions: Permissions
+  ) {
+    const client = this.factory.createClientInAutonomouseContext(
+      scope,
+      apiGateway,
+      permissions
+    );
     const msg = await client.createTextMessage(
       `Ping at ${new Date().toLocaleTimeString()}`
     );
 
-    if (client.scope.isCommunityScope()) {
-      if (
-        scope.isChatScope() &&
-        scope.chat.isChannel() &&
-        scope.chat.communityId === client.scope.communityId.communityId
-      ) {
-        msg.setChannelId(scope.chat.channelId);
-      } else {
-        console.log(
-          "We can't send a text message to a community - skipping key"
-        );
-        return;
-      }
-    }
     client
       .sendMessage(msg)
       .then((resp) => {
@@ -45,53 +43,57 @@ export class Ping {
           resp.kind === "error" &&
           resp.code === OCErrorCode.InitiatorNotAuthorized
         ) {
-          // this key is probably revoked so let's remove the subscription
-          this.#apiKeys.delete(client.scope);
-          this.unsubscribe(client.scope);
+          this.unsubscribe(scope);
         }
         return resp;
       })
       .catch((err) => console.error("Couldn't call ping", err));
   }
 
-  subscribe(scope: MergedActionScope): boolean {
-    const key = this.#apiKeys.getAndDecode(scope);
-    if (key && key.hasMessagePermission("Text")) {
-      const current = this.#subscriptions.get(key.encoded) ?? new Set();
-      current.add(scope.toString());
-      this.#subscriptions.set(key.encoded, current);
-      return true;
+  subscribe(scope: ChatActionScope): boolean {
+    const location = chatIdentifierToInstallationLocation(scope.chat);
+    const installation = this.#installs.get(location);
+    if (
+      installation === undefined ||
+      !installation.grantedAutonomousPermissions.hasMessagePermission("Text")
+    ) {
+      return false;
     }
-    return false;
+    this.#subscriptions.add(scope.toString());
+    return true;
   }
 
-  setApiKey(apiKey: string) {
-    this.#apiKeys.set(apiKey);
+  install(location: InstallationLocation, record: InstallationRecord) {
+    this.#installs.register(location, record);
+    console.log("Installed bot in location: ", location);
   }
 
-  unsubscribe(scope: MergedActionScope): boolean {
-    const key = this.#apiKeys.get(scope);
-    if (key) {
-      const current = this.#subscriptions.get(key);
-      if (current) {
-        current.delete(scope.toString());
-        this.#subscriptions.set(key, current);
-        if (current.size === 0) {
-          this.#subscriptions.delete(key);
-        }
-      }
-      return true;
-    }
-    return false;
+  unsubscribe(scope: ChatActionScope): boolean {
+    const key = scope.toString();
+    return this.#subscriptions.delete(key);
   }
 
   start() {
     clearInterval(this.#timer);
     this.#timer = setInterval(async () => {
-      this.#subscriptions.forEach((scopes, apiKey) => {
-        scopes.forEach((scope) => {
-          this.#pingScope(apiKey, MergedActionScope.fromString(scope));
-        });
+      this.#subscriptions.forEach((scopeStr) => {
+        const scope = ChatActionScope.fromString(scopeStr);
+        if (scope.isChatScope()) {
+          const location = chatIdentifierToInstallationLocation(scope.chat);
+          const installation = this.#installs.get(location);
+          if (
+            installation !== undefined &&
+            installation.grantedAutonomousPermissions.hasMessagePermission(
+              "Text"
+            )
+          ) {
+            this.#pingScope(
+              scope,
+              installation.apiGateway,
+              installation.grantedAutonomousPermissions
+            );
+          }
+        }
       });
     }, this.#interval);
   }

@@ -5,8 +5,8 @@ import {
     CommunityIdentifier,
     DirectChatIdentifier,
     GroupChatIdentifier,
-    type InstallationLocation,
     Permissions,
+    type InstallationLocation,
 } from "../domain";
 import type {
     BotChatEvent,
@@ -20,7 +20,7 @@ import type {
     BotUninstalledEvent,
 } from "../domain/bot_events";
 import { principalBytesToString } from "../mapping";
-import type { BotPermissions } from "../typebox/typebox";
+import { type BotPermissions } from "../typebox/typebox";
 import { toBigInt32 } from "./bigint";
 
 export function parseBotNotification(json: unknown): BotEventResult {
@@ -196,13 +196,13 @@ function parseChatIdentifier(obj: any): ChatIdentifier {
 
 function parseInstallationLocation(obj: any): InstallationLocation {
     if ("User" in obj) {
-        return { kind: "user", userId: principalBytesToString(obj.User) };
+        return new DirectChatIdentifier(principalBytesToString(obj.User));
     }
     if ("Group" in obj) {
-        return { kind: "group", groupId: principalBytesToString(obj.Group) };
+        return new GroupChatIdentifier(principalBytesToString(obj.Group));
     }
     if ("Community" in obj) {
-        return { kind: "community", communityId: principalBytesToString(obj.Community) };
+        return new CommunityIdentifier(principalBytesToString(obj.Community));
     }
     throw new Error("Unexpected InstallationLocation type received");
 }

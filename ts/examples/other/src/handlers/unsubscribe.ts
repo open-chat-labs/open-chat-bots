@@ -1,7 +1,7 @@
 import { Response } from "express";
+import { WithBotClient } from "../types";
 import { ping } from "./ping";
 import { success } from "./success";
-import { WithBotClient } from "../types";
 
 export default async function (req: WithBotClient, res: Response) {
   const client = req.botClient;
@@ -14,7 +14,9 @@ export default async function (req: WithBotClient, res: Response) {
     .setFinalised(true)
     .makeEphemeral();
 
-  ping.unsubscribe(client.scope);
+  if (client.scope.isChatScope()) {
+    ping.unsubscribe(client.scope);
+  }
 
   res.status(200).json(success(msg));
 }

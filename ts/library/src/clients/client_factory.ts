@@ -1,8 +1,9 @@
 import { HttpAgent } from "@dfinity/agent";
 import { Secp256k1KeyIdentity } from "@dfinity/identity-secp256k1";
 import jwt from "jsonwebtoken";
-import type { BotClientConfig, RawCommandJwt } from "../domain";
+import type { ActionScope, BotClientConfig, RawCommandJwt } from "../domain";
 import { ActionContext } from "../domain/action_context";
+import { Permissions } from "../domain/permissions";
 import { BadRequestError } from "../utils/badrequest";
 import { BotClient } from "./bot_client";
 
@@ -57,7 +58,17 @@ export class BotClientFactory {
         return env;
     }
 
-    // TODO - some sort of factory function for the auto case e.g. from installation record
+    createClientInAutonomouseContext(
+        scope: ActionScope,
+        apiGateway: string,
+        autonomousPermissions: Permissions,
+    ): BotClient {
+        return new BotClient(
+            this.#agent,
+            this.env,
+            ActionContext.inAutonomousContext(scope, apiGateway, autonomousPermissions),
+        );
+    }
 
     createClientFromCommandJwt(token: string): BotClient {
         const publicKey = this.#env.openchatPublicKey.replace(/\\n/g, "\n");

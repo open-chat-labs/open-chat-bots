@@ -7,16 +7,10 @@ import { BotClientFactory } from "@open-ic/openchat-botclient-ts";
 import cors from "cors";
 import express from "express";
 import { rateLimit } from "express-rate-limit";
-import createChannel from "./handlers/createChannel";
-import deleteChannel from "./handlers/deleteChannel";
-import executeAction from "./handlers/executeAction";
 import executeCommand from "./handlers/executeCommand";
 import handleNotification from "./handlers/notify";
 import schema from "./handlers/schema";
-import {
-  createApiChatClient,
-  createCommandChatClient,
-} from "./middleware/botclient";
+import { createCommandChatClient } from "./middleware/botclient";
 
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
@@ -47,24 +41,6 @@ app.post(
   express.text(),
   createCommandChatClient(factory),
   executeCommand
-);
-app.post(
-  "/execute_action",
-  express.text(),
-  createApiChatClient(factory),
-  executeAction
-);
-app.post(
-  "/create_channel",
-  express.text(),
-  createApiChatClient(factory),
-  createChannel
-);
-app.post(
-  "/delete_channel",
-  express.text(),
-  createApiChatClient(factory),
-  deleteChannel
 );
 app.get("/bot_definition", schema);
 app.get("/", schema);

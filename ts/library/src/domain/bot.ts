@@ -1,5 +1,10 @@
 import type { BotCommand, BotPermissions, Chat } from "../typebox/typebox";
-import type { ChatIdentifier } from "./identifiers";
+import {
+    CommunityIdentifier,
+    type ChatIdentifier,
+    type DirectChatIdentifier,
+    type GroupChatIdentifier,
+} from "./identifiers";
 import type { ChatPermission, CommunityPermission, MessagePermission } from "./permissions";
 import { Permissions } from "./permissions";
 import type { ActionScope } from "./scope";
@@ -37,15 +42,20 @@ export class DecodedJwt extends DecodedAuth {
     }
 }
 
-export type InstallationLocation =
-    | { kind: "community"; communityId: string }
-    | { kind: "group"; groupId: string }
-    | { kind: "user"; userId: string };
+export type InstallationLocation = CommunityIdentifier | GroupChatIdentifier | DirectChatIdentifier;
+
+export function chatIdentifierToInstallationLocation(chatId: ChatIdentifier): InstallationLocation {
+    if (chatId.isChannel()) {
+        return new CommunityIdentifier(chatId.communityId);
+    } else {
+        return chatId as DirectChatIdentifier | GroupChatIdentifier;
+    }
+}
 
 export type InstallationRecord = {
     apiGateway: string;
-    grantedCommandPermissions: BotPermissions;
-    grantedAutonomousPermissions: BotPermissions;
+    grantedCommandPermissions: Permissions;
+    grantedAutonomousPermissions: Permissions;
 };
 
 export type RawCommandJwt = {
