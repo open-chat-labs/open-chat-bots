@@ -5,8 +5,8 @@ use crate::types::{
     Reaction, TextContent,
 };
 use add_reaction::AddReactionBuilder;
-use chat_details::ChatDetailsBuilder;
 use chat_events::ChatEventsBuilder;
+use chat_summary::ChatSummaryBuilder;
 use create_channel::CreateChannelBuilder;
 use delete_channel::DeleteChannelBuilder;
 use delete_messages::DeleteMessagesBuilder;
@@ -17,8 +17,8 @@ use subscribe_to_chat_events::SubscribeToChatEventsBuilder;
 use unsubscribe_from_chat_events::UnsubscribeFromChatEventsBuilder;
 
 mod add_reaction;
-mod chat_details;
 mod chat_events;
+mod chat_summary;
 mod create_channel;
 mod delete_channel;
 mod delete_messages;
@@ -66,8 +66,8 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
         AddReactionBuilder::new(self, message_id, reaction)
     }
 
-    pub fn chat_details(&self) -> ChatDetailsBuilder<R, C> {
-        ChatDetailsBuilder::new(self)
+    pub fn chat_details(&self) -> ChatSummaryBuilder<R, C> {
+        ChatSummaryBuilder::new(self)
     }
 
     pub fn chat_events(&self, events: EventsSelectionCriteria) -> ChatEventsBuilder<R, C> {
