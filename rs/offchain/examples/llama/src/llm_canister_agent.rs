@@ -1,11 +1,10 @@
-use candid::CandidType;
+use candid::{CandidType, Principal};
 use ic_agent::Agent;
-use oc_bots_sdk::types::CanisterId;
 use serde::Serialize;
 use std::sync::LazyLock;
 
-static LLM_CANISTER_ID: LazyLock<CanisterId> =
-    LazyLock::new(|| CanisterId::from_text("w36hm-eqaaa-aaaal-qr76a-cai").unwrap());
+static LLM_CANISTER_ID: LazyLock<Principal> =
+    LazyLock::new(|| Principal::from_text("w36hm-eqaaa-aaaal-qr76a-cai").unwrap());
 
 const LLAMA_3_1_MODEL: &str = "llama3.1:8b";
 

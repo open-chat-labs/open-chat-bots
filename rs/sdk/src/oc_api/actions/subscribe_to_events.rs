@@ -1,5 +1,5 @@
 use super::ActionDef;
-use crate::types::{AutonomousScope, ChatEventType, CommunityEventType, UnitResult};
+use crate::types::{ActionScope, ChatEventType, CommunityEventType, UnitResult};
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
 use std::collections::HashSet;
@@ -17,7 +17,7 @@ impl ActionDef for SubscribeToChatEventsAction {
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Args {
-    pub scope: AutonomousScope,
+    pub scope: ActionScope,
     pub community_events: HashSet<CommunityEventType>,
     pub chat_events: HashSet<ChatEventType>,
 }

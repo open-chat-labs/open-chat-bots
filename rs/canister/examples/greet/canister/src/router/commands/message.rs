@@ -86,7 +86,7 @@ impl Message {
                 placeholder: None,
                 required: true,
                 param_type: BotCommandParamType::IntegerParam(IntegerParam {
-                    min_value: 1,
+                    min_value: 0,
                     max_value: i32::MAX as i64,
                     choices: vec![],
                 }),

@@ -6,7 +6,7 @@ use english_to_cron::str_cron_syntax;
 use ic_cdk_timers::TimerId;
 use oc_bots_sdk::oc_api::actions::{send_message, ActionArgsBuilder};
 use oc_bots_sdk::types::{
-    AutonomousContext, AutonomousScope, BotPermissions, CanisterId, Chat, CommunityId,
+    AutonomousContext, ActionScope, BotPermissions, CanisterId, Chat, CommunityId,
     InstallationLocation, MessageContentInitial, TextContent, TimestampMillis, UserId,
 };
 use oc_bots_sdk_canister::{env, OPENCHAT_CLIENT_FACTORY};
@@ -72,7 +72,7 @@ fn run() {
 
 async fn send_reminder(api_gateway: CanisterId, chat: Chat, text: String, chat_reminder_id: u8) {
     let context = AutonomousContext {
-        scope: AutonomousScope::Chat(chat),
+        scope: ActionScope::Chat(chat),
         api_gateway,
     };
 

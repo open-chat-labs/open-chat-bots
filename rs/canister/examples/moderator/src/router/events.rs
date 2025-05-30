@@ -8,7 +8,7 @@ use oc_bots_sdk::types::{CanisterId, UnitResult};
 use oc_bots_sdk::{
     api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent},
     types::{
-        AutonomousContext, AutonomousScope, BotPermissionsBuilder, ChatEventType, ChatPermission,
+        AutonomousContext, ActionScope, BotPermissionsBuilder, ChatEventType, ChatPermission,
     },
     InstallationRecord,
 };
@@ -82,7 +82,7 @@ async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
     }
 
     let client = OPENCHAT_CLIENT_FACTORY.build(AutonomousContext {
-        scope: AutonomousScope::Chat(chat_event.chat),
+        scope: ActionScope::Chat(chat_event.chat),
         api_gateway,
     });
 

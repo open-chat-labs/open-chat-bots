@@ -1,18 +1,18 @@
 use super::Client;
-use crate::oc_api::actions::chat_details::*;
+use crate::oc_api::actions::chat_summary::*;
 use crate::oc_api::actions::ActionArgsBuilder;
 use crate::oc_api::Runtime;
 use crate::types::{ActionContext, CanisterId, ChannelId};
 use std::sync::Arc;
 
-pub struct ChatDetailsBuilder<'c, R, C> {
+pub struct ChatSummaryBuilder<'c, R, C> {
     client: &'c Client<R, C>,
     channel_id: Option<ChannelId>,
 }
 
-impl<'c, R: Runtime, C: ActionContext> ChatDetailsBuilder<'c, R, C> {
+impl<'c, R: Runtime, C: ActionContext> ChatSummaryBuilder<'c, R, C> {
     pub fn new(client: &'c Client<R, C>) -> Self {
-        ChatDetailsBuilder {
+        ChatSummaryBuilder {
             client,
             channel_id: None,
         }
@@ -25,8 +25,8 @@ impl<'c, R: Runtime, C: ActionContext> ChatDetailsBuilder<'c, R, C> {
     }
 }
 
-impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for ChatDetailsBuilder<'_, R, C> {
-    type Action = ChatDetailsAction;
+impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for ChatSummaryBuilder<'_, R, C> {
+    type Action = ChatSummaryAction;
 
     fn runtime(&self) -> Arc<R> {
         self.client.runtime.clone()
