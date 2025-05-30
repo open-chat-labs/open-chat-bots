@@ -2,8 +2,8 @@ import { Response } from "express";
 import { WithBotClient } from "../types";
 import { success } from "./success";
 
-import OpenAI from "openai";
 import { argumentsInvalid } from "@open-ic/openchat-botclient-ts";
+import OpenAI from "openai";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
 async function askOpenAI(question: string) {
@@ -22,19 +22,24 @@ export default async function image(req: WithBotClient, res: Response) {
   ).setFinalised(false);
   res.status(200).json(success(placeholder));
 
+  client
+    .sendMessage(placeholder)
+    .catch((err) => console.error("sendMessage failed with: ", err));
+
   const prompt = client.stringArg("prompt");
   if (prompt === undefined) {
     res.status(400).send(argumentsInvalid());
   } else {
-    askOpenAI(prompt)
-      .then((answer) => {
-        client
-          .createTextMessage(
-            answer ?? "Hmmm - I'm sorry I didn't find an answer"
-          )
-          .then((msg) => msg.setFinalised(true).setBlockLevelMarkdown(true))
-          .then((msg) => client.sendMessage(msg));
-      })
-      .catch((err) => console.log("sendImageMessage failed with: ", err));
+    try {
+      const answer = await askOpenAI(prompt);
+      const msg = await client.createTextMessage(
+        answer ?? "Hmmm - I'm sorry I didn't find an answer"
+      );
+      msg.setFinalised(true);
+      msg.setBlockLevelMarkdown(true);
+      client.sendMessage(msg);
+    } catch (err) {
+      console.log("Error processing the /prompt command");
+    }
   }
 }
