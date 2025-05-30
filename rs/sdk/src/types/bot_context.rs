@@ -2,7 +2,7 @@ use crate::api::command::Command;
 use crate::jwt;
 use crate::jwt::Claims;
 use crate::types::{
-    ActionContext, AutonomousScope, BotActionByCommandClaims, BotCommandScope, BotPermissions,
+    ActionContext, ActionScope, BotActionByCommandClaims, BotCommandScope, BotPermissions,
     CanisterId, MessageId, MessageIndex, TimestampMillis, TokenError, UserId,
 };
 
@@ -43,7 +43,7 @@ impl ActionContext for BotCommandContext {
         self.api_gateway
     }
 
-    fn scope(&self) -> AutonomousScope {
+    fn scope(&self) -> ActionScope {
         self.scope.clone().into()
     }
 
@@ -71,7 +71,7 @@ impl ActionContext for BotCommandContext {
 #[derive(Clone, Debug)]
 pub struct AutonomousContext {
     pub api_gateway: CanisterId,
-    pub scope: AutonomousScope,
+    pub scope: ActionScope,
 }
 
 impl ActionContext for AutonomousContext {
@@ -79,7 +79,7 @@ impl ActionContext for AutonomousContext {
         self.api_gateway
     }
 
-    fn scope(&self) -> AutonomousScope {
+    fn scope(&self) -> ActionScope {
         self.scope
     }
 

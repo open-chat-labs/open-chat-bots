@@ -1,5 +1,5 @@
 use oc_bots_sdk::oc_api::actions::{delete_channel, ActionArgsBuilder};
-use oc_bots_sdk::types::{AutonomousContext, AutonomousScope, ChannelId, InstallationLocation};
+use oc_bots_sdk::types::{AutonomousContext, ActionScope, ChannelId, InstallationLocation};
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
 
 use crate::state;
@@ -28,7 +28,7 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
 
     let context = AutonomousContext {
         api_gateway,
-        scope: AutonomousScope::Community(community_id),
+        scope: ActionScope::Community(community_id),
     };
 
     let response = OPENCHAT_CLIENT_FACTORY

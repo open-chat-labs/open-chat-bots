@@ -1,6 +1,6 @@
 use oc_bots_sdk::{
     oc_api::actions::{create_channel, ActionArgsBuilder},
-    types::{AutonomousContext, AutonomousScope, InstallationLocation},
+    types::{AutonomousContext, ActionScope, InstallationLocation},
 };
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
 
@@ -31,7 +31,7 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
 
     let context = AutonomousContext {
         api_gateway,
-        scope: AutonomousScope::Community(community_id),
+        scope: ActionScope::Community(community_id),
     };
 
     let response = OPENCHAT_CLIENT_FACTORY
