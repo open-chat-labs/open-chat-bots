@@ -6,6 +6,7 @@ export * from "./crypto";
 export * from "./data";
 export * from "./event";
 export * from "./identifiers";
+export * from "./install_registry";
 export * from "./message";
 export * from "./permissions";
 export * from "./response";

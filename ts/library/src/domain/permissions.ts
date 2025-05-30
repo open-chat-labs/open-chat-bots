@@ -113,6 +113,10 @@ const messagePermissionMap = {
 export class Permissions {
     constructor(private granted_permissions: BotPermissions) {}
 
+    get rawPermissions() {
+        return this.granted_permissions;
+    }
+
     public static encodePermissions({
         community,
         chat,

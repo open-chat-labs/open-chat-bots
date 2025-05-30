@@ -4,10 +4,10 @@ import {
   chatIdentifierToInstallationLocation,
   InstallationLocation,
   InstallationRecord,
+  InstallationRegistry,
   OCErrorCode,
   Permissions,
 } from "@open-ic/openchat-botclient-ts";
-import { InstallationRegistry } from "./install_registry";
 
 /**
  * This is class that will ping a message to OpenChat on a schedule when it is running and do nothing when it is not

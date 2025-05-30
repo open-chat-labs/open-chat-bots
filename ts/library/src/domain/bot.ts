@@ -52,11 +52,36 @@ export function chatIdentifierToInstallationLocation(chatId: ChatIdentifier): In
     }
 }
 
-export type InstallationRecord = {
+type StringifiedInstallationRecord = {
     apiGateway: string;
-    grantedCommandPermissions: Permissions;
-    grantedAutonomousPermissions: Permissions;
+    grantedCommandPermissions: BotPermissions;
+    grantedAutonomousPermissions: BotPermissions;
 };
+
+export class InstallationRecord {
+    constructor(
+        public apiGateway: string,
+        public grantedCommandPermissions: Permissions,
+        public grantedAutonomousPermissions: Permissions,
+    ) {}
+
+    toString() {
+        return JSON.stringify({
+            apiGateway: this.apiGateway,
+            grantedCommandPermissions: this.grantedCommandPermissions.rawPermissions,
+            grantedAutonomousPermissions: this.grantedAutonomousPermissions.rawPermissions,
+        });
+    }
+
+    static fromString(str: string): InstallationRecord {
+        const json = JSON.parse(str) as StringifiedInstallationRecord;
+        return new InstallationRecord(
+            json.apiGateway,
+            new Permissions(json.grantedCommandPermissions),
+            new Permissions(json.grantedAutonomousPermissions),
+        );
+    }
+}
 
 export type RawCommandJwt = {
     exp: number;
