@@ -9,21 +9,15 @@
 import { commandNotFound } from "@open-ic/openchat-botclient-ts";
 import { Request, Response } from "express";
 import { WithBotClient } from "../types";
-import album from "./album";
-import artist from "./artist";
 import details from "./details";
 import events from "./events";
 import file from "./file";
 import image from "./image";
-import imagine from "./imagine";
 import news from "./news";
 import numbers from "./numbers";
 import poll from "./poll";
-import prompt from "./prompt";
 import sayHello from "./sayHello";
-import song from "./song";
 import subscribe from "./subscribe";
-import syncApiKey from "./syncApiKey";
 import unsubscribe from "./unsubscribe";
 
 function hasBotClient(req: Request): req is WithBotClient {
@@ -40,16 +34,11 @@ export default function executeCommand(req: Request, res: Response) {
   switch (client.commandName) {
     case "say_hello":
       return sayHello(req, res);
-    case "sync_api_key":
-      return syncApiKey(req, res);
     case "chat_details":
       return details(req, res);
     case "chat_events":
       return events(req, res);
     case "prompt":
-      return prompt(req, res);
-    case "imagine":
-      return imagine(req, res);
     case "numbers":
       return numbers(req, res);
     case "poll":
@@ -64,12 +53,6 @@ export default function executeCommand(req: Request, res: Response) {
       return news(req, res);
     case "image":
       return image(req, res);
-    case "song":
-      return song(req, res);
-    case "artist":
-      return artist(req, res);
-    case "album":
-      return album(req, res);
 
     default:
       res.status(400).send(commandNotFound());
