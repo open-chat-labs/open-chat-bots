@@ -90,16 +90,16 @@ pub struct Document {
 }
 
 #[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub enum AutonomousScope {
+pub enum ActionScope {
     Chat(Chat),
     Community(CommunityId),
 }
 
-impl AutonomousScope {
+impl ActionScope {
     pub fn community_id(&self) -> Option<CommunityId> {
         match self {
-            AutonomousScope::Chat(_) => None,
-            AutonomousScope::Community(community_id) => Some(*community_id),
+            ActionScope::Chat(_) => None,
+            ActionScope::Community(community_id) => Some(*community_id),
         }
     }
 
@@ -107,13 +107,13 @@ impl AutonomousScope {
         match location {
             InstallationLocation::Community(community_id) => {
                 if let Some(channel_id) = channel_id {
-                    AutonomousScope::Chat(Chat::Channel(*community_id, channel_id))
+                    ActionScope::Chat(Chat::Channel(*community_id, channel_id))
                 } else {
-                    AutonomousScope::Community(*community_id)
+                    ActionScope::Community(*community_id)
                 }
             }
-            InstallationLocation::Group(chat_id) => AutonomousScope::Chat(Chat::Group(*chat_id)),
-            InstallationLocation::User(user_id) => AutonomousScope::Chat(Chat::Direct(*user_id)),
+            InstallationLocation::Group(chat_id) => ActionScope::Chat(Chat::Group(*chat_id)),
+            InstallationLocation::User(user_id) => ActionScope::Chat(Chat::Direct(*user_id)),
         }
     }
 }
