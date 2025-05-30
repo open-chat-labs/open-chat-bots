@@ -8,20 +8,20 @@ use crate::types::{
 
 use super::ActionDef;
 
-pub struct ChatDetailsAction;
+pub struct ChatSummaryAction;
 
-impl ActionDef for ChatDetailsAction {
+impl ActionDef for ChatSummaryAction {
     type Args = Args;
     type Response = Response;
 
     fn method_name(is_canister_runtime: bool) -> &'static str {
-        // `bot_chat_details` is a composite query which means it can't (currently) be called in
-        // replicated mode, so canisters must call `bot_chat_details_c2c` instead which is an update
+        // `bot_chat_summary` is a composite query which means it can't (currently) be called in
+        // replicated mode, so canisters must call `bot_chat_summary_c2c` instead which is an update
         // call.
         if is_canister_runtime {
-            "bot_chat_details_c2c_v2"
+            "bot_chat_summary_c2c"
         } else {
-            "bot_chat_details_v2"
+            "bot_chat_summary"
         }
     }
 }
@@ -34,12 +34,19 @@ pub struct Args {
 #[allow(clippy::large_enum_variant)]
 #[derive(CandidType, Serialize, Deserialize, Debug)]
 pub enum Response {
-    Success(ChatDetails),
+    Success(ChatSummary),
     Error(OCError),
 }
 
+#[expect(clippy::large_enum_variant)]
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct ChatDetails {
+pub enum ChatSummary {
+    Group(ChatSummaryGroup),
+    Direct(ChatSummaryDirect),
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct ChatSummaryGroup {
     pub name: String,
     pub description: String,
     pub avatar_id: Option<u128>,
@@ -60,4 +67,14 @@ pub struct ChatDetails {
     pub latest_event_index: EventIndex,
     pub latest_message_index: Option<MessageIndex>,
     pub member_count: u32,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct ChatSummaryDirect {
+    pub last_updated: TimestampMillis,
+    pub latest_event_index: EventIndex,
+    pub latest_message_index: Option<MessageIndex>,
+    pub events_ttl: Option<Milliseconds>,
+    pub events_ttl_last_updated: Option<TimestampMillis>,
+    pub video_call_in_progress: Option<VideoCall>,
 }
