@@ -7,8 +7,12 @@ export class InstallationRegistry {
         this.#map = map ?? new Map();
     }
 
-    register(location: InstallationLocation, record: InstallationRecord) {
+    set(location: InstallationLocation, record: InstallationRecord) {
         this.#map.set(JSON.stringify(location), record);
+    }
+
+    delete(location: InstallationLocation): boolean {
+        return this.#map.delete(JSON.stringify(location));
     }
 
     get(location: InstallationLocation): InstallationRecord | undefined {

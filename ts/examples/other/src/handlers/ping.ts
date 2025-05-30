@@ -64,7 +64,7 @@ export class Ping {
   }
 
   install(location: InstallationLocation, record: InstallationRecord) {
-    this.#installs.register(location, record);
+    this.#installs.set(location, record);
     console.log("Installed bot in location: ", location);
   }
 

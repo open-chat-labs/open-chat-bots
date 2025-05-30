@@ -1,3 +1,4 @@
+import type { InstallationLocation } from "./bot";
 import { ChatIdentifier, CommunityIdentifier } from "./identifiers";
 
 export abstract class ActionScope {
@@ -20,6 +21,24 @@ export abstract class ActionScope {
 
     isCommunityScope(): this is CommunityActionScope {
         return this.kind === "community";
+    }
+
+    isContainedBy(location: InstallationLocation): boolean {
+        if (this.isCommunityScope()) {
+            return location.isCommunity() && this.communityId.communityId === location.communityId;
+        }
+        if (this.isChatScope()) {
+            if (this.chat.isChannel()) {
+                return location.isCommunity() && location.communityId === this.chat.communityId;
+            }
+            if (this.chat.isGroupChat()) {
+                return location.isGroupChat() && location.groupId === this.chat.groupId;
+            }
+            if (this.chat.isDirectChat()) {
+                return location.isDirectChat() && location.userId === this.chat.userId;
+            }
+        }
+        return false;
     }
 
     abstract isParentOf(scope: ActionScope): this is CommunityActionScope;
