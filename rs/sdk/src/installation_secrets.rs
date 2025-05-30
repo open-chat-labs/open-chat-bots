@@ -1,11 +1,11 @@
-use crate::types::InstallationLocation;
+use crate::types::{CanisterId, InstallationLocation};
 use rand::{rngs::StdRng, Rng};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct InstallationSecrets {
-    secrets: HashMap<String, InstallationLocation>,
+    secrets: HashMap<String, Record>,
 }
 
 impl InstallationSecrets {
@@ -13,17 +13,36 @@ impl InstallationSecrets {
         InstallationSecrets::default()
     }
 
-    pub fn generate(&mut self, location: InstallationLocation, rng: &mut StdRng) -> String {
+    pub fn generate(
+        &mut self,
+        api_gateway: CanisterId,
+        location: InstallationLocation,
+        rng: &mut StdRng,
+    ) -> String {
         let secret = rng.gen::<u128>().to_string();
-        self.secrets.insert(secret.clone(), location);
+        self.secrets.insert(
+            secret.clone(),
+            Record {
+                api_gateway,
+                location,
+            },
+        );
         secret
     }
 
-    pub fn verify(&self, api_key: &str) -> Option<&InstallationLocation> {
-        self.secrets.get(api_key)
+    pub fn lookup(&self, api_key: &str) -> Option<(CanisterId, InstallationLocation)> {
+        self.secrets
+            .get(api_key)
+            .map(|record| (record.api_gateway, record.location))
     }
 
-    pub fn remove(&mut self, location: &InstallationLocation) {
-        self.secrets.retain(|_, loc| loc != location);
+    pub fn remove(&mut self, location: InstallationLocation) {
+        self.secrets.retain(|_, record| record.location != location);
     }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct Record {
+    api_gateway: CanisterId,
+    location: InstallationLocation,
 }

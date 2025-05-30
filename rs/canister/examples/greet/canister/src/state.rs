@@ -1,6 +1,6 @@
 use crate::rng;
 use candid::Principal;
-use oc_bots_sdk::{InstallationRegistry, InstallationSecrets};
+use oc_bots_sdk::InstallationSecrets;
 use oc_bots_sdk_canister::env;
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::HashMap};
@@ -17,7 +17,6 @@ pub struct State {
     jokes: HashMap<u32, String>,
     blobs: HashMap<u128, Blob>,
     metrics: Metrics,
-    pub installation_registry: InstallationRegistry,
     pub installation_secrets: InstallationSecrets,
 }
 
@@ -55,7 +54,6 @@ impl State {
             blobs: HashMap::new(),
             metrics: Metrics::default(),
             rng_seed: env::entropy(),
-            installation_registry: InstallationRegistry::new(),
             installation_secrets: InstallationSecrets::new(),
         }
     }

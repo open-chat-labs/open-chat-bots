@@ -1,7 +1,6 @@
 use oc_bots_sdk::oc_api::actions::{send_message, ActionArgsBuilder};
 use oc_bots_sdk::types::{
-    AutonomousContext, AutonomousScope, BotPermissions, ChannelId, MessageContentInitial,
-    TextContent,
+    AutonomousContext, AutonomousScope, ChannelId, MessageContentInitial, TextContent,
 };
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
 
@@ -20,21 +19,14 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
         Err(response) => return response,
     };
 
-    let (location, installation) = match state::read(|state| {
-        let location = state.installation_secrets.verify(&args.api_key).ok_or(())?;
-        let installation = state.installation_registry.get(location).ok_or(())?;
-        Ok((*location, installation.clone()))
-    }) {
-        Ok(tuple) => tuple,
-        Err(()) => return HttpResponse::status(403),
-    };
-
-    if !BotPermissions::text_only().is_subset(&installation.granted_autonomous_permissions) {
+    let Some((api_gateway, location)) =
+        state::read(|state| state.installation_secrets.lookup(&args.api_key))
+    else {
         return HttpResponse::status(403);
     };
 
     let context = AutonomousContext {
-        api_gateway: installation.api_gateway,
+        api_gateway,
         scope: AutonomousScope::from_location(&location, args.channel_id),
     };
 

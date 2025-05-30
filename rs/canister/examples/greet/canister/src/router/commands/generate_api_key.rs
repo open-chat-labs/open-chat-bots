@@ -33,7 +33,11 @@ impl CommandHandler<CanisterRuntime> for GenerateApiKey {
 
             // Generate an API key
             let location = chat_scope.chat.into();
-            let api_key = rng::mutate(|rng| state.installation_secrets.generate(location, rng));
+            let api_key = rng::mutate(|rng| {
+                state
+                    .installation_secrets
+                    .generate(cxt.api_gateway, location, rng)
+            });
 
             let webhooks = match location {
                 InstallationLocation::Community(_) => {

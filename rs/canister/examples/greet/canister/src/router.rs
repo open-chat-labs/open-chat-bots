@@ -5,7 +5,6 @@ use std::sync::LazyLock;
 mod blobs;
 mod commands;
 mod definition;
-mod events;
 mod metrics;
 mod webhooks;
 
@@ -16,7 +15,6 @@ fn init_router() -> HttpRouter {
         .route("/execute_command", POST, commands::execute)
         .route("/webhook/*", POST, webhooks::execute)
         .route("/metrics", GET, metrics::get)
-        .route("/notify", POST, events::execute)
         .route("/blobs/*", GET, blobs::get)
         .fallback(definition::get)
 }
