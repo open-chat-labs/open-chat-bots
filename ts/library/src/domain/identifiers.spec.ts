@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { expect, test } from "vitest";
 import {
     ChannelIdentifier,
@@ -5,6 +6,16 @@ import {
     DirectChatIdentifier,
     GroupChatIdentifier,
 } from "./identifiers";
+
+//@ts-ignore
+BigInt.prototype.toJSON = function () {
+    return this.toString();
+};
+
+//@ts-ignore
+Uint8Array.prototype.toJSON = function () {
+    return Array.from(this);
+};
 
 test("serialise group chat id", () => {
     const id = new GroupChatIdentifier("12345");
@@ -30,6 +41,6 @@ test("serialise channel id", () => {
     expect(newId.isChannel()).toBe(true);
     if (newId.isChannel()) {
         expect(newId.communityId).toEqual("12345");
-        expect(newId.channelId).toEqual(12345);
+        expect(newId.channelId).toEqual(12345n);
     }
 });

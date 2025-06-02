@@ -25,9 +25,12 @@ import { toBigInt32 } from "./bigint";
 
 export function parseBotNotification(json: unknown): BotEventResult {
     try {
+        if (typeof json === "string") {
+            json = JSON.parse(json);
+        }
         return parseBotEventWrapper(json);
     } catch (err) {
-        return { kind: "bot_event_parse_failure" };
+        return { kind: "bot_event_parse_failure", error: err };
     }
 }
 

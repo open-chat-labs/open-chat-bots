@@ -6,6 +6,7 @@ export type BotEventResult = BotEventParseFailure | BotEventWrapper;
 
 export type BotEventParseFailure = {
     kind: "bot_event_parse_failure";
+    error: unknown;
 };
 
 export type BotEventWrapper = {

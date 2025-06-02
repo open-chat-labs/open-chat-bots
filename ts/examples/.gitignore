@@ -2,3 +2,4 @@
 node_modules
 dist
 private_key.pem
+**/package-lock.json

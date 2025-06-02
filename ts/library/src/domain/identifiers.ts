@@ -52,7 +52,7 @@ export abstract class ChatIdentifier extends Identifier {
                 case "direct_chat":
                     return new DirectChatIdentifier(json.userId);
                 case "channel":
-                    return new ChannelIdentifier(json.communityId, json.channelId);
+                    return new ChannelIdentifier(json.communityId, BigInt(json.channelId));
                 case "group_chat":
                     return new GroupChatIdentifier(json.groupId);
                 default:
