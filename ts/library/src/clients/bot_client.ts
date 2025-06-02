@@ -10,14 +10,15 @@ import {
     PollMessage,
     TextMessage,
     type BotClientConfig,
-    type ChatDetailsResponse,
     type ChatEventsCriteria,
     type ChatEventsResponse,
     type ChatIdentifier,
+    type ChatSummaryResponse,
     type CreateChannelResponse,
     type DeleteChannelResponse,
     type Message,
     type SendMessageResponse,
+    type UnitResult,
 } from "../domain";
 import type { ActionContext } from "../domain/action_context";
 import type { Channel } from "../domain/channel";
@@ -61,6 +62,15 @@ export class BotClient {
     #messagePermitted(message: Message): boolean {
         return message.requiredMessagePermissions.every((p) =>
             this.#actionContext.hasMessagePermission(p),
+        );
+    }
+
+    public addReaction(messageId: bigint, reaction: string, thread?: number): Promise<UnitResult> {
+        return this.#botService.addReaction(
+            this.#actionContext.chatContext(),
+            reaction,
+            messageId,
+            thread,
         );
     }
 
@@ -264,11 +274,11 @@ export class BotClient {
         });
     }
 
-    chatDetails(channelId?: bigint): Promise<ChatDetailsResponse> {
+    chatSummary(channelId?: bigint): Promise<ChatSummaryResponse> {
         return this.#botService
-            .chatDetails(this.#actionContext.chatContext(channelId))
+            .chatSummary(this.#actionContext.chatContext(channelId))
             .then((resp) => {
-                if (resp.kind !== "success") {
+                if (resp.kind === "error") {
                     console.error("OpenChat botClient.chatDetails failed with: ", resp);
                 }
                 return resp;

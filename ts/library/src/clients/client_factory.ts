@@ -61,7 +61,11 @@ export class BotClientFactory {
     createClientInAutonomouseContext(
         scope: ActionScope,
         apiGateway: string,
-        autonomousPermissions: Permissions,
+        autonomousPermissions: Permissions = new Permissions({
+            chat: 0,
+            community: 0,
+            message: 0,
+        }),
     ): BotClient {
         return new BotClient(
             this.#agent,

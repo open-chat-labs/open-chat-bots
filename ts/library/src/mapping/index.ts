@@ -10,14 +10,13 @@ import {
     ChannelIdentifier,
     CHAT_SYMBOL,
     ChatActionScope,
-    type ChatDetailsResponse,
-    type ChatDetailsSuccess,
     type ChatEvent,
     type ChatEventsCriteria,
     type ChatEventsResponse,
     type ChatEventsSuccess,
     type ChatEventWrapper,
     type ChatIdentifier,
+    type ChatSummaryResponse,
     CKBTC_SYMBOL,
     type CommandActionScope,
     type CommandArg,
@@ -81,7 +80,7 @@ import {
     type VideoCallType,
     type VideoContent,
 } from "../domain";
-import type { OCError } from "../domain/response";
+import type { DirectChatSummary, GroupChatSummary, OCError } from "../domain/response";
 import {
     type AccessGate as ApiAccessGate,
     type AccessGateConfig as ApiAccessGateConfig,
@@ -140,14 +139,14 @@ import {
     type VideoCallContent as ApiVideoCallContent,
     type VideoCallType as ApiVideoCallType,
     type VideoContent as ApiVideoContent,
-    type LocalUserIndexBotChatDetailsResponse as BotChatDetailsResponse,
     type LocalUserIndexBotChatEventsResponse as BotChatEventsResponse,
+    type LocalUserIndexBotChatSummaryResponse as BotChatSummaryResponse,
     BotCommandArg,
     type LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
     type UnitResult as BotDeleteChannelResponse,
     type LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
     type Chat,
-    type ChatDetails,
+    ChatSummary,
 } from "../typebox/typebox";
 import { toBigInt32, toBigInt64 } from "../utils/bigint";
 import { UnsupportedValueError } from "../utils/error";
@@ -259,8 +258,8 @@ export function deleteChannelResponse(api: BotDeleteChannelResponse): DeleteChan
     return unitResult(api);
 }
 
-export function chatDetailsResponse(api: BotChatDetailsResponse): ChatDetailsResponse {
-    return mapResult(api, chatDetails);
+export function chatSummaryResponse(api: BotChatSummaryResponse): ChatSummaryResponse {
+    return mapResult(api, chatSummary);
 }
 
 export function chatEventsResponse(api: BotChatEventsResponse): ChatEventsResponse {
@@ -279,30 +278,48 @@ function chatEventsSuccessResponse(api: ApiEventsResponse): ChatEventsSuccess {
     };
 }
 
-function chatDetails(api: ChatDetails): ChatDetailsSuccess {
-    return {
-        kind: "success",
-        name: api.name,
-        description: api.description,
-        avatarId: api.avatar_id,
-        isPublic: api.is_public,
-        historyVisibleToNewJoiners: api.history_visible_to_new_joiners,
-        messagesVisibleToNonMembers: api.messages_visible_to_non_members,
-        permissions: groupPermissions(api.permissions),
-        rules: api.rules,
-        eventsTtl: api.events_ttl,
-        eventsTtlLastUpdated: api.events_ttl_last_updated,
-        gateConfig: optional(api.gate_config, accessGateConfig),
-        videoCallInProgress: optional(api.video_call_in_progress, videoCall),
-        verified: api.verified ?? false,
-        frozen: optional(api.frozen, frozenGroupInfo),
-        dateLastPinned: api.date_last_pinned,
-        lastUpdated: api.last_updated,
-        externalUrl: api.external_url,
-        latestEventIndex: api.latest_event_index,
-        latestMessageIndex: api.latest_message_index,
-        memberCount: api.member_count,
-    };
+function chatSummary(api: ChatSummary): GroupChatSummary | DirectChatSummary {
+    if ("Group" in api) {
+        const group = api.Group;
+        return {
+            kind: "group_chat",
+            name: group.name,
+            description: group.description,
+            avatarId: group.avatar_id,
+            isPublic: group.is_public,
+            historyVisibleToNewJoiners: group.history_visible_to_new_joiners,
+            messagesVisibleToNonMembers: group.messages_visible_to_non_members,
+            permissions: groupPermissions(group.permissions),
+            rules: group.rules,
+            eventsTtl: group.events_ttl,
+            eventsTtlLastUpdated: group.events_ttl_last_updated,
+            gateConfig: optional(group.gate_config, accessGateConfig),
+            videoCallInProgress: optional(group.video_call_in_progress, videoCall),
+            verified: group.verified ?? false,
+            frozen: optional(group.frozen, frozenGroupInfo),
+            dateLastPinned: group.date_last_pinned,
+            lastUpdated: group.last_updated,
+            externalUrl: group.external_url,
+            latestEventIndex: group.latest_event_index,
+            latestMessageIndex: group.latest_message_index,
+            memberCount: group.member_count,
+        };
+    }
+
+    if ("Direct" in api) {
+        const direct = api.Direct;
+        return {
+            kind: "direct_chat",
+            eventsTtl: direct.events_ttl,
+            eventsTtlLastUpdated: direct.events_ttl_last_updated,
+            videoCallInProgress: optional(direct.video_call_in_progress, videoCall),
+            lastUpdated: direct.last_updated,
+            latestEventIndex: direct.latest_event_index,
+            latestMessageIndex: direct.latest_message_index,
+        };
+    }
+
+    throw new Error(`Unexpected ChatSummary type received: ${api}`);
 }
 
 function groupPermissions(api: ApiGroupPermissions): GroupPermissions {

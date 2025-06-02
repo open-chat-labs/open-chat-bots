@@ -15,7 +15,7 @@ function getBotDefinition(): BotDefinition {
       permissions: Permissions.encodePermissions({
         ...emptyPermissions,
         message: ["Text"],
-        chat: ["ReactToMessages", "ReadMessages"],
+        chat: ["ReactToMessages", "ReadMessages", "ReadChatDetails"],
       }),
     },
     default_subscriptions: {
@@ -30,6 +30,7 @@ function getBotDefinition(): BotDefinition {
         permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["Text"],
+          chat: ["ReadChatDetails"],
         }),
         direct_messages: true,
         params: [

@@ -7,7 +7,7 @@ import type { VideoCall } from "./video";
 export type SendMessageResponse = SendMessageSuccess | OCError;
 export type CreateChannelResponse = CreateChannelSuccess | OCError;
 export type DeleteChannelResponse = DeleteChannelSuccess | OCError;
-export type ChatDetailsResponse = ChatDetailsSuccess | OCError;
+export type ChatSummaryResponse = GroupChatSummary | DirectChatSummary | OCError;
 export type ChatEventsResponse = ChatEventsSuccess | OCError;
 
 export type ChatEventsSuccess = {
@@ -27,8 +27,8 @@ export type ChatEventWrapper = {
     event: ChatEvent;
 };
 
-export type ChatDetailsSuccess = {
-    kind: "success";
+export type GroupChatSummary = {
+    kind: "group_chat";
     name: string;
     description: string;
     avatarId?: bigint;
@@ -49,6 +49,16 @@ export type ChatDetailsSuccess = {
     latestEventIndex: number;
     latestMessageIndex?: number;
     memberCount: number;
+};
+
+export type DirectChatSummary = {
+    kind: "direct_chat";
+    eventsTtl?: bigint;
+    eventsTtlLastUpdated?: bigint;
+    videoCallInProgress?: VideoCall;
+    lastUpdated: bigint;
+    latestEventIndex: number;
+    latestMessageIndex?: number;
 };
 
 export type FrozenGroupInfo = {
@@ -74,6 +84,8 @@ export type SendMessageSuccess = {
     timestamp: bigint;
     expiresAt?: bigint;
 };
+
+export type UnitResult = Success | OCError;
 
 export type Success = { kind: "success" };
 
