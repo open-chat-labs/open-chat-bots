@@ -11,6 +11,17 @@ function getBotDefinition(): BotDefinition {
   return {
     description:
       "This bot demonstrates integration with OpenAI to create a chat bot",
+    autonomous_config: {
+      permissions: Permissions.encodePermissions({
+        ...emptyPermissions,
+        message: ["Text"],
+        chat: ["ReactToMessages", "ReadMessages", "ReadChatDetails"],
+      }),
+    },
+    default_subscriptions: {
+      community: [],
+      chat: ["Message"],
+    },
     commands: [
       {
         name: "prompt",
@@ -19,6 +30,7 @@ function getBotDefinition(): BotDefinition {
         permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["Text"],
+          chat: ["ReadChatDetails"],
         }),
         direct_messages: true,
         params: [

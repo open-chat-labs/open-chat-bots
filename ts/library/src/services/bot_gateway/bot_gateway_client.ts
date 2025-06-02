@@ -3,30 +3,34 @@ import type {
     BotChatContext,
     BotClientConfig,
     ChannelIdentifier,
-    ChatDetailsResponse,
     ChatEventsCriteria,
     ChatEventsResponse,
+    ChatSummaryResponse,
     CommunityIdentifier,
     CreateChannelResponse,
     DeleteChannelResponse,
     Message,
     SendMessageResponse,
+    UnitResult,
 } from "../../domain";
 import type { Channel } from "../../domain/channel";
 import {
     apiBotChatContext,
     apiChatEventsCriteria,
-    chatDetailsResponse,
     chatEventsResponse,
+    chatSummaryResponse,
     createChannelResponse,
     deleteChannelResponse,
     sendMessageResponse,
+    unitResult,
 } from "../../mapping";
 import {
-    LocalUserIndexBotChatDetailsV2Args as BotChatDetailsArgs,
-    LocalUserIndexBotChatDetailsResponse as BotChatDetailsResponse,
-    LocalUserIndexBotChatEventsV2Args as BotChatEventsArgs,
+    UnitResult as ApiUnitResult,
+    LocalUserIndexBotAddReactionV2Args as BotAddReactionArgs,
+    LocalUserIndexBotChatEventsArgs as BotChatEventsArgs,
     LocalUserIndexBotChatEventsResponse as BotChatEventsResponse,
+    LocalUserIndexBotChatSummaryArgs as BotChatSummaryArgs,
+    LocalUserIndexBotChatSummaryResponse as BotChatSummaryResponse,
     LocalUserIndexBotCreateChannelV2Args as BotCreateChannelArgs,
     LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
     LocalUserIndexBotDeleteChannelV2Args as BotDeleteChannelArgs,
@@ -52,6 +56,29 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
             sendMessageResponse,
             BotSendMessageArgs,
             BotSendMessageResponse,
+        ).catch((err) => {
+            console.error("Call to bot_send_message failed with: ", JSON.stringify(err));
+            throw err;
+        });
+    }
+
+    addReaction(
+        ctx: BotChatContext,
+        reaction: string,
+        messageId: bigint,
+        threadRootMessageIndex?: number,
+    ): Promise<UnitResult> {
+        return this.executeMsgpackUpdate(
+            "bot_add_reaction_v2",
+            {
+                chat_context: apiBotChatContext(ctx),
+                message_id: messageId,
+                reaction,
+                thread: threadRootMessageIndex,
+            },
+            unitResult,
+            BotAddReactionArgs,
+            ApiUnitResult,
         ).catch((err) => {
             console.error("Call to bot_send_message failed with: ", JSON.stringify(err));
             throw err;
@@ -87,22 +114,22 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
         });
     }
 
-    chatDetails(ctx: BotChatContext): Promise<ChatDetailsResponse> {
+    chatSummary(ctx: BotChatContext): Promise<ChatSummaryResponse> {
         return this.executeMsgpackQuery(
-            "bot_chat_details_v2",
+            "bot_chat_summary",
             { chat_context: apiBotChatContext(ctx) },
-            chatDetailsResponse,
-            BotChatDetailsArgs,
-            BotChatDetailsResponse,
+            chatSummaryResponse,
+            BotChatSummaryArgs,
+            BotChatSummaryResponse,
         ).catch((err) => {
-            console.error("Call to bot_chat_details failed with: ", JSON.stringify(err));
+            console.error("Call to bot_chat_summary failed with: ", JSON.stringify(err));
             throw err;
         });
     }
 
     chatEvents(ctx: BotChatContext, criteria: ChatEventsCriteria): Promise<ChatEventsResponse> {
         return this.executeMsgpackQuery(
-            "bot_chat_events_v2",
+            "bot_chat_events",
             {
                 chat_context: apiBotChatContext(ctx),
                 events: apiChatEventsCriteria(criteria),

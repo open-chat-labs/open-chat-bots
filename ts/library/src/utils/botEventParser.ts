@@ -185,14 +185,14 @@ function parseCommunityIdentifier(communityId: any): CommunityIdentifier {
 
 function parseChatIdentifier(obj: any): ChatIdentifier {
     if ("Direct" in obj) {
-        new DirectChatIdentifier(principalBytesToString(obj.Direct));
+        return new DirectChatIdentifier(principalBytesToString(obj.Direct));
     }
     if ("Group" in obj) {
-        new GroupChatIdentifier(principalBytesToString(obj.Group));
+        return new GroupChatIdentifier(principalBytesToString(obj.Group));
     }
     if ("Channel" in obj) {
         const [communityId, channelId] = obj.Channel;
-        new ChannelIdentifier(principalBytesToString(communityId), toBigInt32(channelId));
+        return new ChannelIdentifier(principalBytesToString(communityId), toBigInt32(channelId));
     }
     throw new Error("Unexpected ChatIdentifier type received");
 }

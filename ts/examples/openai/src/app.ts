@@ -1,18 +1,12 @@
-import { BotClientFactory } from "@open-ic/openchat-botclient-ts";
 import cors from "cors";
 import express from "express";
+import { factory } from "./factory";
 import executeCommand from "./handlers/executeCommand";
+import { notify } from "./handlers/notify";
 import schema from "./handlers/schema";
 import { createCommandChatClient } from "./middleware/botclient";
 
 const app = express();
-
-const factory = new BotClientFactory({
-  openchatPublicKey: process.env.OC_PUBLIC!,
-  icHost: process.env.IC_HOST!,
-  identityPrivateKey: process.env.IDENTITY_PRIVATE!,
-  openStorageCanisterId: process.env.STORAGE_INDEX_CANISTER!,
-});
 
 app.use(cors());
 app.post(
@@ -21,6 +15,7 @@ app.post(
   createCommandChatClient(factory),
   executeCommand
 );
+app.post("/notify", express.json(), notify);
 app.get("/bot_definition", schema);
 app.get("/", schema);
 
