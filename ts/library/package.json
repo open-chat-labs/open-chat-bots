@@ -1,6 +1,6 @@
 {
     "name": "@open-ic/openchat-botclient-ts",
-    "version": "1.0.34",
+    "version": "1.0.36",
     "description": "A client library for OpenChat bots to interact with the OpenChat backend",
     "main": "lib/index.cjs",
     "module": "lib/index.mjs",
@@ -8,6 +8,7 @@
     "scripts": {
         "build": "rollup -c",
         "test": "vitest",
+        "test:watch": "vitest -w",
         "prepare": "npm run build",
         "publish": "npm publish --access public"
     },
