@@ -1,6 +1,17 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { describe, expect, test } from "vitest";
 import { ChannelIdentifier, CommunityIdentifier } from "./identifiers";
 import { ActionScope, ChatActionScope, CommunityActionScope } from "./scope";
+
+//@ts-ignore
+BigInt.prototype.toJSON = function () {
+    return this.toString();
+};
+
+//@ts-ignore
+Uint8Array.prototype.toJSON = function () {
+    return Array.from(this);
+};
 
 describe("scope serialisation", () => {
     test("roundtrip community action scope", () => {
@@ -22,7 +33,7 @@ describe("scope serialisation", () => {
             expect(newScope.chat).instanceOf(ChannelIdentifier);
             if (newScope.chat.isChannel()) {
                 expect(newScope.chat.communityId).toEqual("12345");
-                expect(newScope.chat.channelId).toEqual(12345);
+                expect(newScope.chat.channelId).toEqual(12345n);
             }
         }
     });
