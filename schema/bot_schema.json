@@ -47,6 +47,10 @@
     "autonomous_config": {
       "$ref": "#/definitions/AutonomousConfig",
       "description": "Configuration for the bot's autonomous behaviour"
+    },
+    "default_subscriptions": {
+      "$ref": "#/definitions/BotSubscriptions",
+      "description": "Configurations of the events that the bot would like to subscribe to"
     }
   },
   "anyOf": [
