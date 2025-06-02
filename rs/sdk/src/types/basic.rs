@@ -4,9 +4,12 @@ use std::fmt::{Debug, Display, Formatter};
 
 use super::{BotCommandScope, OCError};
 
-pub type CanisterId = Principal;
-pub type CommunityId = Principal;
-pub type ChatId = Principal;
+#[derive(CandidType, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CanisterId(Principal);
+
+pub type CommunityId = CanisterId;
+pub type ChatId = CanisterId;
+pub type UserId = CanisterId;
 pub type ChannelId = u32;
 pub type EventIndex = u32;
 pub type Hash = [u8; 32];
@@ -25,24 +28,27 @@ pub enum UnitResult {
     Error(OCError),
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Eq, PartialEq)]
-pub struct UserId(CanisterId);
-
-impl Display for UserId {
+impl Display for CanisterId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(&self.0, f)
     }
 }
 
-impl Debug for UserId {
+impl Debug for CanisterId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(&self.0, f)
     }
 }
 
-impl From<Principal> for UserId {
+impl From<Principal> for CanisterId {
     fn from(principal: Principal) -> Self {
-        UserId(principal)
+        CanisterId(principal)
+    }
+}
+
+impl From<CanisterId> for Principal {
+    fn from(canister_id: CanisterId) -> Self {
+        canister_id.0
     }
 }
 
@@ -84,16 +90,30 @@ pub struct Document {
 }
 
 #[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub enum AutonomousScope {
+pub enum ActionScope {
     Chat(Chat),
     Community(CommunityId),
 }
 
-impl AutonomousScope {
+impl ActionScope {
     pub fn community_id(&self) -> Option<CommunityId> {
         match self {
-            AutonomousScope::Chat(_) => None,
-            AutonomousScope::Community(community_id) => Some(*community_id),
+            ActionScope::Chat(_) => None,
+            ActionScope::Community(community_id) => Some(*community_id),
+        }
+    }
+
+    pub fn from_location(location: &InstallationLocation, channel_id: Option<ChannelId>) -> Self {
+        match location {
+            InstallationLocation::Community(community_id) => {
+                if let Some(channel_id) = channel_id {
+                    ActionScope::Chat(Chat::Channel(*community_id, channel_id))
+                } else {
+                    ActionScope::Community(*community_id)
+                }
+            }
+            InstallationLocation::Group(chat_id) => ActionScope::Chat(Chat::Group(*chat_id)),
+            InstallationLocation::User(user_id) => ActionScope::Chat(Chat::Direct(*user_id)),
         }
     }
 }

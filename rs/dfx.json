@@ -13,6 +13,12 @@
       "candid": "canister/examples/greet/canister/can.did",
       "gzip": true
     },
+    "moderator_bot": {
+      "type": "rust",
+      "package": "moderator_bot",
+      "candid": "canister/examples/moderator/can.did",
+      "gzip": true
+    },
     "reminder_bot": {
       "type": "rust",
       "package": "reminder_bot",

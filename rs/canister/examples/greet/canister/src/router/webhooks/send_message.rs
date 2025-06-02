@@ -1,13 +1,15 @@
 use oc_bots_sdk::oc_api::actions::{send_message, ActionArgsBuilder};
 use oc_bots_sdk::types::{
-    AutonomousContext, AutonomousScope, CanisterId, Chat, MessageContentInitial, TextContent,
+    AutonomousContext, ActionScope, ChannelId, MessageContentInitial, TextContent,
 };
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
 
+use crate::state;
+
 #[derive(serde::Deserialize)]
 struct Args {
-    api_gateway: CanisterId,
-    chat: Chat,
+    api_key: String,
+    channel_id: Option<ChannelId>,
     text: String,
 }
 
@@ -17,10 +19,20 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
         Err(response) => return response,
     };
 
-    let context = AutonomousContext {
-        api_gateway: args.api_gateway,
-        scope: AutonomousScope::Chat(args.chat),
+    let Some((api_gateway, location)) =
+        state::read(|state| state.installation_secrets.lookup(&args.api_key))
+    else {
+        return HttpResponse::status(403);
     };
+
+    let context = AutonomousContext {
+        api_gateway,
+        scope: ActionScope::from_location(&location, args.channel_id),
+    };
+
+    if matches!(context.scope, ActionScope::Community(_)) {
+        return HttpResponse::status(403);
+    }
 
     let response = OPENCHAT_CLIENT_FACTORY
         .build(context)

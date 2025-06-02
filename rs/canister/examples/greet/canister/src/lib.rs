@@ -6,10 +6,10 @@ use ic_stable_structures::{
     reader::{BufferedReader, Reader},
     writer::{BufferedWriter, Writer},
 };
-use oc_bots_sdk_canister::env;
+use oc_bots_sdk_canister::{env, get_random_seed};
 use serde::{Deserialize, Serialize};
 use state::State;
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 mod memory;
 mod rng;
@@ -25,8 +25,12 @@ fn init(args: InitOrUpgradeArgs) {
     };
 
     let state = State::new(args.oc_public_key, args.administrator);
-    rng::init(state.rng_seed());
+    rng::set(state.rng_seed());
     state::init(state);
+
+    // Set the initial RNG seed asynchronously using management_canister::raw_rand
+    // which is cryptographically secure
+    ic_cdk_timers::set_timer(Duration::ZERO, reseed_rng);
 }
 
 #[pre_upgrade]
@@ -57,7 +61,7 @@ fn post_upgrade(args: InitOrUpgradeArgs) {
 
     state.update(args.oc_public_key, args.administrator);
 
-    rng::init(state.rng_seed());
+    rng::set(state.rng_seed());
     state::init(state);
 }
 
@@ -80,6 +84,18 @@ fn insert_jokes(args: InsertJokesArgs) -> InsertJokesResponse {
             InsertJokesResponse::Success(state.insert_jokes(args.jokes))
         }
     })
+}
+
+fn reseed_rng() {
+    ic_cdk::spawn(reseed_rng_inner());
+
+    async fn reseed_rng_inner() {
+        let seed = get_random_seed().await;
+        state::mutate(|state| {
+            state.set_rng_seed(seed);
+        });
+        rng::set(seed);
+    }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Debug)]

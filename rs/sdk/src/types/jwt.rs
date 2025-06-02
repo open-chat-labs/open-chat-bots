@@ -1,4 +1,4 @@
-use super::{AutonomousScope, BotPermissions, CanisterId, Chat, MessageId, MessageIndex, UserId};
+use super::{ActionScope, BotPermissions, CanisterId, Chat, MessageId, MessageIndex, UserId};
 use crate::api::command::Command;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
@@ -65,11 +65,11 @@ impl BotCommandScope {
     }
 }
 
-impl From<BotCommandScope> for AutonomousScope {
+impl From<BotCommandScope> for ActionScope {
     fn from(value: BotCommandScope) -> Self {
         match value {
-            BotCommandScope::Chat(details) => AutonomousScope::Chat(details.chat),
-            BotCommandScope::Community(details) => AutonomousScope::Community(details.community_id),
+            BotCommandScope::Chat(details) => ActionScope::Chat(details.chat),
+            BotCommandScope::Community(details) => ActionScope::Community(details.community_id),
         }
     }
 }

@@ -1069,6 +1069,7 @@ dependencies = [
  "getrandom",
  "http 1.2.0",
  "ic-cdk",
+ "ic-cdk-timers",
  "ic-http-certification",
  "ic-stable-structures",
  "ic_principal",

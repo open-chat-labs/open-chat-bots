@@ -12,7 +12,7 @@ pub struct BotEventWrapper {
     pub event: BotEvent,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub enum BotEvent {
     #[serde(rename = "c")]
     Chat(BotChatEvent),
@@ -22,7 +22,7 @@ pub enum BotEvent {
     Lifecycle(BotLifecycleEvent),
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct BotChatEvent {
     #[serde(rename = "e")]
     pub event_type: ChatEventType,
@@ -36,7 +36,7 @@ pub struct BotChatEvent {
     pub latest_event_index: EventIndex,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct BotCommunityEvent {
     #[serde(rename = "e")]
     pub event_type: CommunityEventType,
@@ -48,7 +48,7 @@ pub struct BotCommunityEvent {
     pub latest_event_index: EventIndex,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub enum BotLifecycleEvent {
     #[serde(rename = "r")]
     Registered(BotRegisteredEvent),
