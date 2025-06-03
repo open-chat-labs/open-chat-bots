@@ -74,6 +74,14 @@ export class BotClient {
         );
     }
 
+    public deleteMessages(messageIds: bigint[], thread?: number): Promise<UnitResult> {
+        return this.#botService.deleteMessages(
+            this.#actionContext.chatContext(),
+            messageIds,
+            thread,
+        );
+    }
+
     public sendMessage(message: Message): Promise<SendMessageResponse> {
         if (!this.#messagePermitted(message)) {
             return Promise.resolve({
