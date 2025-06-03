@@ -1,4 +1,4 @@
-import { ChatDetailsSuccess } from "@open-ic/openchat-botclient-ts";
+import { GroupChatSummary } from "@open-ic/openchat-botclient-ts";
 import { Response } from "express";
 import { WithBotClient } from "../types";
 import { success } from "./success";
@@ -6,8 +6,8 @@ import { success } from "./success";
 export default async function (req: WithBotClient, res: Response) {
   const client = req.botClient;
   if (client.chatScope !== undefined) {
-    const resp = await client.chatDetails();
-    if (resp.kind === "success") {
+    const resp = await client.chatSummary();
+    if (resp.kind === "group_chat") {
       const msg = createSuccessMessage(resp);
       const details = (await client.createTextMessage(msg)).setFinalised(true);
       client
@@ -39,18 +39,18 @@ export default async function (req: WithBotClient, res: Response) {
   }
 }
 
-function createSuccessMessage(details: ChatDetailsSuccess): string {
+function createSuccessMessage(summary: GroupChatSummary): string {
   return `
-        Name: ${details.name}
+        Name: ${summary.name}
 
-        Description: ${details.description}
+        Description: ${summary.description}
 
-        Is public: ${details.isPublic}
+        Is public: ${summary.isPublic}
 
-        History visible: ${details.historyVisibleToNewJoiners}
+        History visible: ${summary.historyVisibleToNewJoiners}
 
-        Messages visible to non-members: ${details.messagesVisibleToNonMembers}
+        Messages visible to non-members: ${summary.messagesVisibleToNonMembers}
 
-        Number of members: ${details.memberCount}
+        Number of members: ${summary.memberCount}
     `;
 }

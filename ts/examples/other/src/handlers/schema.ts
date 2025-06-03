@@ -112,9 +112,9 @@ function getBotDefinition(): BotDefinition {
         params: [],
       },
       {
-        name: "chat_details",
+        name: "chat_summary",
         default_role: "Participant",
-        description: "Return the details of the current chat",
+        description: "Return the summary of the current chat",
         permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["Text"],
