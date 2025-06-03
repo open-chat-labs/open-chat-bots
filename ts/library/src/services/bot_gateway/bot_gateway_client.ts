@@ -35,6 +35,7 @@ import {
     LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
     LocalUserIndexBotDeleteChannelV2Args as BotDeleteChannelArgs,
     UnitResult as BotDeleteChannelResponse,
+    LocalUserIndexBotDeleteMessagesV2Args as BotDeleteMessagesArgs,
     LocalUserIndexBotSendMessageV2Args as BotSendMessageArgs,
     LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
 } from "../../typebox/typebox";
@@ -62,6 +63,27 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
         });
     }
 
+    deleteMessages(
+        ctx: BotChatContext,
+        messageIds: bigint[],
+        threadRootMessageIndex?: number,
+    ): Promise<UnitResult> {
+        return this.executeMsgpackUpdate(
+            "bot_delete_messages_v2",
+            {
+                chat_context: apiBotChatContext(ctx),
+                message_ids: messageIds,
+                thread: threadRootMessageIndex,
+            },
+            unitResult,
+            BotDeleteMessagesArgs,
+            ApiUnitResult,
+        ).catch((err) => {
+            console.error("Call to bot_delete_messages failed with: ", JSON.stringify(err));
+            throw err;
+        });
+    }
+
     addReaction(
         ctx: BotChatContext,
         reaction: string,
@@ -80,7 +102,7 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
             BotAddReactionArgs,
             ApiUnitResult,
         ).catch((err) => {
-            console.error("Call to bot_send_message failed with: ", JSON.stringify(err));
+            console.error("Call to bot_add_reaction failed with: ", JSON.stringify(err));
             throw err;
         });
     }
