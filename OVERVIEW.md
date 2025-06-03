@@ -2,13 +2,13 @@
 
 ## What kind of bots can I build?
 
-There are broadly three different categories of bot that OpenChat currently supports.
+There are broadly three scenarios for bot development that OpenChat currently supports.
 
-- **Command bots** which accept a command from an OpenChat user from within the OpenChat interface.
-- **Integration bots** which accept a command from an external system using an API key.
+- **Commands** accepted from an OpenChat user from within the OpenChat interface.
+- **Integrations** involving custom endpoints or simple text messages sent to webhooks within OpenChat.
 - **Autonomous bots** which generate their own commands and interact with the OpenChat backend autonomously.
 
-There is some overlap in these capabilities and it is quite possible to create a single bot which acts in all three different ways. We will provide examples of all the different approaches and when you might use each type of bot. Let's discuss these bot types and how they work in more detail.
+There is some overlap in these capabilities and it is quite possible to create a single bot which acts autonomously, accepts input from third party systems _and_ accepts commands from an OpenChat user. We will provide examples of all the different approaches and when you might use each type of bot. Let's discuss these bot types and how they work in more detail.
 
 ## All bots
 
@@ -22,7 +22,7 @@ To test your bot, we recommend that you start by running OpenChat locally. Pleas
 
 ### Registering the bot
 
-The `/register_bot` command will load a modal to allow you to enter the details of your bot. Importantly this includes the endpoint that OpenChat should use to communicate with your bot. When you provide this endpoint, we will then attempt to load and validate your bot's definition schema. Take the time to browse through the parsed definition - this is how OpenChat understands your bot's behaviour and how it will control the user's interactions with your bot. When you are happy, you can register the bot.
+The `/register_bot` command will load a modal to allow you to enter the details of your bot. Importantly this includes the origin that OpenChat should use to communicate with your bot. When you provide this origin, we will then attempt to load and validate your bot's definition schema from the `/bot_definition` path. Take the time to browse through the parsed definition - this is how OpenChat understands your bot's behaviour and how it will control the user's interactions with your bot. When you are happy, you can register the bot.
 
 When you register a bot it won't yet be available to all users to install. As the owner of the bot you will be able to install the bot in any group or community you own, or as a direct chat. As part of the registration you can additionally specify one other group or community for testing purposes and its owner will be be able to install the bot. When your bot has been fully tested and is ready for prime time you can make a "publish bot" proposal to make the bot publicly available. This is to ensure that each bot gets a certain level of scrutiny and that the DAO agrees in principal that it is a useful addition.
 
@@ -32,7 +32,9 @@ Once a bot has been registered with OpenChat and then published it becomes avail
 
 If a bot exposes commands, when you choose to install it, you will be presented with a summary of commands the bot provides and the permissions it _requires_ in support of those commands. You, as an owner of the community or group can choose which permissions you are prepared to actually _grant_ to the bot. If any permission requested by the bot is _not_ granted, then any commands which require that permission will not be available to the users in this context.
 
-If the bot supports autonomous operation you will also be asked if you wish to configure the autonomous permissions and generate an API key for the scope that you are installing the bot into. If you choose to generate an API key at this stage, and if the bot supports it, you can also choose to automatically and securely send that API key to the bot (so that it can operate autonomously in this context going forward).
+If the bot supports autonomous operation you will also be asked which autonomous permissions you wish to grant the bot for the scope that you are installing the it into.
+
+Upon successful installation, the bot will be notified via its `/notify` endpoint of the installation event. This allows the bot to track (if it needs to) the locations that it has been installed into and the permissions that it has been granted in each installed location.
 
 Once the bot is installed in a group or community, if it supports commands, it will be available to the members. They can simply start typing with a `/` to see which commands are available in the current context. OpenChat will use the information in the _definition_ provided by the bot to show the user the available commands and what (if any) parameters they require.
 
@@ -78,54 +80,25 @@ Finally, the command definition has a property, `default_role` with possible val
 
 ## Integration Bots
 
-For integration bots the flow is a little different because the interaction is not triggered by an OpenChat user but by another external system. If you want an external system to be able to trigger your bot you will need to generate an API key to give to your external system.
+By integration we mean scenarios where we wish to connect a third party system to OpenChat in some way. In this case the interaction is not triggered by an OpenChat user and so we would consider the bot to be operating autonmously (albeit with a trigger from another system). There are a couple of ways to achieve this. The simplest option is not to write a bot at all but simply to use the `/register_webhook` command to create a special link that you can simply post text to which will then appear as a message in the context where you created the webhook. No need to write any code, no need to deploy anything. For many scenarios this is the best option because it is so simple.
 
-### API keys
+But if you need to do something more complex you can add any endpoint you like to your bot that a third party system can interact with. How you secure this endpoint is up to you and depends on your scenario. You may choose to generate some sort of token that the third party system must provide or you may choose to restrict request to the origin of your third party system. OpenChat itself does not care. You bot will always be allowed to perform whatever actions are expressed by its autonomous permissions it has been granted in a given context. Let's consider this in more depth.
 
-As a community or group owner, when you have installed a bot, you will have the option to generate an API key for that context. This option is available from the bot's entry in the members list. When you choose to generate an API key, you will be asked to select the permissions you wish to encode in this key relative to the permissions the bot is seeking. You will then be shown the generated key.
+### Autonomous mode
 
-This API key can then be securely stored in a third party system (a good example might be to store it as a github secret if you wanted to integrate with github actions). Then when the third party system wants to trigger some action within OpenChat it should simply send the API key to your bot. You can use whatever endpoint you like and supply whatever supplemental data you like when calling your bot, as long as you pass in the API key. Your bot will then be able to use that API key to interact with OpenChat (limited by the scope and the permissions encoded in the API key). If you think your API key might have been compromised, you can generate a new API key and the existing API key will become invalid.
+As a community or group owner, when you have installed a bot, the bot will have been notified that it was installed to that context with the permission that you granted it. An autonomous bot may wish to capture this installation event and persist the relevant information so that it can proactively check whether it has permission to act in the desired way later on. Regardless of whether the bot consciously records this information, it will _only_ be allowed by the OpenChat backend to act in accordance with its granted permissions.
 
-```
-External System            Bot Server            OC Backend
-       |                        |                     |
-       |-- webhook + API key -->|                     |
-       |                        |------- action ----->|
-       |                        |<----- response -----|
-       |<--- bot response ------|                     |
-       |                        |                     |
-```
+Let's consider an example to clarify the mechanism. Imagine a bot that is designed to monitor Youtube channels and post any new content to the OpenChat contexts into which it is installed.
 
-Like command JWTs, API keys contain the scope in which it can be used. An API key can be generated for a community and separately for channels within the community. To allow the bot to take "community" actions such as creating a channel an API key must be generated at the community level with the appropriate permissions. However, the permissions cascade, so you could generate a community API key and give it the "send message" permission which will allow the bot to send messages to _any_ channel in the community. If you wish to restrict this behaviour you could choose to give the bot a channel API key(s) to allow it to send messages only in that channel(s).
+The first thing this bot needs to do is to listen out for installation events on its `/notify` endpoint. When it receives an installation event, it needs to record that it has been installed in the relevant location and track which permissions it has been granted in that location.
 
-## Autonomous Bots
+We will probably then implement some kind of `/subscribe [youtube_channel]` command. When the bot received this command, it will check that it has an installation record for this context and just double check that it has the required permission to autonomously post messsages to this context. It will then record the subscription.
 
-Automonous bots also use API Keys to interact with OpenChat. As a bot owner you could choose to give your bot one or more API keys to allow it to take actions (typically send messages) in a particular scope. However, the standard workflow is as follows. In the `AutonomousConfig` section of the bot _definition_ you can set the property `sync_api_key` to `true`. This tells the OpenChat interface to offer a group/community owner to sync an API key with the bot. OpenChat will then automatically call the bot with a special `sync_api_key` command where the command argument contains the API key. Typically the bot will then store this API key in a map keyed by the scope (more later) which will allow the bot to take actions in this scope. The handling of this special command and the API key map are provided by the SDKs. A bot then might offer a command, perhaps with `default_role = Admin`, allowing the user to subscribe to some particular behaviour. The bot would then hold the subscriptions and when some particular event happens use the API key for the given scope to take an OpenChat action. This is all quite abstract so an example will help.
+Now the purpose of this bot is to periodically check the subscribed channels and post new content, so on some sort of schedule the bot will wake up and _autonomously_ go through its subscriptions, determine the context, check the installation records for the required permissions, check for new Youtube content and if required (and permitted) post that new content to the required context using the OpenChat client provided by the SDK.
 
-Imagine a reminder bot which can send reminders to you directly or within a group/channel. A group owner say, could install this bot, generate an API key for the group, and be prompted to sync the API key to the bot. Having done so, they could then issue `/remind` commands to set various reminders for the chat. Say,
+The bot should also listen out for uninstall events via the `/notify` endpoint so that it can tidy up its subscription state if a bot is uninstalled.
 
-```
-/remind "Daily meeting starts now" "at 9am every weekday"
-/remind "Project demo starting" "at 4pm tomorrow"
-```
-
-The bot will hold a record of these reminders and send the given messages at the given times to the given chats. In fact there is an [example bot](https://github.com/open-chat-labs/open-chat-bots/tree/main/rs/canister/examples/reminder) provided wuth exactly this behaviour. It also allows the reminders in a chat to be listed and deleted.
-
-```
-User          OC Frontend           OC Backend          Bot Server
- |-- sync api key ---->|                    |                  |
- |                     |-- request auth --> |                  |
- |                     |<-- auth token ---- |                  |
- |                     |--------------- send auth -----------> |
- |                     |<------------- bot response ---------- |
- |                     |                    |                  |
- .                     .                    .                  .
- .                     .                    .                  .
- .                     .                    .                  .
- |                     |                    |<---- action -----|
- |                     |                    |---- response --->|
- |                     |                    |                  |
-```
+Both the [reminder bot](./rs/canister/examples/reminder) and the [ping bot](./ts/examples/other) follow this basic pattern and demonstrate how the relevant SDKs can help you to implement this.
 
 ## Available actions
 
@@ -155,6 +128,7 @@ In time we will add support for the following additional message types:
 - Update details
 - Invite members
 - Remove members
+- React to message
 - Delete messages
 - Pin messages
 

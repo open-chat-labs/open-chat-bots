@@ -3,12 +3,11 @@
 This library provides the necessary functionality to process commands sent from the OpenChat front
 end to an off-chain bot written in javascript or typescript.
 
-This includes the parsing of the authorising json web token (jwt) which will be sent with each
+This includes the parsing of the authorising json web token (jwt) which will be sent with each command
 request and managing the interactions between the bot and the OpenChat back end.
 
-For a sample implementation of a simple typescript bot see the ./example directory in this
-repository. This demonstrates a simple bot which provides search access to the Spotify api and
-sends messages to the OpenChat backend with the results.
+For a few sample implementations of simple typescript bots see the ./examples directory in this
+repository. These bots demonstrate various techniques and capabilities of the bot framework.
 
 ## Installation
 
@@ -22,11 +21,11 @@ npm i @open-ic/openchat-botclient-ts
 
 The library exports a `BotClientFactory` constructor which is designed to be created when your bot starts up. This will be given a number of pieces of environment specific configuration which are necessary to construct a valid client to talk to the OpenChat backend.
 
-This client factory exposes two methods `createClientFromJwt` and `createClientFromApiKey` depending on whether you are responding to a command or using an API key.
+This client factory exposes two methods `createClientFromCommandJwt` and `createClientInAutonomouseContext` depending on whether you are responding to a command or operating autonomously.
 
-One ideomatic pattern to work with is to use express middleware to create the right kind of client and attach it to the request object so that it is available to downstream route handlers.
+One ideomatic pattern to work with is to use express middleware to create the right kind of bot client and attach it to the request object so that it is available to downstream route handlers.
 
-For an example of this you can refer to [the middleware](./packages/example/src/middleware/botclient.ts) used in the sample implementation.
+For an example of this you can refer to [the middleware](./examples/other/src/middleware/botclient.ts) used in the sample implementations.
 
 ```typescript
 const factory = new BotClientFactory({
@@ -63,7 +62,7 @@ Note that it is _very important_ that you do not leak the contents of that key. 
 
 This private key will be passed into the BotClient and used (internally) to create an Identity (from which we can obtain a principal).
 
-You will need to know the principal represented by the pem file you generated in order to register your bot. To find out what this principal will be you can use [this script](./packages/library/scripts/report_principal.js) as follows:
+You will need to know the principal represented by the pem file you generated in order to register your bot. To find out what this principal will be you can use [this script](./library/scripts/report_principal.js) as follows:
 
 ```
 node ./scripts/report_principal.js <path-to-pem-file>
@@ -77,15 +76,17 @@ To authorise the execution of bot commands a user requests an authorisation toke
 
 ### EncodedJwt
 
-In addition when creating an instance of _command_ client via `BotClientFactory.createClientFromJwt` you will also need to provide the encoded JWT auth token that you will find in the body of the request made to the bot's `execute_command` endpoint. This is a plain text value and just needs to be passed into the BotClientFactory function as is. The BotClientFactory will then use the OpenChat public key to decode and verify this token and, if valid, it will expose the relevant values that it contains for use throughout the lifespan of your bot request.
+In addition when creating an instance of _command_ client via `BotClientFactory.createClientFromCommandJwt` you will also need to provide the encoded JWT auth token that you will find in the body of the request made to the bot's `execute_command` endpoint. This is a plain text value and just needs to be passed into the BotClientFactory function as is. The BotClientFactory will then use the OpenChat public key to decode and verify this token and, if valid, it will expose the relevant values that it contains for use throughout the lifespan of your bot request.
 
-### API Key
+### Autonomous usage
 
-In the case where we are using `BotClientFactory.createClientFromApiKey` you will need to pass in an API key instead. This API key will be provide in an `x-api-key` HTTP header.
+In the case where we are using `BotClientFactory.createClientInAutonomouseContext` you will need to pass in the scope that you wish to operate in, the api gateway url and optionally the autonomous permissions that have been granted in that scope. Where does this information come from? Generally speaking this information would come from an event received from the OpenChat backend. Your bot can subscribe to events that occur inside OpenChat. These events can relate to chats or communities or can be lifecycle events relating to the bot itself e.g. an event informing us that the bot has been installed into a particular location.
+
+We express our interest in events using the default*subscriptions section of the bot definition. We \_receive* events by implementing a `/notify` endpoint on our bot where events can be sent. For an example implementation of the the `/notify` endpoint see [the OpenAI example](./examples/openai/src/app.ts).
 
 ## Command Usage
 
-The easiest way to grasp the usage of the OpenChat BotClient is to look at one of the sample command handlers in the example bot implementation, for example [the album command](./packages/example/src/handlers/album.ts), which is commented for clarity.
+The easiest way to grasp the usage of the OpenChat BotClient is to look at one of the sample command handlers in the example bot implementations, for example [the album command](./example/spotify/src/handlers/album.ts), which is commented for clarity.
 
 This command is designed to capture a search term from the user, search Spotify for that album and send the result as a text message to the OpenChat backend. Let's review the steps it is taking:
 
@@ -110,9 +111,9 @@ if (album === undefined) {
 
 Note that arguments are typed and named, so we ask specifically for a string argument with the name "album" in this case. Note that we must check that this argument actually exists after asking for it (this might be easily overlooked particularly if you are using javascript).
 
-If we find that the argument does not exist then we cannot proceed and must return a 400 http response. We can also use the `argumentsInvalid` helper function exported by the library to structure this 400 response correctly.
+If we find that the argument does not exist then we cannot proceed and must return a 400 http response. We can also use the `argumentsInvalid` helper function exported by the library to structure this 400 response correctly. Alternatively we could make use of _ephemeral_ messages. An ephemeral message is a message that is _only_ shown to the initiator of the command. It should not be sent to the OC backend at all. It is appropriate for giving information that only the initiator would be interested in e.g. usage instructions.
 
-Note that the _same_ client library is used regardless of whether you are responding to a command or using an API key. Keep in mind that the there will be no command if you have not initialised the library within a command context (with a jwt).
+Note that the _same_ client library is used regardless of whether you are responding to a command or operating autonomously. Keep in mind that the there will be no command if you have not initialised the library within a command context (with a jwt).
 
 #### Send a placeholder response
 
@@ -163,10 +164,6 @@ Note that in this case we are creating and sending the message all in one method
 Note that each time we call `sendTextMessage` within the lifecycle of a single command execution we will be creating or updating the _same message_ within OpenChat.
 
 Note also that it is always possible for the calls to the OpenChat back end to return error responses or to throw errors so you will need appropriate error handling. The typescript types will help you track the possible ways that a call to the OpenChat backend can fail.
-
-## API key Usage
-
-For an example usage of the API key method, take a look at the [executeAction](./packages/example/src/handlers/executeAction.ts) file. It is quite similar to the command case except there is no command for us to inspect in this case. Of course the third party system with which we are integrating may have sent data to us along with the request in any format it likes. In the case of our example we are simply relaying whatever is in the request body on as an OpenChat text message.
 
 ## BotClient interface
 

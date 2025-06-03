@@ -4,7 +4,7 @@ When you create an OpenChat bot, whether it is hosted in an IC canister or as an
 
 The bot definition _must_ be returned when a GET request is made to the path "/bot_definition" of your bot's endpoint.
 
-The response that your bot makes to this GET request _must_ conform to the JSON schema defined [here](./bot_schema.json).
+The response that your bot makes to this GET request _must_ conform to the bot definition schema. The easiest way to conform to this schema is to inspect the types for your target language. For typescript this is the `BotDefinition` type exported from the "@open-ic/openchat-botclient-ts" package. The rust definition can be found [here](../rs/sdk/src/api/definition.rs).
 
 When you register a bot using the `/register_bot` command, OpenChat will query the bot endpoint for the definition and ensure that it is valid. You will also be able to browse through the definition in the OpenChat UI at that point to double check that everything looks correct.
 
