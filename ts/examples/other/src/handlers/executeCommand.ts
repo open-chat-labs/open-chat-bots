@@ -9,7 +9,6 @@
 import { commandNotFound } from "@open-ic/openchat-botclient-ts";
 import { Request, Response } from "express";
 import { WithBotClient } from "../types";
-import details from "./details";
 import events from "./events";
 import file from "./file";
 import image from "./image";
@@ -18,6 +17,7 @@ import numbers from "./numbers";
 import poll from "./poll";
 import sayHello from "./sayHello";
 import subscribe from "./subscribe";
+import summary from "./summary";
 import unsubscribe from "./unsubscribe";
 
 function hasBotClient(req: Request): req is WithBotClient {
@@ -34,8 +34,8 @@ export default function executeCommand(req: Request, res: Response) {
   switch (client.commandName) {
     case "say_hello":
       return sayHello(req, res);
-    case "chat_details":
-      return details(req, res);
+    case "chat_summary":
+      return summary(req, res);
     case "chat_events":
       return events(req, res);
     case "prompt":
