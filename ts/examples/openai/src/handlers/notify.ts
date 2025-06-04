@@ -1,8 +1,8 @@
 import {
   BotClient,
-  ChatActionScope,
+  BotEvent,
+  handleNotification,
   MessageEvent,
-  parseBotNotification,
   TextContent,
 } from "@open-ic/openchat-botclient-ts";
 import { Request, Response } from "express";
@@ -11,19 +11,12 @@ import moderate from "./moderate";
 import react from "./react";
 
 export async function notify(req: Request, res: Response) {
-  try {
-    const result = parseBotNotification(req.body);
-    if (result.kind === "bot_event_wrapper") {
-      if (
-        result.event.kind === "bot_chat_event" &&
-        result.event.eventType === "message"
-      ) {
-        const eventIndex = result.event.eventIndex;
-        const scope = new ChatActionScope(result.event.chatId);
-        const client = factory.createClientInAutonomouseContext(
-          scope,
-          result.apiGateway
-        );
+  handleNotification(
+    req.body,
+    factory,
+    async (client: BotClient, ev: BotEvent) => {
+      if (ev.kind === "bot_chat_event" && ev.eventType === "message") {
+        const eventIndex = ev.eventIndex;
         const resp = await client.chatEvents({
           kind: "chat_events_by_index",
           eventIndexes: [eventIndex],
@@ -39,11 +32,12 @@ export async function notify(req: Request, res: Response) {
           );
         }
       }
+      res.status(200).json({});
+    },
+    (err) => {
+      res.status(500).json({ error: err });
     }
-    res.status(200).json({});
-  } catch (err) {
-    res.status(500).json({ error: err });
-  }
+  );
 }
 
 async function handleTextMessage(

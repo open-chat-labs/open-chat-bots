@@ -6,6 +6,7 @@ export * from "./services/bot_gateway";
 export { BotDefinition } from "./typebox/typebox";
 export * from "./utils/badrequest";
 export { parseBotNotification } from "./utils/botEventParser";
+export { handleNotification } from "./utils/notification";
 
 //@ts-ignore
 BigInt.prototype.toJSON = function () {

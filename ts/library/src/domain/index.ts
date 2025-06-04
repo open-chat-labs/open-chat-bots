@@ -1,6 +1,7 @@
 export * from "./access";
 export * from "./action_context";
 export * from "./bot";
+export * from "./bot_events";
 export * from "./channel";
 export * from "./crypto";
 export * from "./data";
