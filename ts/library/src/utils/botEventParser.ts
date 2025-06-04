@@ -18,9 +18,15 @@ import type {
     BotLifecycleEvent,
     BotRegisteredEvent,
     BotUninstalledEvent,
+    ChatEventType,
+    CommunityEventType,
 } from "../domain/bot_events";
 import { principalBytesToString } from "../mapping";
-import { type BotPermissions } from "../typebox/typebox";
+import {
+    ChatEventType as ApiChatEventType,
+    CommunityEventType as ApiCommunityEventType,
+    type BotPermissions,
+} from "../typebox/typebox";
 import { toBigInt32 } from "./bigint";
 
 export function parseBotNotification(json: unknown): BotEventResult {
@@ -78,12 +84,24 @@ function parseBotChatEvent(obj: any): BotChatEvent {
 
     return {
         kind: "bot_chat_event",
-        eventType: "message",
+        eventType: parseChatEventType(obj.e),
         chatId: parseChatIdentifier(obj.c),
         thread: obj.t === undefined ? undefined : Number(obj.t),
         eventIndex: Number(obj.i),
         latestEventIndex: Number(obj.l),
     };
+}
+
+function pascalToSnake(str: string): string {
+    return str.replace(/([A-Z])/g, (_, p1, offset) => (offset > 0 ? "_" : "") + p1.toLowerCase());
+}
+
+function parseChatEventType(api: ApiChatEventType): ChatEventType {
+    return pascalToSnake(api) as ChatEventType;
+}
+
+function parseCommunityEventType(api: ApiCommunityEventType): CommunityEventType {
+    return pascalToSnake(api) as CommunityEventType;
 }
 
 function parseBotCommunityEvent(obj: any): BotCommunityEvent {
@@ -100,7 +118,7 @@ function parseBotCommunityEvent(obj: any): BotCommunityEvent {
 
     return {
         kind: "bot_community_event",
-        eventType: "message",
+        eventType: parseCommunityEventType(obj.e),
         communityId: parseCommunityIdentifier(obj.c),
         eventIndex: Number(obj.i),
         latestEventIndex: Number(obj.l),

@@ -7,7 +7,7 @@ import OpenAI from "openai";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
 // play with the mode to configure how the bot responds to dodgy messages
-const mode: "react" | "delete" = "delete";
+const mode: "react" | "delete" = "react";
 
 /**
  * This demonstrates reading the chat rules and providing them as context along with the message to OpenAI and getting
@@ -43,22 +43,26 @@ export default async function moderate(
     const answer = await askOpenAI(summary.rules.text, message.content.text);
     if (answer === "Yes") {
       switch (mode) {
-        case "react": {
-          const resp = await client
-            .addReaction(message.messageId, "💩")
-            .catch((err) => console.error("Error reacting to message", err));
-          if (resp?.kind !== "success") {
-            console.error("Error reacting to message: ", resp);
+        case "react":
+          {
+            const resp = await client
+              .addReaction(message.messageId, "💩")
+              .catch((err) => console.error("Error reacting to message", err));
+            if (resp?.kind !== "success") {
+              console.error("Error reacting to message: ", resp);
+            }
           }
-        }
-        case "delete": {
-          const resp = await client
-            .deleteMessages([message.messageId])
-            .catch((err) => console.error("Error deleting message", err));
-          if (resp?.kind !== "success") {
-            console.error("Error deleting message: ", resp);
+          break;
+        case "delete":
+          {
+            const resp = await client
+              .deleteMessages([message.messageId])
+              .catch((err) => console.error("Error deleting message", err));
+            if (resp?.kind !== "success") {
+              console.error("Error deleting message: ", resp);
+            }
           }
-        }
+          break;
       }
       return true;
     }
