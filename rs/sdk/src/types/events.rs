@@ -408,33 +408,26 @@ pub enum ChatEventType {
     MessageReaction,
     MessageTipped,
     MessageDeleted,
+    MessageUndeleted,
     MessagePollVote,
     MessagePollEnded,
     MessagePrizeClaim,
-    MessagePrizePayment,
-    MessageProposalVote,
-    MessageProposalUpdated,
-    MessageP2pSwap,
-    MessageReported,
-    MessageThreadSummary,
-    MessageReminder,
+    MessageP2pSwapCompleted,
+    MessageP2pSwapCancelled,
     MessageVideoCall,
-    MessageOther,
 
     // Details category
-    Created,
     NameChanged,
     DescriptionChanged,
     RulesChanged,
     AvatarChanged,
     ExternalUrlUpdated,
     PermissionsChanged,
-    VisibilityChanged,
-    InviteCodeChanged,
-    Frozen,
-    Unfrozen,
-    EventsTTLUpdated,
     GateUpdated,
+    VisibilityChanged,
+    Frozen,   // Applies to group chats only
+    Unfrozen, // Applies to group chats only
+    DisappearingMessagesUpdated,
     MessagePinned,
     MessageUnpinned,
 
@@ -443,9 +436,6 @@ pub enum ChatEventType {
     MembersLeft,
     RoleChanged,
     UsersInvited,
-    BotAdded,
-    BotRemoved,
-    BotUpdated,
     UsersBlocked,
     UsersUnblocked,
 }
@@ -458,30 +448,23 @@ impl From<ChatEventType> for ChatEventCategory {
             | ChatEventType::MessageReaction
             | ChatEventType::MessageTipped
             | ChatEventType::MessageDeleted
+            | ChatEventType::MessageUndeleted
             | ChatEventType::MessagePollVote
             | ChatEventType::MessagePollEnded
             | ChatEventType::MessagePrizeClaim
-            | ChatEventType::MessagePrizePayment
-            | ChatEventType::MessageProposalVote
-            | ChatEventType::MessageProposalUpdated
-            | ChatEventType::MessageP2pSwap
-            | ChatEventType::MessageReported
-            | ChatEventType::MessageThreadSummary
-            | ChatEventType::MessageReminder
-            | ChatEventType::MessageVideoCall
-            | ChatEventType::MessageOther => ChatEventCategory::Message,
-            ChatEventType::Created
-            | ChatEventType::NameChanged
+            | ChatEventType::MessageP2pSwapCompleted
+            | ChatEventType::MessageP2pSwapCancelled
+            | ChatEventType::MessageVideoCall => ChatEventCategory::Message,
+            ChatEventType::NameChanged
             | ChatEventType::DescriptionChanged
             | ChatEventType::RulesChanged
             | ChatEventType::AvatarChanged
             | ChatEventType::ExternalUrlUpdated
             | ChatEventType::PermissionsChanged
             | ChatEventType::VisibilityChanged
-            | ChatEventType::InviteCodeChanged
             | ChatEventType::Frozen
             | ChatEventType::Unfrozen
-            | ChatEventType::EventsTTLUpdated
+            | ChatEventType::DisappearingMessagesUpdated
             | ChatEventType::GateUpdated
             | ChatEventType::MessagePinned
             | ChatEventType::MessageUnpinned => ChatEventCategory::Details,
@@ -489,9 +472,6 @@ impl From<ChatEventType> for ChatEventCategory {
             | ChatEventType::MembersLeft
             | ChatEventType::RoleChanged
             | ChatEventType::UsersInvited
-            | ChatEventType::BotAdded
-            | ChatEventType::BotRemoved
-            | ChatEventType::BotUpdated
             | ChatEventType::UsersBlocked
             | ChatEventType::UsersUnblocked => ChatEventCategory::Membership,
         }
