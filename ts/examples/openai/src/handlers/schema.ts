@@ -10,7 +10,7 @@ const emptyPermissions = {
 function getBotDefinition(): BotDefinition {
   return {
     description:
-      "This bot demonstrates integration with OpenAI to create a chat bot\n\n## And it has a multiline description.\n\nWhich includes _markdown_.\n\nFound out how to use this bot [here](https://github.com/julianjelfs/youtube_lambda).",
+      "This bot demonstrates integration with OpenAI to create a chat bot",
     autonomous_config: {
       permissions: Permissions.encodePermissions({
         ...emptyPermissions,
