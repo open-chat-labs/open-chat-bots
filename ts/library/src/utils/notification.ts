@@ -9,12 +9,12 @@ import {
 import type { BotEvent, BotEventWrapper } from "../domain/bot_events";
 import { parseBotNotification } from "./botEventParser";
 
-export function handleNotification(
+export function handleNotification<T>(
     json: unknown,
     factory: BotClientFactory,
-    handler: (client: BotClient, ev: BotEvent) => Promise<void>,
+    handler: (client: BotClient, ev: BotEvent) => Promise<T>,
     error?: (err: unknown) => void,
-): Promise<void> {
+): Promise<T | undefined> {
     const result = parseBotNotification(json);
     if (result.kind === "bot_event_wrapper") {
         const scope = scopeFromBotEventWrapper(result);
@@ -25,7 +25,7 @@ export function handleNotification(
     } else {
         error?.(result);
     }
-    return Promise.resolve();
+    return Promise.resolve(undefined);
 }
 
 function scopeFromBotEventWrapper(botEvent: BotEventWrapper): ActionScope | undefined {
