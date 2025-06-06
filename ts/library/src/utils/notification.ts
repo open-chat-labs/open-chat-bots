@@ -6,26 +6,25 @@ import {
     type ActionScope,
     type InstallationLocation,
 } from "../domain";
-import type { BotEvent, BotEventWrapper } from "../domain/bot_events";
+import type { BotEvent, BotEventParseFailure, BotEventWrapper } from "../domain/bot_events";
 import { parseBotNotification } from "./botEventParser";
 
-export function handleNotification<T>(
+export async function handleNotification<T>(
     json: unknown,
     factory: BotClientFactory,
     handler: (client: BotClient, ev: BotEvent) => Promise<T>,
-    error?: (err: unknown) => void,
+    error?: (error: BotEventParseFailure) => T,
 ): Promise<T | undefined> {
-    const result = parseBotNotification(json);
-    if (result.kind === "bot_event_wrapper") {
-        const scope = scopeFromBotEventWrapper(result);
+    const parsed = parseBotNotification(json);
+    if (parsed.kind === "bot_event_wrapper") {
+        const scope = scopeFromBotEventWrapper(parsed);
         if (scope !== undefined) {
-            const client = factory.createClientInAutonomouseContext(scope, result.apiGateway);
-            return handler(client, result.event);
+            const client = factory.createClientInAutonomouseContext(scope, parsed.apiGateway);
+            return handler(client, parsed.event);
         }
     } else {
-        error?.(result);
+        return error?.(parsed);
     }
-    return Promise.resolve(undefined);
 }
 
 function scopeFromBotEventWrapper(botEvent: BotEventWrapper): ActionScope | undefined {
