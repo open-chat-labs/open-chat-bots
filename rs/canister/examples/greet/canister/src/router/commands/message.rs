@@ -4,7 +4,9 @@ use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::actions::chat_events::{self, EventsSelectionCriteria, EventsWindowArgs};
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
 use oc_bots_sdk::oc_api::client::Client;
-use oc_bots_sdk::types::{BotCommandContext, MessageContentInitial, OCErrorCode};
+use oc_bots_sdk::types::{
+    BotCommandContext, BotCommandScope, Chat, MessageContentInitial, OCErrorCode,
+};
 use oc_bots_sdk_canister::CanisterRuntime;
 use std::sync::LazyLock;
 
@@ -31,7 +33,6 @@ impl CommandHandler<CanisterRuntime> for Message {
             max_events: 1,
         });
 
-        let path = cxt.scope.path();
         let message_id = cxt.scope.message_id();
 
         let response = oc_client.chat_events(events).execute_async().await;
@@ -43,6 +44,22 @@ impl CommandHandler<CanisterRuntime> for Message {
                         if message.message_index != index {
                             None
                         } else {
+                            let path = match &cxt.scope {
+                                BotCommandScope::Community(details) => {
+                                    format!("/community/{}", details.community_id)
+                                }
+                                BotCommandScope::Chat(details) => match details.chat {
+                                    Chat::Channel(community_id, channel_id) => {
+                                        format!(
+                                            "/community/{}/channel/{}",
+                                            community_id, channel_id
+                                        )
+                                    }
+                                    Chat::Direct(_) => format!("/user/{}", cxt.bot_id),
+                                    Chat::Group(chat_id) => format!("/group/{}", chat_id),
+                                },
+                            };
+
                             let text = format!("{}\n\n", message.content.text().unwrap_or(""));
                             Some(format!("{text}[link](https://oc.app{}/{})", path, index))
                         }

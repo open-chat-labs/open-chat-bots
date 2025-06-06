@@ -1,5 +1,5 @@
 use oc_bots_sdk::oc_api::actions::{delete_channel, ActionArgsBuilder};
-use oc_bots_sdk::types::{AutonomousContext, ActionScope, ChannelId, InstallationLocation};
+use oc_bots_sdk::types::{ActionScope, AutonomousContext, ChannelId, InstallationLocation};
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
 
 use crate::state;

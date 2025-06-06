@@ -6,7 +6,7 @@ use english_to_cron::str_cron_syntax;
 use ic_cdk_timers::TimerId;
 use oc_bots_sdk::oc_api::actions::{send_message, ActionArgsBuilder};
 use oc_bots_sdk::types::{
-    AutonomousContext, ActionScope, BotPermissions, CanisterId, Chat, CommunityId,
+    ActionScope, AutonomousContext, BotPermissions, CanisterId, Chat, CommunityId,
     InstallationLocation, MessageContentInitial, TextContent, TimestampMillis, UserId,
 };
 use oc_bots_sdk_canister::{env, OPENCHAT_CLIENT_FACTORY};

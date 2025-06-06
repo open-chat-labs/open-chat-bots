@@ -18,9 +18,9 @@ impl ActionDef for ChatEventsAction {
         // replicated mode, so canisters must call `bot_chat_events_c2c` instead which is an update
         // call.
         if is_canister_runtime {
-            "bot_chat_events_c2c_v2"
+            "bot_chat_events_c2c"
         } else {
-            "bot_chat_events_v2"
+            "bot_chat_events"
         }
     }
 }
