@@ -1,9 +1,6 @@
-import {
-  BotClient,
-  MessageEvent,
-  TextContent,
-} from "@open-ic/openchat-botclient-ts";
+import { BotClient } from "@open-ic/openchat-botclient-ts";
 import OpenAI from "openai";
+import { ModeratableContent } from "../types";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
 /**
@@ -29,9 +26,14 @@ async function askOpenAI(question: string) {
 
 export default async function react(
   client: BotClient,
-  message: MessageEvent<TextContent>
+  message: ModeratableContent
 ) {
-  const answer = await askOpenAI(message.content.text);
+  const txt =
+    message.content.kind === "text_content"
+      ? message.content.text
+      : message.content.caption;
+  if (txt === undefined) return;
+  const answer = await askOpenAI(txt);
   if (answer) {
     client
       .addReaction(message.messageId, answer)

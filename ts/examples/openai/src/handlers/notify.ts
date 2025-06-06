@@ -2,12 +2,11 @@ import {
   BotClient,
   BotEvent,
   handleNotification,
-  MessageEvent,
-  TextContent,
 } from "@open-ic/openchat-botclient-ts";
 import { Request, Response } from "express";
 import { factory } from "../factory";
-import moderate from "./moderate";
+import { ModeratableContent } from "../types";
+import { chatModerate, platformModerate } from "./moderate";
 import react from "./react";
 
 export async function notify(req: Request, res: Response) {
@@ -24,12 +23,10 @@ export async function notify(req: Request, res: Response) {
         if (
           resp.kind === "success" &&
           resp.events[0].event.kind === "message" &&
-          resp.events[0].event.content.kind === "text_content"
+          (resp.events[0].event.content.kind === "text_content" ||
+            resp.events[0].event.content.kind === "image_content")
         ) {
-          handleTextMessage(
-            client,
-            resp.events[0].event as MessageEvent<TextContent>
-          );
+          handleTextMessage(client, resp.events[0].event as ModeratableContent);
         }
       }
       res.status(200).json({});
@@ -42,9 +39,13 @@ export async function notify(req: Request, res: Response) {
 
 async function handleTextMessage(
   client: BotClient,
-  message: MessageEvent<TextContent>
+  message: ModeratableContent
 ) {
-  if (!(await moderate(client, message))) {
-    react(client, message);
+  const breaksPlatformRules = await platformModerate(client, message);
+  if (!breaksPlatformRules) {
+    const breaksChatRules = await chatModerate(client, message);
+    if (!breaksChatRules) {
+      react(client, message);
+    }
   }
 }

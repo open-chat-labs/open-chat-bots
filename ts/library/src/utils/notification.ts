@@ -12,19 +12,20 @@ import { parseBotNotification } from "./botEventParser";
 export function handleNotification(
     json: unknown,
     factory: BotClientFactory,
-    handler: (client: BotClient, ev: BotEvent) => void,
+    handler: (client: BotClient, ev: BotEvent) => Promise<void>,
     error?: (err: unknown) => void,
-) {
+): Promise<void> {
     const result = parseBotNotification(json);
     if (result.kind === "bot_event_wrapper") {
         const scope = scopeFromBotEventWrapper(result);
         if (scope !== undefined) {
             const client = factory.createClientInAutonomouseContext(scope, result.apiGateway);
-            handler(client, result.event);
+            return handler(client, result.event);
         }
     } else {
         error?.(result);
     }
+    return Promise.resolve();
 }
 
 function scopeFromBotEventWrapper(botEvent: BotEventWrapper): ActionScope | undefined {
