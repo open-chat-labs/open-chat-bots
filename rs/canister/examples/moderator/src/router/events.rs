@@ -7,9 +7,7 @@ use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
 use oc_bots_sdk::types::{CanisterId, UnitResult};
 use oc_bots_sdk::{
     api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent},
-    types::{
-        AutonomousContext, ActionScope, BotPermissionsBuilder, ChatEventType, ChatPermission,
-    },
+    types::{ActionScope, AutonomousContext, BotPermissionsBuilder, ChatEventType, ChatPermission},
     InstallationRecord,
 };
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
