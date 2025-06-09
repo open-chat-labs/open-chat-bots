@@ -69,7 +69,6 @@ module {
     public type EventWrapper<T> = {
         index : EventIndex;
         timestamp : TimestampMillis;
-        correlation_id : Nat64;
         expires_at : ?TimestampMillis;
         event : T;
     };
