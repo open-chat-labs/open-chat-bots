@@ -28,6 +28,7 @@ impl ActionDef for ChatEventsAction {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Args {
     pub chat_context: BotChatContext,
+    pub thread: Option<MessageIndex>,
     pub events: EventsSelectionCriteria,
 }
 
