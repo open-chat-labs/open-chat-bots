@@ -1,12 +1,10 @@
-use candid::{CandidType, Deserialize};
-use serde::Serialize;
-
+use super::ActionDef;
 use crate::types::{
     AccessGateConfig, BotChatContext, ChatPermissions, EventIndex, FrozenGroupInfo, MessageIndex,
     Milliseconds, OCError, TimestampMillis, VersionedRules, VideoCall,
 };
-
-use super::ActionDef;
+use candid::{CandidType, Deserialize};
+use serde::Serialize;
 
 pub struct ChatSummaryAction;
 
