@@ -10,7 +10,7 @@ impl ActionDef for AddReactionAction {
     type Response = Response;
 
     fn method_name(_: bool) -> &'static str {
-        "bot_add_reaction_v2"
+        "bot_add_reaction"
     }
 }
 
