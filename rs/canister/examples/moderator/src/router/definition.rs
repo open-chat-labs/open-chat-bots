@@ -13,13 +13,14 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
             commands: vec![],
             autonomous_config: Some(AutonomousConfig {
                 permissions: BotPermissionsBuilder::new()
+                    .with_message(MessagePermission::Text)
                     .with_chat(ChatPermission::ReadMessages)
                     .with_chat(ChatPermission::DeleteMessages)
                     .build(),
             }),
             default_subscriptions: Some(BotSubscriptions {
                 community: HashSet::new(),
-                chat: HashSet::from_iter(vec![ChatEventType::Message]),
+                chat: HashSet::from_iter(vec![ChatEventType::Message, ChatEventType::MessageEdited]),
             }),
             data_encoding: None,
         },

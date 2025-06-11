@@ -2,6 +2,7 @@ use crate::api::command::Message;
 use crate::oc_api::actions::send_message::*;
 use crate::oc_api::actions::ActionArgsBuilder;
 use crate::oc_api::Runtime;
+use crate::types::EventIndex;
 use crate::types::MessageIndex;
 use crate::types::{ActionContext, CallResult};
 use crate::types::{CanisterId, ChannelId, MessageContentInitial, MessageId};
@@ -15,6 +16,7 @@ pub struct SendMessageBuilder<'c, R, C> {
     channel_id: Option<ChannelId>,
     thread: Option<MessageIndex>,
     message_id: Option<MessageId>,
+    replies_to: Option<EventIndex>,
     block_level_markdown: bool,
     finalised: bool,
 }
@@ -29,6 +31,7 @@ impl<'c, R: Runtime, C: ActionContext> SendMessageBuilder<'c, R, C> {
             channel_id: None,
             thread: None,
             message_id,
+            replies_to: None,
             block_level_markdown: false,
             finalised: true,
         }
@@ -42,6 +45,11 @@ impl<'c, R: Runtime, C: ActionContext> SendMessageBuilder<'c, R, C> {
 
     pub fn with_thread(mut self, thread: Option<MessageIndex>) -> Self {
         self.thread = thread;
+        self
+    }
+
+    pub fn replies_to(mut self, replies_to: Option<EventIndex>) -> Self {
+        self.replies_to = replies_to;
         self
     }
 
@@ -99,6 +107,7 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for SendMessageBuilder<'
             chat_context: self.client.context.chat_context(self.channel_id).unwrap(),
             thread: self.thread,
             message_id: self.message_id,
+            replies_to: self.replies_to,
             content: self.content,
             block_level_markdown: self.block_level_markdown,
             finalised: self.finalised,
