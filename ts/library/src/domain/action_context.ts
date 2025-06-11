@@ -24,7 +24,7 @@ export class ActionContext {
     constructor(
         public apiGateway: string,
         public scope: ActionScope,
-        public permissions: Permissions,
+        public permissions?: Permissions,
         public command?: BotCommand,
         public messageId?: bigint,
         public thread?: number,
@@ -34,7 +34,7 @@ export class ActionContext {
     static inAutonomousContext(
         scope: ActionScope,
         apiGateway: string,
-        autonomousPermissions: Permissions,
+        autonomousPermissions?: Permissions,
     ): ActionContext {
         return new ActionContext(apiGateway, scope, autonomousPermissions);
     }
@@ -51,16 +51,16 @@ export class ActionContext {
         );
     }
 
-    hasMessagePermission(perm: MessagePermission) {
-        return this.permissions.hasMessagePermission(perm);
+    hasMessagePermission(perm: MessagePermission): boolean {
+        return this.permissions?.hasMessagePermission(perm) ?? true;
     }
 
-    hasChatPermission(perm: ChatPermission) {
-        return this.permissions.hasChatPermission(perm);
+    hasChatPermission(perm: ChatPermission): boolean {
+        return this.permissions?.hasChatPermission(perm) ?? true;
     }
 
-    hasCommunityPermission(perm: CommunityPermission) {
-        return this.permissions.hasCommunityPermission(perm);
+    hasCommunityPermission(perm: CommunityPermission): boolean {
+        return this.permissions?.hasCommunityPermission(perm) ?? true;
     }
 
     chatContext(channelId?: bigint): BotChatContext {

@@ -22,6 +22,7 @@ import {
     type CommandArg,
     CommunityActionScope,
     CommunityIdentifier,
+    type CommunityPermissions,
     type CompletedCryptocurrencyTransfer,
     type CreateChannelResponse,
     type CryptocurrencyContent,
@@ -80,7 +81,14 @@ import {
     type VideoCallType,
     type VideoContent,
 } from "../domain";
-import type { DirectChatSummary, GroupChatSummary, OCError } from "../domain/response";
+import type {
+    ChannelSummary,
+    CommunitySummary,
+    CommunitySummaryResponse,
+    DirectChatSummary,
+    GroupChatSummary,
+    OCError,
+} from "../domain/response";
 import {
     type AccessGate as ApiAccessGate,
     type AccessGateConfig as ApiAccessGateConfig,
@@ -90,9 +98,13 @@ import {
     type BotChatContext as ApiBotChatContext,
     type BotMessageContext as ApiBotMessageContext,
     type CallParticipant as ApiCallParticipant,
+    type CommunityChannelSummary as ApiChannelSummary,
     Chat as ApiChat,
     type ChatEvent as ApiChatEvent,
     type LocalUserIndexChatEventsEventsSelectionCriteria as ApiChatEventsCriteria,
+    type CommunityPermissionRole as ApiCommunityPermissionRole,
+    type CommunityPermissions as ApiCommunityPermissions,
+    CommunityCommunitySummary as ApiCommunitySummary,
     type CompletedCryptoTransaction as ApiCompletedCryptoTransaction,
     type CryptoContent as ApiCryptoContent,
     type Cryptocurrency as ApiCryptocurrency,
@@ -142,6 +154,7 @@ import {
     type LocalUserIndexBotChatEventsResponse as BotChatEventsResponse,
     type LocalUserIndexBotChatSummaryResponse as BotChatSummaryResponse,
     BotCommandArg,
+    type LocalUserIndexBotCommunitySummaryResponse as BotCommunitySummaryResponse,
     type LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
     type UnitResult as BotDeleteChannelResponse,
     type LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
@@ -258,6 +271,12 @@ export function deleteChannelResponse(api: BotDeleteChannelResponse): DeleteChan
     return unitResult(api);
 }
 
+export function communitySummaryResponse(
+    api: BotCommunitySummaryResponse,
+): CommunitySummaryResponse {
+    return mapResult(api, communitySummary);
+}
+
 export function chatSummaryResponse(api: BotChatSummaryResponse): ChatSummaryResponse {
     return mapResult(api, chatSummary);
 }
@@ -275,6 +294,36 @@ function chatEventsSuccessResponse(api: ApiEventsResponse): ChatEventsSuccess {
         expiredMessageRanges: api.expired_message_ranges,
         latestEventIndex: api.latest_event_index,
         chatLastUpdated: api.chat_last_updated,
+    };
+}
+
+function communitySummary(api: ApiCommunitySummary): CommunitySummary {
+    return {
+        kind: "community_summary",
+        id: new CommunityIdentifier(principalBytesToString(api.community_id)),
+        lastUpdated: api.last_updated,
+        name: api.name,
+        description: api.description,
+        avatarId: optional(api.avatar_id, identity),
+        bannerId: optional(api.banner_id, identity),
+        isPublic: api.is_public,
+        verified: api.verified,
+        memberCount: api.member_count,
+        permissions: communityPermissions(api.permissions),
+        publicChannels: api.public_channels.map(channelSummary),
+        rules: api.rules,
+        frozen: optional(api.frozen, frozenGroupInfo),
+        gateConfig: optional(api.gate_config, accessGateConfig),
+        primaryLanguage: api.primary_language,
+        latestEventIndex: api.latest_event_index,
+    };
+}
+
+function channelSummary(api: ApiChannelSummary): ChannelSummary {
+    return {
+        channelId: toBigInt32(api.channel_id),
+        lastUpdated: api.last_updated,
+        name: api.name,
     };
 }
 
@@ -320,6 +369,18 @@ function chatSummary(api: ChatSummary): GroupChatSummary | DirectChatSummary {
     }
 
     throw new Error(`Unexpected ChatSummary type received: ${api}`);
+}
+
+function communityPermissions(api: ApiCommunityPermissions): CommunityPermissions {
+    return {
+        changeRoles: permissionRole(api.change_roles),
+        updateDetails: permissionRole(api.update_details),
+        inviteUsers: permissionRole(api.invite_users),
+        removeMembers: permissionRole(api.remove_members),
+        createPublicChannel: permissionRole(api.create_public_channel),
+        createPrivateChannel: permissionRole(api.create_private_channel),
+        manageUserGroups: permissionRole(api.manage_user_groups),
+    };
 }
 
 function groupPermissions(api: ApiGroupPermissions): GroupPermissions {
@@ -550,8 +611,12 @@ function apiCredentialArguments(domain?: Record<string, string | number>): ApiCr
     }, {} as ApiCredentialArguments);
 }
 
-export function permissionRole(api: ApiPermissionRole | ApiGroupRole): PermissionRole {
+export function permissionRole(
+    api: ApiPermissionRole | ApiGroupRole | ApiCommunityPermissionRole,
+): PermissionRole {
     switch (api) {
+        case "Owners":
+            return "owner";
         case "Admin":
             return "admin";
         case "Admins":

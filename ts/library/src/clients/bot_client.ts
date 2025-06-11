@@ -4,6 +4,7 @@ import {
     ChannelIdentifier,
     ChatActionScope,
     CommunityActionScope,
+    CommunityIdentifier,
     FileMessage,
     ImageMessage,
     OCErrorCode,
@@ -14,6 +15,7 @@ import {
     type ChatEventsResponse,
     type ChatIdentifier,
     type ChatSummaryResponse,
+    type CommunitySummaryResponse,
     type CreateChannelResponse,
     type DeleteChannelResponse,
     type Message,
@@ -287,15 +289,28 @@ export class BotClient {
             .chatSummary(this.#actionContext.chatContext(channelId))
             .then((resp) => {
                 if (resp.kind === "error") {
-                    console.error("OpenChat botClient.chatDetails failed with: ", resp);
+                    console.error("OpenChat botClient.chatSummary failed with: ", resp);
                 }
                 return resp;
             });
     }
 
-    chatEvents(criteria: ChatEventsCriteria, channelId?: bigint): Promise<ChatEventsResponse> {
+    communitySummary(communityId: CommunityIdentifier): Promise<CommunitySummaryResponse> {
+        return this.#botService.communitySummary(communityId).then((resp) => {
+            if (resp.kind === "error") {
+                console.error("OpenChat botClient.communitySummary failed with: ", resp);
+            }
+            return resp;
+        });
+    }
+
+    chatEvents(
+        criteria: ChatEventsCriteria,
+        thread?: number,
+        channelId?: bigint,
+    ): Promise<ChatEventsResponse> {
         return this.#botService
-            .chatEvents(this.#actionContext.chatContext(channelId), criteria)
+            .chatEvents(this.#actionContext.chatContext(channelId), criteria, thread)
             .then((resp) => {
                 if (resp.kind !== "success") {
                     console.error("OpenChat botClient.chatEvents failed with: ", resp);
