@@ -5,7 +5,7 @@ import {
     identity,
     principalStringToBytes,
 } from "../mapping";
-import type { LocalUserIndexBotCreateChannelV2Args } from "../typebox/typebox";
+import type { LocalUserIndexBotCreateChannelArgs } from "../typebox/typebox";
 import { random128 } from "../utils/rng";
 import type { AccessGateConfig } from "./access";
 import type { CommunityIdentifier } from "./identifiers";
@@ -111,7 +111,7 @@ export class Channel {
         public description: string,
     ) {}
 
-    public toInputArgs(communityId: CommunityIdentifier): LocalUserIndexBotCreateChannelV2Args {
+    public toInputArgs(communityId: CommunityIdentifier): LocalUserIndexBotCreateChannelArgs {
         return {
             community_id: principalStringToBytes(communityId.communityId),
             is_public: this.#isPublic,

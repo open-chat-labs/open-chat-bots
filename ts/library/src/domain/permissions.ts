@@ -13,7 +13,7 @@ export const chatPermissionList = [
     "StartVideoCall",
     "ReadMessages",
     "ReadMembership",
-    "ReadChatDetails",
+    "ReadChatSummary",
 ] as const;
 type ChatPermissionType = typeof chatPermissionList;
 export type ChatPermission = ChatPermissionType[number];
@@ -26,6 +26,8 @@ export const communityPermissionList = [
     "CreatePublicChannel",
     "CreatePrivateChannel",
     "ManageUserGroups",
+    "ReadMembership",
+    "ReadCommunitySummary",
 ] as const;
 
 type CommunityPermissionType = typeof communityPermissionList;
@@ -55,15 +57,19 @@ type LowercaseFirstLetter<T extends string> = T extends `${infer First}${infer R
     : T;
 
 export type LowercaseChatPermission = LowercaseFirstLetter<
-    Exclude<ChatPermission, "ReadMessages" | "ReadMembership" | "ReadChatDetails">
+    Exclude<ChatPermission, "ReadMessages" | "ReadMembership" | "ReadChatSummary">
 >;
 export type LowercaseMessagePermission = LowercaseFirstLetter<MessagePermission>;
-export type LowercaseCommunityPermission = LowercaseFirstLetter<CommunityPermission>;
+export type LowercaseCommunityPermission = LowercaseFirstLetter<
+    Exclude<CommunityPermission, "ReadMembership" | "ReadCommunitySummary">
+>;
 
 export type GroupPermissions = Record<LowercaseChatPermission, PermissionRole> & {
     messagePermissions: MessagePermissions;
     threadPermissions?: MessagePermissions;
 };
+
+export type CommunityPermissions = Record<LowercaseCommunityPermission, PermissionRole>;
 
 export type CustomPermission = { subtype: string; role: PermissionRole };
 
@@ -80,6 +86,8 @@ const communityPermissionMap = {
     CreatePublicChannel: 4,
     CreatePrivateChannel: 5,
     ManageUserGroups: 6,
+    ReadMembership: 11,
+    ReadCommunitySummary: 12,
 };
 const chatPermissionsMap = {
     ChangeRoles: 0,
@@ -94,7 +102,7 @@ const chatPermissionsMap = {
     StartVideoCall: 9,
     ReadMessages: 10,
     ReadMembership: 11,
-    ReadChatDetails: 12,
+    ReadChatSummary: 12,
 };
 const messagePermissionMap = {
     Text: 0,

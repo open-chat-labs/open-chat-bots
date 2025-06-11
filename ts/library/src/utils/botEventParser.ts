@@ -74,10 +74,10 @@ function parseBotChatEvent(obj: any): BotChatEvent {
     if (
         obj == null ||
         typeof obj !== "object" ||
-        obj.e === undefined ||
-        obj.c === undefined ||
-        obj.i === undefined ||
-        obj.l === undefined
+        obj.e == null ||
+        obj.c == null ||
+        obj.i == null ||
+        obj.l == null
     ) {
         throw new Error("Invalid BotChatEvent");
     }
@@ -86,7 +86,7 @@ function parseBotChatEvent(obj: any): BotChatEvent {
         kind: "bot_chat_event",
         eventType: parseChatEventType(obj.e),
         chatId: parseChatIdentifier(obj.c),
-        thread: obj.t === undefined ? undefined : Number(obj.t),
+        thread: obj.t == null ? undefined : Number(obj.t),
         eventIndex: Number(obj.i),
         latestEventIndex: Number(obj.l),
     };
@@ -108,10 +108,10 @@ function parseBotCommunityEvent(obj: any): BotCommunityEvent {
     if (
         obj == null ||
         typeof obj !== "object" ||
-        obj.e === undefined ||
-        obj.c === undefined ||
-        obj.i === undefined ||
-        obj.l === undefined
+        obj.e == null ||
+        obj.c == null ||
+        obj.i == null ||
+        obj.l == null
     ) {
         throw new Error("Invalid BotChatEvent");
     }
@@ -146,7 +146,7 @@ function parseBotLifecycleEvent(obj: any): BotLifecycleEvent {
 }
 
 function parseBotRegisteredEvent(obj: any): BotRegisteredEvent {
-    if (obj == null || typeof obj !== "object" || obj.i === undefined || obj.n === undefined) {
+    if (obj == null || typeof obj !== "object" || obj.i == null || obj.n == null) {
         throw new Error("Invalid BotRegisteredEvent");
     }
 
@@ -158,7 +158,7 @@ function parseBotRegisteredEvent(obj: any): BotRegisteredEvent {
 }
 
 function parseBotUninstalledEvent(obj: any): BotUninstalledEvent {
-    if (obj == null || typeof obj !== "object" || obj.u === undefined || obj.l === undefined) {
+    if (obj == null || typeof obj !== "object" || obj.u == null || obj.l == null) {
         throw new Error("Invalid BotUninistalledEvent");
     }
 
@@ -173,10 +173,10 @@ function parseBotInstalledEvent(obj: any): BotInstalledEvent {
     if (
         obj == null ||
         typeof obj !== "object" ||
-        obj.u === undefined ||
-        obj.l === undefined ||
-        obj.p === undefined ||
-        obj.a === undefined
+        obj.u == null ||
+        obj.l == null ||
+        obj.p == null ||
+        obj.a == null
     ) {
         throw new Error("Invalid BotInstalledEvent");
     }

@@ -7,6 +7,7 @@ import type {
     ChatEventsResponse,
     ChatSummaryResponse,
     CommunityIdentifier,
+    CommunitySummaryResponse,
     CreateChannelResponse,
     DeleteChannelResponse,
     Message,
@@ -19,24 +20,28 @@ import {
     apiChatEventsCriteria,
     chatEventsResponse,
     chatSummaryResponse,
+    communitySummaryResponse,
     createChannelResponse,
     deleteChannelResponse,
+    principalStringToBytes,
     sendMessageResponse,
     unitResult,
 } from "../../mapping";
 import {
     UnitResult as ApiUnitResult,
-    LocalUserIndexBotAddReactionV2Args as BotAddReactionArgs,
+    LocalUserIndexBotAddReactionArgs as BotAddReactionArgs,
     LocalUserIndexBotChatEventsArgs as BotChatEventsArgs,
     LocalUserIndexBotChatEventsResponse as BotChatEventsResponse,
     LocalUserIndexBotChatSummaryArgs as BotChatSummaryArgs,
     LocalUserIndexBotChatSummaryResponse as BotChatSummaryResponse,
-    LocalUserIndexBotCreateChannelV2Args as BotCreateChannelArgs,
+    LocalUserIndexBotCommunitySummaryArgs as BotCommunitySummaryArgs,
+    LocalUserIndexBotCommunitySummaryResponse as BotCommunitySummaryResponse,
+    LocalUserIndexBotCreateChannelArgs as BotCreateChannelArgs,
     LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
-    LocalUserIndexBotDeleteChannelV2Args as BotDeleteChannelArgs,
+    LocalUserIndexBotDeleteChannelArgs as BotDeleteChannelArgs,
     UnitResult as BotDeleteChannelResponse,
-    LocalUserIndexBotDeleteMessagesV2Args as BotDeleteMessagesArgs,
-    LocalUserIndexBotSendMessageV2Args as BotSendMessageArgs,
+    LocalUserIndexBotDeleteMessagesArgs as BotDeleteMessagesArgs,
+    LocalUserIndexBotSendMessageArgs as BotSendMessageArgs,
     LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
 } from "../../typebox/typebox";
 import { MsgpackCanisterAgent } from "../canisterAgent/msgpack";
@@ -52,7 +57,7 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
 
     sendMessage(ctx: BotChatContext, message: Message): Promise<SendMessageResponse> {
         return this.executeMsgpackUpdate(
-            "bot_send_message_v2",
+            "bot_send_message",
             message.toInputArgs(ctx),
             sendMessageResponse,
             BotSendMessageArgs,
@@ -69,7 +74,7 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
         threadRootMessageIndex?: number,
     ): Promise<UnitResult> {
         return this.executeMsgpackUpdate(
-            "bot_delete_messages_v2",
+            "bot_delete_messages",
             {
                 chat_context: apiBotChatContext(ctx),
                 message_ids: messageIds,
@@ -91,7 +96,7 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
         threadRootMessageIndex?: number,
     ): Promise<UnitResult> {
         return this.executeMsgpackUpdate(
-            "bot_add_reaction_v2",
+            "bot_add_reaction",
             {
                 chat_context: apiBotChatContext(ctx),
                 message_id: messageId,
@@ -112,7 +117,7 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
         channel: Channel,
     ): Promise<CreateChannelResponse> {
         return this.executeMsgpackUpdate(
-            "bot_create_channel_v2",
+            "bot_create_channel",
             channel.toInputArgs(communityId),
             createChannelResponse,
             BotCreateChannelArgs,
@@ -125,13 +130,26 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
 
     deleteChannel(id: ChannelIdentifier): Promise<DeleteChannelResponse> {
         return this.executeMsgpackUpdate(
-            "bot_delete_channel_v2",
+            "bot_delete_channel",
             { channel_id: BigInt(id.channelId), community_id: id.communityId },
             deleteChannelResponse,
             BotDeleteChannelArgs,
             BotDeleteChannelResponse,
         ).catch((err) => {
             console.error("Call to bot_delete_channel failed with: ", JSON.stringify(err));
+            throw err;
+        });
+    }
+
+    communitySummary(communityId: CommunityIdentifier): Promise<CommunitySummaryResponse> {
+        return this.executeMsgpackQuery(
+            "bot_community_summary",
+            { community_id: principalStringToBytes(communityId.communityId) },
+            communitySummaryResponse,
+            BotCommunitySummaryArgs,
+            BotCommunitySummaryResponse,
+        ).catch((err) => {
+            console.error("Call to bot_chat_summary failed with: ", JSON.stringify(err));
             throw err;
         });
     }
@@ -149,12 +167,17 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
         });
     }
 
-    chatEvents(ctx: BotChatContext, criteria: ChatEventsCriteria): Promise<ChatEventsResponse> {
+    chatEvents(
+        ctx: BotChatContext,
+        criteria: ChatEventsCriteria,
+        thread?: number,
+    ): Promise<ChatEventsResponse> {
         return this.executeMsgpackQuery(
             "bot_chat_events",
             {
                 chat_context: apiBotChatContext(ctx),
                 events: apiChatEventsCriteria(criteria),
+                thread,
             },
             chatEventsResponse,
             BotChatEventsArgs,

@@ -1,6 +1,6 @@
 import { apiBlobReference, apiBotChatContext, apiOptional, identity } from "../mapping";
 import type {
-    LocalUserIndexBotSendMessageV2Args as BotSendMessageArgs,
+    LocalUserIndexBotSendMessageArgs as BotSendMessageArgs,
     FileContent,
     ImageContent,
     BotMessageContent as MessageContent,
@@ -26,6 +26,8 @@ export type MessageResponse = {
 export abstract class Message {
     #channelId?: bigint;
     #messageId?: bigint;
+    #repliesTo?: number;
+    #thread?: number;
     #contextMessageId?: bigint;
     #finalised: boolean = true;
     #blockLevelMarkdown: boolean = false;
@@ -72,6 +74,16 @@ export abstract class Message {
         return this as unknown as T;
     }
 
+    setThread<T extends Message>(thread?: number): T {
+        this.#thread = thread;
+        return this as unknown as T;
+    }
+
+    setRepliesTo<T extends Message>(repliesTo?: number): T {
+        this.#repliesTo = repliesTo;
+        return this as unknown as T;
+    }
+
     setContextMessageId<T extends Message>(messageId?: bigint): T {
         this.#contextMessageId = messageId;
         return this as unknown as T;
@@ -91,6 +103,8 @@ export abstract class Message {
         return {
             chat_context: apiBotChatContext(ctx),
             message_id: apiOptional(this.#messageId, identity),
+            thread: apiOptional(this.#thread, identity),
+            replies_to: apiOptional(this.#repliesTo, identity),
             content: this.content as MessageContent,
             finalised: this.#finalised,
             block_level_markdown: this.#blockLevelMarkdown ?? false,

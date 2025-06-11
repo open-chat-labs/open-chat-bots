@@ -1,6 +1,7 @@
 import type { AccessGateConfig } from "./access";
 import type { ChatEvent } from "./event";
-import type { GroupPermissions } from "./permissions";
+import type { CommunityIdentifier } from "./identifiers";
+import type { CommunityPermissions, GroupPermissions } from "./permissions";
 import type { VersionedRules } from "./rules";
 import type { VideoCall } from "./video";
 
@@ -9,6 +10,33 @@ export type CreateChannelResponse = CreateChannelSuccess | OCError;
 export type DeleteChannelResponse = DeleteChannelSuccess | OCError;
 export type ChatSummaryResponse = GroupChatSummary | DirectChatSummary | OCError;
 export type ChatEventsResponse = ChatEventsSuccess | OCError;
+export type CommunitySummaryResponse = CommunitySummary | OCError;
+
+export type CommunitySummary = {
+    kind: "community_summary";
+    id: CommunityIdentifier;
+    lastUpdated: bigint;
+    name: string;
+    description: string;
+    avatarId?: bigint;
+    bannerId?: bigint;
+    isPublic: boolean;
+    verified: boolean;
+    memberCount: number;
+    permissions: CommunityPermissions;
+    publicChannels: ChannelSummary[];
+    rules: VersionedRules;
+    frozen?: FrozenGroupInfo;
+    gateConfig?: AccessGateConfig;
+    primaryLanguage: string;
+    latestEventIndex: number;
+};
+
+export type ChannelSummary = {
+    channelId: bigint;
+    lastUpdated: bigint;
+    name: string;
+};
 
 export type ChatEventsSuccess = {
     kind: "success";
