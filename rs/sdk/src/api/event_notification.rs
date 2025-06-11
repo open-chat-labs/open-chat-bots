@@ -1,6 +1,6 @@
 use crate::types::{
     BotInstalledEvent, BotRegisteredEvent, BotUninstalledEvent, CanisterId, Chat, ChatEventType,
-    CommunityEventType, CommunityId, EventIndex, MessageIndex,
+    CommunityEventType, CommunityId, EventIndex, MessageIndex, UserId,
 };
 use serde::Deserialize;
 
@@ -34,6 +34,8 @@ pub struct BotChatEvent {
     pub event_index: EventIndex,
     #[serde(rename = "l")]
     pub latest_event_index: EventIndex,
+    #[serde(rename = "u")]
+    pub initiated_by: Option<UserId>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -46,14 +48,14 @@ pub struct BotCommunityEvent {
     pub event_index: EventIndex,
     #[serde(rename = "l")]
     pub latest_event_index: EventIndex,
+    #[serde(rename = "u")]
+    pub initiated_by: Option<UserId>,
 }
 
 #[derive(Deserialize, Debug)]
 pub enum BotLifecycleEvent {
     #[serde(rename = "r")]
     Registered(BotRegisteredEvent),
-    #[serde(rename = "d")]
-    Removed,
     #[serde(rename = "i")]
     Installed(BotInstalledEvent),
     #[serde(rename = "u")]

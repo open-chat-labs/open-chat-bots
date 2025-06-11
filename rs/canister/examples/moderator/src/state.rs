@@ -1,4 +1,4 @@
-use oc_bots_sdk::InstallationRegistry;
+use oc_bots_sdk::{types::CanisterId, InstallationRegistry};
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::HashSet};
 
@@ -10,6 +10,7 @@ thread_local! {
 pub struct State {
     banned_words_lower: HashSet<String>,
     pub installation_registry: InstallationRegistry,
+    pub bot_id: Option<CanisterId>,
 }
 
 const STATE_ALREADY_INITIALIZED: &str = "State has already been initialized";
@@ -45,6 +46,7 @@ impl State {
                 .map(|w| w.to_ascii_lowercase())
                 .collect(),
             installation_registry: InstallationRegistry::new(),
+            bot_id: None,
         }
     }
 

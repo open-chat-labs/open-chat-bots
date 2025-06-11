@@ -3,7 +3,7 @@ use oc_bots_sdk::api::event_notification::BotChatEvent;
 use oc_bots_sdk::oc_api::actions::chat_events::{self, EventsByIndexArgs, EventsSelectionCriteria};
 use oc_bots_sdk::oc_api::actions::send_message::Response;
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
-use oc_bots_sdk::types::{CanisterId, UnitResult};
+use oc_bots_sdk::types::{CanisterId, MessagePermission, UnitResult};
 use oc_bots_sdk::{
     api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent},
     types::{ActionScope, AutonomousContext, BotPermissionsBuilder, ChatEventType, ChatPermission},
@@ -35,6 +35,10 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
 
 fn handle_lifecycle_event(lifecycle_event: BotLifecycleEvent, api_gateway: CanisterId) {
     state::mutate(|state| match lifecycle_event {
+        BotLifecycleEvent::Registered(event) => {
+            ic_cdk::println!("Bot registered: {:?}", event);
+            state.bot_id = Some(event.bot_id);
+        }
         BotLifecycleEvent::Installed(event) => {
             state.installation_registry.insert(
                 event.location,
@@ -48,7 +52,6 @@ fn handle_lifecycle_event(lifecycle_event: BotLifecycleEvent, api_gateway: Canis
         BotLifecycleEvent::Uninstalled(event) => {
             state.installation_registry.remove(&event.location);
         }
-        _ => (),
     });
 }
 
@@ -62,7 +65,15 @@ async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
         _ => return,
     }
 
-    ic_cdk::println!("ChatEventType: {:?}", chat_event.event_type);
+    let Some(bot_id) = state::read(|state| state.bot_id) else {
+        ic_cdk::println!("Bot registration not captured");
+        return;
+    };
+
+    if chat_event.initiated_by == Some(bot_id) {
+        // Ignore events initiated by the bot itself
+        return;
+    }
 
     let Some(installation) = state::read(|state| {
         state
@@ -70,15 +81,18 @@ async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
             .get(&chat_event.chat.into())
             .cloned()
     }) else {
+        ic_cdk::println!("Bot not installed in this chat: {:?}", chat_event.chat);
         return;
     };
 
     let required = BotPermissionsBuilder::new()
+        .with_message(MessagePermission::Text)
         .with_chat(ChatPermission::ReadMessages)
         .with_chat(ChatPermission::DeleteMessages)
         .build();
 
     if !required.is_subset(&installation.granted_autonomous_permissions) {
+        ic_cdk::println!("Not permitted to read, delete and send messages");
         return;
     }
 
@@ -126,7 +140,7 @@ async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
 
     if contains_banned_words {
         match client
-            .send_text_message("Stop using that bad language!".to_string())
+            .send_text_message("Stop using bad language!".to_string())
             .replies_to(Some(event_index))
             .execute_async()
             .await
