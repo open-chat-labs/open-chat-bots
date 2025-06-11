@@ -8,6 +8,7 @@ use std::sync::Arc;
 pub mod add_reaction;
 pub mod chat_events;
 pub mod chat_summary;
+pub mod community_summary;
 pub mod create_channel;
 pub mod delete_channel;
 pub mod delete_messages;

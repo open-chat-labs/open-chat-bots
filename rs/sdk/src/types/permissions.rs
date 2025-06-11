@@ -180,6 +180,8 @@ pub enum CommunityPermission {
     CreatePublicChannel = 4,
     CreatePrivateChannel = 5,
     ManageUserGroups = 6,
+    ReadMembership = 7,
+    ReadSummary = 8,
 }
 
 impl From<CommunityPermission> for u8 {
@@ -200,6 +202,8 @@ impl TryFrom<u8> for CommunityPermission {
             4 => Ok(CommunityPermission::CreatePublicChannel),
             5 => Ok(CommunityPermission::CreatePrivateChannel),
             6 => Ok(CommunityPermission::ManageUserGroups),
+            7 => Ok(CommunityPermission::ReadMembership),
+            8 => Ok(CommunityPermission::ReadSummary),
             _ => Err(()),
         }
     }
@@ -220,7 +224,7 @@ pub enum ChatPermission {
     StartVideoCall = 9,
     ReadMessages = 10,
     ReadMembership = 11,
-    ReadChatDetails = 12,
+    ReadSummary = 12,
 }
 
 impl From<ChatPermission> for u8 {
@@ -244,6 +248,9 @@ impl TryFrom<u8> for ChatPermission {
             7 => Ok(ChatPermission::ReactToMessages),
             8 => Ok(ChatPermission::MentionAllMembers),
             9 => Ok(ChatPermission::StartVideoCall),
+            10 => Ok(ChatPermission::ReadMessages),
+            11 => Ok(ChatPermission::ReadMembership),
+            12 => Ok(ChatPermission::ReadSummary),
             _ => Err(()),
         }
     }
@@ -293,6 +300,17 @@ impl TryFrom<u8> for MessagePermission {
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct CommunityPermissions {
+    pub change_roles: CommunityPermissionRole,
+    pub update_details: CommunityPermissionRole,
+    pub invite_users: CommunityPermissionRole,
+    pub remove_members: CommunityPermissionRole,
+    pub create_public_channel: CommunityPermissionRole,
+    pub create_private_channel: CommunityPermissionRole,
+    pub manage_user_groups: CommunityPermissionRole,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct ChatPermissions {
     pub change_roles: ChatPermissionRole,
     pub update_group: ChatPermissionRole,
@@ -306,6 +324,13 @@ pub struct ChatPermissions {
     pub start_video_call: ChatPermissionRole,
     pub message_permissions: MessagePermissions,
     pub thread_permissions: Option<MessagePermissions>,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Copy, Clone, Debug)]
+pub enum CommunityPermissionRole {
+    Owners,
+    Admins,
+    Members,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Copy, Clone, Debug, Eq, PartialEq)]

@@ -13,7 +13,7 @@ impl ActionDef for CreateChannelAction {
     type Response = Response;
 
     fn method_name(_: bool) -> &'static str {
-        "bot_create_channel_v2"
+        "bot_create_channel"
     }
 }
 

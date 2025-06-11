@@ -10,7 +10,7 @@ impl ActionDef for DeleteChannelAction {
     type Response = Response;
 
     fn method_name(_: bool) -> &'static str {
-        "bot_delete_channel_v2"
+        "bot_delete_channel"
     }
 }
 
