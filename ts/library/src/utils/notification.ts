@@ -5,6 +5,7 @@ import {
     CommunityActionScope,
     type ActionScope,
     type InstallationLocation,
+    type Permissions,
 } from "../domain";
 import type { BotEvent, BotEventParseFailure, BotEventWrapper } from "../domain/bot_events";
 import { parseBotNotification } from "./botEventParser";
@@ -12,15 +13,20 @@ import { parseBotNotification } from "./botEventParser";
 export async function handleNotification<T>(
     json: unknown,
     factory: BotClientFactory,
-    handler: (client: BotClient, ev: BotEvent) => Promise<T>,
+    handler: (client: BotClient, ev: BotEvent, apiGateway: string) => Promise<T>,
     error?: (error: BotEventParseFailure) => T,
+    autonomousPermissions?: Permissions,
 ): Promise<T | undefined> {
     const parsed = parseBotNotification(json);
     if (parsed.kind === "bot_event_wrapper") {
         const scope = scopeFromBotEventWrapper(parsed);
         if (scope !== undefined) {
-            const client = factory.createClientInAutonomouseContext(scope, parsed.apiGateway);
-            return handler(client, parsed.event);
+            const client = factory.createClientInAutonomouseContext(
+                scope,
+                parsed.apiGateway,
+                autonomousPermissions,
+            );
+            return handler(client, parsed.event, parsed.apiGateway);
         }
     } else {
         return error?.(parsed);

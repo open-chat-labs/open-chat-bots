@@ -27,7 +27,7 @@ test("encoding bot permissions", () => {
     expect(perm.hasChatPermission("AddMembers")).toBe(true);
     expect(perm.hasChatPermission("PinMessages")).toBe(true);
     expect(perm.hasChatPermission("ReactToMessages")).toBe(true);
-    expect(perm.hasChatPermission("ReadChatDetails")).toBe(false);
+    expect(perm.hasChatPermission("ReadChatSummary")).toBe(false);
 
     expect(perm.hasCommunityPermission("ChangeRoles")).toBe(true);
     expect(perm.hasCommunityPermission("CreatePrivateChannel")).toBe(true);
