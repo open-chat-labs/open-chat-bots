@@ -1,8 +1,7 @@
-use std::collections::HashSet;
-
 use lazy_static::lazy_static;
 use oc_bots_sdk::api::event_notification::BotChatEvent;
 use oc_bots_sdk::oc_api::actions::chat_events::{self, EventsByIndexArgs, EventsSelectionCriteria};
+use oc_bots_sdk::oc_api::actions::send_message::Response;
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
 use oc_bots_sdk::types::{CanisterId, UnitResult};
 use oc_bots_sdk::{
@@ -12,6 +11,7 @@ use oc_bots_sdk::{
 };
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
 use regex::Regex;
+use std::collections::HashSet;
 
 use crate::state;
 
@@ -57,9 +57,12 @@ lazy_static! {
 }
 
 async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
-    let ChatEventType::Message = chat_event.event_type else {
-        return;
-    };
+    match chat_event.event_type {
+        ChatEventType::Message | ChatEventType::MessageEdited => (),
+        _ => return,
+    }
+
+    ic_cdk::println!("ChatEventType: {:?}", chat_event.event_type);
 
     let Some(installation) = state::read(|state| {
         state
@@ -88,6 +91,7 @@ async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
         .chat_events(EventsSelectionCriteria::ByIndex(EventsByIndexArgs {
             events: vec![chat_event.event_index],
         }))
+        .with_thread(chat_event.thread)
         .execute_async()
         .await
     {
@@ -98,8 +102,8 @@ async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
         }
     };
 
-    let Some(message) = result.events.first().and_then(|event| match &event.event {
-        oc_bots_sdk::types::ChatEvent::Message(message) => Some(message),
+    let Some((message, event_index)) = result.events.first().and_then(|event| match &event.event {
+        oc_bots_sdk::types::ChatEvent::Message(message) => Some((message, event.index)),
         _ => None,
     }) else {
         ic_cdk::println!("Failed to read message");
@@ -122,7 +126,22 @@ async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
 
     if contains_banned_words {
         match client
+            .send_text_message("Stop using that bad language!".to_string())
+            .replies_to(Some(event_index))
+            .execute_async()
+            .await
+        {
+            Ok(Response::Success(_)) => {
+                // TODO: Make a note of the reported message in the state
+            }
+            error => {
+                ic_cdk::println!("Failed to reply to message: {:?}", error);
+            }
+        }
+
+        match client
             .delete_messages(vec![message.message_id])
+            .with_thread(chat_event.thread)
             .execute_async()
             .await
         {

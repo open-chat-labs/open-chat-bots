@@ -22,6 +22,7 @@ pub struct Args {
     pub chat_context: BotChatContext,
     pub thread: Option<MessageIndex>,
     pub message_id: Option<MessageId>,
+    pub replies_to: Option<EventIndex>,
     pub content: MessageContentInitial,
     pub block_level_markdown: bool,
     pub finalised: bool,
