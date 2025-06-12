@@ -20,17 +20,29 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
         return HttpResponse::status(400);
     };
 
+    handle_event(event_wrapper).await;
+
+    HttpResponse::status(200)
+}
+
+async fn handle_event(event_wrapper: BotEventWrapper) {
+    let Some(bot_id) = state::read(|state| state.bot_id) else {
+        ic_cdk::println!("Bot registration not captured");
+        return;
+    };
+
     match event_wrapper.event {
         BotEvent::Lifecycle(lifecycle_event) => {
             handle_lifecycle_event(lifecycle_event, event_wrapper.api_gateway);
         }
         BotEvent::Chat(chat_event) => {
-            handle_chat_event(chat_event, event_wrapper.api_gateway).await
+            // Ignore chat events initiated by the bot itself
+            if chat_event.initiated_by != Some(bot_id) {
+                handle_chat_event(chat_event, event_wrapper.api_gateway).await
+            }
         }
         _ => {}
     }
-
-    HttpResponse::status(200)
 }
 
 fn handle_lifecycle_event(lifecycle_event: BotLifecycleEvent, api_gateway: CanisterId) {
@@ -63,16 +75,6 @@ async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
     match chat_event.event_type {
         ChatEventType::Message | ChatEventType::MessageEdited => (),
         _ => return,
-    }
-
-    let Some(bot_id) = state::read(|state| state.bot_id) else {
-        ic_cdk::println!("Bot registration not captured");
-        return;
-    };
-
-    if chat_event.initiated_by == Some(bot_id) {
-        // Ignore events initiated by the bot itself
-        return;
     }
 
     let Some(installation) = state::read(|state| {
