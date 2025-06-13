@@ -1,9 +1,9 @@
-import type { BotCommand, BotPermissions, Chat } from "../typebox/typebox";
+import { type BotCommand, type BotPermissions, type Chat } from "../typebox/typebox";
 import {
     CommunityIdentifier,
+    DirectChatIdentifier,
+    GroupChatIdentifier,
     type ChatIdentifier,
-    type DirectChatIdentifier,
-    type GroupChatIdentifier,
 } from "./identifiers";
 import type { ChatPermission, CommunityPermission, MessagePermission } from "./permissions";
 import { Permissions } from "./permissions";
@@ -40,6 +40,22 @@ export class DecodedJwt extends DecodedAuth {
     ) {
         super(granted_permissions);
     }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function installationLocationFromJSON(json: any): InstallationLocation {
+    if ("kind" in json) {
+        if (json.kind === "community") {
+            return CommunityIdentifier.fromJson(json);
+        }
+        if (json.kind === "group_chat") {
+            return GroupChatIdentifier.fromJson(json) as GroupChatIdentifier;
+        }
+        if (json.kind === "direct_chat") {
+            return DirectChatIdentifier.fromJson(json) as DirectChatIdentifier;
+        }
+    }
+    throw Error(`Unable to convert json into InstallationLocation: ${json}`);
 }
 
 export type InstallationLocation = CommunityIdentifier | GroupChatIdentifier | DirectChatIdentifier;

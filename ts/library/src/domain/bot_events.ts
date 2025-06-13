@@ -93,6 +93,7 @@ export type BotChatEvent = {
     thread?: number;
     eventIndex: number;
     latestEventIndex: number;
+    initiatedBy?: string;
 };
 
 export type BotCommunityEvent = {
@@ -101,6 +102,7 @@ export type BotCommunityEvent = {
     communityId: CommunityIdentifier;
     eventIndex: number;
     latestEventIndex: number;
+    initiatedBy?: string;
 };
 
 export type BotRegisteredEvent = {

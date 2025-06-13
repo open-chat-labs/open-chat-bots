@@ -89,6 +89,7 @@ function parseBotChatEvent(obj: any): BotChatEvent {
         thread: obj.t == null ? undefined : Number(obj.t),
         eventIndex: Number(obj.i),
         latestEventIndex: Number(obj.l),
+        initiatedBy: obj.u == null ? undefined : obj.u,
     };
 }
 
@@ -122,6 +123,7 @@ function parseBotCommunityEvent(obj: any): BotCommunityEvent {
         communityId: parseCommunityIdentifier(obj.c),
         eventIndex: Number(obj.i),
         latestEventIndex: Number(obj.l),
+        initiatedBy: obj.u == null ? undefined : obj.u,
     };
 }
 
