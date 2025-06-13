@@ -26,16 +26,16 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
 }
 
 async fn handle_event(event_wrapper: BotEventWrapper) {
-    let Some(bot_id) = state::read(|state| state.bot_id) else {
-        ic_cdk::println!("Bot registration not captured");
-        return;
-    };
-
     match event_wrapper.event {
         BotEvent::Lifecycle(lifecycle_event) => {
             handle_lifecycle_event(lifecycle_event, event_wrapper.api_gateway);
         }
         BotEvent::Chat(chat_event) => {
+            let Some(bot_id) = state::read(|state| state.bot_id) else {
+                ic_cdk::println!("Bot registration not captured");
+                return;
+            };
+
             // Ignore chat events initiated by the bot itself
             if chat_event.initiated_by != Some(bot_id) {
                 handle_chat_event(chat_event, event_wrapper.api_gateway).await
@@ -143,6 +143,7 @@ async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
     if contains_banned_words {
         match client
             .send_text_message("Stop using bad language!".to_string())
+            .with_thread(chat_event.thread)
             .replies_to(Some(event_index))
             .execute_async()
             .await
