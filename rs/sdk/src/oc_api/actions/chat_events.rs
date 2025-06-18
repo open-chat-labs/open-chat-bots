@@ -1,11 +1,9 @@
-use candid::{CandidType, Deserialize};
-use serde::Serialize;
-
+use super::ActionDef;
 use crate::types::{
     BotChatContext, ChatEvent, EventIndex, EventWrapper, MessageIndex, OCError, TimestampMillis,
 };
-
-use super::ActionDef;
+use candid::{CandidType, Deserialize};
+use serde::Serialize;
 
 pub struct ChatEventsAction;
 
