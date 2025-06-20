@@ -1,0 +1,17 @@
+type InitArgs = record {
+    oc_public_key : text;
+    administrator : principal;
+};
+
+type UpgradeArgs = record {
+    oc_public_key : opt text;
+    administrator : opt principal;
+};
+
+type InitOrUpgradeArgs = variant {
+    Init: InitArgs;
+    Upgrade: UpgradeArgs;
+};
+
+service : (InitOrUpgradeArgs) -> {
+}
