@@ -1,4 +1,5 @@
-use crate::oc_api::actions::chat_events::EventsSelectionCriteria;
+use crate::oc_api::actions::chat_events::EventsSelectionCriteria as ChatEventsSelectionCriteria;
+use crate::oc_api::actions::community_events::EventsSelectionCriteria as CommunityEventsSelectionCriteria;
 use crate::oc_api::Runtime;
 use crate::types::{
     ActionContext, ChannelId, ChatEventType, CommunityEventType, MessageContentInitial, MessageId,
@@ -7,6 +8,7 @@ use crate::types::{
 use add_reaction::AddReactionBuilder;
 use chat_events::ChatEventsBuilder;
 use chat_summary::ChatSummaryBuilder;
+use community_events::CommunityEventsBuilder;
 use community_summary::CommunitySummaryBuilder;
 use create_channel::CreateChannelBuilder;
 use delete_channel::DeleteChannelBuilder;
@@ -20,6 +22,7 @@ use unsubscribe_from_chat_events::UnsubscribeFromChatEventsBuilder;
 mod add_reaction;
 mod chat_events;
 mod chat_summary;
+mod community_events;
 mod community_summary;
 mod create_channel;
 mod delete_channel;
@@ -72,12 +75,19 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
         ChatSummaryBuilder::new(self)
     }
 
-    pub fn chat_events(&self, events: EventsSelectionCriteria) -> ChatEventsBuilder<R, C> {
+    pub fn chat_events(&self, events: ChatEventsSelectionCriteria) -> ChatEventsBuilder<R, C> {
         ChatEventsBuilder::new(self, events)
     }
 
     pub fn community_summary(&self) -> CommunitySummaryBuilder<R, C> {
         CommunitySummaryBuilder::new(self)
+    }
+
+    pub fn community_events(
+        &self,
+        events: CommunityEventsSelectionCriteria,
+    ) -> CommunityEventsBuilder<R, C> {
+        CommunityEventsBuilder::new(self, events)
     }
 
     pub fn create_channel(&self, name: String, is_public: bool) -> CreateChannelBuilder<R, C> {
