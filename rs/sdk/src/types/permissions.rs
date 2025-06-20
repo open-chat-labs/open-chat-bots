@@ -374,6 +374,14 @@ pub enum ChatRole {
     Participant,
 }
 
+#[derive(CandidType, Serialize, Deserialize, Copy, Clone, Debug, Default)]
+pub enum CommunityRole {
+    Owner,
+    Admin,
+    #[default]
+    Member,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
