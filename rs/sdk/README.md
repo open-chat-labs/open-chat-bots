@@ -138,7 +138,7 @@ pub enum ChatPermission {
     StartVideoCall,
     ReadMessages,
     ReadMembership,
-    ReadChatDetails,
+    ReadChatSummary,
 }
 
 pub enum MessagePermission {
