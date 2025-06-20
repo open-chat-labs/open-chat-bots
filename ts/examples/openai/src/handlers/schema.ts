@@ -18,7 +18,7 @@ function getBotDefinition(): BotDefinition {
         chat: [
           "ReactToMessages",
           "ReadMessages",
-          "ReadChatDetails",
+          "ReadChatSummary",
           "DeleteMessages",
         ],
       }),
@@ -35,7 +35,7 @@ function getBotDefinition(): BotDefinition {
         permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["Text"],
-          chat: ["ReadChatDetails"],
+          chat: ["ReadChatSummary"],
         }),
         direct_messages: true,
         params: [

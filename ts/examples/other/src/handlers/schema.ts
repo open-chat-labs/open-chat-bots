@@ -118,7 +118,7 @@ function getBotDefinition(): BotDefinition {
         permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["Text"],
-          chat: ["ReadChatDetails"],
+          chat: ["ReadChatSummary"],
         }),
         params: [],
       },
@@ -129,7 +129,7 @@ function getBotDefinition(): BotDefinition {
         permissions: Permissions.encodePermissions({
           ...emptyPermissions,
           message: ["Text"],
-          chat: ["ReadChatDetails", "ReadMessages"],
+          chat: ["ReadChatSummary", "ReadMessages"],
         }),
         params: [],
       },
