@@ -5,6 +5,7 @@ members = [
     "canister/examples/greet/loader",
     "canister/examples/moderator",
     "canister/examples/reminder",
+    "canister/examples/welcome",
     "canister/sdk",
     "offchain/examples/dice",
 #    "offchain/examples/discord",

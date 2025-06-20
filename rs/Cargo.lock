@@ -3509,6 +3509,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "welcome_bot"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "candid",
+ "getrandom",
+ "http 1.2.0",
+ "ic-cdk",
+ "ic-http-certification",
+ "ic-stable-structures",
+ "ic_principal",
+ "oc_bots_sdk",
+ "oc_bots_sdk_canister",
+ "rmp-serde",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "winapi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"

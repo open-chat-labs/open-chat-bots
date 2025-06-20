@@ -6,11 +6,10 @@ use serde::Serialize;
 use crate::{
     api::command::Command,
     types::{
-        AvatarChanged, BannerChanged, BotAdded, BotRemoved, BotUpdated, ChannelId, ChatId,
-        CommunityEventType, CommunityId, CommunityPermissions, CommunityRole, EventIndex,
-        EventWrapper, GroupCreated, GroupDescriptionChanged, GroupFrozen, GroupGateUpdated,
-        GroupInviteCodeChanged, GroupNameChanged, GroupRulesChanged, GroupUnfrozen, OCError,
-        TimestampMillis, UserId, UsersInvited, UsersUnblocked,
+        AvatarChanged, BotAdded, BotRemoved, BotUpdated, ChannelId, ChatId, CommunityEventType,
+        CommunityId, CommunityPermissions, CommunityRole, DescriptionChanged, EventIndex,
+        EventWrapper, GateUpdated, InviteCodeChanged, NameChanged, OCError, RulesChanged,
+        TimestampMillis, UserId, UsersInvited,
     },
 };
 
@@ -73,23 +72,23 @@ pub struct EventsByIndexArgs {
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum CommunityEvent {
-    Created(Box<GroupCreated>),
-    NameChanged(Box<GroupNameChanged>),
-    DescriptionChanged(Box<GroupDescriptionChanged>),
-    RulesChanged(Box<GroupRulesChanged>),
+    Created(Box<ChannelCreated>),
+    NameChanged(Box<NameChanged>),
+    DescriptionChanged(Box<DescriptionChanged>),
+    RulesChanged(Box<RulesChanged>),
     AvatarChanged(Box<AvatarChanged>),
     BannerChanged(Box<BannerChanged>),
     UsersInvited(Box<UsersInvited>),
     MembersRemoved(Box<CommunityMembersRemoved>),
     RoleChanged(Box<CommunityRoleChanged>),
     UsersBlocked(Box<CommunityUsersBlocked>),
-    UsersUnblocked(Box<UsersUnblocked>),
+    UsersUnblocked(Box<CommunityUsersUnblocked>),
     PermissionsChanged(Box<CommunityPermissionsChanged>),
     VisibilityChanged(Box<CommunityVisibilityChanged>),
-    InviteCodeChanged(Box<GroupInviteCodeChanged>),
-    Frozen(Box<GroupFrozen>),
-    Unfrozen(Box<GroupUnfrozen>),
-    GateUpdated(Box<GroupGateUpdated>),
+    InviteCodeChanged(Box<InviteCodeChanged>),
+    Frozen(Box<CommunityFrozen>),
+    Unfrozen(Box<CommunityUnfrozen>),
+    GateUpdated(Box<GateUpdated>),
     ChannelDeleted(Box<ChannelDeleted>),
     PrimaryLanguageChanged(Box<PrimaryLanguageChanged>),
     GroupImported(Box<GroupImported>),
@@ -115,7 +114,7 @@ impl CommunityEvent {
             CommunityEvent::UsersUnblocked(_) => Some(CommunityEventType::UsersUnblocked),
             CommunityEvent::PermissionsChanged(_) => Some(CommunityEventType::PermissionsChanged),
             CommunityEvent::VisibilityChanged(_) => Some(CommunityEventType::VisibilityChanged),
-            CommunityEvent::InviteCodeChanged(_) => Some(CommunityEventType::InviteCodeChanged),
+            CommunityEvent::InviteCodeChanged(_) => None,
             CommunityEvent::Frozen(_) => Some(CommunityEventType::Frozen),
             CommunityEvent::Unfrozen(_) => Some(CommunityEventType::Unfrozen),
             CommunityEvent::GateUpdated(_) => Some(CommunityEventType::GateUpdated),
@@ -130,6 +129,20 @@ impl CommunityEvent {
             CommunityEvent::FailedToDeserialize => None,
         }
     }
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct ChannelCreated {
+    pub name: String,
+    pub description: String,
+    pub created_by: UserId,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct BannerChanged {
+    pub new_banner: Option<u128>,
+    pub previous_banner: Option<u128>,
+    pub changed_by: UserId,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -186,4 +199,21 @@ pub struct PrimaryLanguageChanged {
     pub previous: String,
     pub new: String,
     pub changed_by: UserId,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct CommunityFrozen {
+    pub frozen_by: UserId,
+    pub reason: Option<String>,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct CommunityUnfrozen {
+    pub unfrozen_by: UserId,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct CommunityUsersUnblocked {
+    pub user_ids: Vec<UserId>,
+    pub unblocked_by: UserId,
 }

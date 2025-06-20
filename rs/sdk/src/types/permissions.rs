@@ -19,6 +19,10 @@ fn is_zero(value: &u32) -> bool {
 }
 
 impl BotPermissions {
+    pub fn empty() -> Self {
+        Self::default()
+    }
+
     pub fn with_community(self, community: &HashSet<CommunityPermission>) -> Self {
         Self {
             community: Self::encode(community),

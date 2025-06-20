@@ -50,6 +50,13 @@ impl BotCommandScope {
             BotCommandScope::Community(_) => None,
         }
     }
+
+    pub fn chat(&self) -> Option<&Chat> {
+        match self {
+            BotCommandScope::Chat(details) => Some(&details.chat),
+            BotCommandScope::Community(_) => None,
+        }
+    }
 }
 
 impl From<BotCommandScope> for ActionScope {
