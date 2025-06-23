@@ -23,9 +23,9 @@ pub enum ChatEvent {
     Message(Box<Message>),
     GroupChatCreated(GroupCreated),
     DirectChatCreated(DirectChatCreated),
-    GroupNameChanged(GroupNameChanged),
-    GroupDescriptionChanged(GroupDescriptionChanged),
-    GroupRulesChanged(GroupRulesChanged),
+    GroupNameChanged(NameChanged),
+    GroupDescriptionChanged(DescriptionChanged),
+    GroupRulesChanged(RulesChanged),
     AvatarChanged(AvatarChanged),
     ParticipantsAdded(MembersAdded),
     ParticipantsRemoved(MembersRemoved),
@@ -38,11 +38,11 @@ pub enum ChatEvent {
     MessageUnpinned(MessageUnpinned),
     PermissionsChanged(PermissionsChanged),
     GroupVisibilityChanged(GroupVisibilityChanged),
-    GroupInviteCodeChanged(GroupInviteCodeChanged),
+    GroupInviteCodeChanged(InviteCodeChanged),
     ChatFrozen(GroupFrozen),
     ChatUnfrozen(GroupUnfrozen),
     EventsTimeToLiveUpdated(EventsTimeToLiveUpdated),
-    GroupGateUpdated(GroupGateUpdated),
+    GroupGateUpdated(GateUpdated),
     UsersInvited(UsersInvited),
     MembersAddedToDefaultChannel(MembersAddedToDefaultChannel),
     ExternalUrlUpdated(ExternalUrlUpdated),
@@ -129,21 +129,21 @@ pub struct GroupCreated {
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct GroupNameChanged {
+pub struct NameChanged {
     pub new_name: String,
     pub previous_name: String,
     pub changed_by: UserId,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct GroupDescriptionChanged {
+pub struct DescriptionChanged {
     pub new_description: String,
     pub previous_description: String,
     pub changed_by: UserId,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct GroupRulesChanged {
+pub struct RulesChanged {
     pub enabled: bool,
     pub prev_enabled: bool,
     pub changed_by: UserId,
@@ -153,13 +153,6 @@ pub struct GroupRulesChanged {
 pub struct AvatarChanged {
     pub new_avatar: Option<u128>,
     pub previous_avatar: Option<u128>,
-    pub changed_by: UserId,
-}
-
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct BannerChanged {
-    pub new_banner: Option<u128>,
-    pub previous_banner: Option<u128>,
     pub changed_by: UserId,
 }
 
@@ -278,7 +271,7 @@ pub struct GroupVisibilityChanged {
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct GroupInviteCodeChanged {
+pub struct InviteCodeChanged {
     pub change: GroupInviteCodeChange,
     pub changed_by: UserId,
 }
@@ -308,7 +301,7 @@ pub struct EventsTimeToLiveUpdated {
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct GroupGateUpdated {
+pub struct GateUpdated {
     pub updated_by: UserId,
     pub new_gate_config: Option<AccessGateConfig>,
 }
@@ -490,7 +483,6 @@ pub enum CommunityEventType {
     BannerChanged,
     PermissionsChanged,
     VisibilityChanged,
-    InviteCodeChanged,
     Frozen,
     Unfrozen,
     EventsTTLUpdated,
@@ -525,7 +517,6 @@ impl From<CommunityEventType> for CommunityEventCategory {
             | CommunityEventType::BannerChanged
             | CommunityEventType::PermissionsChanged
             | CommunityEventType::VisibilityChanged
-            | CommunityEventType::InviteCodeChanged
             | CommunityEventType::Frozen
             | CommunityEventType::Unfrozen
             | CommunityEventType::EventsTTLUpdated

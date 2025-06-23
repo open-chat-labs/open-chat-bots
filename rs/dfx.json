@@ -24,6 +24,12 @@
       "package": "reminder_bot",
       "candid": "canister/examples/reminder/can.did",
       "gzip": true
+    },
+    "welcome_bot": {
+      "type": "rust",
+      "package": "welcome_bot",
+      "candid": "canister/examples/welcome/can.did",
+      "gzip": true
     }
   },
   "networks": {

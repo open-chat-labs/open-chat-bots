@@ -60,6 +60,13 @@ pub enum Chat {
 }
 
 impl Chat {
+    pub fn community_id(&self) -> Option<CommunityId> {
+        match self {
+            Chat::Channel(community_id, _) => Some(*community_id),
+            _ => None,
+        }
+    }
+
     pub fn channel_id(&self) -> Option<ChannelId> {
         match self {
             Chat::Channel(_, channel_id) => Some(*channel_id),
