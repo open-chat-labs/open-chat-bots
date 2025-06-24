@@ -26,6 +26,7 @@ impl<'c, R: Runtime, C: ActionContext> RemoveUserBuilder<'c, R, C> {
     }
 
     // This must be set for the user to be removed from a channel rather than the whole community
+    #[expect(clippy::wrong_self_convention)]
     pub fn from_channel_id(mut self, channel_id: ChannelId) -> Self {
         self.channel_id = Some(channel_id);
         self
