@@ -137,16 +137,6 @@ pub enum InstallationLocation {
     User(ChatId),
 }
 
-impl InstallationLocation {
-    pub fn canister_id(&self) -> CanisterId {
-        match self {
-            InstallationLocation::Community(c) => *c,
-            InstallationLocation::Group(g) => *g,
-            InstallationLocation::User(u) => *u,
-        }
-    }
-}
-
 impl From<Chat> for InstallationLocation {
     fn from(value: Chat) -> Self {
         match value {

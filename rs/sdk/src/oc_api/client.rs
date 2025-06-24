@@ -1,9 +1,10 @@
 use crate::oc_api::actions::chat_events::EventsSelectionCriteria as ChatEventsSelectionCriteria;
 use crate::oc_api::actions::community_events::EventsSelectionCriteria as CommunityEventsSelectionCriteria;
+use crate::oc_api::client::remove_user::RemoveUserBuilder;
 use crate::oc_api::Runtime;
 use crate::types::{
     ActionContext, ChannelId, ChatEventType, CommunityEventType, MessageContentInitial, MessageId,
-    Reaction, TextContent,
+    Reaction, TextContent, UserId,
 };
 use add_reaction::AddReactionBuilder;
 use chat_events::ChatEventsBuilder;
@@ -13,6 +14,7 @@ use community_summary::CommunitySummaryBuilder;
 use create_channel::CreateChannelBuilder;
 use delete_channel::DeleteChannelBuilder;
 use delete_messages::DeleteMessagesBuilder;
+use invite_users::InviteUsersBuilder;
 use send_message::SendMessageBuilder;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -27,6 +29,8 @@ mod community_summary;
 mod create_channel;
 mod delete_channel;
 mod delete_messages;
+mod invite_users;
+mod remove_user;
 mod send_message;
 mod subscribe_to_chat_events;
 mod unsubscribe_from_chat_events;
@@ -100,6 +104,14 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
 
     pub fn delete_messages(&self, message_ids: Vec<MessageId>) -> DeleteMessagesBuilder<R, C> {
         DeleteMessagesBuilder::new(self, message_ids)
+    }
+
+    pub fn invite_users(&self, user_ids: Vec<UserId>) -> InviteUsersBuilder<R, C> {
+        InviteUsersBuilder::new(self, user_ids)
+    }
+
+    pub fn remove_user(&self, user_id: UserId) -> RemoveUserBuilder<R, C> {
+        RemoveUserBuilder::new(self, user_id)
     }
 
     pub fn send_message(&self, content: MessageContentInitial) -> SendMessageBuilder<R, C> {
