@@ -29,7 +29,7 @@ pub struct Args {
     pub chat_context: BotChatContext,
 }
 
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant)]
 #[derive(CandidType, Serialize, Deserialize, Debug)]
 pub enum Response {
     Success(ChatSummary),

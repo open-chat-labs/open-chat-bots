@@ -237,7 +237,6 @@ impl TryFrom<CommandArgValue> for UserId {
     }
 }
 
-#[allow(clippy::large_enum_variant)]
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum CommandResponse {
     Success(SuccessResult),

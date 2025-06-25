@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
+use crate::types::{ChatId, CommunityId};
+
 use super::{CanisterId, Chat, MessageIndex, Milliseconds, TimestampMillis, UserId};
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -110,4 +112,16 @@ pub enum VideoCallType {
 pub enum BotChatContext {
     Command(String),
     Autonomous(Chat),
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub enum BotCommunityOrGroupContext {
+    Command(String),
+    Autonomous(CommunityOrGroup),
+}
+
+#[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CommunityOrGroup {
+    Community(CommunityId),
+    Group(ChatId),
 }

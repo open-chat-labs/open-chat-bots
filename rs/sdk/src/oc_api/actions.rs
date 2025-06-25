@@ -13,6 +13,8 @@ pub mod community_summary;
 pub mod create_channel;
 pub mod delete_channel;
 pub mod delete_messages;
+pub mod invite_users;
+pub mod remove_user;
 pub mod send_message;
 pub mod subscribe_to_events;
 

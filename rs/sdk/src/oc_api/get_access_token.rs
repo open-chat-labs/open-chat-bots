@@ -4,7 +4,7 @@ use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
 #[derive(CandidType, Serialize, Deserialize, Debug)]
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant)]
 pub enum GetAccessTokenArgs {
     BotActionByApiKey(String),
     BotActionByCommand(BotActionByCommandArgs),
