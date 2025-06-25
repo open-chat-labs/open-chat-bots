@@ -2,6 +2,7 @@ use crate::api::command::Message;
 use crate::oc_api::actions::send_message::*;
 use crate::oc_api::actions::ActionArgsBuilder;
 use crate::oc_api::Runtime;
+use crate::types::BotChatContext;
 use crate::types::EventIndex;
 use crate::types::MessageIndex;
 use crate::types::{ActionContext, CallResult};
@@ -104,7 +105,11 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for SendMessageBuilder<'
 
     fn into_args(self) -> Args {
         Args {
-            chat_context: self.client.context.chat_context(self.channel_id).unwrap(),
+            chat_context: BotChatContext::from_action_context(
+                &self.client.context,
+                self.channel_id,
+            )
+            .unwrap(),
             thread: self.thread,
             message_id: self.message_id,
             replies_to: self.replies_to,

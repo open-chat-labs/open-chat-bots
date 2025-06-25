@@ -2,10 +2,7 @@ use super::Client;
 use crate::oc_api::actions::remove_user::{Args, RemoveUserAction};
 use crate::oc_api::actions::ActionArgsBuilder;
 use crate::oc_api::Runtime;
-use crate::types::{
-    ActionContext, ActionScope, BotCommunityOrGroupContext, CanisterId, ChannelId, Chat,
-    CommunityOrGroup, UserId,
-};
+use crate::types::{ActionContext, BotCommunityOrGroupContext, CanisterId, ChannelId, UserId};
 use std::sync::Arc;
 
 pub struct RemoveUserBuilder<'c, R, C> {
@@ -52,32 +49,13 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for RemoveUserBuilder<'_
 
     fn into_args(self) -> Args {
         Args {
-            community_or_group_context: extract_community_or_group_context(&self.client.context)
-                .expect("Context must be a community or group"),
+            community_or_group_context: BotCommunityOrGroupContext::from_action_context(
+                &self.client.context,
+            )
+            .expect("Context must be a community or group"),
             channel_id: self.channel_id,
             user_id: self.user_id,
             block: self.block,
         }
-    }
-}
-
-fn extract_community_or_group_context<C: ActionContext>(
-    context: &C,
-) -> Option<BotCommunityOrGroupContext> {
-    if let Some(jwt) = context.jwt() {
-        return Some(BotCommunityOrGroupContext::Command(jwt));
-    }
-
-    match context.scope() {
-        ActionScope::Chat(Chat::Direct(_)) => None,
-        ActionScope::Chat(Chat::Group(chat_id)) => Some(BotCommunityOrGroupContext::Autonomous(
-            CommunityOrGroup::Group(chat_id),
-        )),
-        ActionScope::Community(community_id) => Some(BotCommunityOrGroupContext::Autonomous(
-            CommunityOrGroup::Community(community_id),
-        )),
-        ActionScope::Chat(Chat::Channel(community_id, _)) => Some(
-            BotCommunityOrGroupContext::Autonomous(CommunityOrGroup::Community(community_id)),
-        ),
     }
 }

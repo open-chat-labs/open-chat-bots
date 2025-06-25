@@ -1,11 +1,7 @@
-use std::collections::HashMap;
-
+use super::{CanisterId, MessageIndex, Milliseconds, TimestampMillis, UserId};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
-
-use crate::types::{ChatId, CommunityId};
-
-use super::{CanisterId, Chat, MessageIndex, Milliseconds, TimestampMillis, UserId};
+use std::collections::HashMap;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct AccessGateConfig {
@@ -106,22 +102,4 @@ pub enum VideoCallType {
     Broadcast,
     #[default]
     Default,
-}
-
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub enum BotChatContext {
-    Command(String),
-    Autonomous(Chat),
-}
-
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub enum BotCommunityOrGroupContext {
-    Command(String),
-    Autonomous(CommunityOrGroup),
-}
-
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum CommunityOrGroup {
-    Community(CommunityId),
-    Group(ChatId),
 }
