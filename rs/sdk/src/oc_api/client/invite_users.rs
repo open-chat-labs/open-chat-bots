@@ -2,7 +2,7 @@ use super::Client;
 use crate::oc_api::actions::invite_users::{Args, InviteUsersAction};
 use crate::oc_api::actions::ActionArgsBuilder;
 use crate::oc_api::Runtime;
-use crate::types::{ActionContext, CanisterId, ChannelId, UserId};
+use crate::types::{ActionContext, BotChatContext, CanisterId, ChannelId, UserId};
 use std::sync::Arc;
 
 pub struct InviteUsersBuilder<'c, R, C> {
@@ -40,7 +40,11 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for InviteUsersBuilder<'
 
     fn into_args(self) -> Args {
         Args {
-            chat_context: self.client.context.chat_context(self.channel_id).unwrap(),
+            chat_context: BotChatContext::from_action_context(
+                &self.client.context,
+                self.channel_id,
+            )
+            .unwrap(),
             user_ids: self.user_ids,
         }
     }

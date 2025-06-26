@@ -1,5 +1,7 @@
 use crate::oc_api::actions::chat_events::EventsSelectionCriteria as ChatEventsSelectionCriteria;
 use crate::oc_api::actions::community_events::EventsSelectionCriteria as CommunityEventsSelectionCriteria;
+use crate::oc_api::actions::members::MemberType;
+use crate::oc_api::client::members::MembersBuilder;
 use crate::oc_api::client::remove_user::RemoveUserBuilder;
 use crate::oc_api::Runtime;
 use crate::types::{
@@ -30,6 +32,7 @@ mod create_channel;
 mod delete_channel;
 mod delete_messages;
 mod invite_users;
+mod members;
 mod remove_user;
 mod send_message;
 mod subscribe_to_chat_events;
@@ -108,6 +111,10 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
 
     pub fn invite_users(&self, user_ids: Vec<UserId>) -> InviteUsersBuilder<R, C> {
         InviteUsersBuilder::new(self, user_ids)
+    }
+
+    pub fn members(&self, member_types: HashSet<MemberType>) -> MembersBuilder<R, C> {
+        MembersBuilder::new(self, member_types)
     }
 
     pub fn remove_user(&self, user_id: UserId) -> RemoveUserBuilder<R, C> {

@@ -2,7 +2,9 @@ use super::Client;
 use crate::oc_api::actions::add_reaction::{AddReactionAction, Args};
 use crate::oc_api::actions::ActionArgsBuilder;
 use crate::oc_api::Runtime;
-use crate::types::{ActionContext, CanisterId, ChannelId, MessageId, MessageIndex, Reaction};
+use crate::types::{
+    ActionContext, BotChatContext, CanisterId, ChannelId, MessageId, MessageIndex, Reaction,
+};
 use std::sync::Arc;
 
 pub struct AddReactionBuilder<'c, R, C> {
@@ -53,7 +55,11 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for AddReactionBuilder<'
 
     fn into_args(self) -> Args {
         Args {
-            chat_context: self.client.context.chat_context(self.channel_id).unwrap(),
+            chat_context: BotChatContext::from_action_context(
+                &self.client.context,
+                self.channel_id,
+            )
+            .unwrap(),
             thread: self.thread,
             message_id: self.message_id,
             reaction: self.reaction,

@@ -2,7 +2,7 @@ use super::Client;
 use crate::oc_api::actions::delete_messages::{Args, DeleteMessagesAction};
 use crate::oc_api::actions::ActionArgsBuilder;
 use crate::oc_api::Runtime;
-use crate::types::{ActionContext, CanisterId, ChannelId, MessageId, MessageIndex};
+use crate::types::{ActionContext, BotChatContext, CanisterId, ChannelId, MessageId, MessageIndex};
 use std::sync::Arc;
 
 pub struct DeleteMessagesBuilder<'c, R, C> {
@@ -51,7 +51,11 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for DeleteMessagesBuilde
 
     fn into_args(self) -> Args {
         Args {
-            chat_context: self.client.context.chat_context(self.channel_id).unwrap(),
+            chat_context: BotChatContext::from_action_context(
+                &self.client.context,
+                self.channel_id,
+            )
+            .unwrap(),
             message_ids: self.message_ids,
             thread: self.thread,
         }
