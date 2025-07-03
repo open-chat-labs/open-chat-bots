@@ -49,6 +49,10 @@ impl WelcomeMessages {
             .retain(|chat, _| chat.community_id() != Some(community_id));
     }
 
+    pub fn chats(&self) -> Vec<Chat> {
+        self.chats.keys().copied().collect()
+    }
+
     pub fn len(&self) -> usize {
         self.chats.len()
     }
