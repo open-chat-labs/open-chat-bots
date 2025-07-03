@@ -2,7 +2,7 @@ use crate::{
     oc_api::actions::community_events::CommunityEvent,
     types::{
         BotInstalledEvent, BotRegisteredEvent, BotUninstalledEvent, CanisterId, Chat, ChatEvent,
-        ChatEventType, CommunityId, EventIndex, MessageIndex, UserId,
+        CommunityId, EventIndex, MessageIndex,
     },
 };
 use serde::Deserialize;
@@ -28,8 +28,6 @@ pub enum BotEvent {
 
 #[derive(Deserialize, Debug)]
 pub struct BotChatEvent {
-    #[serde(rename = "e")]
-    pub event_type: ChatEventType,
     #[serde(rename = "v")]
     pub event: ChatEvent,
     #[serde(rename = "c")]
@@ -40,8 +38,6 @@ pub struct BotChatEvent {
     pub event_index: EventIndex,
     #[serde(rename = "l")]
     pub latest_event_index: EventIndex,
-    #[serde(rename = "u")]
-    pub initiated_by: Option<UserId>,
 }
 
 #[derive(Deserialize, Debug)]
