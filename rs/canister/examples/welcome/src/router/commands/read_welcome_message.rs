@@ -25,7 +25,7 @@ impl CommandHandler<CanisterRuntime> for ReadWelcomeMessage {
         let cxt = oc_client.context();
         let chat = cxt.scope.chat().unwrap();
 
-        let text = if let Some(message) = state::read(|state| state.messages.get(chat).cloned()) {
+        let text = if let Some(message) = state::read(|state| state.messages.get(chat)) {
             message
         } else {
             "No welcome message is currently set".to_string()

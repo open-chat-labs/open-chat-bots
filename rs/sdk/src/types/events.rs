@@ -485,7 +485,6 @@ pub enum CommunityEventType {
     VisibilityChanged,
     Frozen,
     Unfrozen,
-    EventsTTLUpdated,
     GateUpdated,
     MessagePinned,
     MessageUnpinned,
@@ -495,8 +494,9 @@ pub enum CommunityEventType {
     ChannelDeleted,
 
     // Membership category
-    MembersJoined,
-    MembersLeft,
+    MemberJoined,
+    MemberLeft,
+    MembersRemoved,
     RoleChanged,
     UsersInvited,
     BotAdded,
@@ -519,7 +519,6 @@ impl From<CommunityEventType> for CommunityEventCategory {
             | CommunityEventType::VisibilityChanged
             | CommunityEventType::Frozen
             | CommunityEventType::Unfrozen
-            | CommunityEventType::EventsTTLUpdated
             | CommunityEventType::GateUpdated
             | CommunityEventType::PrimaryLanguageChanged
             | CommunityEventType::GroupImported
@@ -527,9 +526,10 @@ impl From<CommunityEventType> for CommunityEventCategory {
             | CommunityEventType::ChannelDeleted
             | CommunityEventType::MessagePinned
             | CommunityEventType::MessageUnpinned => CommunityEventCategory::Details,
-            CommunityEventType::MembersJoined
-            | CommunityEventType::MembersLeft
-            | CommunityEventType::RoleChanged
+            CommunityEventType::RoleChanged
+            | CommunityEventType::MemberJoined
+            | CommunityEventType::MemberLeft
+            | CommunityEventType::MembersRemoved
             | CommunityEventType::UsersInvited
             | CommunityEventType::BotAdded
             | CommunityEventType::BotRemoved

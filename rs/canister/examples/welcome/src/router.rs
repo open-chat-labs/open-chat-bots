@@ -5,12 +5,14 @@ use std::sync::LazyLock;
 mod commands;
 mod definition;
 mod events;
+mod metrics;
 
 static ROUTER: LazyLock<HttpRouter> = LazyLock::new(init_router);
 
 fn init_router() -> HttpRouter {
     HttpRouter::default()
         .route("/execute_command", POST, commands::execute)
+        .route("/metrics", GET, metrics::get)
         .route("/notify", POST, events::execute)
         .fallback(definition::get)
 }

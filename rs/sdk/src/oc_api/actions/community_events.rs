@@ -8,8 +8,8 @@ use crate::{
     types::{
         AvatarChanged, BotAdded, BotRemoved, BotUpdated, ChannelId, ChatId, CommunityEventType,
         CommunityId, CommunityPermissions, CommunityRole, DescriptionChanged, EventIndex,
-        EventWrapper, GateUpdated, InviteCodeChanged, NameChanged, OCError, RulesChanged,
-        TimestampMillis, UserId, UsersInvited,
+        EventWrapper, GateUpdated, InviteCodeChanged, MemberLeft, NameChanged, OCError,
+        RulesChanged, TimestampMillis, UserId, UsersInvited,
     },
 };
 
@@ -72,13 +72,15 @@ pub struct EventsByIndexArgs {
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum CommunityEvent {
-    Created(Box<ChannelCreated>),
+    Created(Box<CommunityCreated>),
     NameChanged(Box<NameChanged>),
     DescriptionChanged(Box<DescriptionChanged>),
     RulesChanged(Box<RulesChanged>),
     AvatarChanged(Box<AvatarChanged>),
     BannerChanged(Box<BannerChanged>),
     UsersInvited(Box<UsersInvited>),
+    MemberJoined(Box<CommunityMemberJoined>),
+    MemberLeft(Box<MemberLeft>),
     MembersRemoved(Box<CommunityMembersRemoved>),
     RoleChanged(Box<CommunityRoleChanged>),
     UsersBlocked(Box<CommunityUsersBlocked>),
@@ -89,6 +91,7 @@ pub enum CommunityEvent {
     Frozen(Box<CommunityFrozen>),
     Unfrozen(Box<CommunityUnfrozen>),
     GateUpdated(Box<GateUpdated>),
+    ChannelCreated(Box<ChannelCreated>),
     ChannelDeleted(Box<ChannelDeleted>),
     PrimaryLanguageChanged(Box<PrimaryLanguageChanged>),
     GroupImported(Box<GroupImported>),
@@ -108,7 +111,9 @@ impl CommunityEvent {
             CommunityEvent::AvatarChanged(_) => Some(CommunityEventType::AvatarChanged),
             CommunityEvent::BannerChanged(_) => Some(CommunityEventType::BannerChanged),
             CommunityEvent::UsersInvited(_) => Some(CommunityEventType::UsersInvited),
-            CommunityEvent::MembersRemoved(_) => Some(CommunityEventType::MembersLeft),
+            CommunityEvent::MemberJoined(_) => Some(CommunityEventType::MemberJoined),
+            CommunityEvent::MemberLeft(_) => Some(CommunityEventType::MemberLeft),
+            CommunityEvent::MembersRemoved(_) => Some(CommunityEventType::MembersRemoved),
             CommunityEvent::RoleChanged(_) => Some(CommunityEventType::RoleChanged),
             CommunityEvent::UsersBlocked(_) => Some(CommunityEventType::UsersBlocked),
             CommunityEvent::UsersUnblocked(_) => Some(CommunityEventType::UsersUnblocked),
@@ -118,6 +123,7 @@ impl CommunityEvent {
             CommunityEvent::Frozen(_) => Some(CommunityEventType::Frozen),
             CommunityEvent::Unfrozen(_) => Some(CommunityEventType::Unfrozen),
             CommunityEvent::GateUpdated(_) => Some(CommunityEventType::GateUpdated),
+            CommunityEvent::ChannelCreated(_) => Some(CommunityEventType::ChannelCreated),
             CommunityEvent::ChannelDeleted(_) => Some(CommunityEventType::ChannelDeleted),
             CommunityEvent::PrimaryLanguageChanged(_) => {
                 Some(CommunityEventType::PrimaryLanguageChanged)
@@ -129,10 +135,42 @@ impl CommunityEvent {
             CommunityEvent::FailedToDeserialize => None,
         }
     }
+
+    pub fn initiated_by(&self) -> Option<UserId> {
+        match self {
+            CommunityEvent::Created(event) => Some(event.created_by),
+            CommunityEvent::NameChanged(event) => Some(event.changed_by),
+            CommunityEvent::DescriptionChanged(event) => Some(event.changed_by),
+            CommunityEvent::RulesChanged(event) => Some(event.changed_by),
+            CommunityEvent::AvatarChanged(event) => Some(event.changed_by),
+            CommunityEvent::BannerChanged(event) => Some(event.changed_by),
+            CommunityEvent::UsersInvited(event) => Some(event.invited_by),
+            CommunityEvent::MemberJoined(event) => event.invited_by,
+            CommunityEvent::MemberLeft(_) => None,
+            CommunityEvent::MembersRemoved(event) => Some(event.removed_by),
+            CommunityEvent::RoleChanged(event) => Some(event.changed_by),
+            CommunityEvent::UsersBlocked(event) => Some(event.blocked_by),
+            CommunityEvent::UsersUnblocked(event) => Some(event.unblocked_by),
+            CommunityEvent::PermissionsChanged(event) => Some(event.changed_by),
+            CommunityEvent::VisibilityChanged(event) => Some(event.changed_by),
+            CommunityEvent::InviteCodeChanged(event) => Some(event.changed_by),
+            CommunityEvent::Frozen(event) => Some(event.frozen_by),
+            CommunityEvent::Unfrozen(event) => Some(event.unfrozen_by),
+            CommunityEvent::GateUpdated(event) => Some(event.updated_by),
+            CommunityEvent::ChannelCreated(event) => Some(event.created_by),
+            CommunityEvent::ChannelDeleted(event) => Some(event.deleted_by),
+            CommunityEvent::PrimaryLanguageChanged(event) => Some(event.changed_by),
+            CommunityEvent::GroupImported(_) => None,
+            CommunityEvent::BotAdded(event) => Some(event.added_by),
+            CommunityEvent::BotRemoved(event) => Some(event.removed_by),
+            CommunityEvent::BotUpdated(event) => Some(event.updated_by),
+            CommunityEvent::FailedToDeserialize => None,
+        }
+    }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct ChannelCreated {
+pub struct CommunityCreated {
     pub name: String,
     pub description: String,
     pub created_by: UserId,
@@ -150,6 +188,13 @@ pub struct CommunityMembersRemoved {
     pub user_ids: Vec<UserId>,
     pub removed_by: UserId,
     pub referred_by: HashMap<UserId, UserId>,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct CommunityMemberJoined {
+    pub user_id: UserId,
+    pub channel_id: Option<ChannelId>,
+    pub invited_by: Option<UserId>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -184,6 +229,14 @@ pub struct CommunityRoleChanged {
 pub struct GroupImported {
     pub group_id: ChatId,
     pub channel_id: ChannelId,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct ChannelCreated {
+    pub channel_id: ChannelId,
+    pub is_public: bool,
+    pub name: String,
+    pub created_by: UserId,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
