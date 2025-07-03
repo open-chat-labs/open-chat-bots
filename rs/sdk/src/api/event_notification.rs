@@ -16,7 +16,6 @@ pub struct BotEventWrapper {
 }
 
 #[derive(Deserialize, Debug)]
-#[expect(clippy::large_enum_variant)]
 pub enum BotEvent {
     #[serde(rename = "c")]
     Chat(BotChatEvent),
