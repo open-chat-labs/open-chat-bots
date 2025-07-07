@@ -25,16 +25,10 @@ impl CommandHandler<CanisterRuntime> for SetWelcomeMessage {
         let text = oc_client.context().command.arg("message");
         let cxt = oc_client.context();
 
-        let existing = state::mutate(|state| state.messages.set(*cxt.scope.chat().unwrap(), text));
-
-        let message = if existing {
-            "Welcome message updated"
-        } else {
-            "Welcome message set"
-        };
+        state::mutate(|state| state.messages.set(*cxt.scope.chat().unwrap(), text));
 
         Ok(EphemeralMessageBuilder::new(
-            MessageContentInitial::from_text(message.to_string()),
+            MessageContentInitial::from_text("Welcome message set".to_string()),
             cxt.scope.message_id().unwrap(),
         )
         .build()
@@ -46,7 +40,7 @@ impl SetWelcomeMessage {
     fn definition() -> BotCommandDefinition {
         BotCommandDefinition {
             name: "set_welcome_message".to_string(),
-            description: Some("This will set the welcome message. If you include {USERNAME} then the user's name will be inserted.".to_string()),
+            description: Some("This will set a welcome message to be sent to new members of a group or community. For a community the welcome message will be sent in the channel first joined by the user. If you include the text {USERNAME} then the user's name will be inserted.".to_string()),
             placeholder: None,
             params: vec![BotCommandParam {
                 name: "message".to_string(),

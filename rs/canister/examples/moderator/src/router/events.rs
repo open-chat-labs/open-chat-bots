@@ -3,10 +3,10 @@ use oc_bots_sdk::api::event_notification::BotChatEvent;
 use oc_bots_sdk::oc_api::actions::chat_events::{self, EventsByIndexArgs, EventsSelectionCriteria};
 use oc_bots_sdk::oc_api::actions::send_message::Response;
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
-use oc_bots_sdk::types::{CanisterId, MessagePermission, UnitResult};
+use oc_bots_sdk::types::{CanisterId, ChatEvent, MessagePermission, UnitResult};
 use oc_bots_sdk::{
     api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent},
-    types::{ActionScope, AutonomousContext, BotPermissionsBuilder, ChatEventType, ChatPermission},
+    types::{ActionScope, AutonomousContext, BotPermissionsBuilder, ChatPermission},
     InstallationRecord,
 };
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
@@ -37,7 +37,7 @@ async fn handle_event(event_wrapper: BotEventWrapper) {
             };
 
             // Ignore chat events initiated by the bot itself
-            if chat_event.initiated_by != Some(bot_id) {
+            if chat_event.event.initiated_by() != Some(bot_id) {
                 handle_chat_event(chat_event, event_wrapper.api_gateway).await
             }
         }
@@ -72,8 +72,8 @@ lazy_static! {
 }
 
 async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
-    match chat_event.event_type {
-        ChatEventType::Message | ChatEventType::MessageEdited => (),
+    match chat_event.event {
+        ChatEvent::Message(_) => (),
         _ => return,
     }
 
