@@ -1,7 +1,6 @@
-use super::commands;
 use oc_bots_sdk::{
     api::definition::*,
-    types::{BotPermissionsBuilder, ChatEventType, CommunityEventType},
+    types::{BotPermissionsBuilder, CommunityEventType},
 };
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse};
 use std::collections::HashSet;
@@ -10,19 +9,20 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
     HttpResponse::json(
         200,
         &BotDefinition {
-            description: "A bot that welcomes users to a group or community with a custom message."
-                .to_string(),
-            commands: commands::definitions(),
+            description: "This bot assists admin of communities and groups.".to_string(),
+            commands: vec![],
             autonomous_config: Some(AutonomousConfig {
                 permissions: BotPermissionsBuilder::new()
                     .with_message(MessagePermission::Text)
-                    .with_chat(ChatPermission::ReadMembership)
+                    .with_community(CommunityPermission::CreatePrivateChannel)
+                    .with_community(CommunityPermission::InviteUsers)
                     .with_community(CommunityPermission::ReadMembership)
+                    .with_community(CommunityPermission::ReadSummary)
                     .build(),
             }),
             default_subscriptions: Some(BotSubscriptions {
-                community: HashSet::from_iter([CommunityEventType::MemberJoined]),
-                chat: HashSet::from_iter([ChatEventType::MembersJoined]),
+                chat: HashSet::default(),
+                community: CommunityEventType::all(),
             }),
             data_encoding: None,
         },

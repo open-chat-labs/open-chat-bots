@@ -1,5 +1,5 @@
 use super::ActionDef;
-use crate::types::{BotCommunityOrGroupContext, ChannelId, OCError, UserId};
+use crate::types::{BotCommunityOrGroupContext, ChannelId, OCError, TimestampMillis, UserId};
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
@@ -51,4 +51,5 @@ pub enum Response {
 #[derive(CandidType, Serialize, Deserialize, Debug)]
 pub struct MembersResult {
     pub members_map: HashMap<MemberType, Vec<UserId>>,
+    pub timestamp: TimestampMillis,
 }

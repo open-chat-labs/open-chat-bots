@@ -2,7 +2,7 @@ use crate::{
     oc_api::actions::community_events::CommunityEvent,
     types::{
         BotInstalledEvent, BotRegisteredEvent, BotUninstalledEvent, CanisterId, Chat, ChatEvent,
-        CommunityId, EventIndex, MessageIndex,
+        CommunityId, EventIndex, MessageIndex, TimestampMillis,
     },
 };
 use serde::Deserialize;
@@ -13,6 +13,8 @@ pub struct BotEventWrapper {
     pub api_gateway: CanisterId,
     #[serde(rename = "e")]
     pub event: BotEvent,
+    #[serde(default, rename = "t")]
+    pub timestamp: TimestampMillis,
 }
 
 #[derive(Deserialize, Debug)]

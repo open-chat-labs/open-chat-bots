@@ -19,6 +19,7 @@ impl OCError {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Copy, Clone)]
 #[EnumRepr(type = "u16", implicit = true)]
 pub enum OCErrorCode {
     Unknown = 0,
@@ -31,6 +32,7 @@ pub enum OCErrorCode {
     InitiatorNotInCommunity = 104,
     InitiatorLapsed = 105,
     InitiatorBlocked = 106,
+    BotNotAuthenticated = 107,
 
     // Invalid
     ChatNotFound = 200,
@@ -128,7 +130,6 @@ pub enum OCErrorCode {
     TextTooLong = 292,
     MessageHardDeleted = 293,
     InvalidMessageType = 294,
-    ApiKeyNotFound = 295,
     TooManyUsers = 296,
     VideoCallNotFound = 297,
     PrizeNotFound = 298,
@@ -183,11 +184,9 @@ pub enum OCErrorCode {
     Impossible = 600,
 }
 
-impl TryFrom<u16> for OCErrorCode {
-    type Error = ();
-
-    fn try_from(value: u16) -> Result<Self, Self::Error> {
-        OCErrorCode::from_repr(value).ok_or(())
+impl From<u16> for OCErrorCode {
+    fn from(value: u16) -> Self {
+        OCErrorCode::from_repr(value).unwrap_or(OCErrorCode::Unknown)
     }
 }
 
