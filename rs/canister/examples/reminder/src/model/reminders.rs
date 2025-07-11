@@ -24,7 +24,7 @@ thread_local! {
     static TIMER_ID: Cell<Option<TimerId>> = Cell::default();
 }
 
-pub(crate) fn start_job_if_required(state: &mut State) -> bool {
+pub(crate) fn start_job_if_required(state: &State) -> bool {
     if TIMER_ID.get().is_none() {
         if let Some(next_reminder_due) = state.reminders.peek().map(|(timestamp, _)| timestamp) {
             let utc_now = env::now();
@@ -40,7 +40,7 @@ pub(crate) fn start_job_if_required(state: &mut State) -> bool {
     false
 }
 
-pub(crate) fn restart_job(state: &mut State) {
+pub(crate) fn restart_job(state: &State) {
     if let Some(timer_id) = TIMER_ID.get() {
         ic_cdk_timers::clear_timer(timer_id);
         TIMER_ID.set(None);
