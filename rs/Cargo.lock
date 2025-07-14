@@ -18,6 +18,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "512761e0bb2578dd7380c6baaa0f4ce03e84f95e960231d1dec8bf4d7d6e2627"
 
 [[package]]
+name = "admin_bot"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "candid",
+ "chrono",
+ "getrandom",
+ "http 1.2.0",
+ "ic-cdk",
+ "ic-cdk-timers",
+ "ic-http-certification",
+ "ic-stable-structures",
+ "ic_principal",
+ "oc_bots_sdk",
+ "oc_bots_sdk_canister",
+ "rmp-serde",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "ahash"
 version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"

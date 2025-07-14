@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::api::command::Command;
 
 use super::{
@@ -540,6 +542,40 @@ pub enum CommunityEventType {
     BotUpdated,
     UsersBlocked,
     UsersUnblocked,
+}
+
+impl CommunityEventType {
+    pub fn all() -> HashSet<CommunityEventType> {
+        HashSet::from_iter([
+            CommunityEventType::Created,
+            CommunityEventType::NameChanged,
+            CommunityEventType::DescriptionChanged,
+            CommunityEventType::RulesChanged,
+            CommunityEventType::AvatarChanged,
+            CommunityEventType::BannerChanged,
+            CommunityEventType::PermissionsChanged,
+            CommunityEventType::VisibilityChanged,
+            CommunityEventType::Frozen,
+            CommunityEventType::Unfrozen,
+            CommunityEventType::GateUpdated,
+            CommunityEventType::PrimaryLanguageChanged,
+            CommunityEventType::GroupImported,
+            CommunityEventType::ChannelCreated,
+            CommunityEventType::ChannelDeleted,
+            CommunityEventType::MessagePinned,
+            CommunityEventType::MessageUnpinned,
+            CommunityEventType::MemberJoined,
+            CommunityEventType::MemberLeft,
+            CommunityEventType::MembersRemoved,
+            CommunityEventType::RoleChanged,
+            CommunityEventType::UsersInvited,
+            CommunityEventType::BotAdded,
+            CommunityEventType::BotRemoved,
+            CommunityEventType::BotUpdated,
+            CommunityEventType::UsersBlocked,
+            CommunityEventType::UsersUnblocked,
+        ])
+    }
 }
 
 impl From<CommunityEventType> for CommunityEventCategory {

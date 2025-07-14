@@ -1,6 +1,12 @@
 {
   "dfx": "0.26.0",
   "canisters": {
+    "admin_bot": {
+      "type": "rust",
+      "package": "admin_bot",
+      "candid": "canister/examples/admin/can.did",
+      "gzip": true
+    },
     "echo_bot": {
       "type": "rust",
       "package": "echo_bot",
