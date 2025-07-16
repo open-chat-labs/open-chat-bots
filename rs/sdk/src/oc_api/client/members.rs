@@ -22,8 +22,8 @@ impl<'c, R: Runtime, C: ActionContext> MembersBuilder<'c, R, C> {
         }
     }
 
-    pub fn in_channel(mut self, channel_id: ChannelId) -> Self {
-        self.channel_id = Some(channel_id);
+    pub fn in_channel(mut self, channel_id: Option<ChannelId>) -> Self {
+        self.channel_id = channel_id;
         self
     }
 }
