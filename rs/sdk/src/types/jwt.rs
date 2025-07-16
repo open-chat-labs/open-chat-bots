@@ -1,5 +1,6 @@
 use super::{ActionScope, BotPermissions, CanisterId, Chat, MessageId, MessageIndex, UserId};
 use crate::api::command::Command;
+use crate::types::ChannelId;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -40,6 +41,20 @@ impl BotCommandScope {
     pub fn message_id(&self) -> Option<MessageId> {
         match self {
             BotCommandScope::Chat(details) => Some(details.message_id),
+            BotCommandScope::Community(_) => None,
+        }
+    }
+
+    pub fn community_id(&self) -> Option<CanisterId> {
+        match self {
+            BotCommandScope::Chat(details) => details.chat.community_id(),
+            BotCommandScope::Community(details) => Some(details.community_id),
+        }
+    }
+
+    pub fn channel_id(&self) -> Option<ChannelId> {
+        match self {
+            BotCommandScope::Chat(details) => details.chat.channel_id(),
             BotCommandScope::Community(_) => None,
         }
     }

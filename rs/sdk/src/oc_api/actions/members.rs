@@ -3,6 +3,7 @@ use crate::types::{BotCommunityOrGroupContext, ChannelId, OCError, TimestampMill
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
+use strum_macros::{EnumIter, EnumString};
 
 pub struct MembersAction;
 
@@ -29,7 +30,19 @@ pub struct Args {
     pub member_types: HashSet<MemberType>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(
+    CandidType,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    Hash,
+    EnumString,
+    EnumIter,
+)]
 pub enum MemberType {
     Owner,
     Admin,
