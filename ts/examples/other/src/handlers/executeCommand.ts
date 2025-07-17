@@ -9,9 +9,10 @@
 import { commandNotFound } from "@open-ic/openchat-botclient-ts";
 import { Request, Response } from "express";
 import { WithBotClient } from "../types";
-import events from "./events";
+import { chatEvents, communityEvents } from "./events";
 import file from "./file";
 import image from "./image";
+import { chatMembers, communityMembers } from "./members";
 import news from "./news";
 import numbers from "./numbers";
 import poll from "./poll";
@@ -32,12 +33,18 @@ export default function executeCommand(req: Request, res: Response) {
   const client = req.botClient;
 
   switch (client.commandName) {
+    case "chat_members":
+      return chatMembers(req, res);
+    case "community_members":
+      return communityMembers(req, res);
     case "say_hello":
       return sayHello(req, res);
     case "chat_summary":
       return summary(req, res);
     case "chat_events":
-      return events(req, res);
+      return chatEvents(req, res);
+    case "community_events":
+      return communityEvents(req, res);
     case "prompt":
     case "numbers":
       return numbers(req, res);

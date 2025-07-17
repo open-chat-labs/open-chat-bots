@@ -6,19 +6,10 @@
 import { BotClientFactory } from "@open-ic/openchat-botclient-ts";
 import cors from "cors";
 import express from "express";
-import { rateLimit } from "express-rate-limit";
 import executeCommand from "./handlers/executeCommand";
 import handleNotification from "./handlers/notify";
 import schema from "./handlers/schema";
 import { createCommandChatClient } from "./middleware/botclient";
-
-const limiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  limit: 3, // 3 per minute
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-  statusCode: 429,
-});
 
 const app = express();
 
@@ -34,7 +25,6 @@ const factory = new BotClientFactory({
 });
 
 app.use(cors());
-app.use(limiter);
 app.post("/notify", express.json(), handleNotification);
 app.post(
   "/execute_command",

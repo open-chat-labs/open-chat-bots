@@ -6,6 +6,7 @@ import {
     type AudioContent,
     type BlobReference,
     type BotChatContext,
+    type BotCommunityOrGroupContext,
     type BotMessageContext,
     ChannelIdentifier,
     CHAT_SYMBOL,
@@ -21,7 +22,10 @@ import {
     type CommandActionScope,
     type CommandArg,
     CommunityActionScope,
+    type CommunityEvent,
+    type CommunityEventsCriteria,
     CommunityIdentifier,
+    type CommunityOrGroup,
     type CommunityPermissions,
     type CompletedCryptocurrencyTransfer,
     type CreateChannelResponse,
@@ -83,10 +87,14 @@ import {
 } from "../domain";
 import type {
     ChannelSummary,
+    CommunityEventsResponse,
+    CommunityEventsSuccess,
+    CommunityEventWrapper,
     CommunitySummary,
     CommunitySummaryResponse,
     DirectChatSummary,
     GroupChatSummary,
+    MembersResponse,
     OCError,
 } from "../domain/response";
 import {
@@ -96,14 +104,20 @@ import {
     type AudioContent as ApiAudioContent,
     type BlobReference as ApiBlobReference,
     type BotChatContext as ApiBotChatContext,
+    type BotCommunityOrGroupContext as ApiBotCommunityOrGroupContext,
     type BotMessageContext as ApiBotMessageContext,
     type CallParticipant as ApiCallParticipant,
     type CommunityChannelSummary as ApiChannelSummary,
     Chat as ApiChat,
     type ChatEvent as ApiChatEvent,
     type LocalUserIndexChatEventsEventsSelectionCriteria as ApiChatEventsCriteria,
+    type CommunityEvent as ApiCommunityEvent,
+    type CommunityCommunityEventsEventsSelectionCriteria as ApiCommunityEventsCriteria,
+    type CommunityCommunityEventsEventsResponse as ApiCommunityEventsResponse,
+    type CommunityOrGroup as ApiCommunityOrGroup,
     type CommunityPermissionRole as ApiCommunityPermissionRole,
     type CommunityPermissions as ApiCommunityPermissions,
+    type CommunityRole as ApiCommunityRole,
     CommunityCommunitySummary as ApiCommunitySummary,
     type CompletedCryptoTransaction as ApiCompletedCryptoTransaction,
     type CryptoContent as ApiCryptoContent,
@@ -113,6 +127,7 @@ import {
     type DeletedBy as ApiDeletedBy,
     type EventsResponse as ApiEventsResponse,
     type EventWrapperChatEvent as ApiEventWrapperChatEvent,
+    type EventWrapperCommunityEvent as ApiEventWrapperCommunityEvent,
     type FailedCryptoTransaction as ApiFailedCryptoTransaction,
     type FileContent as ApiFileContent,
     type FrozenGroupInfo as ApiFrozenGroupInfo,
@@ -121,6 +136,7 @@ import {
     type GroupPermissions as ApiGroupPermissions,
     type GroupRole as ApiGroupRole,
     type ImageContent as ApiImageContent,
+    MembersResponse as ApiMembersResponse,
     type Message as ApiMessage,
     type MessageContent as ApiMessageContent,
     type MessagePermissions as ApiMessagePermissions,
@@ -154,12 +170,14 @@ import {
     type LocalUserIndexBotChatEventsResponse as BotChatEventsResponse,
     type LocalUserIndexBotChatSummaryResponse as BotChatSummaryResponse,
     BotCommandArg,
+    type CommunityCommunityEventsResponse as BotCommunityEventsResponse,
     type LocalUserIndexBotCommunitySummaryResponse as BotCommunitySummaryResponse,
     type LocalUserIndexBotCreateChannelResponse as BotCreateChannelResponse,
     type UnitResult as BotDeleteChannelResponse,
     type LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
     type Chat,
     ChatSummary,
+    MemberType,
 } from "../typebox/typebox";
 import { toBigInt32, toBigInt64 } from "../utils/bigint";
 import { UnsupportedValueError } from "../utils/error";
@@ -249,6 +267,15 @@ export function mapChatIdentifier(api: Chat): ChatIdentifier {
     throw new Error(`Unexpected Chat type received: ${api}`);
 }
 
+export function membersResponse(api: ApiMembersResponse): MembersResponse {
+    return mapResult(api, (success) => {
+        const entries: [MemberType, string[]][] = Object.entries(success.members_map).map(
+            ([k, v]) => [k as MemberType, v.map(principalBytesToString)],
+        );
+        return { kind: "success", members: new Map<MemberType, string[]>(entries) };
+    });
+}
+
 export function sendMessageResponse(api: BotSendMessageResponse): SendMessageResponse {
     return mapResult(api, (success) => ({
         kind: "success",
@@ -283,6 +310,20 @@ export function chatSummaryResponse(api: BotChatSummaryResponse): ChatSummaryRes
 
 export function chatEventsResponse(api: BotChatEventsResponse): ChatEventsResponse {
     return mapResult(api, chatEventsSuccessResponse);
+}
+
+export function communityEventsResponse(api: BotCommunityEventsResponse): CommunityEventsResponse {
+    return mapResult(api, communityEventsSuccessResponse);
+}
+
+function communityEventsSuccessResponse(api: ApiCommunityEventsResponse): CommunityEventsSuccess {
+    return {
+        kind: "success",
+        events: api.events.map(communityEventWrapper),
+        unauthorized: api.unauthorized,
+        latestEventIndex: api.latest_event_index,
+        communityLastUpdated: api.community_last_updated,
+    };
 }
 
 function chatEventsSuccessResponse(api: ApiEventsResponse): ChatEventsSuccess {
@@ -612,7 +653,7 @@ function apiCredentialArguments(domain?: Record<string, string | number>): ApiCr
 }
 
 export function permissionRole(
-    api: ApiPermissionRole | ApiGroupRole | ApiCommunityPermissionRole,
+    api: ApiPermissionRole | ApiGroupRole | ApiCommunityRole | ApiCommunityPermissionRole,
 ): PermissionRole {
     switch (api) {
         case "Owners":
@@ -622,6 +663,8 @@ export function permissionRole(
         case "Admins":
             return "admin";
         case "Members":
+            return "member";
+        case "Member":
             return "member";
         case "Participant":
             return "member";
@@ -740,6 +783,15 @@ export function toRecord2<T, K extends string | number | symbol, V>(
     );
 }
 
+export function communityEventWrapper(value: ApiEventWrapperCommunityEvent): CommunityEventWrapper {
+    return {
+        event: communityEvent(value.event),
+        index: value.index,
+        timestamp: value.timestamp,
+        expiresAt: optional(value.expires_at, BigInt),
+    };
+}
+
 export function eventWrapper(value: ApiEventWrapperChatEvent): ChatEventWrapper {
     return {
         event: event(value.event),
@@ -747,6 +799,230 @@ export function eventWrapper(value: ApiEventWrapperChatEvent): ChatEventWrapper 
         timestamp: value.timestamp,
         expiresAt: optional(value.expires_at, BigInt),
     };
+}
+
+export function communityEvent(value: ApiCommunityEvent): CommunityEvent {
+    if (value === "FailedToDeserialize") {
+        return { kind: "empty" };
+    }
+
+    if ("Created" in value) {
+        return {
+            kind: "group_chat_created",
+            name: value.Created.name,
+            description: value.Created.description,
+            created_by: principalBytesToString(value.Created.created_by),
+        };
+    }
+    if ("NameChanged" in value) {
+        return {
+            kind: "community_name_changed",
+            changedBy: principalBytesToString(value.NameChanged.changed_by),
+        };
+    }
+
+    if ("DescriptionChanged" in value) {
+        return {
+            kind: "community_description_changed",
+            changedBy: principalBytesToString(value.DescriptionChanged.changed_by),
+        };
+    }
+
+    if ("RulesChanged" in value) {
+        return {
+            kind: "community_rules_changed",
+            enabled: value.RulesChanged.enabled,
+            enabledPrev: value.RulesChanged.prev_enabled,
+            changedBy: principalBytesToString(value.RulesChanged.changed_by),
+        };
+    }
+
+    if ("AvatarChanged" in value) {
+        return {
+            kind: "avatar_changed",
+            changedBy: principalBytesToString(value.AvatarChanged.changed_by),
+        };
+    }
+
+    if ("BannerChanged" in value) {
+        return {
+            kind: "banner_changed",
+            changedBy: principalBytesToString(value.BannerChanged.changed_by),
+        };
+    }
+
+    if ("UsersInvited" in value) {
+        return {
+            kind: "users_invited",
+            userIds: value.UsersInvited.user_ids.map(principalBytesToString),
+            invitedBy: principalBytesToString(value.UsersInvited.invited_by),
+        };
+    }
+
+    if ("MemberJoined" in value) {
+        return {
+            kind: "member_joined",
+            userId: principalBytesToString(value.MemberJoined.user_id),
+        };
+    }
+
+    if ("MembersRemoved" in value) {
+        return {
+            kind: "members_removed",
+            userIds: value.MembersRemoved.user_ids.map(principalBytesToString),
+            removedBy: principalBytesToString(value.MembersRemoved.removed_by),
+        };
+    }
+
+    if ("MemberLeft" in value) {
+        return {
+            kind: "member_left",
+            userId: principalBytesToString(value.MemberLeft.user_id),
+        };
+    }
+
+    if ("RoleChanged" in value) {
+        return {
+            kind: "role_changed",
+            userIds: value.RoleChanged.user_ids.map(principalBytesToString),
+            changedBy: principalBytesToString(value.RoleChanged.changed_by),
+            oldRole: permissionRole(value.RoleChanged.old_role),
+            newRole: permissionRole(value.RoleChanged.new_role),
+        };
+    }
+
+    if ("UsersBlocked" in value) {
+        return {
+            kind: "users_blocked",
+            userIds: value.UsersBlocked.user_ids.map(principalBytesToString),
+            blockedBy: principalBytesToString(value.UsersBlocked.blocked_by),
+        };
+    }
+
+    if ("UsersUnblocked" in value) {
+        return {
+            kind: "users_unblocked",
+            userIds: value.UsersUnblocked.user_ids.map(principalBytesToString),
+            unblockedBy: principalBytesToString(value.UsersUnblocked.unblocked_by),
+        };
+    }
+
+    if ("PermissionsChanged" in value) {
+        return {
+            kind: "community_permissions_changed",
+            oldPermissions: communityPermissions(value.PermissionsChanged.old_permissions),
+            newPermissions: communityPermissions(value.PermissionsChanged.new_permissions),
+            changedBy: principalBytesToString(value.PermissionsChanged.changed_by),
+        };
+    }
+
+    if ("VisibilityChanged" in value) {
+        return {
+            kind: "community_visibility_changed",
+            public: optional(value.VisibilityChanged.now_public, identity),
+            changedBy: principalBytesToString(value.VisibilityChanged.changed_by),
+        };
+    }
+
+    if ("InviteCodeChanged" in value) {
+        let change: GroupInviteCodeChange = "disabled";
+        if (value.InviteCodeChanged.change === "Enabled") {
+            change = "enabled";
+        } else if (value.InviteCodeChanged.change === "Reset") {
+            change = "reset";
+        }
+
+        return {
+            kind: "group_invite_code_changed",
+            change,
+            changedBy: principalBytesToString(value.InviteCodeChanged.changed_by),
+        };
+    }
+
+    if ("Frozen" in value) {
+        return {
+            kind: "community_frozen",
+            frozenBy: principalBytesToString(value.Frozen.frozen_by),
+            reason: optional(value.Frozen.reason, identity),
+        };
+    }
+
+    if ("Unfrozen" in value) {
+        return {
+            kind: "community_unfrozen",
+            unfrozenBy: principalBytesToString(value.Unfrozen.unfrozen_by),
+        };
+    }
+
+    if ("GateUpdated" in value) {
+        return {
+            kind: "gate_updated",
+            updatedBy: principalBytesToString(value.GateUpdated.updated_by),
+        };
+    }
+
+    if ("ChannelCreated" in value) {
+        return {
+            kind: "channel_created",
+            name: value.ChannelCreated.name,
+            isPublic: value.ChannelCreated.is_public,
+            channelId: toBigInt32(value.ChannelCreated.channel_id),
+            createdBy: principalBytesToString(value.ChannelCreated.created_by),
+        };
+    }
+
+    if ("ChannelDeleted" in value) {
+        return {
+            kind: "channel_deleted",
+            name: value.ChannelDeleted.name,
+            channelId: toBigInt32(value.ChannelDeleted.channel_id),
+            deletedBy: principalBytesToString(value.ChannelDeleted.deleted_by),
+            botCommand: value.ChannelDeleted.bot_command,
+        };
+    }
+
+    if ("PrimaryLanguageChanged" in value) {
+        return {
+            kind: "primary_language_changed",
+            previous: value.PrimaryLanguageChanged.previous,
+            new: value.PrimaryLanguageChanged.new,
+            changedBy: principalBytesToString(value.PrimaryLanguageChanged.changed_by),
+        };
+    }
+
+    if ("GroupImported" in value) {
+        return {
+            kind: "group_imported",
+            groupId: principalBytesToString(value.GroupImported.group_id),
+            channelId: toBigInt32(value.GroupImported.channel_id),
+        };
+    }
+
+    if ("BotAdded" in value) {
+        return {
+            kind: "bot_added",
+            userId: principalBytesToString(value.BotAdded.user_id),
+            addedBy: principalBytesToString(value.BotAdded.added_by),
+        };
+    }
+
+    if ("BotRemoved" in value) {
+        return {
+            kind: "bot_removed",
+            userId: principalBytesToString(value.BotRemoved.user_id),
+            removedBy: principalBytesToString(value.BotRemoved.removed_by),
+        };
+    }
+
+    if ("BotUpdated" in value) {
+        return {
+            kind: "bot_updated",
+            userId: principalBytesToString(value.BotUpdated.user_id),
+            updatedBy: principalBytesToString(value.BotUpdated.updated_by),
+        };
+    }
+
+    return { kind: "empty" };
 }
 
 export function event(value: ApiChatEvent): ChatEvent {
@@ -1042,6 +1318,9 @@ export function messageContent(value: ApiMessageContent, sender: string): Messag
     }
     if ("VideoCall" in value) {
         return videoCallContent(value.VideoCall);
+    }
+    if ("Encrypted" in value) {
+        throw new Error("Encrypted content not supported yet");
     }
     throw new UnsupportedValueError("Unexpected ApiMessageContent type received", value);
 }
@@ -1464,7 +1743,6 @@ function prizeContent(value: ApiPrizeContent): PrizeContent {
         lifetimeDiamondOnly: value.lifetime_diamond_only,
         uniquePersonOnly: value.unique_person_only,
         streakOnly: value.streak_only,
-        winners: value.winners.map(principalBytesToString),
         token: value.token_symbol,
         endDate: value.end_date,
         caption: value.caption,
@@ -1747,6 +2025,47 @@ export function apiChatEventsCriteria(domain: ChatEventsCriteria): ApiChatEvents
                     max_events: domain.maxEvents,
                 },
             };
+    }
+}
+
+export function apiCommunityEventsCriteria(
+    domain: CommunityEventsCriteria,
+): ApiCommunityEventsCriteria {
+    switch (domain.kind) {
+        case "community_events_page":
+            return {
+                Page: {
+                    start_index: domain.startEventIndex,
+                    ascending: domain.ascending,
+                    max_events: domain.maxEvents,
+                },
+            };
+        case "community_events_by_index":
+            return {
+                ByIndex: {
+                    events: domain.eventIndexes,
+                },
+            };
+    }
+}
+
+export function apiBotCommunityOrGroupContext(
+    domain: BotCommunityOrGroupContext,
+): ApiBotCommunityOrGroupContext {
+    switch (domain.kind) {
+        case "command":
+            return { Command: domain.jwt };
+        case "autonomous":
+            return { Autonomous: apiCommunityOrGroup(domain.communityOrGroup) };
+    }
+}
+
+export function apiCommunityOrGroup(domain: CommunityOrGroup): ApiCommunityOrGroup {
+    switch (domain.kind) {
+        case "community":
+            return { Community: principalStringToBytes(domain.communityId) };
+        case "group_chat":
+            return { Group: principalStringToBytes(domain.groupId) };
     }
 }
 

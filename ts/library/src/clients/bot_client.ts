@@ -15,9 +15,12 @@ import {
     type ChatEventsResponse,
     type ChatIdentifier,
     type ChatSummaryResponse,
+    type CommunityEventsCriteria,
+    type CommunityEventsResponse,
     type CommunitySummaryResponse,
     type CreateChannelResponse,
     type DeleteChannelResponse,
+    type MembersResponse,
     type Message,
     type SendMessageResponse,
     type UnitResult,
@@ -27,7 +30,7 @@ import type { Channel } from "../domain/channel";
 import { apiOptional, principalBytesToString } from "../mapping";
 import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
 import { DataClient } from "../services/data/data.client";
-import { BotCommand, BotCommandArg } from "../typebox/typebox";
+import { BotCommand, BotCommandArg, MemberType } from "../typebox/typebox";
 
 export class BotClient {
     #botService: BotGatewayClient;
@@ -210,6 +213,23 @@ export class BotClient {
         return this.#actionContext.thread;
     }
 
+    public get channelId(): bigint | undefined {
+        if (this.chatScope?.chat.isChannel()) {
+            return this.chatScope.chat.channelId;
+        }
+        return undefined;
+    }
+
+    public get communityId(): CommunityIdentifier | undefined {
+        if (this.scope.isCommunityScope()) {
+            return this.scope.communityId;
+        } else if (this.scope.isChatScope()) {
+            if (this.scope.chat.isChannel()) {
+                return new CommunityIdentifier(this.scope.chat.communityId);
+            }
+        }
+    }
+
     public get chatId(): ChatIdentifier | undefined {
         return this.chatScope?.chat;
     }
@@ -284,6 +304,21 @@ export class BotClient {
         });
     }
 
+    members(memberTypes: MemberType[], channelId?: bigint): Promise<MembersResponse> {
+        return this.#botService
+            .members(
+                this.#actionContext.communityOrGroupChatContext(),
+                memberTypes,
+                channelId ?? this.channelId,
+            )
+            .then((resp) => {
+                if (resp.kind === "error") {
+                    console.error("OpenChat botClient.members failed with: ", resp);
+                }
+                return resp;
+            });
+    }
+
     chatSummary(channelId?: bigint): Promise<ChatSummaryResponse> {
         return this.#botService
             .chatSummary(this.#actionContext.chatContext(channelId))
@@ -317,5 +352,19 @@ export class BotClient {
                 }
                 return resp;
             });
+    }
+
+    communityEvents(criteria: CommunityEventsCriteria): Promise<CommunityEventsResponse> {
+        const id = this.communityId;
+        if (id !== undefined) {
+            return this.#botService.communityEvents(id, criteria).then((resp) => {
+                if (resp.kind !== "success") {
+                    console.error("OpenChat botClient.chatEvents failed with: ", resp);
+                }
+                return resp;
+            });
+        } else {
+            return Promise.resolve({ kind: "error", code: 0, message: undefined });
+        }
     }
 }

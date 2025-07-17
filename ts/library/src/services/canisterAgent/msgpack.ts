@@ -11,10 +11,10 @@ import {
 } from "@dfinity/agent";
 import { Principal } from "@dfinity/principal";
 import type { Static, TSchema } from "@sinclair/typebox";
-import { type Options, Packr } from "msgpackr";
 import { AssertError, Value } from "@sinclair/typebox/value";
-import { CanisterAgent } from "./base";
+import { type Options, Packr } from "msgpackr";
 import { toCanisterResponseError } from "../../utils/error";
+import { CanisterAgent } from "./base";
 
 const Packer = new Packr({
     useRecords: false,
@@ -182,8 +182,8 @@ export abstract class MsgpackCanisterAgent extends CanisterAgent {
         } catch (err) {
             console.error(
                 "Validation failed for response: ",
-                response,
-                err instanceof AssertError ? err.error : undefined,
+                JSON.stringify(response),
+                err instanceof AssertError ? JSON.stringify(err.error) : undefined,
             );
             throw err;
         }

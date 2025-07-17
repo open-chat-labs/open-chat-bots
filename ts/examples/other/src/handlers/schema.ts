@@ -7,6 +7,18 @@ const emptyPermissions = {
   message: [],
 };
 
+const memberTypes = [
+  { name: "Owner", value: "Owner" },
+  { name: "Admin", value: "Admin" },
+  { name: "Moderator", value: "Moderator" },
+  { name: "Member", value: "Member" },
+  { name: "Blocked", value: "Blocked" },
+  { name: "Invited", value: "Invited" },
+  { name: "Lapsed", value: "Lapsed" },
+  { name: "Bot", value: "Bot" },
+  { name: "Webhook", value: "Webhook" },
+];
+
 function getBotDefinition(): BotDefinition {
   return {
     autonomous_config: {
@@ -24,6 +36,68 @@ function getBotDefinition(): BotDefinition {
     description:
       "This is a demonstration bot which demonstrates a variety of different approaches and techniques that bot developers can use.",
     commands: [
+      {
+        name: "community_events",
+        default_role: "Participant",
+        description: "Get recent community events",
+        permissions: Permissions.encodePermissions({
+          ...emptyPermissions,
+          community: ["ReadCommunitySummary"],
+        }),
+        params: [],
+      },
+      {
+        name: "chat_members",
+        default_role: "Participant",
+        description: "Get all chat members of a particular type",
+        permissions: Permissions.encodePermissions({
+          ...emptyPermissions,
+          chat: ["ReadMembership"],
+          message: ["Text"],
+        }),
+        params: [
+          {
+            name: "member_type",
+            required: true,
+            description: "The type of members to return",
+            placeholder: "Select the required member type",
+            param_type: {
+              StringParam: {
+                min_length: 0,
+                max_length: 100,
+                choices: memberTypes,
+                multi_line: false,
+              },
+            },
+          },
+        ],
+      },
+      {
+        name: "community_members",
+        default_role: "Participant",
+        description: "Get all community members of a particular type",
+        permissions: Permissions.encodePermissions({
+          ...emptyPermissions,
+          community: ["ReadMembership"],
+          message: ["Text"],
+        }),
+        params: [
+          {
+            name: "member_type",
+            required: true,
+            description: "The type of members to return",
+            placeholder: "Select the required member type",
+            param_type: {
+              StringParam: {
+                min_length: 0,
+                max_length: 100,
+                choices: memberTypes,
+                multi_line: false,
+              },
+            },
+          },
+        ],
+      },
       {
         name: "subscribe",
         default_role: "Owner",

@@ -1,20 +1,91 @@
 import {
   ChatEventsSuccess,
-  Message,
-  type BotClient,
+  CommunityEventsSuccess,
 } from "@open-ic/openchat-botclient-ts";
 import { Response } from "express";
 import { WithBotClient } from "../types";
+import { ephemeralMsg } from "./helpers";
 import { success } from "./success";
 
-async function ephemeralMsg(client: BotClient, txt: string): Promise<Message> {
-  const msg = (await client.createTextMessage(txt))
-    .makeEphemeral()
-    .setFinalised(true);
-  return msg;
+export async function communityEvents(req: WithBotClient, res: Response) {
+  const client = req.botClient;
+  const scope = client.chatScope;
+  if (scope === undefined) {
+    res
+      .status(200)
+      .json(
+        success(
+          await ephemeralMsg(client, "Commandcan only be run in a chat scope")
+        )
+      );
+    return;
+  }
+  if (!scope.chat.isChannel()) {
+    res
+      .status(200)
+      .json(
+        success(
+          await ephemeralMsg(
+            client,
+            "This command only makes sense in a community channel"
+          )
+        )
+      );
+    return;
+  }
+
+  const communityId = client.communityId;
+  if (!communityId) {
+    res
+      .status(200)
+      .json(
+        success(
+          await ephemeralMsg(client, "Couldn't determine the community Id")
+        )
+      );
+    return;
+  }
+
+  const resp = await client.communitySummary(communityId);
+  if (resp.kind === "error") {
+    res
+      .status(200)
+      .json(
+        success(
+          await ephemeralMsg(client, "Unable to to load the community summary")
+        )
+      );
+    return;
+  }
+
+  const eventsResp = await client.communityEvents({
+    kind: "community_events_page",
+    maxEvents: 50,
+    startEventIndex: resp.latestEventIndex,
+    ascending: false,
+  });
+  if (eventsResp.kind !== "success") {
+    res
+      .status(200)
+      .json(
+        success(
+          await ephemeralMsg(
+            client,
+            "Unable to load the events for the community"
+          )
+        )
+      );
+    return;
+  }
+  const msg = createCommunityEventsMessage(eventsResp);
+  const details = (await client.createTextMessage(msg)).setFinalised(true);
+  client
+    .sendMessage(details)
+    .catch((err) => console.error("sendMessage failed with: ", err));
+  res.status(200).json(success(details));
 }
 
-export default async function (req: WithBotClient, res: Response) {
+export async function chatEvents(req: WithBotClient, res: Response) {
   const client = req.botClient;
   if (client.chatScope === undefined) {
     res
@@ -55,7 +126,7 @@ export default async function (req: WithBotClient, res: Response) {
       );
     return;
   }
-  const msg = createEventsMessage(eventsResp);
+  const msg = createChatEventsMessage(eventsResp);
   const details = (await client.createTextMessage(msg)).setFinalised(true);
   client
     .sendMessage(details)
@@ -64,7 +135,7 @@ export default async function (req: WithBotClient, res: Response) {
 }
 
 // writes out the message text for all of the text content messages
-function createEventsMessage(resp: ChatEventsSuccess): string {
+function createChatEventsMessage(resp: ChatEventsSuccess): string {
   const msgs: string[] = [];
   resp.events.forEach((ev) => {
     if (
@@ -75,6 +146,15 @@ function createEventsMessage(resp: ChatEventsSuccess): string {
       msgs.push(`Sent by: @UserId(${ev.event.sender})`);
       msgs.push("=================================\n\n");
     }
+  });
+  return msgs.join("\n");
+}
+
+function createCommunityEventsMessage(resp: CommunityEventsSuccess): string {
+  const msgs: string[] = [];
+  resp.events.forEach((ev) => {
+    msgs.push(JSON.stringify(ev.event));
+    msgs.push("=================================\n\n");
   });
   return msgs.join("\n");
 }

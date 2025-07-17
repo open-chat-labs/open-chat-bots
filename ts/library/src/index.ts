@@ -3,7 +3,7 @@ export { BotClient } from "./clients/bot_client";
 export { BotClientFactory } from "./clients/client_factory";
 export * from "./domain";
 export * from "./services/bot_gateway";
-export { BotDefinition } from "./typebox/typebox";
+export { BotDefinition, type MemberType } from "./typebox/typebox";
 export * from "./utils/badrequest";
 export { parseBotNotification } from "./utils/botEventParser";
 export { handleNotification } from "./utils/notification";

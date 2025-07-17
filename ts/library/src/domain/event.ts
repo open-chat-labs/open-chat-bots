@@ -1,8 +1,38 @@
+import type { BotCommand } from "../typebox/typebox";
 import type { CommandArg } from "./bot";
 import type { DataContent } from "./data";
 import type { ChatIdentifier } from "./identifiers";
-import type { GroupPermissions, PermissionRole } from "./permissions";
+import type { CommunityPermissions, GroupPermissions, PermissionRole } from "./permissions";
 import type { VideoCallType } from "./video";
+
+export type CommunityEvent =
+    | EmptyEvent
+    | GroupChatCreated
+    | CommunityNameChanged
+    | CommunityDescriptionChanged
+    | AvatarChanged
+    | BannerChanged
+    | UsersInvitedEvent
+    | MembersRemoved
+    | MemberJoined
+    | MemberLeft
+    | RoleChanged
+    | UsersBlocked
+    | UsersUnblocked
+    | CommunityVisibilityChanged
+    | GroupInviteCodeChanged
+    | CommunityFrozenEvent
+    | CommunityUnfrozenEvent
+    | GateUpdatedEvent
+    | CommunityPermissionsChanged
+    | ChannelCreated
+    | ChannelDeleted
+    | PrimaryLanguageChanged
+    | GroupImported
+    | BotAdded
+    | BotRemoved
+    | BotUpdated
+    | CommunityRulesChanged;
 
 export type ChatEvent =
     | EmptyEvent
@@ -47,8 +77,42 @@ export type GroupChatCreated = {
     created_by: string;
 };
 
+export type ChannelCreated = {
+    kind: "channel_created";
+    channelId: bigint;
+    name: string;
+    isPublic: boolean;
+    createdBy: string;
+};
+
+export type ChannelDeleted = {
+    kind: "channel_deleted";
+    channelId: bigint;
+    name: string;
+    deletedBy: string;
+    botCommand?: BotCommand;
+};
+
+export type PrimaryLanguageChanged = {
+    kind: "primary_language_changed";
+    previous: string;
+    new: string;
+    changedBy: string;
+};
+
+export type GroupImported = {
+    kind: "group_imported";
+    groupId: string;
+    channelId: bigint;
+};
+
 export type DirectChatCreated = {
     kind: "direct_chat_created";
+};
+
+export type CommunityNameChanged = {
+    kind: "community_name_changed";
+    changedBy: string;
 };
 
 export type GroupNameChanged = {
@@ -56,8 +120,20 @@ export type GroupNameChanged = {
     changedBy: string;
 };
 
+export type CommunityDescriptionChanged = {
+    kind: "community_description_changed";
+    changedBy: string;
+};
+
 export type GroupDescChanged = {
     kind: "desc_changed";
+    changedBy: string;
+};
+
+export type CommunityRulesChanged = {
+    kind: "community_rules_changed";
+    enabled: boolean;
+    enabledPrev: boolean;
     changedBy: string;
 };
 
@@ -70,6 +146,11 @@ export type GroupRulesChanged = {
 
 export type AvatarChanged = {
     kind: "avatar_changed";
+    changedBy: string;
+};
+
+export type BannerChanged = {
+    kind: "banner_changed";
     changedBy: string;
 };
 
@@ -153,10 +234,23 @@ export type UsersUnblocked = {
     unblockedBy: string;
 };
 
+export type CommunityPermissionsChanged = {
+    kind: "community_permissions_changed";
+    oldPermissions: CommunityPermissions;
+    newPermissions: CommunityPermissions;
+    changedBy: string;
+};
+
 export type PermissionsChanged = {
     kind: "permissions_changed";
     oldPermissions: GroupPermissions;
     newPermissions: GroupPermissions;
+    changedBy: string;
+};
+
+export type CommunityVisibilityChanged = {
+    kind: "community_visibility_changed";
+    public?: boolean;
     changedBy: string;
 };
 
@@ -174,6 +268,17 @@ export type GroupInviteCodeChanged = {
 };
 
 export type GroupInviteCodeChange = "enabled" | "disabled" | "reset";
+
+export type CommunityFrozenEvent = {
+    kind: "community_frozen";
+    frozenBy: string;
+    reason: string | undefined;
+};
+
+export type CommunityUnfrozenEvent = {
+    kind: "community_unfrozen";
+    unfrozenBy: string;
+};
 
 export type ChatFrozenEvent = {
     kind: "chat_frozen";
@@ -547,7 +652,6 @@ export interface PrizeContent {
     lifetimeDiamondOnly: boolean;
     uniquePersonOnly: boolean;
     streakOnly: number;
-    winners: string[];
     token: string;
     endDate: bigint;
     caption?: string;
@@ -687,6 +791,20 @@ export type VideoCallContent = {
 };
 
 export type ChatEventsCriteria = ChatEventsPage | ChatEventsByIndex | ChatEventsWindow;
+
+export type CommunityEventsCriteria = CommunityEventsPage | CommunityEventsByIndex;
+
+export type CommunityEventsPage = {
+    kind: "community_events_page";
+    startEventIndex: number;
+    ascending: boolean;
+    maxEvents: number;
+};
+
+export type CommunityEventsByIndex = {
+    kind: "community_events_by_index";
+    eventIndexes: number[];
+};
 
 export type ChatEventsPage = {
     kind: "chat_events_page";
