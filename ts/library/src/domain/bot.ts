@@ -183,6 +183,15 @@ export type DateTimeArg = {
 // These are the things that are actually passed to the localuserindex endpoints to provide scope
 export type BotChatContext = CommandChatContext | AutonomousChatContext;
 
+export type AutonomousCommunityOrGroup = {
+    kind: "autonomous";
+    communityOrGroup: CommunityOrGroup;
+};
+
+export type CommunityOrGroup = CommunityIdentifier | GroupChatIdentifier;
+
 export type CommandChatContext = { kind: "command"; jwt: string };
 
 export type AutonomousChatContext = { kind: "autonomous"; chatId: ChatIdentifier };
+
+export type BotCommunityOrGroupContext = CommandChatContext | AutonomousCommunityOrGroup;

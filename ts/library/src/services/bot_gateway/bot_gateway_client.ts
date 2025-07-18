@@ -2,14 +2,18 @@ import { HttpAgent } from "@dfinity/agent";
 import type {
     BotChatContext,
     BotClientConfig,
+    BotCommunityOrGroupContext,
     ChannelIdentifier,
     ChatEventsCriteria,
     ChatEventsResponse,
     ChatSummaryResponse,
+    CommunityEventsCriteria,
+    CommunityEventsResponse,
     CommunityIdentifier,
     CommunitySummaryResponse,
     CreateChannelResponse,
     DeleteChannelResponse,
+    MembersResponse,
     Message,
     SendMessageResponse,
     UnitResult,
@@ -17,23 +21,30 @@ import type {
 import type { Channel } from "../../domain/channel";
 import {
     apiBotChatContext,
+    apiBotCommunityOrGroupContext,
     apiChatEventsCriteria,
+    apiCommunityEventsCriteria,
     chatEventsResponse,
     chatSummaryResponse,
+    communityEventsResponse,
     communitySummaryResponse,
     createChannelResponse,
     deleteChannelResponse,
+    membersResponse,
     principalStringToBytes,
     sendMessageResponse,
     unitResult,
 } from "../../mapping";
 import {
+    MembersResponse as ApiMembersResponse,
     UnitResult as ApiUnitResult,
     LocalUserIndexBotAddReactionArgs as BotAddReactionArgs,
     LocalUserIndexBotChatEventsArgs as BotChatEventsArgs,
     LocalUserIndexBotChatEventsResponse as BotChatEventsResponse,
     LocalUserIndexBotChatSummaryArgs as BotChatSummaryArgs,
     LocalUserIndexBotChatSummaryResponse as BotChatSummaryResponse,
+    LocalUserIndexBotCommunityEventsArgs as BotCommunityEventsArgs,
+    CommunityCommunityEventsResponse as BotCommunityEventsResponse,
     LocalUserIndexBotCommunitySummaryArgs as BotCommunitySummaryArgs,
     LocalUserIndexBotCommunitySummaryResponse as BotCommunitySummaryResponse,
     LocalUserIndexBotCreateChannelArgs as BotCreateChannelArgs,
@@ -41,8 +52,10 @@ import {
     LocalUserIndexBotDeleteChannelArgs as BotDeleteChannelArgs,
     UnitResult as BotDeleteChannelResponse,
     LocalUserIndexBotDeleteMessagesArgs as BotDeleteMessagesArgs,
+    LocalUserIndexBotMembersArgs as BotMemberArgs,
     LocalUserIndexBotSendMessageArgs as BotSendMessageArgs,
     LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
+    MemberType,
 } from "../../typebox/typebox";
 import { MsgpackCanisterAgent } from "../canisterAgent/msgpack";
 
@@ -53,6 +66,27 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
         protected env: BotClientConfig,
     ) {
         super(agent, canisterId);
+    }
+
+    members(
+        ctx: BotCommunityOrGroupContext,
+        memberTypes: MemberType[],
+        channelId?: bigint,
+    ): Promise<MembersResponse> {
+        return this.executeMsgpackQuery(
+            "bot_members",
+            {
+                community_or_group_context: apiBotCommunityOrGroupContext(ctx),
+                channel_id: channelId,
+                member_types: memberTypes,
+            },
+            membersResponse,
+            BotMemberArgs,
+            ApiMembersResponse,
+        ).catch((err) => {
+            console.error("Call to bot_members failed with: ", JSON.stringify(err));
+            throw err;
+        });
     }
 
     sendMessage(ctx: BotChatContext, message: Message): Promise<SendMessageResponse> {
@@ -184,6 +218,25 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
             BotChatEventsResponse,
         ).catch((err) => {
             console.error("Call to bot_chat_events failed with: ", JSON.stringify(err));
+            throw err;
+        });
+    }
+
+    communityEvents(
+        communityId: CommunityIdentifier,
+        criteria: CommunityEventsCriteria,
+    ): Promise<CommunityEventsResponse> {
+        return this.executeMsgpackQuery(
+            "bot_community_events",
+            {
+                community_id: principalStringToBytes(communityId.communityId),
+                events: apiCommunityEventsCriteria(criteria),
+            },
+            communityEventsResponse,
+            BotCommunityEventsArgs,
+            BotCommunityEventsResponse,
+        ).catch((err) => {
+            console.error("Call to bot_community_events failed with: ", JSON.stringify(err));
             throw err;
         });
     }

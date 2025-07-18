@@ -1,5 +1,6 @@
+import type { MemberType } from "../typebox/typebox";
 import type { AccessGateConfig } from "./access";
-import type { ChatEvent } from "./event";
+import type { ChatEvent, CommunityEvent } from "./event";
 import type { CommunityIdentifier } from "./identifiers";
 import type { CommunityPermissions, GroupPermissions } from "./permissions";
 import type { VersionedRules } from "./rules";
@@ -10,7 +11,10 @@ export type CreateChannelResponse = CreateChannelSuccess | OCError;
 export type DeleteChannelResponse = DeleteChannelSuccess | OCError;
 export type ChatSummaryResponse = GroupChatSummary | DirectChatSummary | OCError;
 export type ChatEventsResponse = ChatEventsSuccess | OCError;
+export type CommunityEventsResponse = CommunityEventsSuccess | OCError;
 export type CommunitySummaryResponse = CommunitySummary | OCError;
+export type MembersResponse = MembersSuccess | OCError;
+export type MembersSuccess = { kind: "success"; members: Map<MemberType, string[]> };
 
 export type CommunitySummary = {
     kind: "community_summary";
@@ -38,6 +42,14 @@ export type ChannelSummary = {
     name: string;
 };
 
+export type CommunityEventsSuccess = {
+    kind: "success";
+    events: CommunityEventWrapper[];
+    unauthorized: number[];
+    latestEventIndex: number;
+    communityLastUpdated: bigint;
+};
+
 export type ChatEventsSuccess = {
     kind: "success";
     events: ChatEventWrapper[];
@@ -53,6 +65,13 @@ export type ChatEventWrapper = {
     timestamp: bigint;
     expiresAt?: bigint;
     event: ChatEvent;
+};
+
+export type CommunityEventWrapper = {
+    index: number;
+    timestamp: bigint;
+    expiresAt?: bigint;
+    event: CommunityEvent;
 };
 
 export type GroupChatSummary = {

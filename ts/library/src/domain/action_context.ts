@@ -1,7 +1,12 @@
 import { mapCommandScope } from "../mapping";
 import type { BotCommand } from "../typebox/typebox";
-import type { BotChatContext, CommandActionScope, RawCommandJwt } from "./bot";
-import { ChannelIdentifier } from "./identifiers";
+import type {
+    BotChatContext,
+    BotCommunityOrGroupContext,
+    CommandActionScope,
+    RawCommandJwt,
+} from "./bot";
+import { ChannelIdentifier, CommunityIdentifier } from "./identifiers";
 import type { ChatPermission, CommunityPermission, MessagePermission } from "./permissions";
 import { Permissions } from "./permissions";
 import type { ActionScope } from "./scope";
@@ -82,5 +87,32 @@ export class ActionContext {
         throw new Error(
             `Unable to derive BotChatContext from ActionContext: ${this}, ${channelId}`,
         );
+    }
+
+    communityOrGroupChatContext(): BotCommunityOrGroupContext {
+        if (this.jwt !== undefined) {
+            return { kind: "command", jwt: this.jwt };
+        }
+
+        if (this.scope.isChatScope()) {
+            if (this.scope.chat.isGroupChat()) {
+                return { kind: "autonomous", communityOrGroup: this.scope.chat };
+            }
+            if (this.scope.chat.isChannel()) {
+                return {
+                    kind: "autonomous",
+                    communityOrGroup: new CommunityIdentifier(this.scope.chat.communityId),
+                };
+            }
+        }
+
+        if (this.scope.isCommunityScope()) {
+            return {
+                kind: "autonomous",
+                communityOrGroup: this.scope.communityId,
+            };
+        }
+
+        throw new Error(`Unable to derive BotChatContext from ActionContext: ${this}`);
     }
 }
