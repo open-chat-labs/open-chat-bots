@@ -30,9 +30,9 @@ impl InstallationSecrets {
         secret
     }
 
-    pub fn lookup(&self, api_key: &str) -> Option<(CanisterId, InstallationLocation)> {
+    pub fn lookup(&self, secret: &str) -> Option<(CanisterId, InstallationLocation)> {
         self.secrets
-            .get(api_key)
+            .get(secret)
             .map(|record| (record.api_gateway, record.location))
     }
 
