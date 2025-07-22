@@ -1,4 +1,5 @@
 import B "../common/base";
+import C "../common/botChatContext";
 import MessageContent "../common/messageContent";
 
 module {
@@ -7,12 +8,13 @@ module {
     };
 
     public type Args = {
-        channel_id : ?Nat32;
-        message_id : ?Nat64;
+        chat_context : C.BotChatContext;
+        thread : ?B.MessageIndex;
+        message_id : ?B.MessageId;
+        replies_to : ?B.EventIndex;
         content : MessageContent.MessageContentInitial;
         block_level_markdown : Bool;
         finalised : Bool;
-        auth_token : B.AuthToken;
     };
 
     public type Response = {

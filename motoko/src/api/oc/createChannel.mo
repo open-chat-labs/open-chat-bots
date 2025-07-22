@@ -8,6 +8,7 @@ module {
     };
 
     public type Args = {
+        community_id : B.CanisterId;
         is_public : Bool;
         name : Text;
         description : Text;
@@ -19,7 +20,6 @@ module {
         events_ttl : ?B.Milliseconds;
         gate_config : ?A.AccessGateConfig;
         external_url : ?Text;
-        auth_token : B.AuthToken;
     };
 
     public type Response = {

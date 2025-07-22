@@ -1,16 +1,13 @@
 import Scope "../common/actionScope";
 import B "../common/base";
-import Permissions "../common/permissions";
 
 module {
     public type ActionContext = {
-        botId : B.UserId;
         apiGateway : B.CanisterId;
         scope : Scope.ActionScope;
-        grantedPermissions : ?Permissions.Permissions;
-        authToken : B.AuthToken;
         messageId : ?B.MessageId;
         thread : ?B.MessageIndex;
+        jwt : ?Text; // Optional JWT for command contexts
     };
 
     public func channelId(context : ActionContext) : ?B.ChannelId {

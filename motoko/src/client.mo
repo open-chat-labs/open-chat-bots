@@ -3,7 +3,7 @@ import CommandContext "api/bot/commandContext";
 import B "api/common/base";
 import MessageContent "api/common/messageContent";
 import ChatEventsApi "api/oc/chatEvents";
-import ChatDetails "client/chatDetails";
+import ChatSummary "client/chatSummary";
 import ChatEvents "client/chatEvents";
 import CreateChannel "client/createChannel";
 import DeleteChannel "client/deleteChannel";
@@ -23,8 +23,8 @@ module {
             sendMessage(#Text { text = text });
         };
 
-        public func chatDetails() : ChatDetails.Builder {
-            ChatDetails.Builder(actionContext);
+        public func chatSummary() : ChatSummary.Builder {
+            ChatSummary.Builder(actionContext);
         };
 
         public func chatEvents(events : ChatEventsApi.EventsSelectionCriteria) : ChatEvents.Builder {
@@ -41,8 +41,8 @@ module {
             sendMessage(#Text { text = text });
         };
 
-        public func chatDetails() : ChatDetails.Builder {
-            ChatDetails.Builder(context);
+        public func chatSummary() : ChatSummary.Builder {
+            ChatSummary.Builder(context);
         };
 
         public func chatEvents(events : ChatEventsApi.EventsSelectionCriteria) : ChatEvents.Builder {

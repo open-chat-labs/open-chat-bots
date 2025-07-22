@@ -6,8 +6,8 @@ module {
     };
 
     public type Args = {
-        channel_id : Nat32;
-        auth_token : B.AuthToken;
+        community_id : B.CanisterId;
+        channel_id : B.ChannelId;
     };
 
     public type Response = {

@@ -5,27 +5,35 @@ import Result "mo:base/Result";
 import ActionContext "../api/bot/actionContext";
 import B "../api/common/base";
 import ChatEvents "../api/oc/chatEvents";
+import BotChatContext "../api/common/botChatContext";
 
 module {
     public class Builder(context : ActionContext.ActionContext, events : ChatEvents.EventsSelectionCriteria) = this {
-        var channelId : ?B.ChannelId = ActionContext.channelId(context);
+        var channelId : ?B.ChannelId = null;
+        var thread : ?B.MessageIndex = null;
 
-        // This only takes effect for community scope
-        public func withChannelId(value : ?B.ChannelId) : Builder {
-            if (channelId == null) {
-                channelId := value;
-            };
+        // This is need when in community scope
+        public func inChannel(value : ?B.ChannelId) : Builder {
+            channelId := value;
+            this;
+        };
+
+        public func inThread(value : ?B.MessageIndex) : Builder {
+            thread := value;
             this;
         };
 
         public func execute() : async Result.Result<ChatEvents.Response, (Error.ErrorCode, Text)> {
             let botApiActor = actor (Principal.toText(context.apiGateway)) : ChatEvents.Actor;
+            let ?botChatContext = BotChatContext.fromActionContext(context, channelId) else {
+                return #err((#canister_error, "Invalid action context"));
+            };
 
             try {
-                let response = await botApiActor.bot_chat_events({
-                    channel_id = channelId;
+                let response = await botApiActor.bot_chat_events_c2c({
+                    chat_context = botChatContext;
                     events = events;
-                    auth_token = context.authToken;
+                    thread = thread;
                 });
 
                 #ok response;

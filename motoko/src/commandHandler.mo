@@ -25,16 +25,9 @@ module {
 
     public class Registry() = this {
         var handlers : [CommandHandler] = [];
-        var syncApiKeyHandler : ?SyncHandler = null;
-        let syncApiKeyParams : [Definition.CommandParam] = buildSyncApiKeyParams();
 
         public func register(handler : CommandHandler) : Registry {
             handlers := Array.append(handlers, [handler]);
-            this;
-        };
-
-        public func onSyncApiKey(handler : SyncHandler) : Registry {
-            syncApiKeyHandler := ?handler;
             this;
         };
 
@@ -57,18 +50,6 @@ module {
             };
 
             let commandName = context.command.name;
-
-            if (commandName == "sync_api_key") {
-                switch (syncApiKeyHandler) {
-                    case (?handler) {
-                        if (not checkArgs(context.command.args, syncApiKeyParams, now)) {
-                            return #BadRequest(#ArgsInvalid);
-                        };
-                        return handler(context);
-                    };
-                    case null return #BadRequest(#CommandNotFound);
-                };
-            };
 
             let ?handler = findHandler(commandName) else {
                 return #BadRequest(#CommandNotFound);
@@ -222,20 +203,5 @@ module {
         func floatEqual(a : Float, b : Float) : Bool {
             Float.equalWithin(a, b, 1e-8);
         };
-    };
-
-    func buildSyncApiKeyParams() : [Definition.CommandParam] {
-        [{
-            name = "api_key";
-            description = null;
-            placeholder = null;
-            required = true;
-            param_type = #StringParam {
-                max_length = 1000;
-                min_length = 10;
-                multi_line = false;
-                choices = [];
-            };
-        }];
     };
 };

@@ -2,6 +2,7 @@ import Array "mo:base/Array";
 import Json "mo:json";
 
 import B "../common/base";
+import E "../common/events";
 import Permissions "../common/permissions";
 import Serialize "../common/serialization";
 
@@ -12,11 +13,12 @@ module Definition {
         description : Text;
         commands : [Command];
         autonomous_config : ?AutonomousConfig;
+        default_subscriptions: ?BotSubscriptions;
+        data_encoding: ?BotDataEncoding;
     };
 
     public type AutonomousConfig = {
         permissions : ?Permissions;
-        sync_api_key : Bool;
     };
 
     public type Command = {
@@ -74,6 +76,16 @@ module Definition {
         value : T;
     };
 
+    public type  BotSubscriptions = {
+        community : [E.CommunityEventType];
+        chat : [E.ChatEventType];
+    };
+
+    public type BotDataEncoding = {
+        #Json;
+        #Candid;
+    };
+
     public func serialize(definition : Bot) : Json.Json {
         var fields = [
             ("description", #string(definition.description)),
@@ -83,14 +95,21 @@ module Definition {
             case (null) ();
             case (?config) fields := Array.append(fields, [("autonomous_config", serializeAutonomousConfig(config))]);
         };
+        switch (definition.default_subscriptions) {
+            case (null) ();
+            case (?config) fields := Array.append(fields, [("default_subscriptions", serializeDefaultSubscriptions(config))]);
+        };
+        switch (definition.data_encoding) {
+            case (null) ();
+            case (?config) fields := Array.append(fields, [("data_encoding", serializeDataEncoding(config))]);
+        };
 
         #object_(fields);
     };
 
     private func serializeAutonomousConfig(config : AutonomousConfig) : Json.Json {
-        var fields : [(Text, Json.Json)] = [
-            ("sync_api_key", #bool(config.sync_api_key)),
-        ];
+        var fields : [(Text, Json.Json)] = [];
+
         switch (config.permissions) {
             case (null) ();
             case (?permissions) fields := Array.append(fields, [("permissions", Permissions.serialize(permissions))]);
@@ -202,5 +221,19 @@ module Definition {
             ("name", #string(name)),
             ("value", value),
         ]);
+    };
+
+    private func serializeDefaultSubscriptions(subscriptions : BotSubscriptions) : Json.Json {
+        #object_([
+            ("community", Serialize.arrayOfValues(subscriptions.community, E.serializeCommunityEventType)),
+            ("chat", Serialize.arrayOfValues(subscriptions.chat, E.serializeChatEventType)),
+        ]);
+    };
+
+    private func serializeDataEncoding(encoding : BotDataEncoding) : Json.Json {
+        switch (encoding) {
+            case (#Json) #string("Json");
+            case (#Candid) #string("Candid");
+        };
     };
 };

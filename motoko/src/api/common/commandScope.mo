@@ -1,6 +1,7 @@
 import S "actionScope";
 import B "base";
 import Chat "chat";
+import InstallationLocation "installationLocation";
 
 module {
     public type BotCommandScope = {
@@ -23,6 +24,17 @@ module {
         switch (scope) {
             case (#Chat(details)) {
                 #Chat(details.chat);
+            };
+            case (#Community(details)) {
+                #Community(details.community_id);
+            };
+        };
+    };
+
+    public func toLocation(scope : BotCommandScope) : InstallationLocation.InstallationLocation {
+        switch (scope) {
+            case (#Chat(details)) {
+                Chat.toLocation(details.chat);
             };
             case (#Community(details)) {
                 #Community(details.community_id);

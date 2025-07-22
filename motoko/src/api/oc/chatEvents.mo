@@ -1,5 +1,6 @@
 import A "../common/accessGates";
 import B "../common/base";
+import C "../common/botChatContext";
 import P "../common/chatPermissions";
 import Command "../common/command";
 import MessageContent "../common/messageContent";
@@ -12,17 +13,16 @@ module {
     type MessageId = B.MessageId;
     type MessageIndex = B.MessageIndex;
     type EventIndex = B.EventIndex;
-    type AuthToken = B.AuthToken;
     type ChatRole = B.ChatRole;
 
     public type Actor = actor {
-        bot_chat_events : (Args) -> async Response;
+        bot_chat_events_c2c : (Args) -> async Response;
     };
 
     public type Args = {
-        channel_id : ?Nat32;
+        chat_context : C.BotChatContext;
+        thread : ?MessageIndex;
         events : EventsSelectionCriteria;
-        auth_token : AuthToken;
     };
 
     public type EventsSelectionCriteria = {

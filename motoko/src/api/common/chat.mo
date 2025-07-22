@@ -6,6 +6,7 @@ import Json "mo:json";
 
 import B "base";
 import Deserialize "deserialization";
+import InstallationLocation "installationLocation";
 
 module {
     public type Chat = {
@@ -20,6 +21,20 @@ module {
             case (#Group(_)) null;
             case (#Channel(_, channelId)) ?channelId;
         };
+    };
+
+    public func toLocation(chat : Chat) : InstallationLocation.InstallationLocation {
+        switch (chat) {
+            case (#Channel(community_id, _)) {
+                #Community(community_id);
+            };
+            case (#Direct(user_id)) {
+                #User(user_id);
+            };
+            case (#Group(group_id)) {
+                #Group(group_id);
+            };
+        };        
     };
 
     public func equal(a : Chat, b : Chat) : Bool {

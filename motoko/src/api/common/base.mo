@@ -16,11 +16,6 @@ module {
 
     public type CallResult<T> = Result.Result<T, Error.Error>;
 
-    public type AuthToken = {
-        #Jwt : Text;
-        #ApiKey : Text;
-    };
-
     public type ChatRole = {
         #Owner;
         #Admin;

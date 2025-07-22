@@ -3,11 +3,12 @@ import Sdk "mo:openchat-bot-sdk";
 import Env "mo:openchat-bot-sdk/env";
 
 import Echo "commands/echo";
+import GenerateApiKey "commands/generateApiKey";
 import Ping "commands/ping";
 import Start "commands/start";
 import Stop "commands/stop";
-import SyncApiKey "commands/syncApiKey";
 import Definition "definition";
+import Events "events";
 import Metrics "metrics";
 import State "state";
 import Webhooks "webhooks";
@@ -20,10 +21,10 @@ actor class PingBot(key : Text) {
 
     transient let registry = Sdk.Command.Registry()
         .register(Echo.build())
+        .register(GenerateApiKey.build(state))
         .register(Ping.build())
         .register(Start.build(state))
-        .register(Stop.build(state))
-        .onSyncApiKey(SyncApiKey.handler(state));
+        .register(Stop.build(state));
 
     transient let router = Sdk.Http.Router()
         .get("/metrics", Metrics.handler(state))
@@ -31,7 +32,8 @@ actor class PingBot(key : Text) {
         .post("/execute_command", func(request : Sdk.Http.Request) : async Sdk.Http.Response {
             await Sdk.executeCommand(registry, request, ocPublicKey, Env.nowMillis());
         })
-        .post("/webhook/*", Webhooks.handler);
+        .post("/notify", Events.handler(state))
+        .post("/webhook/*", Webhooks.handler(state));
 
     public query func http_request(request : Http.Request) : async Http.Response {
         router.handleQuery(request);
