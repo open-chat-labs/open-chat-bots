@@ -3,7 +3,6 @@ import HttpParser "mo:http-parser";
 import Sdk "mo:openchat-bot-sdk";
 import ResponseBuilder "mo:openchat-bot-sdk/http/responseBuilder";
 import HttpInternal "mo:openchat-bot-sdk/http";
-import ActionContext "mo:openchat-bot-sdk/api/bot/actionContext";
 import Client "mo:openchat-bot-sdk/client";
 import ActionScope "mo:openchat-bot-sdk/api/common/actionScope";
 
@@ -16,11 +15,11 @@ module {
     public func handler(state : S.State) : Sdk.Http.UpdateHandler {
         func (request: Sdk.Http.Request) : async Sdk.Http.Response {
             let ?apiKey = HttpInternal.requestHeader(request, "x-oc-api-key") else {
-                return ResponseBuilder.text(400, "x-oc-api-key not found");
+                return ResponseBuilder.text(401, "Not authenticated");
             };
 
             let ?(apiGateway, location) = state.apiKeyRegistry.get(apiKey) else {
-                return ResponseBuilder.text(401, "ApiKey not in registry");
+                return ResponseBuilder.text(403, "Not authorized");
             };
 
             let client = let client = Client.AutonomousClient({
