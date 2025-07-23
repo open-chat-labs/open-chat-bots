@@ -15,6 +15,7 @@ module {
 
     func metrics(state : S.State) : Json.Json {
         #object_([
+            ("apiKeys", #number(#int(state.apiKeyRegistry.count()))),
             ("subscriptions", #number(#int(state.subscriptions.count()))),
         ]);
     };
