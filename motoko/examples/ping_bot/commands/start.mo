@@ -4,7 +4,6 @@ import Option "mo:base/Option";
 import Sdk "mo:openchat-bot-sdk";
 import CommandResponse "mo:openchat-bot-sdk/api/bot/commandResponse";
 import Scope "mo:openchat-bot-sdk/api/common/commandScope";
-import Permissions "mo:openchat-bot-sdk/api/common/permissions";
 import CommandHandler "mo:openchat-bot-sdk/commandHandler";
 
 import S "../state";
@@ -22,32 +21,19 @@ module {
             let n = Sdk.Command.Arg.maybeInt(client.context.command, "n") |> Option.get(_, 5) |> Int.abs(_);
             let ?chatDetails = Scope.chatDetails(client.context.scope) else return #err "Expected Chat scope";
 
-            // Check if there is an API Key registered at the required scope and with the required permissions
-            let text = switch (state
-                .apiKeyRegistry
-                .getKeyWithRequiredPermissions(
-                    #Chat(chatDetails.chat),
-                    Permissions.textOnly(),
-                )) {
-                case (?apiKeyRecord) {
-                    let sub = {
-                        chat = chatDetails.chat;
-                        interval = n;
-                        apiKey = apiKeyRecord.key;
-                        iterations = 0 : Nat8;
-                    };
-
-                    let prefix = switch (state.subscriptions.set<system>(sub)) {
-                        case false "Start pinging every";
-                        case true "Update ping interval to";
-                    };
-
-                    prefix # " " # Int.toText(n) # " seconds";                    
-                };
-                case null {
-                    "You must first register an API key for this chat and grant the 'send text message' permission";
-                };
+            let sub = {
+                chat = chatDetails.chat;
+                interval = n;
+                apiGateway = client.context.apiGateway;
+                iterations = 0 : Nat8;
             };
+
+            let prefix = switch (state.subscriptions.set<system>(sub)) {
+                case false "Start pinging every";
+                case true "Update ping interval to";
+            };
+
+            let text = prefix # " " # Int.toText(n) # " seconds";                    
 
             let message = CommandResponse.EphemeralMessageBuilder(#Text { text = text }, chatDetails.message_id).build();
 

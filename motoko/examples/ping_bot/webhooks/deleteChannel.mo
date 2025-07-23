@@ -1,42 +1,27 @@
 import Nat32 "mo:base/Nat32";
-import Text "mo:base/Text";
-import Json "mo:json";
+import Nat "mo:base/Nat";
+import Option "mo:base/Option";
 import Sdk "mo:openchat-bot-sdk";
-import B "mo:openchat-bot-sdk/api/common/base";
 import ResponseBuilder "mo:openchat-bot-sdk/http/responseBuilder";
+import UrlKit "mo:url-kit";
 
 module {
-    type Args = {
-        channelId: B.ChannelId;
-    };
-    
     public func execute(request : Sdk.Http.Request, client : Sdk.OpenChat.AutonomousClient) : async Sdk.Http.Response {
-        let ?body = Text.decodeUtf8(request.body) else {
-            return ResponseBuilder.badRequest("Invalid UTF-8 encoding");
+        let #ok url = UrlKit.fromText(request.url) else {
+            return ResponseBuilder.badRequest("Invalid URL");
         };
 
-        let ?args = deserializeArgs(body) else {
-            return ResponseBuilder.badRequest("Invalid JSON args");
+        // Try to extract a channel ID from the query string
+        let ?channelId = Option.map(Option.flatten(Option.map(UrlKit.getQueryParam(url, "channel"), Nat.fromText)), Nat32.fromNat) else {
+            return ResponseBuilder.badRequest("Channel ID not provided in query string");
         };
 
-        let result = await client.deleteChannel(args.channelId).execute();
+        let result = await client.deleteChannel(channelId).execute();
 
         switch (result) {
             case (#ok(#Success)) return ResponseBuilder.success();
             case (#err(_, text)) ResponseBuilder.internalServerError("Failed to delete channel: " #text);
             case other ResponseBuilder.internalServerError(debug_show(other));
         };
-    };
-
-    func deserializeArgs(text: Text) : ?Args {
-        let #ok(json) = Json.parse(text) else {
-            return null;
-        };
-
-        let #ok(channelId) = Json.getAsNat(json, "channelId") else {
-            return null;
-        };
-
-        return ?{ channelId = Nat32.fromNat(channelId) };
     };
 };

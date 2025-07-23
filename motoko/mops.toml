@@ -7,6 +7,7 @@ http-parser = "0.3.4"
 itertools = "0.2.2"
 json = "1.0.1"
 jwt = "0.0.2"
+csprng = "1.1.0"
 
 [package]
 name = "openchat-bot-sdk"

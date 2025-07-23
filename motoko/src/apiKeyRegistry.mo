@@ -1,99 +1,71 @@
-import Array "mo:base/Array";
+import Base "api/common/base";
 import HashMap "mo:base/HashMap";
+import Text "mo:base/Text";
+import InstallationLocation "api/common/installationLocation";
 import Iter "mo:base/Iter";
-import Result "mo:base/Result";
-
-import ApiKeyContext "api/bot/apiKeyContext";
-import Scope "api/common/actionScope";
-import Permissions "api/common/permissions";
 
 module {
-    public func new(apiKeys : [Text]) : ApiKeyRegistry {
+    public func new(apiKeys: [ApiKeyRecord]) : ApiKeyRegistry {
         var registry = ApiKeyRegistry();
-
-        for (key in apiKeys.values()) {
-            ignore registry.insert(key);
+        for (record in apiKeys.vals()) {
+            registry.insert(record.apiKey, record.apiGateway, record.location);
         };
-
         registry;
     };
 
     public class ApiKeyRegistry() {
-        var map = HashMap.HashMap<Scope.ActionScope, Record>(10, Scope.equal, Scope.hash);
+        var mapByApiKey = HashMap.HashMap<Text, (Base.CanisterId, InstallationLocation.InstallationLocation)>(10, Text.equal, Text.hash);
+        var mapByLocation = HashMap.HashMap<InstallationLocation.InstallationLocation, Text>(10, InstallationLocation.equal, InstallationLocation.hash);
 
-        public func insert(apiKey : Text) : Result.Result<(), Text> {
-            let cxt = switch (ApiKeyContext.parse(apiKey)) {
-                case (#ok(cxt)) cxt;
-                case (#err(e)) return #err(e);
+        public func insert(apiKey: Text, apiGateway: Base.CanisterId, location: InstallationLocation.InstallationLocation) {
+            // Get the existing apiKey for this location, if any, and remove it from mapByApiKey.
+            // This ensures that for a given location, there is only one apiKey.
+
+            switch (mapByLocation.get(location)) {
+                case (?existingApiKey) {
+                    mapByApiKey.delete(existingApiKey);
+                };
+                case null {};
             };
 
-            map.put(
-                cxt.scope,
-                {
-                    key = cxt.key;
-                    grantedPermissions = cxt.grantedPermissions;
-                },
-            );
-
-            #ok();
+            mapByLocation.put(location, apiKey);
+            mapByApiKey.put(apiKey, (apiGateway, location));
         };
 
-        public func getApiKeys() : [Text] {
-            map.vals() |> Iter.toArray(_) |> Array.map(_, func(record : Record) : Text { record.key });
+        public func remove(location: InstallationLocation.InstallationLocation) {
+            switch (mapByLocation.remove(location)) {
+                case (?apiKey) {
+                    mapByApiKey.delete(apiKey);
+                };
+                case null {};
+            };
         };
 
-        public func get(scope : Scope.ActionScope) : ?Record {
-            map.get(scope);
+        public func get(apiKey: Text) : ?(Base.CanisterId, InstallationLocation.InstallationLocation) {
+            mapByApiKey.get(apiKey);
         };
 
-        public func remove(scope : Scope.ActionScope) {
-            map.delete(scope);
+        public func iter() : Iter.Iter<ApiKeyRecord> {
+            Iter.map<(Text, (Base.CanisterId, InstallationLocation.InstallationLocation)), ApiKeyRecord>(
+                mapByApiKey.entries(),
+                func ((apiKey, (apiGateway, location))) : ApiKeyRecord {
+                    {
+                        apiKey = apiKey;
+                        apiGateway = apiGateway;
+                        location = location;
+                    };
+                }
+            );        
         };
 
         public func count() : Nat {
-            map.size();
-        };
-
-        public func getKeyWithRequiredPermissions(
-            scope : Scope.ActionScope,
-            requiredPermissions : Permissions.Permissions,
-        ) : ?Record {
-            switch (getMatchingRecord(scope, requiredPermissions)) {
-                case (?record) {
-                    return ?record;
-                };
-                case (null) {};
-            };
-
-            // If an API Key with the required permissions cannot be found at the
-            // channel scope then check the community scope
-            switch (scope) {
-                case (#Chat(#Channel(communityId, _))) {
-                    return getMatchingRecord(#Community(communityId), requiredPermissions);
-                };
-                case (_) return null;
-            };
-        };
-
-        func getMatchingRecord(
-            scope : Scope.ActionScope,
-            requiredPermissions : Permissions.Permissions,
-        ) : ?Record {
-            switch (get(scope)) {
-                case (?record) {
-                    if (Permissions.isSubset(requiredPermissions, record.grantedPermissions)) {
-                        return ?record;
-                    };
-                };
-                case (null) {};
-            };
-
-            null;
+            mapByApiKey.size();
         };
     };
 
-    public type Record = {
-        key : Text;
-        grantedPermissions : Permissions.Permissions;
+    public type ApiKeyRecord = {
+        apiKey: Text;
+        apiGateway: Base.CanisterId;
+        location: InstallationLocation.InstallationLocation;
     };
 };

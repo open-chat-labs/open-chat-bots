@@ -1,9 +1,8 @@
 import Debug "mo:base/Debug";
 import HashMap "mo:base/HashMap";
 import Iter "mo:base/Iter";
-import Result "mo:base/Result";
 import Timer "mo:base/Timer";
-import ApiKeyContext "mo:openchat-bot-sdk/api/bot/apiKeyContext";
+import Base "mo:openchat-bot-sdk/api/common/base";
 import Chat "mo:openchat-bot-sdk/api/common/chat";
 import Client "mo:openchat-bot-sdk/client";
 
@@ -21,7 +20,7 @@ module {
     public type Sub = {
         chat : Chat.Chat;
         interval : Nat;
-        apiKey : Text;
+        apiGateway : Base.CanisterId;
         iterations : Nat8;
     };
 
@@ -40,8 +39,8 @@ module {
 
             let record : Record = {
                 interval = sub.interval;
-                timerId = Timer.recurringTimer<system>(#seconds(sub.interval), sendPing(sub.chat, sub.apiKey));
-                apiKey = sub.apiKey;
+                timerId = Timer.recurringTimer<system>(#seconds(sub.interval), sendPing(sub.chat, sub.apiGateway));
+                apiGateway = sub.apiGateway;
                 iterations = sub.iterations;
             };
 
@@ -61,7 +60,7 @@ module {
             Iter.map(map.entries(), func((k : Chat.Chat, v : Record)) : Sub {{
                 chat = k;
                 interval = v.interval;
-                apiKey = v.apiKey;
+                apiGateway = v.apiGateway;
                 iterations = v.iterations;
             }});
         };
@@ -70,12 +69,14 @@ module {
             map.size();
         };
 
-        func sendPing(chat : Chat.Chat, apiKey : Text) : () -> async () {
-            let ?apiKeyContext = ApiKeyContext.parse(apiKey) |> Result.toOption(_) else {
-                Debug.trap("Invalid API Key");
-            };
-            let context = ApiKeyContext.toActionContext(apiKeyContext);
-            let client = Client.AutonomousClient(context);
+        func sendPing(chat : Chat.Chat, apiGateway : Base.CanisterId) : () -> async () {
+            let client = Client.AutonomousClient({
+                apiGateway;
+                scope = #Chat(chat);
+                jwt = null;
+                messageId = null;
+                thread = null;
+            });
             
             func () : async () {
                 switch (map.get(chat)) {
@@ -89,7 +90,7 @@ module {
                         let newRecord = {
                             interval = record.interval;
                             timerId = record.timerId;
-                            apiKey = record.apiKey;
+                            apiGateway = record.apiGateway;
                             iterations = record.iterations + 1;
                         };
 
@@ -102,7 +103,6 @@ module {
 
                 ignore await client
                     .sendTextMessage("Ping!")
-                    .withChannelId(Chat.channelId(chat))
                     .execute();
             };
         };
@@ -111,7 +111,7 @@ module {
     type Record = {
         interval : Nat;
         timerId : Timer.TimerId;
-        apiKey : Text;
+        apiGateway : Base.CanisterId;
         iterations : Nat8;
     };
 };

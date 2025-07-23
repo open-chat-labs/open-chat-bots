@@ -9,19 +9,25 @@ import CommandResponse "../api/bot/commandResponse";
 import B "../api/common/base";
 import MessageContent "../api/common/messageContent";
 import SendMessage "../api/oc/sendMessage";
+import BotChatContext "../api/common/botChatContext";
 
 module {
     public class Builder(context : ActionContext.ActionContext, content : MessageContent.MessageContentInitial) = this {
-        var channelId : ?B.ChannelId = ActionContext.channelId(context);
+        var channelId : ?B.ChannelId = null;
+        var thread : ?B.MessageIndex = null;
         var messageId : ?B.MessageId = context.messageId;
+        var repliesTo : ?B.EventIndex = null;
         var blockLevelMarkdown : Bool = false;
         var finalised : Bool = true;
 
         // This only takes effect for community scope
-        public func withChannelId(value : ?B.ChannelId) : Builder {
-            if (channelId == null) {
-                channelId := value;
-            };
+        public func inChannel(value : ?B.ChannelId) : Builder {
+            channelId := value;
+            this;
+        };
+
+        public func inThread(value : ?B.MessageIndex) : Builder {
+            thread := value;
             this;
         };
 
@@ -31,6 +37,11 @@ module {
             if (messageId == null) {
                 messageId := ?value;
             };
+            this;
+        };
+        
+        public func inReplyTo(value : B.EventIndex) : Builder {
+            repliesTo := ?value;
             this;
         };
 
@@ -57,16 +68,20 @@ module {
             });
 
             let botApiActor = actor (Principal.toText(context.apiGateway)) : SendMessage.Actor;
+            let ?botChatContext = BotChatContext.fromActionContext(context, channelId) else {
+                return null;
+            };
 
             // Ingore the send message call
             ignore try {
                 let response = await botApiActor.bot_send_message({
-                    channel_id = channelId;
+                    chat_context = botChatContext;
+                    thread = thread;
                     message_id = messageId;
+                    replies_to = repliesTo;
                     content = content;
                     block_level_markdown = blockLevelMarkdown;
                     finalised = finalised;
-                    auth_token = context.authToken;
                 });
 
                 switch (onResponseOpt) {
@@ -85,15 +100,19 @@ module {
 
         public func execute() : async Result.Result<SendMessage.Response, (Error.ErrorCode, Text)> {
             let botApiActor = actor (Principal.toText(context.apiGateway)) : SendMessage.Actor;
+            let ?botChatContext = BotChatContext.fromActionContext(context, channelId) else {
+                return #err((#canister_error, "Invalid action context"));
+            };
 
             try {
                 let response = await botApiActor.bot_send_message({
-                    channel_id = channelId;
+                    chat_context = botChatContext;
+                    thread = thread;
                     message_id = messageId;
+                    replies_to = repliesTo;
                     content = content;
                     block_level_markdown = blockLevelMarkdown;
                     finalised = finalised;
-                    auth_token = context.authToken;
                 });
 
                 #ok response;

@@ -11,8 +11,9 @@ module {
                     chat = [];
                     message = [#Text];
                 };
-                sync_api_key = true;
             };
+            default_subscriptions = null;
+            data_encoding = null;
         };
 
         let response = Sdk.Http.ResponseBuilder()

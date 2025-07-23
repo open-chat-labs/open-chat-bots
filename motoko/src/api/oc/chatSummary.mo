@@ -1,15 +1,15 @@
 import A "../common/accessGates";
 import B "../common/base";
+import C "../common/botChatContext";
 import P "../common/chatPermissions";
 
 module {
     public type Actor = actor {
-        bot_chat_details : (Args) -> async Response;
+        bot_chat_summary_c2c : (Args) -> async Response;
     };
 
     public type Args = {
-        channel_id : ?Nat32;
-        auth_token : B.AuthToken;
+        chat_context : C.BotChatContext;
     };
 
     public type Response = {

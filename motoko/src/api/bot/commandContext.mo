@@ -28,10 +28,8 @@ module {
 
     public func toActionContext(context : CommandContext) : ActionContext.ActionContext {
         {
-            botId = context.botId;
             apiGateway = context.apiGateway;
-            authToken = #Jwt(context.jwt);
-            grantedPermissions = ?context.grantedPermissions;
+            jwt = ?context.jwt;
             messageId = Scope.messageId(context.scope);
             thread = Scope.thread(context.scope);
             scope = switch (context.scope) {

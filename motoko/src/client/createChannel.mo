@@ -1,12 +1,14 @@
 import Error "mo:base/Error";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
+import Option "mo:base/Option";
 
 import ActionContext "../api/bot/actionContext";
 import A "../api/common/accessGates";
 import B "../api/common/base";
 import P "../api/common/chatPermissions";
 import CreateChannel "../api/oc/createChannel";
+import ActionScope "../api/common/actionScope";
 
 module {
     public class Builder(context : ActionContext.ActionContext, name : Text, isPublic : Bool) = this {
@@ -67,9 +69,13 @@ module {
 
         public func execute() : async Result.Result<CreateChannel.Response, (Error.ErrorCode, Text)> {
             let botApiActor = actor (Principal.toText(context.apiGateway)) : CreateChannel.Actor;
+            let ?communityId = ActionScope.communityId(context.scope) else {
+                return #err((#canister_error, "Invalid action context"));
+            };
 
             try {
                 let response = await botApiActor.bot_create_channel({
+                    community_id = communityId;
                     is_public = isPublic;
                     name = name;
                     description = description;
@@ -81,7 +87,6 @@ module {
                     events_ttl = eventsTtl;
                     gate_config = gateConfig;
                     external_url = externalUrl;
-                    auth_token = context.authToken;
                 });
 
                 #ok response;

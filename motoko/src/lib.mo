@@ -1,6 +1,5 @@
 import Result "mo:base/Result";
 
-import ApiKeyContext "api/bot/apiKeyContext";
 import CommandResponse "api/bot/commandResponse";
 import DefinitionInternal "api/bot/definition";
 import CommandInternal "api/common/command";
@@ -11,7 +10,6 @@ import HttpInternal "http";
 import Builder "http/responseBuilder";
 import RouterInternal "http/router";
 import Ecdsa "utils/ecdsa";
-//import ApiKeyRegistry "apiKeyRegistry";
 
 module {
     public module Definition {
@@ -60,17 +58,15 @@ module {
     public let parsePublicKeyOrTrap = Ecdsa.parsePublicKeyOrTrap;
     public let executeCommand = CommandAdaptor.execute;
 
-    //public type ApiKeyRegistry = ApiKeyRegistry.ApiKeyRegistry;
+    // public func buildAutonomousClient(request : Http.Request) : Result.Result<OpenChat.AutonomousClient, Http.Response> {
+    //     let ?apiKey = HttpInternal.requestHeader(request, "x-oc-api-key") else {
+    //         return #err(Builder.text(400, "No auth token found"));
+    //     };
 
-    public func buildAutonomousClient(request : Http.Request) : Result.Result<OpenChat.AutonomousClient, Http.Response> {
-        let ?apiKey = HttpInternal.requestHeader(request, "x-oc-api-key") else {
-            return #err(Builder.text(400, "No auth token found"));
-        };
-
-        let ?apiKeyContext = ApiKeyContext.parse(apiKey) |> Result.toOption(_) else {
-            return #err(Builder.text(400, "Invalid API Key"));
-        };
+    //     let ?apiKeyContext = ApiKeyContext.parse(apiKey) |> Result.toOption(_) else {
+    //         return #err(Builder.text(400, "Invalid API Key"));
+    //     };
         
-        #ok(ApiKeyContext.toActionContext(apiKeyContext) |> Client.AutonomousClient(_));
-    };
+    //     #ok(ApiKeyContext.toActionContext(apiKeyContext) |> Client.AutonomousClient(_));
+    // };
 };
