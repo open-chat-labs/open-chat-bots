@@ -1,6 +1,6 @@
 use crate::rng;
 use candid::Principal;
-use oc_bots_sdk::InstallationSecrets;
+use oc_bots_sdk::ApiKeyRegistry;
 use oc_bots_sdk_canister::env;
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::HashMap};
@@ -17,7 +17,7 @@ pub struct State {
     jokes: HashMap<u32, String>,
     blobs: HashMap<u128, Blob>,
     metrics: Metrics,
-    pub installation_secrets: InstallationSecrets,
+    pub api_key_registry: ApiKeyRegistry,
 }
 
 const STATE_ALREADY_INITIALIZED: &str = "State has already been initialized";
@@ -54,7 +54,7 @@ impl State {
             blobs: HashMap::new(),
             metrics: Metrics::default(),
             rng_seed: env::entropy(),
-            installation_secrets: InstallationSecrets::new(),
+            api_key_registry: ApiKeyRegistry::new(),
         }
     }
 
