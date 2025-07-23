@@ -1,5 +1,6 @@
 {
-  "dfx": "0.28.0-beta.1",
+
+  "dfx": "0.28.0",
   "canisters": {
     "hello_bot": {
       "main": "hello_bot/main.mo",
