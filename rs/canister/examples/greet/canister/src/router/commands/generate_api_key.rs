@@ -35,7 +35,7 @@ impl CommandHandler<CanisterRuntime> for GenerateApiKey {
             let location = chat_scope.chat.into();
             let api_key = rng::mutate(|rng| {
                 state
-                    .installation_secrets
+                    .api_key_registry
                     .generate(cxt.api_gateway, location, rng)
             });
 
