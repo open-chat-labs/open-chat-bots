@@ -3,6 +3,8 @@ import Result "mo:base/Result";
 
 module {
     public type CanisterId = Principal;
+    public type ChatId = CanisterId;
+    public type CommunityId = CanisterId;
     public type UserId = Principal;
     public type ChannelId = Nat32;
     public type TimestampMillis = Nat64;
@@ -15,6 +17,11 @@ module {
     public type Hash = [Nat8]; // 32 bytes
 
     public type CallResult<T> = Result.Result<T, Error.Error>;
+
+    public type UnitResult = {
+        #Success;
+        #Error : (Nat16, ?Text);
+    };
 
     public type ChatRole = {
         #Owner;

@@ -14,11 +14,6 @@ module {
 
     public type Response = {
         #Success : ChatDetails;
-        #FailedAuthentication : Text;
-        #DirectChatUnsupported;
-        #NotAuthorized;
-        #NotFound;
-        #InternalError : Text;
         #Error : (Nat16, ?Text);
     };
 

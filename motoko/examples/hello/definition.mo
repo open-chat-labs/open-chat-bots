@@ -6,6 +6,8 @@ module {
             description = "A very simple bot that says hello to the caller";
             commands = commands;
             autonomous_config = null;
+            default_subscriptions = null;
+            data_encoding = ?#Candid;
         };
 
         let response = Sdk.Http.ResponseBuilder()

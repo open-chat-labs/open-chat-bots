@@ -10,6 +10,16 @@ import Array "../../utils/array";
 import Deserialize "deserialization";
 
 module {
+    public type RawPermissions = {
+        chat : Nat32;
+        community : Nat32;
+        message : Nat32;
+    };
+
+    public func fromRaw(permissions : RawPermissions) : Permissions {
+        Des.decodeRawPermissions(permissions);
+    };
+
     public type Permissions = {
         chat : [GroupPermission];
         community : [CommunityPermission];
@@ -24,6 +34,8 @@ module {
         #CreatePublicChannel;
         #CreatePrivateChannel;
         #ManageUserGroups;
+        #ReadMembership;
+        #ReadSummary;
     };
 
     public type GroupPermission = {
@@ -37,6 +49,9 @@ module {
         #ReactToMessages;
         #MentionAllMembers;
         #StartVideoCall;
+        #ReadMessages;
+        #ReadMembership;
+        #ReadSummary;
     };
 
     public type MessagePermission = {
@@ -127,6 +142,8 @@ module {
                 case (#CreatePublicChannel) 4;
                 case (#CreatePrivateChannel) 5;
                 case (#ManageUserGroups) 6;
+                case (#ReadMembership) 7;
+                case (#ReadSummary) 8;
             };
         };
 
@@ -142,6 +159,9 @@ module {
                 case (#ReactToMessages) 7;
                 case (#MentionAllMembers) 8;
                 case (#StartVideoCall) 9;
+                case (#ReadMessages) 10;
+                case (#ReadMembership) 11;
+                case (#ReadSummary) 12;
             };
         };
 
@@ -163,10 +183,18 @@ module {
     };
 
     module Des {
+        public func decodeRawPermissions(permissions : RawPermissions) : Permissions {            
+            {
+                chat = decodePermissions<GroupPermission>(permissions.chat, decodeGroupPermission);
+                community = decodePermissions<CommunityPermission>(permissions.community, decodeCommunityPermission);
+                message = decodePermissions<MessagePermission>(permissions.message, decodeMessagePermission);
+            };
+        };
+
         public func deserializePermissions(dataJson : Json.Json) : Result.Result<Permissions, Text> {
             func getPermissions<T>(name : Text, getPermission : Nat -> ?T, deserializePermission : Json.Json -> Result.Result<T, Text>) : Result.Result<[T], Text> {
                 switch (Json.get(dataJson, name)) {
-                    case (?#number(#int(encodedPermissions))) switch (decodePermissions<T>(encodedPermissions, getPermission)) {
+                    case (?#number(#int(encodedPermissions))) switch (tryDecodePermissions<T>(encodedPermissions, getPermission)) {
                         case (#ok(v)) #ok(v);
                         case (#err(e)) #err("Invalid '" # name # "' BotPermission field: " # e);
                     };
@@ -219,7 +247,28 @@ module {
             });
         };
 
-        private func decodePermissions<T>(encodedPermissions : Int, getPermission : Nat -> ?T) : Result.Result<[T], Text> {
+        private func decodePermissions<T>(encodedPermissions : Nat32, getPermission : Nat -> ?T) : [T] {
+            var encodedPermissionsNat32 = encodedPermissions;
+            let permissions = Buffer.Buffer<T>(0);
+            label f for (i in Iter.range(0, 32)) {
+                if (encodedPermissionsNat32 == 0) {
+                    break f;
+                };
+                let flag = Nat32.pow(2, Nat32.fromNat(i));
+                if (encodedPermissionsNat32 & flag == 0) {
+                    continue f; // Permission not set
+                };
+                encodedPermissionsNat32 := encodedPermissionsNat32 & ^flag;
+                switch (getPermission(i)) {
+                    case (?permission) permissions.add(permission);
+                    case (null) continue f;
+                };
+            };
+
+            Buffer.toArray(permissions);
+        };
+
+        private func tryDecodePermissions<T>(encodedPermissions : Int, getPermission : Nat -> ?T) : Result.Result<[T], Text> {
             if (encodedPermissions < 0) {
                 return #err("Invalid encoded permissions value: " # Int.toText(encodedPermissions));
             };
@@ -256,6 +305,8 @@ module {
                 case (4) #CreatePublicChannel;
                 case (5) #CreatePrivateChannel;
                 case (6) #ManageUserGroups;
+                case (7) #ReadMembership;
+                case (8) #ReadSummary;
                 case (_) return null;
             };
             ?permission;
@@ -273,6 +324,9 @@ module {
                 case (7) #ReactToMessages;
                 case (8) #MentionAllMembers;
                 case (9) #StartVideoCall;
+                case (10) #ReadMessages;
+                case (11) #ReadMembership;
+                case (12) #ReadSummary;
                 case (_) return null;
             };
             ?permission;
@@ -330,6 +384,9 @@ module {
                 case ("ReactToMessages") #ReactToMessages;
                 case ("MentionAllMembers") #MentionAllMembers;
                 case ("StartVideoCall") #StartVideoCall;
+                case ("ReadMessages") #ReadMessages;
+                case ("ReadMembership") #ReadMembership;
+                case ("ReadSummary") #ReadSummary;
                 case (_) return #err("Invalid group permission: " # permissionString);
             };
             #ok(permission);
@@ -346,6 +403,8 @@ module {
                 case ("CreatePublicChannel") #CreatePublicChannel;
                 case ("CreatePrivateChannel") #CreatePrivateChannel;
                 case ("ManageUserGroups") #ManageUserGroups;
+                case ("ReadMembership") #ReadMembership;
+                case ("ReadSummary") #ReadSummary;
                 case (_) return #err("Invalid community permission: " # permissionString);
             };
             #ok(permission);

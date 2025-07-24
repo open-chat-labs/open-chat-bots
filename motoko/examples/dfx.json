@@ -1,13 +1,16 @@
 {
-
   "dfx": "0.28.0",
   "canisters": {
     "hello_bot": {
-      "main": "hello_bot/main.mo",
+      "main": "hello/main.mo",
+      "type": "motoko"
+    },
+    "moderator_bot": {
+      "main": "moderator/main.mo",
       "type": "motoko"
     },
     "ping_bot": {
-      "main": "ping_bot/main.mo",
+      "main": "ping/main.mo",
       "type": "motoko"
     }
   },

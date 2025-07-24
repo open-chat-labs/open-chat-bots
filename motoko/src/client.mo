@@ -7,6 +7,7 @@ import ChatSummary "client/chatSummary";
 import ChatEvents "client/chatEvents";
 import CreateChannel "client/createChannel";
 import DeleteChannel "client/deleteChannel";
+import DeleteMessages "client/deleteMessages";
 import SendMessage "client/sendMessage";
 
 module {
@@ -29,6 +30,10 @@ module {
 
         public func chatEvents(events : ChatEventsApi.EventsSelectionCriteria) : ChatEvents.Builder {
             ChatEvents.Builder(actionContext, events);
+        };
+
+        public func deleteMessages(messageIds : [B.MessageId]) : DeleteMessages.Builder {
+            DeleteMessages.Builder(actionContext, messageIds);
         };
     };
 
@@ -55,6 +60,10 @@ module {
 
         public func deleteChannel(channelId : B.ChannelId) : DeleteChannel.Builder {
             DeleteChannel.Builder(context, channelId);
+        };
+
+        public func deleteMessages(messageIds : [B.MessageId]) : DeleteMessages.Builder {
+            DeleteMessages.Builder(context, messageIds);
         };
     };
 };

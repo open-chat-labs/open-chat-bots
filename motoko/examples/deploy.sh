@@ -11,6 +11,7 @@ fi
 
 # Deploy the bot
 dfx deploy $BOT --argument "(\"$OC_PUBLIC_KEY\")" || exit 1
+#dfx canister install --quiet --mode reinstall $BOT --argument "(\"$OC_PUBLIC_KEY\")" || exit 1
 
 # Get the canister ID
 CANISTER_ID=$(dfx canister id $BOT) || exit 1

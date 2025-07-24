@@ -12,7 +12,11 @@ module {
         };
 
         // Try to extract a channel ID from the query string
-        let ?channelId = Option.map(Option.flatten(Option.map(UrlKit.getQueryParam(url, "channel"), Nat.fromText)), Nat32.fromNat) else {
+        let ?channelId = UrlKit.getQueryParam(url, "channel")
+            |> Option.map(_, Nat.fromText)
+            |> Option.flatten(_)
+            |> Option.map(_, Nat32.fromNat) 
+        else {
             return ResponseBuilder.badRequest("Channel ID not provided in query string");
         };
 
