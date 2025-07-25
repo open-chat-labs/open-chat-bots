@@ -1,19 +1,22 @@
 import Sdk "mo:openchat-bot-sdk";
 
 module {
-    public func handler(commands : [Sdk.Definition.Command]) : Sdk.Http.QueryHandler {
+    public func handler() : Sdk.Http.QueryHandler {
         let definition : Sdk.Definition.Bot = {
-            description = "Provides a handful of example commands";
-            commands = commands;
+            description = "This is a very basic example moderation bot which will auto delete any messages containing words in its banned list.";
+            commands = [];
             autonomous_config = ?{
                 permissions = ?{
-                    community = [#CreatePublicChannel, #CreatePrivateChannel];
-                    chat = [];
+                    community = [];
+                    chat = [#ReadMessages, #DeleteMessages];
                     message = [#Text];
                 };
             };
-            default_subscriptions = null;
-            data_encoding = null;
+            default_subscriptions = ?{
+                community = [];
+                chat = [#Message, #MessageEdited];
+            };
+            data_encoding = ?#Candid;
         };
 
         let response = Sdk.Http.ResponseBuilder()

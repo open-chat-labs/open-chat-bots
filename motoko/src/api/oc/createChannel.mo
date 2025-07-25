@@ -24,11 +24,6 @@ module {
 
     public type Response = {
         #Success : SuccessResult;
-        #FailedAuthentication : Text;
-        #InvalidRequest : Text;
-        #NotAuthorized;
-        #Frozen;
-        #C2CError : (Int32, Text);
         #Error : (Nat16, ?Text);
     };
 

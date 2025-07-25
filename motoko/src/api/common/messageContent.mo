@@ -20,6 +20,21 @@ module {
         #Unsupported : UnsupportedContent;
     };
 
+    public func text(content : MessageContent) : ?Text {
+        switch content {
+            case (#Text t) ?t.text;
+            case (#Image i) i.caption;
+            case (#Video v) v.caption;
+            case (#Audio a) a.caption;
+            case (#File f) f.caption;
+            case (#Poll p) p.config.text;
+            case (#Giphy g) g.caption;
+            case (#Deleted _) null;
+            case (#Unsupported _) null;
+            case (#Custom _) null;
+        };
+    };
+
     public type MessageContentInitial = {
         #Text : TextContent;
         #Image : ImageContent;

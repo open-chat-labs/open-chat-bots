@@ -2,7 +2,7 @@ import Array "mo:base/Array";
 import Json "mo:json";
 
 import B "../common/base";
-import E "../common/events";
+import E "../common/eventTypes";
 import Permissions "../common/permissions";
 import Serialize "../common/serialization";
 
