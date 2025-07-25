@@ -1,7 +1,6 @@
 import Error "mo:base/Error";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
-import Option "mo:base/Option";
 
 import ActionContext "../api/bot/actionContext";
 import A "../api/common/accessGates";
