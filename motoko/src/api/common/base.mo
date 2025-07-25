@@ -40,4 +40,11 @@ module {
         mime_type : Text;
         data : [Nat8];
     };
+
+    public type EventWrapper<T> = {
+        index : EventIndex;
+        timestamp : TimestampMillis;
+        expires_at : ?TimestampMillis;
+        event : T;
+    };
 };
