@@ -189,52 +189,9 @@ pub struct MemberJoined {
     pub invited_by: Option<UserId>,
 }
 
-// The aliases need to be kept to handle pre-existing values
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct MemberJoinedInternal {
-    #[serde(rename = "u", alias = "user_id")]
-    pub user_id: UserId,
-    #[serde(
-        rename = "i",
-        alias = "invited_by",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub invited_by: Option<UserId>,
-}
-
-impl From<MemberJoined> for MemberJoinedInternal {
-    fn from(value: MemberJoined) -> Self {
-        MemberJoinedInternal {
-            user_id: value.user_id,
-            invited_by: value.invited_by,
-        }
-    }
-}
-
-impl From<MemberJoinedInternal> for MemberJoined {
-    fn from(value: MemberJoinedInternal) -> Self {
-        MemberJoined {
-            user_id: value.user_id,
-            invited_by: value.invited_by,
-        }
-    }
-}
-
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct MemberLeft {
     pub user_id: UserId,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct CommunityMemberLeftInternal {
-    #[serde(rename = "u", alias = "user_id")]
-    pub user_id: UserId,
-    #[serde(
-        rename = "r",
-        alias = "referred_by",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub referred_by: Option<UserId>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -614,28 +571,28 @@ impl From<CommunityEventType> for CommunityEventCategory {
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct BotRegisteredEvent {
-    #[serde(rename = "i")]
+    #[serde(alias = "i")]
     pub bot_id: UserId,
-    #[serde(rename = "n")]
+    #[serde(alias = "n")]
     pub bot_name: String,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct BotInstalledEvent {
-    #[serde(rename = "u")]
+    #[serde(alias = "u")]
     pub installed_by: UserId,
-    #[serde(rename = "l")]
+    #[serde(alias = "l")]
     pub location: InstallationLocation,
-    #[serde(rename = "p")]
+    #[serde(alias = "p")]
     pub granted_command_permissions: BotPermissions,
-    #[serde(rename = "a")]
+    #[serde(alias = "a")]
     pub granted_autonomous_permissions: BotPermissions,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct BotUninstalledEvent {
-    #[serde(rename = "u")]
+    #[serde(alias = "u")]
     pub uninstalled_by: UserId,
-    #[serde(rename = "l")]
+    #[serde(alias = "l")]
     pub location: InstallationLocation,
 }
