@@ -1,6 +1,5 @@
 use lazy_static::lazy_static;
 use oc_bots_sdk::api::event_notification::BotChatEvent;
-use oc_bots_sdk::oc_api::actions::chat_events::{self, EventsByIndexArgs, EventsSelectionCriteria};
 use oc_bots_sdk::oc_api::actions::send_message::Response;
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
 use oc_bots_sdk::types::{CanisterId, ChatEvent, MessagePermission, UnitResult};
@@ -72,10 +71,13 @@ lazy_static! {
 }
 
 async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
-    match chat_event.event {
-        ChatEvent::Message(_) => (),
-        _ => return,
-    }
+    let ChatEvent::Message(message) = chat_event.event else {
+        return;
+    };
+
+    let Some(text) = message.content.text() else {
+        return;
+    };
 
     let Some(installation) = state::read(|state| {
         state
@@ -89,46 +91,13 @@ async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
 
     let required = BotPermissionsBuilder::new()
         .with_message(MessagePermission::Text)
-        .with_chat(ChatPermission::ReadMessages)
         .with_chat(ChatPermission::DeleteMessages)
         .build();
 
     if !required.is_subset(&installation.granted_autonomous_permissions) {
-        ic_cdk::println!("Not permitted to read, delete and send messages");
+        ic_cdk::println!("Not permitted to delete and send messages");
         return;
     }
-
-    let client = OPENCHAT_CLIENT_FACTORY.build(AutonomousContext {
-        scope: ActionScope::Chat(chat_event.chat),
-        api_gateway,
-    });
-
-    let result = match client
-        .chat_events(EventsSelectionCriteria::ByIndex(EventsByIndexArgs {
-            events: vec![chat_event.event_index],
-        }))
-        .with_thread(chat_event.thread)
-        .execute_async()
-        .await
-    {
-        Ok(chat_events::Response::Success(result)) => result,
-        error => {
-            ic_cdk::println!("Failed to read message: {:?}", error);
-            return;
-        }
-    };
-
-    let Some((message, event_index)) = result.events.first().and_then(|event| match &event.event {
-        oc_bots_sdk::types::ChatEvent::Message(message) => Some((message, event.index)),
-        _ => None,
-    }) else {
-        ic_cdk::println!("Failed to read message");
-        return;
-    };
-
-    let Some(text) = message.content.text() else {
-        return;
-    };
 
     let contains_banned_words = state::read(|state| {
         let banned_words = state.banned_words();
@@ -141,10 +110,15 @@ async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
     });
 
     if contains_banned_words {
+        let client = OPENCHAT_CLIENT_FACTORY.build(AutonomousContext {
+            scope: ActionScope::Chat(chat_event.chat),
+            api_gateway,
+        });
+
         match client
             .send_text_message("Stop using bad language!".to_string())
             .with_thread(chat_event.thread)
-            .replies_to(Some(event_index))
+            .replies_to(Some(chat_event.event_index))
             .execute_async()
             .await
         {
@@ -163,7 +137,7 @@ async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
             .await
         {
             Ok(UnitResult::Success) => {
-                // TODO: Make a note of the delete message in the state
+                // TODO: Make a note of the deleted message in the state
             }
             error => {
                 ic_cdk::println!("Failed to delete message: {:?}", error);
