@@ -22,7 +22,7 @@ module {
                 return ResponseBuilder.text(403, "Not authorized");
             };
 
-            let client = let client = Client.AutonomousClient({
+            let client = let client = Client.OpenChatClient({
                 apiGateway;
                 scope = ActionScope.fromLocation(location);
                 jwt = null;

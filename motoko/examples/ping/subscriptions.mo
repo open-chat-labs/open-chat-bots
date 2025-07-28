@@ -70,7 +70,7 @@ module {
         };
 
         func sendPing(chat : Chat.Chat, apiGateway : Base.CanisterId) : () -> async () {
-            let client = Client.AutonomousClient({
+            let client = Client.OpenChatClient({
                 apiGateway;
                 scope = #Chat(chat);
                 jwt = null;

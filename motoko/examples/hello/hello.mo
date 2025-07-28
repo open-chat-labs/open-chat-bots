@@ -9,8 +9,8 @@ module {
         };
     };
 
-    func execute(client : Sdk.OpenChat.CommandClient) : async Sdk.Command.Result {
-        let userId = client.context.command.initiator;
+    func execute(client : Sdk.OpenChat.Client, context : Sdk.Command.Context) : async Sdk.Command.Result {
+        let userId = context.command.initiator;
         let text = "hello @UserId(" # Principal.toText(userId) # ")";
 
         let message = await client.sendTextMessage(text).executeThenReturnMessage(null);

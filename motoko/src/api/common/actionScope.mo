@@ -13,17 +13,24 @@ module {
 
     public func communityId(scope : ActionScope) : ?B.CanisterId {
         switch (scope) {
-            case (#Chat(#Channel(id, _))) { ?id };
-            case (#Chat(_)) { null };
-            case (#Community(id)) { ?id };
+            case (#Chat(#Channel(id, _))) ?id;
+            case (#Chat(_)) null;
+            case (#Community(id)) ?id;
         };
     };
 
     public func fromLocation(location: InstallationLocation.InstallationLocation) : ActionScope {
         switch (location) {
-            case (#Community(id)) { #Community(id) };
-            case (#Group(id)) { #Chat(#Group(id)) };
-            case (#User(id)) { #Chat(#Direct(id)) };
+            case (#Community(id)) #Community(id);
+            case (#Group(id)) #Chat(#Group(id));
+            case (#User(id)) #Chat(#Direct(id));
+        };
+    };
+
+    public func withChannelId(scope: ActionScope, channelId: B.ChannelId) : ActionScope {
+        switch (scope) {
+            case (#Community(communityId)) #Chat(#Channel(communityId, channelId));
+            case _ scope;
         };
     };
 

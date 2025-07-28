@@ -12,6 +12,7 @@ import Definition "api/bot/definition";
 import Base "api/common/base";
 import Command "api/common/command";
 import Client "client";
+import ActionContext "api/bot/actionContext";
 
 module {
     public type CommandHandler = {
@@ -19,7 +20,7 @@ module {
         execute : Execute;
     };
 
-    public type Execute = Client.CommandClient -> async Result.Result<CommandResponse.SuccessResult, Text>;
+    public type Execute = (Client.OpenChatClient, CommandContext.CommandContext) -> async Result.Result<CommandResponse.SuccessResult, Text>;
 
     public type SyncHandler = CommandContext.CommandContext -> CommandResponse.Response;
 
@@ -59,7 +60,9 @@ module {
                 return #BadRequest(#ArgsInvalid);
             };
 
-            switch (await handler.execute(Client.CommandClient(context))) {
+            let actionContext : ActionContext.ActionContext = CommandContext.toActionContext(context);
+
+            switch (await handler.execute(Client.OpenChatClient(actionContext), context)) {
                 case (#ok(result)) return #Success(result);
                 case (#err(error)) {
                     return #InternalError(#CommandError(error));

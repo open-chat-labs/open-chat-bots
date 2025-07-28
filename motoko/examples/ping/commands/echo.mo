@@ -8,8 +8,8 @@ module {
         };
     };
 
-    func execute(client : Sdk.OpenChat.CommandClient) : async Sdk.Command.Result {
-        let text = Sdk.Command.Arg.text(client.context.command, "text");
+    func execute(client : Sdk.OpenChat.Client, context : Sdk.Command.Context) : async Sdk.Command.Result {
+        let text = Sdk.Command.Arg.text(context.command, "text");
 
         let message = await client
             .sendTextMessage(text)

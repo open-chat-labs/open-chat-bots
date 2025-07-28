@@ -10,7 +10,7 @@ module {
         isPublic: Bool;
     };
     
-    public func execute(request : Sdk.Http.Request, client : Sdk.OpenChat.AutonomousClient) : async Sdk.Http.Response {
+    public func execute(request : Sdk.Http.Request, client : Sdk.OpenChat.Client) : async Sdk.Http.Response {
         let ?body = Text.decodeUtf8(request.body) else {
             return ResponseBuilder.badRequest("Invalid UTF-8 encoding");
         };

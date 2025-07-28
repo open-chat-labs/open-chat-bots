@@ -8,7 +8,7 @@ import ResponseBuilder "mo:openchat-bot-sdk/http/responseBuilder";
 import UrlKit "mo:url-kit";
 
 module {
-    public func execute(request : Sdk.Http.Request, client : Sdk.OpenChat.AutonomousClient) : async Sdk.Http.Response {
+    public func execute(request : Sdk.Http.Request, client : Sdk.OpenChat.Client) : async Sdk.Http.Response {
         // Try to extract a channel ID from the query string
         let #ok url = UrlKit.fromText(request.url) else return ResponseBuilder.badRequest("Invalid URL");
         let channelId = UrlKit.getQueryParam(url, "channel")
