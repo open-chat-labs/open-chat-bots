@@ -960,18 +960,6 @@ export const BotCommandMeta = Type.Object({
     language: Type.String(),
 });
 
-export type Cryptocurrency = Static<typeof Cryptocurrency>;
-export const Cryptocurrency = Type.Union([
-    Type.Literal("InternetComputer"),
-    Type.Literal("SNS1"),
-    Type.Literal("CKBTC"),
-    Type.Literal("CHAT"),
-    Type.Literal("KINIC"),
-    Type.Object({
-        Other: Type.String(),
-    }),
-]);
-
 export type ChitEarnedReason = Static<typeof ChitEarnedReason>;
 export const ChitEarnedReason = Type.Union([
     Type.Literal("DailyClaim"),
@@ -1256,7 +1244,7 @@ export const P2PSwapCancelled = Type.Object({
 export type FailedCryptoTransactionNNS = Static<typeof FailedCryptoTransactionNNS>;
 export const FailedCryptoTransactionNNS = Type.Object({
     ledger: TSPrincipal,
-    token: Cryptocurrency,
+    token_symbol: Type.String(),
     amount: Tokens,
     fee: Tokens,
     from: CryptoAccountNNS,
@@ -1368,6 +1356,13 @@ export type CustomPermission = Static<typeof CustomPermission>;
 export const CustomPermission = Type.Object({
     subtype: Type.String(),
     role: GroupPermissionRole,
+});
+
+export type AccountLinkingCode = Static<typeof AccountLinkingCode>;
+export const AccountLinkingCode = Type.Object({
+    value: Type.String(),
+    expires_at: Type.BigInt(),
+    user_id: UserId,
 });
 
 export type SuspensionDetails = Static<typeof SuspensionDetails>;
@@ -3629,6 +3624,16 @@ export const IdentityGetDelegationArgs = Type.Object({
     expiration: Type.BigInt(),
 });
 
+export type IdentityCreateAccountLinkingCodeResponse = Static<
+    typeof IdentityCreateAccountLinkingCodeResponse
+>;
+export const IdentityCreateAccountLinkingCodeResponse = Type.Union([
+    Type.Object({
+        Success: AccountLinkingCode,
+    }),
+    Type.Literal("UserNotFound"),
+]);
+
 export type IdentityWebAuthnKey = Static<typeof IdentityWebAuthnKey>;
 export const IdentityWebAuthnKey = Type.Object({
     public_key: TSBytes,
@@ -3679,6 +3684,15 @@ export const IdentityCreateIdentityArgs = Type.Object({
     is_ii_principal: Type.Optional(Type.Boolean()),
     max_time_to_live: Type.Optional(Type.BigInt()),
     challenge_attempt: Type.Optional(IdentityChallengeAttempt),
+});
+
+export type IdentityLinkWithAccountLinkingCodeArgs = Static<
+    typeof IdentityLinkWithAccountLinkingCodeArgs
+>;
+export const IdentityLinkWithAccountLinkingCodeArgs = Type.Object({
+    code: Type.String(),
+    public_key: TSBytes,
+    webauthn_key: Type.Optional(IdentityWebAuthnKey),
 });
 
 export type OnlineUsersLastOnlineArgs = Static<typeof OnlineUsersLastOnlineArgs>;
@@ -4893,7 +4907,7 @@ export const StringParam = Type.Object({
 
 export type MembersResult = Static<typeof MembersResult>;
 export const MembersResult = Type.Object({
-    members_map: Type.Record(Type.String(), Type.Array(UserId)),
+    members_map: Type.Record(MemberType, Type.Array(UserId)),
     timestamp: Type.BigInt(),
 });
 
@@ -4932,7 +4946,7 @@ export const CustomContent = Type.Object({
 export type FailedCryptoTransactionICRC1 = Static<typeof FailedCryptoTransactionICRC1>;
 export const FailedCryptoTransactionICRC1 = Type.Object({
     ledger: TSPrincipal,
-    token: Cryptocurrency,
+    token_symbol: Type.String(),
     amount: Type.BigInt(),
     fee: Type.BigInt(),
     from: CryptoAccountICRC1,
@@ -5041,7 +5055,7 @@ export const MessageUnpinned = Type.Object({
 export type CompletedCryptoTransactionNNS = Static<typeof CompletedCryptoTransactionNNS>;
 export const CompletedCryptoTransactionNNS = Type.Object({
     ledger: TSPrincipal,
-    token: Cryptocurrency,
+    token_symbol: Type.String(),
     amount: Tokens,
     fee: Tokens,
     from: CryptoAccountNNS,
@@ -5165,7 +5179,7 @@ export const OptionUpdateOptionalMessagePermissions = Type.Union(
 export type FailedCryptoTransactionICRC2 = Static<typeof FailedCryptoTransactionICRC2>;
 export const FailedCryptoTransactionICRC2 = Type.Object({
     ledger: TSPrincipal,
-    token: Cryptocurrency,
+    token_symbol: Type.String(),
     amount: Type.BigInt(),
     fee: Type.BigInt(),
     spender: UserId,
@@ -5174,6 +5188,12 @@ export const FailedCryptoTransactionICRC2 = Type.Object({
     memo: Type.Optional(TSBytes),
     created: Type.BigInt(),
     error_message: Type.String(),
+});
+
+export type BotRegisteredEvent = Static<typeof BotRegisteredEvent>;
+export const BotRegisteredEvent = Type.Object({
+    bot_id: UserId,
+    bot_name: Type.String(),
 });
 
 export type UsersInvited = Static<typeof UsersInvited>;
@@ -5397,7 +5417,7 @@ export const BotInstallationLocation = Type.Union([
 export type CompletedCryptoTransactionICRC1 = Static<typeof CompletedCryptoTransactionICRC1>;
 export const CompletedCryptoTransactionICRC1 = Type.Object({
     ledger: TSPrincipal,
-    token: Cryptocurrency,
+    token_symbol: Type.String(),
     amount: Type.BigInt(),
     from: CryptoAccountICRC1,
     to: CryptoAccountICRC1,
@@ -5579,6 +5599,12 @@ export const OptionUpdateAirdropConfig = Type.Union(
     ],
     { default: "NoChange" },
 );
+
+export type BotUninstalledEvent = Static<typeof BotUninstalledEvent>;
+export const BotUninstalledEvent = Type.Object({
+    uninstalled_by: UserId,
+    location: BotInstallationLocation,
+});
 
 export type OptionUpdateDocument = Static<typeof OptionUpdateDocument>;
 export const OptionUpdateDocument = Type.Union(
@@ -6667,6 +6693,14 @@ export const EventWrapperGroupFrozen = Type.Object({
     event: GroupFrozen,
 });
 
+export type BotInstalledEvent = Static<typeof BotInstalledEvent>;
+export const BotInstalledEvent = Type.Object({
+    installed_by: UserId,
+    location: BotInstallationLocation,
+    granted_command_permissions: BotPermissions,
+    granted_autonomous_permissions: BotPermissions,
+});
+
 export type SignedDelegation = Static<typeof SignedDelegation>;
 export const SignedDelegation = Type.Object({
     delegation: Delegation,
@@ -6699,7 +6733,7 @@ export const BotChatContext = Type.Union([
 export type CompletedCryptoTransactionICRC2 = Static<typeof CompletedCryptoTransactionICRC2>;
 export const CompletedCryptoTransactionICRC2 = Type.Object({
     ledger: TSPrincipal,
-    token: Cryptocurrency,
+    token_symbol: Type.String(),
     amount: Type.BigInt(),
     spender: UserId,
     from: CryptoAccountICRC1,
@@ -6801,6 +6835,19 @@ export const PollVotes = Type.Object({
     total: TotalVotes,
     user: Type.Array(Type.Number()),
 });
+
+export type BotLifecycleEvent = Static<typeof BotLifecycleEvent>;
+export const BotLifecycleEvent = Type.Union([
+    Type.Object({
+        Registered: BotRegisteredEvent,
+    }),
+    Type.Object({
+        Installed: BotInstalledEvent,
+    }),
+    Type.Object({
+        Uninstalled: BotUninstalledEvent,
+    }),
+]);
 
 export type AccessGateNonComposite = Static<typeof AccessGateNonComposite>;
 export const AccessGateNonComposite = Type.Union([
@@ -8331,6 +8378,14 @@ export const ChatSummary = Type.Union([
     }),
 ]);
 
+export type BotCommunityEvent = Static<typeof BotCommunityEvent>;
+export const BotCommunityEvent = Type.Object({
+    event: CommunityEvent,
+    community_id: CommunityId,
+    event_index: EventIndex,
+    latest_event_index: EventIndex,
+});
+
 export type CommunityMatch = Static<typeof CommunityMatch>;
 export const CommunityMatch = Type.Object({
     id: CommunityId,
@@ -8819,6 +8874,15 @@ export const CommunityCanisterChannelSummary = Type.Object({
     external_url: Type.Optional(Type.String()),
 });
 
+export type BotChatEvent = Static<typeof BotChatEvent>;
+export const BotChatEvent = Type.Object({
+    event: ChatEvent,
+    chat: Chat,
+    thread: Type.Optional(MessageIndex),
+    event_index: EventIndex,
+    latest_event_index: EventIndex,
+});
+
 export type GroupIndexRecommendedGroupsSuccessResult = Static<
     typeof GroupIndexRecommendedGroupsSuccessResult
 >;
@@ -9016,6 +9080,19 @@ export const EventsResponse = Type.Object({
     latest_event_index: EventIndex,
     chat_last_updated: Type.BigInt(),
 });
+
+export type BotEvent = Static<typeof BotEvent>;
+export const BotEvent = Type.Union([
+    Type.Object({
+        Chat: BotChatEvent,
+    }),
+    Type.Object({
+        Community: BotCommunityEvent,
+    }),
+    Type.Object({
+        Lifecycle: BotLifecycleEvent,
+    }),
+]);
 
 export type CommunityCanisterCommunitySummary = Static<typeof CommunityCanisterCommunitySummary>;
 export const CommunityCanisterCommunitySummary = Type.Object({
@@ -9340,3 +9417,10 @@ export const UserUpdatesResponse = Type.Union([
     }),
     Type.Literal("SuccessNoUpdates"),
 ]);
+
+export type BotEventWrapper = Static<typeof BotEventWrapper>;
+export const BotEventWrapper = Type.Object({
+    api_gateway: TSPrincipal,
+    event: BotEvent,
+    timestamp: Type.BigInt(),
+});
