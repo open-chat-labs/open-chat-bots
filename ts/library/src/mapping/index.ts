@@ -6,10 +6,14 @@ import {
     type AudioContent,
     type BlobReference,
     type BotChatContext,
+    type BotChatEvent,
+    type BotCommunityEvent,
     type BotCommunityOrGroupContext,
+    type BotEvent,
+    type BotEventWrapper,
+    type BotLifecycleEvent,
     type BotMessageContext,
     ChannelIdentifier,
-    CHAT_SYMBOL,
     ChatActionScope,
     type ChatEvent,
     type ChatEventsCriteria,
@@ -18,7 +22,6 @@ import {
     type ChatEventWrapper,
     type ChatIdentifier,
     type ChatSummaryResponse,
-    CKBTC_SYMBOL,
     type CommandActionScope,
     type CommandArg,
     CommunityActionScope,
@@ -43,9 +46,8 @@ import {
     GroupChatIdentifier,
     type GroupInviteCodeChange,
     type GroupPermissions,
-    ICP_SYMBOL,
     type ImageContent,
-    KINIC_SYMBOL,
+    type InstallationLocation,
     type LeafGate,
     type MessageContent,
     type MessageContext,
@@ -57,6 +59,7 @@ import {
     type P2PSwapStatus,
     type PendingCryptocurrencyTransfer,
     type PermissionRole,
+    Permissions,
     type PollConfig,
     type PollContent,
     type PollVotes,
@@ -72,7 +75,6 @@ import {
     type ReportedMessageContent,
     type SenderContext,
     type SendMessageResponse,
-    SNS1_SYMBOL,
     type Success,
     type TextContent,
     type ThreadSummary,
@@ -104,7 +106,13 @@ import {
     type AudioContent as ApiAudioContent,
     type BlobReference as ApiBlobReference,
     type BotChatContext as ApiBotChatContext,
+    type BotChatEvent as ApiBotChatEvent,
+    type BotCommunityEvent as ApiBotCommunityEvent,
     type BotCommunityOrGroupContext as ApiBotCommunityOrGroupContext,
+    type BotEvent as ApiBotEvent,
+    type BotEventWrapper as ApiBotEventWrapper,
+    type BotInstallationLocation as ApiBotInstallationLocation,
+    type BotLifecycleEvent as ApiBotLifecycleEvent,
     type BotMessageContext as ApiBotMessageContext,
     type CallParticipant as ApiCallParticipant,
     type CommunityChannelSummary as ApiChannelSummary,
@@ -121,7 +129,6 @@ import {
     CommunityCommunitySummary as ApiCommunitySummary,
     type CompletedCryptoTransaction as ApiCompletedCryptoTransaction,
     type CryptoContent as ApiCryptoContent,
-    type Cryptocurrency as ApiCryptocurrency,
     type CryptoTransaction as ApiCryptoTransaction,
     type CustomContent as ApiCustomContent,
     type DeletedBy as ApiDeletedBy,
@@ -1518,16 +1525,6 @@ export function failedCryptoTransfer(
     };
 }
 
-export function token(value: ApiCryptocurrency): string {
-    if (value === "InternetComputer") return ICP_SYMBOL;
-    if (value === "SNS1") return SNS1_SYMBOL;
-    if (value === "CKBTC") return CKBTC_SYMBOL;
-    if (value === "CHAT") return CHAT_SYMBOL;
-    if (value === "KINIC") return KINIC_SYMBOL;
-    if ("Other" in value) return value.Other;
-    throw new UnsupportedValueError("Unexpected Cryptocurrency type received", value);
-}
-
 export function bytesToBigint(bytes: Uint8Array | number[]): bigint {
     return BigInt("0x" + bytesToHexString(bytes));
 }
@@ -2087,4 +2084,85 @@ export function apiChatIdentifier(domain: ChatIdentifier): ApiChat {
         return { Group: principalStringToBytes(domain.groupId) };
     }
     throw new Error("Unexpected ChatIdentifier received");
+}
+
+export function botEventWrapper(api: ApiBotEventWrapper): BotEventWrapper {
+    return {
+        kind: "bot_event_wrapper",
+        apiGateway: principalBytesToString(api.api_gateway),
+        event: botEvent(api.event),
+        timestamp: api.timestamp,
+    };
+}
+
+export function botEvent(api: ApiBotEvent): BotEvent {
+    if ("Chat" in api) {
+        return botChatEvent(api.Chat);
+    } else if ("Community" in api) {
+        return botCommunityEvent(api.Community);
+    } else if ("Lifecycle" in api) {
+        return botLifecycleEvent(api.Lifecycle);
+    }
+    throw new Error("Unexpected ApiBotEvent received");
+}
+
+export function botChatEvent(api: ApiBotChatEvent): BotChatEvent {
+    return {
+        kind: "bot_chat_event",
+        event: event(api.event),
+        chatId: mapChatIdentifier(api.chat),
+        thread: optional(api.thread, identity),
+        eventIndex: api.event_index,
+        latestEventIndex: api.latest_event_index,
+        initiatedBy: undefined, // TODO - check why this is not here
+    };
+}
+
+export function botCommunityEvent(api: ApiBotCommunityEvent): BotCommunityEvent {
+    return {
+        kind: "bot_community_event",
+        event: communityEvent(api.event),
+        communityId: new CommunityIdentifier(principalBytesToString(api.community_id)),
+        eventIndex: api.event_index,
+        latestEventIndex: api.latest_event_index,
+        initiatedBy: undefined, // TODO - check why this is not here
+    };
+}
+
+export function botLifecycleEvent(api: ApiBotLifecycleEvent): BotLifecycleEvent {
+    if ("Registered" in api) {
+        return {
+            kind: "bot_registered_event",
+            botId: principalBytesToString(api.Registered.bot_id),
+            botName: api.Registered.bot_name,
+        };
+    } else if ("Installed" in api) {
+        return {
+            kind: "bot_installed_event",
+            installedBy: principalBytesToString(api.Installed.installed_by),
+            location: installationLocation(api.Installed.location),
+            grantedCommandPermissions: new Permissions(api.Installed.granted_command_permissions),
+            grantedAutonomousPermissions: new Permissions(
+                api.Installed.granted_autonomous_permissions,
+            ),
+        };
+    } else if ("Uninstalled" in api) {
+        return {
+            kind: "bot_uninstalled_event",
+            uninstalledBy: principalBytesToString(api.Uninstalled.uninstalled_by),
+            location: installationLocation(api.Uninstalled.location),
+        };
+    }
+    throw new Error("Unexpected ApiBotLifecycleEvent received");
+}
+
+export function installationLocation(api: ApiBotInstallationLocation): InstallationLocation {
+    if ("Community" in api) {
+        return new CommunityIdentifier(principalBytesToString(api.Community));
+    } else if ("Group" in api) {
+        return new GroupChatIdentifier(principalBytesToString(api.Group));
+    } else if ("User" in api) {
+        return new DirectChatIdentifier(principalBytesToString(api.User));
+    }
+    throw new Error("Unexpected ApiBotInstallationLocation received");
 }

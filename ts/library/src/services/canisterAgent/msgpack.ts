@@ -158,7 +158,7 @@ export abstract class MsgpackCanisterAgent extends CanisterAgent {
         }
     }
 
-    private static validate<T extends TSchema>(value: unknown, validator: T): Static<T> {
+    static validate<T extends TSchema>(value: unknown, validator: T): Static<T> {
         return Value.Parse(validator, value);
     }
 
