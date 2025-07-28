@@ -17,9 +17,9 @@ module {
     };
 
     func execute(state : S.State) : CommandHandler.Execute {
-        func (client : Sdk.OpenChat.CommandClient) : async Sdk.Command.Result {
-            let n = Sdk.Command.Arg.maybeInt(client.context.command, "n") |> Option.get(_, 5) |> Int.abs(_);
-            let ?chatDetails = Scope.chatDetails(client.context.scope) else return #err "Expected Chat scope";
+        func (client : Sdk.OpenChat.Client, context : Sdk.Command.Context) : async Sdk.Command.Result {
+            let n = Sdk.Command.Arg.maybeInt(context.command, "n") |> Option.get(_, 5) |> Int.abs(_);
+            let ?chatDetails = Scope.chatDetails(context.scope) else return #err "Expected Chat scope";
 
             let sub = {
                 chat = chatDetails.chat;
