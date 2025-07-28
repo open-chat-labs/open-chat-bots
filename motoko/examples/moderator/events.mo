@@ -104,7 +104,7 @@ module {
             return;
         };
 
-        let client = Client.AutonomousClient({
+        let client = Client.OpenChatClient({
             apiGateway;
             scope = #Chat(chatEvent.chat);
             jwt = null;

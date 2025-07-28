@@ -1,10 +1,10 @@
 import B "../common/base";
-import C "../common/botChatContext";
-import E "../common/chatEvents";
+import E "../common/communityEvents";
 
 module {
     type UserId = B.UserId;
     type ChannelId = B.ChannelId;
+    type CommunityId = B.CommunityId;
     type TimestampMillis = B.TimestampMillis;
     type Milliseconds = B.Milliseconds;
     type MessageId = B.MessageId;
@@ -13,36 +13,27 @@ module {
     type ChatRole = B.ChatRole;
 
     public type Actor = actor {
-        bot_chat_events_c2c : (Args) -> async Response;
+        bot_community_events_c2c : (Args) -> async Response;
     };
 
     public type Args = {
-        chat_context : C.BotChatContext;
-        thread : ?MessageIndex;
+        community_id : CommunityId;
         events : EventsSelectionCriteria;
     };
 
     public type EventsSelectionCriteria = {
         #Page : EventsPageArgs;
         #ByIndex : EventsByIndexArgs;
-        #Window : EventsWindowArgs;
     };
 
     public type EventsPageArgs = {
         start_index : EventIndex;
         ascending : Bool;
-        max_messages : Nat32;
         max_events : Nat32;
     };
 
     public type EventsByIndexArgs = {
         events : [Nat32];
-    };
-
-    public type EventsWindowArgs = {
-        mid_point : MessageIndex;
-        max_messages : Nat32;
-        max_events : Nat32;
     };
 
     public type Response = {
@@ -51,11 +42,8 @@ module {
     };
 
     public type EventsResponse = {
-        events : [B.EventWrapper<E.ChatEvent>];
-        unauthorized : [EventIndex];
-        expired_event_ranges : [(EventIndex, EventIndex)];
-        expired_message_ranges : [(MessageIndex, MessageIndex)];
+        events : [B.EventWrapper<E.CommunityEvent>];
         latest_event_index : EventIndex;
-        chat_last_updated : TimestampMillis;
+        community_last_updated : TimestampMillis;
     };
 };
