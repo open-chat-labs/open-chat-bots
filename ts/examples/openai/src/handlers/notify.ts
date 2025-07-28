@@ -1,7 +1,7 @@
 import {
-  BotClient,
-  BotEvent,
-  handleNotification,
+    BotClient,
+    BotEvent,
+    handleNotification,
 } from "@open-ic/openchat-botclient-ts";
 import { Request, Response } from "express";
 import { factory } from "../factory";
@@ -14,20 +14,10 @@ export async function notify(req: Request, res: Response) {
     req.body,
     factory,
     async (client: BotClient, ev: BotEvent) => {
-      if (ev.kind === "bot_chat_event" && ev.eventType === "message") {
-        const eventIndex = ev.eventIndex;
-        const resp = await client.chatEvents({
-          kind: "chat_events_by_index",
-          eventIndexes: [eventIndex],
-        });
-        if (
-          resp.kind === "success" &&
-          resp.events[0].event.kind === "message" &&
-          (resp.events[0].event.content.kind === "text_content" ||
-            resp.events[0].event.content.kind === "image_content")
-        ) {
-          handleTextMessage(client, resp.events[0].event as ModeratableContent);
-        }
+      if (ev.kind === "bot_chat_event"
+        && ev.event.kind === "message"
+        && (ev.event.content.kind === "text_content" || ev.event.content.kind === "image_content")) {
+          handleTextMessage(client, ev.event as ModeratableContent);
       }
       res.status(200).json({});
     },
