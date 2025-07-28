@@ -20,48 +20,51 @@ import sayHello from "./sayHello";
 import subscribe from "./subscribe";
 import summary from "./summary";
 import unsubscribe from "./unsubscribe";
+import { ephemeral } from "./ephemeral";
 
 function hasBotClient(req: Request): req is WithBotClient {
-  return (req as WithBotClient).botClient !== undefined;
+    return (req as WithBotClient).botClient !== undefined;
 }
 
 export default function executeCommand(req: Request, res: Response) {
-  if (!hasBotClient(req)) {
-    res.status(500).send("Bot client not initialised");
-    return;
-  }
-  const client = req.botClient;
+    if (!hasBotClient(req)) {
+        res.status(500).send("Bot client not initialised");
+        return;
+    }
+    const client = req.botClient;
 
-  switch (client.commandName) {
-    case "chat_members":
-      return chatMembers(req, res);
-    case "community_members":
-      return communityMembers(req, res);
-    case "say_hello":
-      return sayHello(req, res);
-    case "chat_summary":
-      return summary(req, res);
-    case "chat_events":
-      return chatEvents(req, res);
-    case "community_events":
-      return communityEvents(req, res);
-    case "prompt":
-    case "numbers":
-      return numbers(req, res);
-    case "poll":
-      return poll(req, res);
-    case "subscribe":
-      return subscribe(req, res);
-    case "unsubscribe":
-      return unsubscribe(req, res);
-    case "file":
-      return file(req, res);
-    case "news":
-      return news(req, res);
-    case "image":
-      return image(req, res);
+    switch (client.commandName) {
+        case "chat_members":
+            return chatMembers(req, res);
+        case "community_members":
+            return communityMembers(req, res);
+        case "say_hello":
+            return sayHello(req, res);
+        case "chat_summary":
+            return summary(req, res);
+        case "ephemeral":
+            return ephemeral(req, res);
+        case "chat_events":
+            return chatEvents(req, res);
+        case "community_events":
+            return communityEvents(req, res);
+        case "prompt":
+        case "numbers":
+            return numbers(req, res);
+        case "poll":
+            return poll(req, res);
+        case "subscribe":
+            return subscribe(req, res);
+        case "unsubscribe":
+            return unsubscribe(req, res);
+        case "file":
+            return file(req, res);
+        case "news":
+            return news(req, res);
+        case "image":
+            return image(req, res);
 
-    default:
-      res.status(400).send(commandNotFound());
-  }
+        default:
+            res.status(400).send(commandNotFound());
+    }
 }
