@@ -17,14 +17,14 @@ module {
     };
 
     func execute(state : S.State) : CommandHandler.Execute {
-        func (client : Sdk.OpenChat.Client, context : Sdk.Command.Context) : async Sdk.Command.Result {
+        func (_client : Sdk.OpenChat.Client, context : Sdk.Command.Context) : async Sdk.Command.Result {
             let n = Sdk.Command.Arg.maybeInt(context.command, "n") |> Option.get(_, 5) |> Int.abs(_);
             let ?chatDetails = Scope.chatDetails(context.scope) else return #err "Expected Chat scope";
 
             let sub = {
                 chat = chatDetails.chat;
                 interval = n;
-                apiGateway = client.context.apiGateway;
+                apiGateway = context.apiGateway;
                 iterations = 0 : Nat8;
             };
 

@@ -2,6 +2,8 @@ import Http "mo:http-types";
 import Sdk "mo:openchat-bot-sdk";
 import Env "mo:openchat-bot-sdk/env";
 
+import ChatMembers "commands/chatMembers";
+import Members "commands/members";
 import Echo "commands/echo";
 import GenerateApiKey "commands/generateApiKey";
 import Ping "commands/ping";
@@ -11,6 +13,7 @@ import Definition "definition";
 import Events "events";
 import Metrics "metrics";
 import State "state";
+import Utils "utils";
 import Webhooks "webhooks";
 
 actor class PingBot(key : Text) {
@@ -20,6 +23,8 @@ actor class PingBot(key : Text) {
     transient var state = State.fromStable<system>(stableState);
 
     transient let registry = Sdk.Command.Registry()
+        .register(ChatMembers.build())
+        .register(Members.build())
         .register(Echo.build())
         .register(GenerateApiKey.build(state))
         .register(Ping.build())

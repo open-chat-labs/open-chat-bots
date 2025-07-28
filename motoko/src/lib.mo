@@ -17,6 +17,7 @@ module {
         public type Bot = DefinitionInternal.Bot;
         public type Command = DefinitionInternal.Command;
         public type AutonomousConfig = DefinitionInternal.AutonomousConfig;
+        public type CommandOptionChoice<T> = DefinitionInternal.BotCommandOptionChoice<T>;
         public let serialize = DefinitionInternal.serialize;
     };
 

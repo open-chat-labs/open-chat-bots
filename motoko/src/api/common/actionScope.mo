@@ -19,6 +19,13 @@ module {
         };
     };
 
+    public func channelId(scope : ActionScope) : ?B.ChannelId {
+        switch (scope) {
+            case (#Chat(#Channel(_, id))) ?id;
+            case _ null;
+        };
+    };
+
     public func fromLocation(location: InstallationLocation.InstallationLocation) : ActionScope {
         switch (location) {
             case (#Community(id)) #Community(id);

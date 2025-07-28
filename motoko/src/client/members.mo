@@ -4,11 +4,12 @@ import Result "mo:base/Result";
 
 import ActionContext "../api/bot/actionContext";
 import B "../api/common/base";
+import MemberType "../api/common/memberType";
 import Members "../api/oc/members";
 import CommunityOrGroupContext "../api/common/communityOrGroupContext";
 
 module {
-    public class Builder(context : ActionContext.ActionContext, memberTypes: [Members.MemberType]) = this {
+    public class Builder(context : ActionContext.ActionContext, memberTypes: [MemberType.MemberType]) = this {
         var channelId : ?B.ChannelId = null;
 
         public func inChannel(value : ?B.ChannelId) : Builder {
