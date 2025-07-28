@@ -2,8 +2,8 @@ import ActionContext "api/bot/actionContext";
 import B "api/common/base";
 import E "api/common/eventTypes";
 import MessageContent "api/common/messageContent";
+import MemberType "api/common/memberType";
 import ChatEventsApi "api/oc/chatEvents";
-import MembersApi "api/oc/members";
 import ChatSummary "client/chatSummary";
 import ChatEvents "client/chatEvents";
 import CommunityEventsApi "api/oc/communityEvents";
@@ -81,7 +81,7 @@ module {
             CommunityEvents.Builder(context, events);
         };
 
-        public func members(memberTypes : [MembersApi.MemberType]) : Members.Builder {
+        public func members(memberTypes : [MemberType.MemberType]) : Members.Builder {
             Members.Builder(context, memberTypes);
         };
     };
