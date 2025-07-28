@@ -7,16 +7,13 @@ import Base "api/common/base";
 module {
     type InstallationLocation = InstallationLocation.InstallationLocation;
 
-    public func new(records: [(InstallationLocation, InstallationRecord)]) : InstallationRegistry {
-        var registry = InstallationRegistry();
-        for ((location, record) in records.vals()) {
-            registry.insert(location, record);
-        };
-        registry;
-    };
-
-    public class InstallationRegistry() {
-        var map = HashMap.HashMap<InstallationLocation, InstallationRecord>(10, InstallationLocation.equal, InstallationLocation.hash);
+    public class InstallationRegistry(records: [(InstallationLocation, InstallationRecord)]) {
+        var map : HashMap.HashMap<InstallationLocation, InstallationRecord> = 
+            HashMap.fromIter<InstallationLocation, InstallationRecord>(
+                records.vals(), 
+                10, 
+                InstallationLocation.equal, 
+                InstallationLocation.hash);
 
         public func insert(location: InstallationLocation, details: InstallationRecord) {
             map.put(location, details);

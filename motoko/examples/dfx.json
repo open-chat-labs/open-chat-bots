@@ -12,6 +12,10 @@
     "ping_bot": {
       "main": "ping/main.mo",
       "type": "motoko"
+    },
+    "welcome_bot": {
+      "main": "welcome/main.mo",
+      "type": "motoko"
     }
   },
   "defaults": {
