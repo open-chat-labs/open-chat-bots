@@ -123,6 +123,15 @@ impl ActionScope {
             InstallationLocation::User(user_id) => ActionScope::Chat(Chat::Direct(*user_id)),
         }
     }
+
+    pub fn with_channel_id(self, channel_id: ChannelId) -> Self {
+        match self {
+            ActionScope::Community(community_id) => {
+                ActionScope::Chat(Chat::Channel(community_id, channel_id))
+            }
+            _ => self,
+        }
+    }
 }
 
 #[derive(

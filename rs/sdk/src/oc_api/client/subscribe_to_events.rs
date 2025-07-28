@@ -8,20 +8,20 @@ use crate::types::{ActionContext, CanisterId, ChannelId};
 use std::collections::HashSet;
 use std::sync::Arc;
 
-pub struct SubscribeToChatEventsBuilder<'c, R, C> {
+pub struct SubscribeToEventsBuilder<'c, R, C> {
     client: &'c Client<R, C>,
     channel_id: Option<ChannelId>,
     chat_events: HashSet<ChatEventType>,
     communty_events: HashSet<CommunityEventType>,
 }
 
-impl<'c, R: Runtime, C: ActionContext> SubscribeToChatEventsBuilder<'c, R, C> {
+impl<'c, R: Runtime, C: ActionContext> SubscribeToEventsBuilder<'c, R, C> {
     pub fn new(
         client: &'c Client<R, C>,
         chat_events: HashSet<ChatEventType>,
         communty_events: HashSet<CommunityEventType>,
     ) -> Self {
-        SubscribeToChatEventsBuilder {
+        SubscribeToEventsBuilder {
             client,
             channel_id: None,
             chat_events,
@@ -35,7 +35,7 @@ impl<'c, R: Runtime, C: ActionContext> SubscribeToChatEventsBuilder<'c, R, C> {
     }
 }
 
-impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for SubscribeToChatEventsBuilder<'_, R, C> {
+impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for SubscribeToEventsBuilder<'_, R, C> {
     type Action = SubscribeToChatEventsAction;
 
     fn runtime(&self) -> Arc<R> {
@@ -47,8 +47,14 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for SubscribeToChatEvent
     }
 
     fn into_args(self) -> Args {
+        let mut scope = self.client.context.scope();
+
+        if let Some(channel_id) = self.channel_id {
+            scope = scope.with_channel_id(channel_id);
+        }
+
         Args {
-            scope: self.client.context.scope(),
+            scope,
             community_events: self.communty_events,
             chat_events: self.chat_events,
         }
