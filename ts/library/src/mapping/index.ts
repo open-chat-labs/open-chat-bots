@@ -1525,16 +1525,6 @@ export function failedCryptoTransfer(
     };
 }
 
-// export function token(value: ApiCryptocurrency): string {
-//     if (value === "InternetComputer") return ICP_SYMBOL;
-//     if (value === "SNS1") return SNS1_SYMBOL;
-//     if (value === "CKBTC") return CKBTC_SYMBOL;
-//     if (value === "CHAT") return CHAT_SYMBOL;
-//     if (value === "KINIC") return KINIC_SYMBOL;
-//     if ("Other" in value) return value.Other;
-//     throw new UnsupportedValueError("Unexpected Cryptocurrency type received", value);
-// }
-
 export function bytesToBigint(bytes: Uint8Array | number[]): bigint {
     return BigInt("0x" + bytesToHexString(bytes));
 }
