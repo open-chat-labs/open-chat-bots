@@ -44,8 +44,8 @@ module {
 
     func definition() : Sdk.Definition.Command {
         {
-            name = "members";
-            description = ?"Lists the members of the community or group";
+            name = "community_members";
+            description = ?"Lists the members of the community";
             placeholder = ?"Please wait";
             params = [{
                 name = "type";
