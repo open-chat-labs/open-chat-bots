@@ -6,14 +6,14 @@ use crate::types::{ActionContext, CanisterId, ChannelId};
 use std::collections::HashSet;
 use std::sync::Arc;
 
-pub struct UnsubscribeFromChatEventsBuilder<'c, R, C> {
+pub struct UnsubscribeFromEventsBuilder<'c, R, C> {
     client: &'c Client<R, C>,
     channel_id: Option<ChannelId>,
 }
 
-impl<'c, R: Runtime, C: ActionContext> UnsubscribeFromChatEventsBuilder<'c, R, C> {
+impl<'c, R: Runtime, C: ActionContext> UnsubscribeFromEventsBuilder<'c, R, C> {
     pub fn new(client: &'c Client<R, C>) -> Self {
-        UnsubscribeFromChatEventsBuilder {
+        UnsubscribeFromEventsBuilder {
             client,
             channel_id: None,
         }
@@ -25,9 +25,7 @@ impl<'c, R: Runtime, C: ActionContext> UnsubscribeFromChatEventsBuilder<'c, R, C
     }
 }
 
-impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R>
-    for UnsubscribeFromChatEventsBuilder<'_, R, C>
-{
+impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for UnsubscribeFromEventsBuilder<'_, R, C> {
     type Action = SubscribeToChatEventsAction;
 
     fn runtime(&self) -> Arc<R> {
@@ -39,8 +37,14 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R>
     }
 
     fn into_args(self) -> Args {
+        let mut scope = self.client.context.scope();
+
+        if let Some(channel_id) = self.channel_id {
+            scope = scope.with_channel_id(channel_id);
+        }
+
         Args {
-            scope: self.client.context.scope(),
+            scope,
             community_events: HashSet::new(),
             chat_events: HashSet::new(),
         }

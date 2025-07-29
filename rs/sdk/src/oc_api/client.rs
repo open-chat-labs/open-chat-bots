@@ -20,8 +20,8 @@ use invite_users::InviteUsersBuilder;
 use send_message::SendMessageBuilder;
 use std::collections::HashSet;
 use std::sync::Arc;
-use subscribe_to_chat_events::SubscribeToChatEventsBuilder;
-use unsubscribe_from_chat_events::UnsubscribeFromChatEventsBuilder;
+use subscribe_to_events::SubscribeToEventsBuilder;
+use unsubscribe_from_events::UnsubscribeFromEventsBuilder;
 
 mod add_reaction;
 mod chat_events;
@@ -35,8 +35,8 @@ mod invite_users;
 mod members;
 mod remove_user;
 mod send_message;
-mod subscribe_to_chat_events;
-mod unsubscribe_from_chat_events;
+mod subscribe_to_events;
+mod unsubscribe_from_events;
 
 pub struct ClientFactory<R> {
     runtime: Arc<R>,
@@ -133,11 +133,11 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
         &self,
         chat_events: HashSet<ChatEventType>,
         community_events: HashSet<CommunityEventType>,
-    ) -> SubscribeToChatEventsBuilder<R, C> {
-        SubscribeToChatEventsBuilder::new(self, chat_events, community_events)
+    ) -> SubscribeToEventsBuilder<R, C> {
+        SubscribeToEventsBuilder::new(self, chat_events, community_events)
     }
 
-    pub fn unsubscribe_from_chat_events(&self) -> UnsubscribeFromChatEventsBuilder<R, C> {
-        UnsubscribeFromChatEventsBuilder::new(self)
+    pub fn unsubscribe_from_chat_events(&self) -> UnsubscribeFromEventsBuilder<R, C> {
+        UnsubscribeFromEventsBuilder::new(self)
     }
 }
