@@ -29,7 +29,7 @@ impl CommandHandler<CanisterRuntime> for ClearWelcomeMessage {
         let message = if cleared {
             "Welcome message cleared"
         } else {
-            "No welcome message was set"
+            "No welcome message is set"
         };
 
         Ok(EphemeralMessageBuilder::new(

@@ -33,8 +33,7 @@ impl WelcomeMessages {
     pub fn set(&mut self, chat: Chat, message: String) {
         // Remove any existing welcome messages from the same community
         if let Some(community_id) = chat.community_id() {
-            self.chats
-                .retain(|c, _| c.community_id() != Some(community_id));
+            self.remove_community(community_id);
         }
 
         self.chats.insert(chat, message);

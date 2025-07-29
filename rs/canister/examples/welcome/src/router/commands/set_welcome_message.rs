@@ -44,7 +44,7 @@ impl SetWelcomeMessage {
             placeholder: None,
             params: vec![BotCommandParam {
                 name: "message".to_string(),
-                description: Some("The message to set as welcome".to_string()),
+                description: Some("The welcome message to set".to_string()),
                 param_type: BotCommandParamType::StringParam(StringParam {
                     min_length: 1,
                     max_length: 1000,
