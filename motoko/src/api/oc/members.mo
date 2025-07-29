@@ -1,8 +1,10 @@
 import B "../common/base";
+import MemberType "../common/memberType";
 import CommunityOrGroupContext "../common/communityOrGroupContext";
 
 module {
     type CommunityOrGroupContext = CommunityOrGroupContext.CommunityOrGroupContext;
+    type MemberType = MemberType.MemberType;
 
     public type Actor = actor {
         bot_members_c2c : (Args) -> async Response;
@@ -12,18 +14,6 @@ module {
         community_or_group_context : CommunityOrGroupContext;
         channel_id : ?B.ChannelId;
         member_types : [MemberType];
-    };
-
-    public type MemberType = {
-        #Owner;
-        #Admin;
-        #Moderator;
-        #Member;
-        #Blocked;
-        #Invited;
-        #Lapsed;
-        #Bot;
-        #Webhook;
     };
 
     public type Response = {

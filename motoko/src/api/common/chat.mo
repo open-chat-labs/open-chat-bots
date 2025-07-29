@@ -12,7 +12,7 @@ module {
     public type Chat = {
         #Direct : B.CanisterId;
         #Group : B.CanisterId;
-        #Channel : (B.CanisterId, B.ChannelId);
+        #Channel : (B.CommunityId, B.ChannelId);
     };
 
     public func channelId(chat : Chat) : ?B.ChannelId {
@@ -20,6 +20,14 @@ module {
             case (#Direct(_)) null;
             case (#Group(_)) null;
             case (#Channel(_, channelId)) ?channelId;
+        };
+    };
+
+    public func communityId(chat : Chat) : ?B.CommunityId {
+        switch (chat) {
+            case (#Channel(community_id, _)) ?community_id;
+            case (#Direct(_)) null;
+            case (#Group(_)) null;
         };
     };
 

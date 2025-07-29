@@ -16,13 +16,13 @@ module {
     };
 
     func execute(state : S.State) : CommandHandler.Execute {
-        func (client : Sdk.OpenChat.Client, context : Sdk.Command.Context) : async Sdk.Command.Result {
+        func (_client : Sdk.OpenChat.Client, context : Sdk.Command.Context) : async Sdk.Command.Result {
             let ?chatDetails = CommandScope.chatDetails(context.scope) else return #err "Expected Chat scope";
             let randomBlob = await Random.blob();
             let apiKey = BaseX.toBase64(randomBlob.vals(), #url { includePadding = false });
             let location = Chat.toLocation(chatDetails.chat);
 
-            state.apiKeyRegistry.insert(apiKey, client.context.apiGateway, location);
+            state.apiKeyRegistry.insert(apiKey, context.apiGateway, location);
 
             let (webhooks, scope) = switch (location) {
                 case (#Community(_)) {

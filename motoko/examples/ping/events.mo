@@ -1,7 +1,7 @@
 import Debug "mo:base/Debug";
 import Sdk "mo:openchat-bot-sdk";
 import ResponseBuilder "mo:openchat-bot-sdk/http/responseBuilder";
-import BotEvents "mo:openchat-bot-sdk/api/oc/botEvents";
+import BotEvents "mo:openchat-bot-sdk/api/common/botEvents";
 import State "state";
 
 module {

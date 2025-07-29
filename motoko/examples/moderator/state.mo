@@ -6,14 +6,13 @@ import InstallationLocation "mo:openchat-bot-sdk/api/common/installationLocation
 import B "mo:openchat-bot-sdk/api/common/base";
 
 module {
-    type InstallationRegistry = InstallationRegistry.InstallationRegistry;
     type InstallationLocation = InstallationLocation.InstallationLocation;
     type InstallationRecord = InstallationRegistry.InstallationRecord;
 
     public type State = {
         var botId : ?B.CanisterId;
         bannedWordsLower : Set.Set<Text>;
-        installationRegistry: InstallationRegistry;
+        installationRegistry: InstallationRegistry.InstallationRegistry;
     };
 
     public type StableState = {
@@ -31,11 +30,10 @@ module {
     };
 
     public func fromStable<system>(state : StableState) : State {
-        let installationRegistry = InstallationRegistry.new(state.installations);
         {
             var botId = state.botId;
             bannedWordsLower = Set.fromArray(state.bannedWordsLower, Text.hash, Text.equal);
-            installationRegistry = installationRegistry;
+            installationRegistry = InstallationRegistry.InstallationRegistry(state.installations);
         };
     };
 
