@@ -1,7 +1,7 @@
 use oc_bots_sdk::api::event_notification::{BotChatEvent, BotCommunityEvent};
 use oc_bots_sdk::oc_api::actions::community_events::CommunityEvent;
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
-use oc_bots_sdk::types::{CanisterId, Chat, ChatEvent, InstallationLocation, TextContent, UserId};
+use oc_bots_sdk::types::{CanisterId, Chat, ChatEvent, InstallationLocation, UserId};
 use oc_bots_sdk::{
     api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent},
     types::{ActionScope, AutonomousContext},
