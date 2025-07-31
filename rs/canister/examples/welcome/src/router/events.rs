@@ -1,7 +1,7 @@
 use oc_bots_sdk::api::event_notification::{BotChatEvent, BotCommunityEvent};
 use oc_bots_sdk::oc_api::actions::community_events::CommunityEvent;
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
-use oc_bots_sdk::types::{CanisterId, Chat, ChatEvent, InstallationLocation, TextContent, UserId};
+use oc_bots_sdk::types::{CanisterId, Chat, ChatEvent, InstallationLocation, UserId};
 use oc_bots_sdk::{
     api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent},
     types::{ActionScope, AutonomousContext},
@@ -15,34 +15,39 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
         return HttpResponse::status(400);
     };
 
-    handle_event(event_wrapper).await;
-
-    HttpResponse::status(200)
-}
-
-async fn handle_event(event_wrapper: BotEventWrapper) {
     match event_wrapper.event {
-        BotEvent::Lifecycle(lifecycle_event) => {
-            handle_lifecycle_event(lifecycle_event, event_wrapper.api_gateway);
-        }
+        BotEvent::Lifecycle(lifecycle_event) => handle_lifecycle_event(lifecycle_event),
         BotEvent::Chat(event) => handle_chat_event(event, event_wrapper.api_gateway).await,
         BotEvent::Community(event) => {
             handle_community_event(event, event_wrapper.api_gateway).await
         }
     }
+
+    HttpResponse::status(200)
 }
 
-fn handle_lifecycle_event(lifecycle_event: BotLifecycleEvent, _api_gateway: CanisterId) {
+fn handle_lifecycle_event(lifecycle_event: BotLifecycleEvent) {
     state::mutate(|state| {
         if let BotLifecycleEvent::Uninstalled(event) = lifecycle_event {
-            if let InstallationLocation::Community(community_id) = event.location {
-                state.messages.remove_community(community_id);
+            match event.location {
+                InstallationLocation::Community(community_id) => {
+                    state.messages.remove_community(community_id);
+                }
+                InstallationLocation::Group(chat_id) => {
+                    state.messages.remove(&Chat::Group(chat_id));
+                }
+                InstallationLocation::User(_user_id) => {}
             }
         }
     });
 }
 
 async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
+    if !matches!(chat_event.chat, Chat::Group(_)) {
+        // Only handle group chat events
+        return;
+    }
+
     let event = match chat_event.event {
         ChatEvent::ParticipantJoined(event) => event,
         _ => return,
@@ -94,11 +99,12 @@ async fn send_welcome_message(
 
     // Send a welcome message to the user
     let welcome_message = message.replace("{USERNAME}", &format!("@UserId({user_id})"));
-    let message_content = oc_bots_sdk::types::MessageContentInitial::Text(TextContent {
-        text: welcome_message,
-    });
 
-    if let Err(error) = client.send_message(message_content).execute_async().await {
+    if let Err(error) = client
+        .send_text_message(welcome_message)
+        .execute_async()
+        .await
+    {
         ic_cdk::println!("Failed to send welcome message: {:?}", error);
     }
 }
