@@ -1,3 +1,4 @@
+use candid::CandidType;
 use ic_cdk::{init, post_upgrade, pre_upgrade, query, update};
 use ic_http_certification::{HttpRequest, HttpResponse};
 use ic_stable_structures::{
@@ -15,8 +16,8 @@ pub mod state;
 const READER_WRITER_BUFFER_SIZE: usize = 1024 * 1024; // 1MB
 
 #[init]
-fn init() {
-    let state = State::new();
+fn init(args: InitOrUpgradeArgs) {
+    let state = State::new(args.oc_public_key);
     state::init(state);
 }
 
@@ -31,12 +32,14 @@ fn pre_upgrade() {
 }
 
 #[post_upgrade]
-fn post_upgrade() {
+fn post_upgrade(args: InitOrUpgradeArgs) {
     let memory = get_upgrades_memory();
     let reader = BufferedReader::new(READER_WRITER_BUFFER_SIZE, Reader::new(&memory, 0));
     let mut deserializer = rmp_serde::Deserializer::new(reader);
 
-    let state = State::deserialize(&mut deserializer).unwrap();
+    let mut state = State::deserialize(&mut deserializer).unwrap();
+
+    state.update(args.oc_public_key);
 
     state::init(state);
 }
@@ -49,4 +52,9 @@ async fn http_request(request: HttpRequest) -> HttpResponse {
 #[update]
 async fn http_request_update(request: HttpRequest) -> HttpResponse {
     router::handle(request, false).await
+}
+
+#[derive(CandidType, Serialize, Deserialize, Debug)]
+pub struct InitOrUpgradeArgs {
+    pub oc_public_key: String,
 }

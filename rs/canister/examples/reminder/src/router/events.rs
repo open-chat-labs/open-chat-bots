@@ -1,13 +1,15 @@
+use crate::state;
 use oc_bots_sdk::{
     api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent},
     InstallationRecord,
 };
-use oc_bots_sdk_canister::{HttpRequest, HttpResponse};
-
-use crate::state;
+use oc_bots_sdk_canister::{env, HttpRequest, HttpResponse};
 
 pub async fn execute(request: HttpRequest) -> HttpResponse {
-    let Some(event_wrapper) = serde_json::from_slice::<BotEventWrapper>(&request.body).ok() else {
+    let public_key = state::read(|state| state.oc_public_key().to_string());
+    let now = env::now();
+
+    let Some(event_wrapper) = BotEventWrapper::parse(&request.body, &public_key, now).ok() else {
         return HttpResponse::status(400);
     };
 

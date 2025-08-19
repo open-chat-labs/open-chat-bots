@@ -1,11 +1,13 @@
 use crate::{
+    jwt::{self, Claims},
     oc_api::actions::community_events::CommunityEvent,
     types::{
         BotInstalledEvent, BotRegisteredEvent, BotUninstalledEvent, CanisterId, Chat, ChatEvent,
-        CommunityId, EventIndex, MessageIndex, TimestampMillis,
+        CommunityId, EventIndex, MessageIndex, TimestampMillis, TokenError,
     },
 };
 use serde::Deserialize;
+use std::str;
 
 #[derive(Deserialize)]
 pub struct BotEventWrapper {
@@ -15,6 +17,27 @@ pub struct BotEventWrapper {
     pub event: BotEvent,
     #[serde(default, alias = "t")]
     pub timestamp: TimestampMillis,
+}
+
+impl BotEventWrapper {
+    pub fn parse(
+        payload: &[u8],
+        public_key: &str,
+        now: TimestampMillis,
+    ) -> Result<Self, TokenError> {
+        let Some(jwt) = str::from_utf8(payload).ok() else {
+            return Err(TokenError::Invalid("Invalid UTF-8".into()));
+        };
+
+        let claims = jwt::verify::<Claims<Self>>(jwt, public_key)
+            .map_err(|error| TokenError::Invalid(error.to_string()))?;
+
+        if claims.exp_ms() <= now {
+            return Err(TokenError::Expired);
+        }
+
+        Ok(claims.into_custom())
+    }
 }
 
 #[derive(Deserialize, Debug)]
