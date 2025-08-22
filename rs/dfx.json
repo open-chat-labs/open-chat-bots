@@ -7,6 +7,12 @@
       "candid": "canister/examples/admin/can.did",
       "gzip": true
     },
+    "adventure_bot": {
+      "type": "rust",
+      "package": "adventure_bot",
+      "candid": "canister/examples/adventure/can.did",
+      "gzip": true
+    },
     "echo_bot": {
       "type": "rust",
       "package": "echo_bot",

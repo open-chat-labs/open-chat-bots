@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "canister/examples/admin",
+    "canister/examples/adventure",
     "canister/examples/echo",
     "canister/examples/greet/canister",
     "canister/examples/greet/loader",
