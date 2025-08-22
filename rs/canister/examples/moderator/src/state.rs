@@ -8,6 +8,7 @@ thread_local! {
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct State {
+    oc_public_key: String,
     banned_words_lower: HashSet<String>,
     pub installation_registry: InstallationRegistry,
     pub bot_id: Option<CanisterId>,
@@ -39,8 +40,9 @@ pub fn take() -> State {
 }
 
 impl State {
-    pub fn new() -> State {
+    pub fn new(oc_public_key: String) -> State {
         State {
+            oc_public_key,
             banned_words_lower: ["cunt", "nigger"]
                 .iter()
                 .map(|w| w.to_ascii_lowercase())
@@ -48,6 +50,14 @@ impl State {
             installation_registry: InstallationRegistry::new(),
             bot_id: None,
         }
+    }
+
+    pub fn update(&mut self, oc_public_key: String) {
+        self.oc_public_key = oc_public_key;
+    }
+
+    pub fn oc_public_key(&self) -> &str {
+        &self.oc_public_key
     }
 
     pub fn banned_words(&self) -> &HashSet<String> {

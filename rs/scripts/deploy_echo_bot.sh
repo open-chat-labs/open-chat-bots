@@ -18,7 +18,7 @@ MODE=${1:-install} # MODE is either install, reinstall or upgrade
 OC_PUBLIC_KEY=$(curl -s http://localhost:5001/public-key)
 
 if [ $? -ne 0 ]; then
-    echo "OpenChat is not running on http://localhost:5001."
+    echo "OpenChat is not running on http://localhost:5001"
     exit 1
 fi
 

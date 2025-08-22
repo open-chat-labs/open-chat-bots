@@ -2,6 +2,7 @@ import Array "mo:base/Array";
 import Debug "mo:base/Debug";
 import Set "mo:base/TrieSet";
 import Text "mo:base/Text";
+import Ecdsa "mo:ecdsa";
 import Regex "mo:regex";
 import B "mo:openchat-bot-sdk/api/common/base";
 import Chat "mo:openchat-bot-sdk/api/common/chat";
@@ -17,13 +18,14 @@ import State "state";
 module {
     type Permissions = Permissions.Permissions;
 
-    public func handler(state : State.State) : Sdk.Http.UpdateHandler {
+    public func handler(state : State.State, ocPublicKey : Ecdsa.PublicKey) : Sdk.Http.UpdateHandler {
         func (request : Sdk.Http.Request) : async Sdk.Http.Response {
-            let eventWrapperOption : ?BotEvents.BotEventWrapper = from_candid(request.body);
-
-            let ?eventWrapper = eventWrapperOption else {
-                Debug.print("Cannot decode event: " # debug_show(request.body));
-                return ResponseBuilder.badRequest("Cannot candid decode event");
+            let eventWrapper = switch (BotEvents.parseJwt(request.body, ocPublicKey)) {
+                case (#ok(eventWrapper)) eventWrapper;
+                case (#err(e)) {
+                    Debug.print(e);
+                    return ResponseBuilder.badRequest("Cannot candid decode event: " # e);
+                };
             };
 
             switch (eventWrapper.event) {

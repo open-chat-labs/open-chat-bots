@@ -5,14 +5,15 @@ import Definition "definition";
 import Events "events";
 import State "state";
 
-actor class ModeratorBot() {
-    stable var stableState = State.new();
+persistent actor class ModeratorBot(key : Text) {
+    var stableState = State.new();
 
+    transient let ocPublicKey = Sdk.parsePublicKeyOrTrap(key);
     transient var state = State.fromStable<system>(stableState);
 
     transient let router = Sdk.Http.Router()
         .get("/*", Definition.handler())
-        .post("/notify", Events.handler(state));
+        .post("/notify", Events.handler(state, ocPublicKey));
 
     public query func http_request(request : Http.Request) : async Http.Response {
         router.handleQuery(request);

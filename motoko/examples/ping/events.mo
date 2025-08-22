@@ -1,17 +1,19 @@
 import Debug "mo:base/Debug";
+import Ecdsa "mo:ecdsa";
 import Sdk "mo:openchat-bot-sdk";
 import ResponseBuilder "mo:openchat-bot-sdk/http/responseBuilder";
 import BotEvents "mo:openchat-bot-sdk/api/common/botEvents";
 import State "state";
 
 module {
-    public func handler(state : State.State) : Sdk.Http.UpdateHandler {
+    public func handler(state : State.State, ocPublicKey : Ecdsa.PublicKey) : Sdk.Http.UpdateHandler {
         func (request : Sdk.Http.Request) : async Sdk.Http.Response {
-            let eventWrapperOption : ?BotEvents.BotEventWrapper = from_candid(request.body);
-
-            let ?eventWrapper = eventWrapperOption else {
-                Debug.print("Cannot decode event: " # debug_show(request.body));
-                return ResponseBuilder.badRequest("Cannot candid decode event");
+            let eventWrapper = switch (BotEvents.parseJwt(request.body, ocPublicKey)) {
+                case (#ok(eventWrapper)) eventWrapper;
+                case (#err(e)) {
+                    Debug.print(e);
+                    return ResponseBuilder.badRequest("Cannot candid decode event: " # e);
+                };
             };
 
             switch (eventWrapper.event) {

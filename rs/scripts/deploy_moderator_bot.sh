@@ -14,18 +14,16 @@ cd $SCRIPT_DIR
 
 MODE=${1:-install} # MODE is either install, reinstall or upgrade
 
-if [[ $MODE = "install" ]] || [[ $MODE = "reinstall" ]]
-then
-    # Read the OpenChat public key from the website
-    OC_PUBLIC_KEY=$(curl -s http://localhost:5001/public-key) || exit 1
+# Read the OpenChat public key from the website
+OC_PUBLIC_KEY=$(curl -s http://localhost:5001/public-key)
 
-    # Get the principal of the current DFX identity
-    ADMINISTRATOR_PRINCIPAL=$(dfx identity get-principal)
-elif [ $MODE != "upgrade" ]
-then
-    echo "MODE must be either install, reinstall or upgrade"
+if [ $? -ne 0 ]; then
+    echo "OpenChat is not running on http://localhost:5001"
     exit 1
 fi
 
-# Deploy the greet_bot with the given MODE and ARGS
-./utils/deploy_bot.sh moderator_bot ModeratorBot $MODE "()"
+# Build the echo_bot install args
+ARGS="(record { oc_public_key = \"$OC_PUBLIC_KEY\" } )"
+
+# Deploy the moderator_bot with the given MODE and ARGS
+./utils/deploy_bot.sh moderator_bot ModeratorBot $MODE "$ARGS"

@@ -13,11 +13,10 @@ import Definition "definition";
 import Events "events";
 import Metrics "metrics";
 import State "state";
-import Utils "utils";
 import Webhooks "webhooks";
 
-actor class PingBot(key : Text) {
-    stable var stableState = State.new();
+persistent actor class PingBot(key : Text) {
+    var stableState = State.new();
 
     transient let ocPublicKey = Sdk.parsePublicKeyOrTrap(key);
     transient var state = State.fromStable<system>(stableState);
@@ -37,7 +36,7 @@ actor class PingBot(key : Text) {
         .post("/execute_command", func(request : Sdk.Http.Request) : async Sdk.Http.Response {
             await Sdk.executeCommand(registry, request, ocPublicKey, Env.nowMillis());
         })
-        .post("/notify", Events.handler(state))
+        .post("/notify", Events.handler(state, ocPublicKey))
         .post("/webhook/*", Webhooks.handler(state));
 
     public query func http_request(request : Http.Request) : async Http.Response {

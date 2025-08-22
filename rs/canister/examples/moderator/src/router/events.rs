@@ -8,14 +8,18 @@ use oc_bots_sdk::{
     types::{ActionScope, AutonomousContext, BotPermissionsBuilder, ChatPermission},
     InstallationRecord,
 };
-use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
+use oc_bots_sdk_canister::{env, HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
 use regex::Regex;
 use std::collections::HashSet;
 
 use crate::state;
 
 pub async fn execute(request: HttpRequest) -> HttpResponse {
-    let Some(event_wrapper) = serde_json::from_slice::<BotEventWrapper>(&request.body).ok() else {
+    let public_key = state::read(|state| state.oc_public_key().to_string());
+    let now = env::now();
+
+    let Some(event_wrapper) = BotEventWrapper::parse(&request.body, &public_key, now).ok() else {
+        ic_cdk::println!("Failed to parse event wrapper");
         return HttpResponse::status(400);
     };
 
