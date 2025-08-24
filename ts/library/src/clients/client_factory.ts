@@ -40,7 +40,7 @@ export class BotClientFactory {
     #agent: HttpAgent;
     #env: BotClientConfig;
 
-    constructor(private env: BotClientConfig) {
+    constructor(env: BotClientConfig) {
         this.#env = this.#validateConfig(env);
         this.#agent = createAgent(env);
     }
@@ -56,6 +56,10 @@ export class BotClientFactory {
             throw new Error("OpenChat public key not provided");
         }
         return env;
+    }
+
+    get env(): BotClientConfig {
+        return this.#env;
     }
 
     createClientInAutonomouseContext(

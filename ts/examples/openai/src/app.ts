@@ -15,7 +15,7 @@ app.post(
   createCommandChatClient(factory),
   executeCommand
 );
-app.post("/notify", express.json(), notify);
+app.post("/notify", express.text(), notify);
 app.get("/bot_definition", schema);
 app.get("/", schema);
 
