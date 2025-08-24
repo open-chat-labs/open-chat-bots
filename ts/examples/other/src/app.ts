@@ -18,20 +18,15 @@ const app = express();
  * See the readme for more information.
  */
 const factory = new BotClientFactory({
-  openchatPublicKey: process.env.OC_PUBLIC!,
-  icHost: process.env.IC_HOST!,
-  identityPrivateKey: process.env.IDENTITY_PRIVATE!,
-  openStorageCanisterId: process.env.STORAGE_INDEX_CANISTER!,
+    openchatPublicKey: process.env.OC_PUBLIC!,
+    icHost: process.env.IC_HOST!,
+    identityPrivateKey: process.env.IDENTITY_PRIVATE!,
+    openStorageCanisterId: process.env.STORAGE_INDEX_CANISTER!,
 });
 
 app.use(cors());
-app.post("/notify", express.json(), handleNotification);
-app.post(
-  "/execute_command",
-  express.text(),
-  createCommandChatClient(factory),
-  executeCommand
-);
+app.post("/notify", express.text(), handleNotification);
+app.post("/execute_command", express.text(), createCommandChatClient(factory), executeCommand);
 app.get("/bot_definition", schema);
 app.get("/", schema);
 
