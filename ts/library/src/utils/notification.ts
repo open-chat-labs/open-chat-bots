@@ -15,9 +15,9 @@ export async function handleNotification<T>(
     token: string,
     factory: BotClientFactory,
     handler: (client: BotClient, ev: BotEvent, apiGateway: string) => Promise<T>,
-    error?: (error: BotEventParseFailure) => T,
+    error: (error: BotEventParseFailure) => T,
     autonomousPermissions?: Permissions,
-): Promise<T | undefined> {
+): Promise<T> {
     const publicKey = factory.env.openchatPublicKey.replace(/\\n/g, "\n");
     const decoded = jwt.verify(token, publicKey, { algorithms: ["ES256"] });
     if (typeof decoded !== "string") {
@@ -31,12 +31,14 @@ export async function handleNotification<T>(
                     autonomousPermissions,
                 );
                 return handler(client, parsed.event, parsed.apiGateway);
+            } else {
+                return error({ kind: "bot_event_parse_failure", error: "Invalid scope" });
             }
         } else {
-            return error?.(parsed);
+            return error(parsed);
         }
     } else {
-        return error?.({ kind: "bot_event_parse_failure", error: "Unable to decode jst" });
+        return error({ kind: "bot_event_parse_failure", error: "Unable to decode jst" });
     }
 }
 
