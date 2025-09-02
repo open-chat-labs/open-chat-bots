@@ -1,5 +1,7 @@
+use std::collections::HashSet;
+
 use super::commands;
-use oc_bots_sdk::api::definition::*;
+use oc_bots_sdk::{api::definition::*, types::InstallationLocationType};
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse};
 
 pub async fn get(_request: HttpRequest) -> HttpResponse {
@@ -13,6 +15,10 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
             autonomous_config: None,
             default_subscriptions: None,
             data_encoding: None,
+            restricted_locations: Some(HashSet::from([
+                InstallationLocationType::User,
+                InstallationLocationType::Group,
+            ])),
         },
     )
 }

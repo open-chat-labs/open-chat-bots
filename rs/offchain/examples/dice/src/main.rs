@@ -104,6 +104,7 @@ async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> Js
         autonomous_config: None,
         default_subscriptions: None,
         data_encoding: None,
+        restricted_locations: None,
     })
 }
 

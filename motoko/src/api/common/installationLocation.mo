@@ -9,6 +9,12 @@ module {
         #User : B.CanisterId;
     };
 
+    public type InstallationLocationType = {
+        #Community;
+        #Group;
+        #User;
+    };
+
     public func equal(a : InstallationLocation, b : InstallationLocation) : Bool {
         switch (a, b) {
             case (#Community(aId), #Community(bId)) {

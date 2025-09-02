@@ -17,6 +17,7 @@ module {
                 chat = [#Message, #MessageEdited];
             };
             data_encoding = ?#Candid;
+            restricted_locations = ?[#Community, #Group];
         };
 
         let response = Sdk.Http.ResponseBuilder()
