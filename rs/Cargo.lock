@@ -2447,6 +2447,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f60fcc7d6849342eff22c4350c8b9a989ee8ceabc4b481253e8946b9fe83d684"
 
 [[package]]
+name = "reaction_channeler_bot"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "candid",
+ "getrandom",
+ "http 1.2.0",
+ "ic-cdk",
+ "ic-http-certification",
+ "ic-stable-structures",
+ "ic_principal",
+ "oc_bots_sdk",
+ "oc_bots_sdk_canister",
+ "rmp-serde",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"

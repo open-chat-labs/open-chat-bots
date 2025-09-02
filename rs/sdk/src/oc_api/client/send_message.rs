@@ -39,12 +39,12 @@ impl<'c, R: Runtime, C: ActionContext> SendMessageBuilder<'c, R, C> {
     }
 
     // This only takes effect for community scope
-    pub fn with_channel_id(mut self, channel_id: Option<ChannelId>) -> Self {
+    pub fn in_channel(mut self, channel_id: Option<ChannelId>) -> Self {
         self.channel_id = channel_id;
         self
     }
 
-    pub fn with_thread(mut self, thread: Option<MessageIndex>) -> Self {
+    pub fn in_thread(mut self, thread: Option<MessageIndex>) -> Self {
         self.thread = thread;
         self
     }
