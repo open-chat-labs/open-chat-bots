@@ -166,3 +166,20 @@ impl From<BotCommandScope> for InstallationLocation {
         }
     }
 }
+
+#[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum InstallationLocationType {
+    Community,
+    Group,
+    User,
+}
+
+impl From<InstallationLocation> for InstallationLocationType {
+    fn from(value: InstallationLocation) -> Self {
+        match value {
+            InstallationLocation::Community(_) => InstallationLocationType::Community,
+            InstallationLocation::Group(_) => InstallationLocationType::Group,
+            InstallationLocation::User(_) => InstallationLocationType::User,
+        }
+    }
+}

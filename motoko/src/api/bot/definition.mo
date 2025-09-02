@@ -5,9 +5,11 @@ import B "../common/base";
 import E "../common/eventTypes";
 import Permissions "../common/permissions";
 import Serialize "../common/serialization";
+import InstallationLocation "../common/installationLocation";
 
 module Definition {
     public type Permissions = Permissions.Permissions;
+    public type InstallationLocationType = InstallationLocation.InstallationLocationType;
 
     public type Bot = {
         description : Text;
@@ -15,6 +17,7 @@ module Definition {
         autonomous_config : ?AutonomousConfig;
         default_subscriptions: ?BotSubscriptions;
         data_encoding: ?BotDataEncoding;
+        restricted_locations: ?[InstallationLocationType]
     };
 
     public type AutonomousConfig = {
@@ -102,6 +105,10 @@ module Definition {
         switch (definition.data_encoding) {
             case (null) ();
             case (?config) fields := Array.append(fields, [("data_encoding", serializeDataEncoding(config))]);
+        };
+        switch (definition.restricted_locations) {
+            case (null) ();
+            case (?config) fields := Array.append(fields, [("restricted_locations", Serialize.arrayOfValues(config, serializeRestrictedLocationType))]);
         };
 
         #object_(fields);
@@ -234,6 +241,14 @@ module Definition {
         switch (encoding) {
             case (#Json) #string("Json");
             case (#Candid) #string("Candid");
+        };
+    };
+
+    private func serializeRestrictedLocationType(location : InstallationLocationType) : Json.Json {
+        switch (location) {
+            case (#Community) #string("Community");
+            case (#Group) #string("Group");
+            case (#User) #string("User");
         };
     };
 };
