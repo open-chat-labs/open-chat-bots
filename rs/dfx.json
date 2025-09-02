@@ -13,6 +13,12 @@
       "candid": "canister/examples/adventure/can.did",
       "gzip": true
     },
+    "reaction_channeler_bot": {
+      "type": "rust",
+      "package": "reaction_channeler_bot",
+      "candid": "canister/examples/reaction_channeler/can.did",
+      "gzip": true
+    },
     "echo_bot": {
       "type": "rust",
       "package": "echo_bot",

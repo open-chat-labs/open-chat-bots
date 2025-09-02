@@ -6,6 +6,7 @@ members = [
     "canister/examples/greet/canister",
     "canister/examples/greet/loader",
     "canister/examples/moderator",
+    "canister/examples/reaction_channeler",
     "canister/examples/reminder",
     "canister/examples/welcome",
     "canister/sdk",

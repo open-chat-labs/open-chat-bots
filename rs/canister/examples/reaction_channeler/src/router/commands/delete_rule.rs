@@ -8,12 +8,12 @@ use std::sync::LazyLock;
 
 use crate::state;
 
-static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(SetWelcomeMessage::definition);
+static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(DeleteRule::definition);
 
-pub struct SetWelcomeMessage;
+pub struct DeleteRule;
 
 #[async_trait]
-impl CommandHandler<CanisterRuntime> for SetWelcomeMessage {
+impl CommandHandler<CanisterRuntime> for DeleteRule {
     fn definition(&self) -> &BotCommandDefinition {
         &DEFINITION
     }
@@ -23,12 +23,21 @@ impl CommandHandler<CanisterRuntime> for SetWelcomeMessage {
         oc_client: Client<CanisterRuntime, BotCommandContext>,
     ) -> Result<SuccessResult, String> {
         let cxt = oc_client.context();
-        let text = cxt.command.arg("message");
 
-        state::mutate(|state| state.messages.set(*cxt.scope.chat().unwrap(), text));
+        let message = if let Some(community_id) = cxt.scope.community_id() {
+            let emoji: String = cxt.command.arg("emoji");
+            state::mutate(|state| {
+                if let Some(community) = state.communities.get_mut(&community_id) {
+                    community.delete_rule(&emoji);
+                }
+            });
+            "Rule deleted"
+        } else {
+            "This command can only be used in a community context"
+        };
 
         Ok(EphemeralMessageBuilder::new(
-            MessageContentInitial::from_text("Welcome message set".to_string()),
+            MessageContentInitial::from_text(message.to_string()),
             cxt.scope.message_id().unwrap(),
         )
         .build()
@@ -36,20 +45,20 @@ impl CommandHandler<CanisterRuntime> for SetWelcomeMessage {
     }
 }
 
-impl SetWelcomeMessage {
+impl DeleteRule {
     fn definition() -> BotCommandDefinition {
         BotCommandDefinition {
-            name: "set_welcome_message".to_string(),
-            description: Some("This will set a welcome message to be sent to new members of a group or community. For a community the welcome message will be sent in the channel first joined by the user. If you include the text {USERNAME} then the user's name will be inserted.".to_string()),
+            name: "delete_rule".to_string(),
+            description: Some("This will delete a rule with the given emoji".to_string()),
             placeholder: None,
             params: vec![BotCommandParam {
-                name: "message".to_string(),
-                description: Some("The welcome message to set".to_string()),
+                name: "emoji".to_string(),
+                description: Some("The emoji used to identify the rule".to_string()),
                 param_type: BotCommandParamType::StringParam(StringParam {
                     min_length: 1,
-                    max_length: 1000,
+                    max_length: 100,
                     choices: Vec::new(),
-                    multi_line: true,
+                    multi_line: false,
                 }),
                 required: true,
                 placeholder: None,

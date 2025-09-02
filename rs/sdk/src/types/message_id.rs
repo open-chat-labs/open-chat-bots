@@ -5,7 +5,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 use std::str::FromStr;
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Hash)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Hash, PartialEq, Eq)]
 #[serde(from = "MessageIdIntOrString")]
 pub struct MessageId(#[serde(serialize_with = "serialize_large_uint")] u64);
 
