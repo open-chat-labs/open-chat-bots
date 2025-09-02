@@ -121,7 +121,7 @@ async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
 
         match client
             .send_text_message("Stop using bad language!".to_string())
-            .with_thread(chat_event.thread)
+            .in_thread(chat_event.thread)
             .replies_to(Some(chat_event.event_index))
             .execute_async()
             .await
