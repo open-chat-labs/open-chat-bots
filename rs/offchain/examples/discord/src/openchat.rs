@@ -9,6 +9,7 @@ use axum::{Extension, Json, Router};
 use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
 use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::client::ClientFactory;
+use oc_bots_sdk::serialize_to_json_bytes;
 use oc_bots_sdk_offchain::middleware::tower::{ExtractJwtLayer, OpenChatJwt};
 use oc_bots_sdk_offchain::{env, AgentRuntime};
 use poise::serenity_prelude::Message;
@@ -113,13 +114,16 @@ async fn execute_command(
         CommandResponse::Success(r) => {
             info!("OpenChat :: command executed successfully!");
             //? should we use unwrap
-            (StatusCode::OK, Bytes::from(serde_json::to_vec(&r).unwrap()))
+            (
+                StatusCode::OK,
+                Bytes::from(serialize_to_json_bytes(&r).unwrap()),
+            )
         }
         CommandResponse::BadRequest(r) => {
             error!("OpenChat :: command failed with bad request :: {:?}", r);
             (
                 StatusCode::BAD_REQUEST,
-                Bytes::from(serde_json::to_vec(&r).unwrap()),
+                Bytes::from(serialize_to_json_bytes(&r).unwrap()),
             )
         }
         CommandResponse::InternalError(err) => {

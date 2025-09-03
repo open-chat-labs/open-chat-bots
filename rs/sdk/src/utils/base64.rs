@@ -1,3 +1,4 @@
+use crate::utils::json::serialize_to_json_bytes;
 use base64::Engine;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -6,7 +7,7 @@ pub fn from_value<T>(value: &T) -> String
 where
     T: Serialize,
 {
-    let json = serde_json::to_vec(value).unwrap();
+    let json = serialize_to_json_bytes(value).unwrap();
     base64::engine::general_purpose::STANDARD.encode(json)
 }
 
