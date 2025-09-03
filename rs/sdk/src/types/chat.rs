@@ -1,4 +1,5 @@
 use super::{CanisterId, MessageIndex, Milliseconds, TimestampMillis, UserId};
+use crate::utils::deserialize_int_or_string;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -48,13 +49,16 @@ pub struct SnsNeuronGate {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct PaymentGate {
     pub ledger_canister_id: CanisterId,
+    #[serde(deserialize_with = "deserialize_int_or_string")]
     pub amount: u128,
+    #[serde(deserialize_with = "deserialize_int_or_string")]
     pub fee: u128,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct TokenBalanceGate {
     pub ledger_canister_id: CanisterId,
+    #[serde(deserialize_with = "deserialize_int_or_string")]
     pub min_balance: u128,
 }
 

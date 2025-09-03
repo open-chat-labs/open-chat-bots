@@ -1,8 +1,10 @@
 pub mod base64;
 pub mod bitflags;
 mod image;
+mod json;
 pub mod jwt;
-mod serializers;
+mod serde;
 
 pub use image::*;
-pub use serializers::*;
+pub use json::*;
+pub use serde::*;

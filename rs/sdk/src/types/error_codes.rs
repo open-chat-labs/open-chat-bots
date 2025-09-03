@@ -1,3 +1,4 @@
+use crate::serialize_to_json;
 use candid::CandidType;
 use enum_repr::EnumRepr;
 use serde::{Deserialize, Serialize};
@@ -196,6 +197,6 @@ impl OCErrorCode {
     }
 
     pub fn with_json<T: Serialize>(self, data: &T) -> OCError {
-        OCError(self as u16, Some(serde_json::to_string(data).unwrap()))
+        OCError(self as u16, Some(serialize_to_json(data).unwrap()))
     }
 }
