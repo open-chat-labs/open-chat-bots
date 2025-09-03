@@ -7,7 +7,7 @@ use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::actions::send_message;
 use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::BotCommandContext;
-use oc_bots_sdk_canister::{get_random_seed, CanisterRuntime};
+use oc_bots_sdk_canister::{CanisterRuntime, get_random_seed};
 use std::sync::LazyLock;
 
 static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Start::definition);

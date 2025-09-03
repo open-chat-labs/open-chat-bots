@@ -1,5 +1,5 @@
 use oc_bots_sdk::{
-    oc_api::actions::{create_channel, ActionArgsBuilder},
+    oc_api::actions::{ActionArgsBuilder, create_channel},
     types::{ActionScope, AutonomousContext, CanisterId, InstallationLocation},
 };
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};

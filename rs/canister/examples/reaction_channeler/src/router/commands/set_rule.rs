@@ -71,10 +71,10 @@ impl SetRule {
                 description: Some("The channel to map the emoji to".to_string()),
                 placeholder: Some("channel".to_string()),
                 required: true,
-                param_type: BotCommandParamType::IntegerParam(IntegerParam { 
-                    min_value: 0, 
-                    max_value: u32::MAX.into(), 
-                    choices: Vec::new() 
+                param_type: BotCommandParamType::IntegerParam(IntegerParam {
+                    min_value: 0,
+                    max_value: u32::MAX.into(),
+                    choices: Vec::new(),
                 })
             }],
             permissions: BotPermissions::empty(),

@@ -6,7 +6,7 @@ use oc_bots_sdk::{
     api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent},
     types::{ActionScope, AutonomousContext},
 };
-use oc_bots_sdk_canister::{env, HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
+use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY, env};
 
 pub async fn execute(request: HttpRequest) -> HttpResponse {
     let public_key = state::read(|state| state.oc_public_key().to_string());
@@ -31,10 +31,10 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
 
 fn handle_lifecycle_event(lifecycle_event: BotLifecycleEvent) {
     state::mutate(|state| {
-        if let BotLifecycleEvent::Uninstalled(event) = lifecycle_event {
-            if let InstallationLocation::Community(community_id) = event.location {
-                state.communities.remove(&community_id);
-            }
+        if let BotLifecycleEvent::Uninstalled(event) = lifecycle_event
+            && let InstallationLocation::Community(community_id) = event.location
+        {
+            state.communities.remove(&community_id);
         }
     });
 }

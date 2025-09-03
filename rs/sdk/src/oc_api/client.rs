@@ -1,9 +1,9 @@
+use crate::oc_api::Runtime;
 use crate::oc_api::actions::chat_events::EventsSelectionCriteria as ChatEventsSelectionCriteria;
 use crate::oc_api::actions::community_events::EventsSelectionCriteria as CommunityEventsSelectionCriteria;
 use crate::oc_api::actions::members::MemberType;
 use crate::oc_api::client::members::MembersBuilder;
 use crate::oc_api::client::remove_user::RemoveUserBuilder;
-use crate::oc_api::Runtime;
 use crate::types::{
     ActionContext, ChannelId, ChatEventType, CommunityEventType, MessageContentInitial, MessageId,
     Reaction, TextContent, UserId,
@@ -74,58 +74,58 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
         &self,
         message_id: MessageId,
         reaction: Reaction,
-    ) -> AddReactionBuilder<R, C> {
+    ) -> AddReactionBuilder<'_, R, C> {
         AddReactionBuilder::new(self, message_id, reaction)
     }
 
-    pub fn chat_summary(&self) -> ChatSummaryBuilder<R, C> {
+    pub fn chat_summary(&self) -> ChatSummaryBuilder<'_, R, C> {
         ChatSummaryBuilder::new(self)
     }
 
-    pub fn chat_events(&self, events: ChatEventsSelectionCriteria) -> ChatEventsBuilder<R, C> {
+    pub fn chat_events(&self, events: ChatEventsSelectionCriteria) -> ChatEventsBuilder<'_, R, C> {
         ChatEventsBuilder::new(self, events)
     }
 
-    pub fn community_summary(&self) -> CommunitySummaryBuilder<R, C> {
+    pub fn community_summary(&self) -> CommunitySummaryBuilder<'_, R, C> {
         CommunitySummaryBuilder::new(self)
     }
 
     pub fn community_events(
         &self,
         events: CommunityEventsSelectionCriteria,
-    ) -> CommunityEventsBuilder<R, C> {
+    ) -> CommunityEventsBuilder<'_, R, C> {
         CommunityEventsBuilder::new(self, events)
     }
 
-    pub fn create_channel(&self, name: String, is_public: bool) -> CreateChannelBuilder<R, C> {
+    pub fn create_channel(&self, name: String, is_public: bool) -> CreateChannelBuilder<'_, R, C> {
         CreateChannelBuilder::new(self, name, is_public)
     }
 
-    pub fn delete_channel(&self, channel_id: ChannelId) -> DeleteChannelBuilder<R, C> {
+    pub fn delete_channel(&self, channel_id: ChannelId) -> DeleteChannelBuilder<'_, R, C> {
         DeleteChannelBuilder::new(self, channel_id)
     }
 
-    pub fn delete_messages(&self, message_ids: Vec<MessageId>) -> DeleteMessagesBuilder<R, C> {
+    pub fn delete_messages(&self, message_ids: Vec<MessageId>) -> DeleteMessagesBuilder<'_, R, C> {
         DeleteMessagesBuilder::new(self, message_ids)
     }
 
-    pub fn invite_users(&self, user_ids: Vec<UserId>) -> InviteUsersBuilder<R, C> {
+    pub fn invite_users(&self, user_ids: Vec<UserId>) -> InviteUsersBuilder<'_, R, C> {
         InviteUsersBuilder::new(self, user_ids)
     }
 
-    pub fn members(&self, member_types: HashSet<MemberType>) -> MembersBuilder<R, C> {
+    pub fn members(&self, member_types: HashSet<MemberType>) -> MembersBuilder<'_, R, C> {
         MembersBuilder::new(self, member_types)
     }
 
-    pub fn remove_user(&self, user_id: UserId) -> RemoveUserBuilder<R, C> {
+    pub fn remove_user(&self, user_id: UserId) -> RemoveUserBuilder<'_, R, C> {
         RemoveUserBuilder::new(self, user_id)
     }
 
-    pub fn send_message(&self, content: MessageContentInitial) -> SendMessageBuilder<R, C> {
+    pub fn send_message(&self, content: MessageContentInitial) -> SendMessageBuilder<'_, R, C> {
         SendMessageBuilder::new(self, content)
     }
 
-    pub fn send_text_message(&self, text: String) -> SendMessageBuilder<R, C> {
+    pub fn send_text_message(&self, text: String) -> SendMessageBuilder<'_, R, C> {
         self.send_message(MessageContentInitial::Text(TextContent { text }))
     }
 
@@ -133,11 +133,11 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
         &self,
         chat_events: HashSet<ChatEventType>,
         community_events: HashSet<CommunityEventType>,
-    ) -> SubscribeToEventsBuilder<R, C> {
+    ) -> SubscribeToEventsBuilder<'_, R, C> {
         SubscribeToEventsBuilder::new(self, chat_events, community_events)
     }
 
-    pub fn unsubscribe_from_chat_events(&self) -> UnsubscribeFromEventsBuilder<R, C> {
+    pub fn unsubscribe_from_chat_events(&self) -> UnsubscribeFromEventsBuilder<'_, R, C> {
         UnsubscribeFromEventsBuilder::new(self)
     }
 }

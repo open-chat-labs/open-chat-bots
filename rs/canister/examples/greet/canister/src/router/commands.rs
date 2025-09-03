@@ -1,10 +1,10 @@
 use crate::state;
 use oc_bots_sdk::api::command::CommandHandlerRegistry;
 use oc_bots_sdk::api::definition::BotCommandDefinition;
-use oc_bots_sdk_canister::env::now;
-use oc_bots_sdk_canister::http_command_handler;
 use oc_bots_sdk_canister::CanisterRuntime;
 use oc_bots_sdk_canister::OPENCHAT_CLIENT_FACTORY;
+use oc_bots_sdk_canister::env::now;
+use oc_bots_sdk_canister::http_command_handler;
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse};
 use std::sync::LazyLock;
 
