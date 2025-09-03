@@ -1,7 +1,7 @@
 use clap::Parser;
 use std::process;
 
-use greet_bot_loader::{run, Config};
+use greet_bot_loader::{Config, run};
 
 #[tokio::main]
 async fn main() {

@@ -1,9 +1,9 @@
 use crate::state;
 use oc_bots_sdk::{
-    api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent},
     InstallationRecord,
+    api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent},
 };
-use oc_bots_sdk_canister::{env, HttpRequest, HttpResponse};
+use oc_bots_sdk_canister::{HttpRequest, HttpResponse, env};
 
 pub async fn execute(request: HttpRequest) -> HttpResponse {
     let public_key = state::read(|state| state.oc_public_key().to_string());

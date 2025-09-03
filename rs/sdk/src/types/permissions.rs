@@ -399,20 +399,20 @@ mod tests {
             let mut message = HashSet::new();
 
             for i in 0..20 {
-                if let Ok(c) = CommunityPermission::try_from(i) {
-                    if random() {
-                        community.insert(c);
-                    }
+                if let Ok(c) = CommunityPermission::try_from(i)
+                    && random()
+                {
+                    community.insert(c);
                 }
-                if let Ok(c) = ChatPermission::try_from(i) {
-                    if random() {
-                        chat.insert(c);
-                    }
+                if let Ok(c) = ChatPermission::try_from(i)
+                    && random()
+                {
+                    chat.insert(c);
                 }
-                if let Ok(m) = MessagePermission::try_from(i) {
-                    if random() {
-                        message.insert(m);
-                    }
+                if let Ok(m) = MessagePermission::try_from(i)
+                    && random()
+                {
+                    message.insert(m);
                 }
             }
 

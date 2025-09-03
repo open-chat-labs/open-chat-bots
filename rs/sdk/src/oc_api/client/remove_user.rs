@@ -1,7 +1,7 @@
 use super::Client;
-use crate::oc_api::actions::remove_user::{Args, RemoveUserAction};
-use crate::oc_api::actions::ActionArgsBuilder;
 use crate::oc_api::Runtime;
+use crate::oc_api::actions::ActionArgsBuilder;
+use crate::oc_api::actions::remove_user::{Args, RemoveUserAction};
 use crate::types::{ActionContext, BotCommunityOrGroupContext, CanisterId, ChannelId, UserId};
 use std::sync::Arc;
 

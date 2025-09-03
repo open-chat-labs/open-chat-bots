@@ -1,12 +1,12 @@
 use oc_bots_sdk::api::event_notification::{BotChatEvent, BotCommunityEvent};
-use oc_bots_sdk::oc_api::actions::community_events::CommunityEvent;
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
+use oc_bots_sdk::oc_api::actions::community_events::CommunityEvent;
 use oc_bots_sdk::types::{CanisterId, Chat, ChatEvent, InstallationLocation, UserId};
 use oc_bots_sdk::{
     api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent},
     types::{ActionScope, AutonomousContext},
 };
-use oc_bots_sdk_canister::{env, HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
+use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY, env};
 
 use crate::state;
 

@@ -1,5 +1,5 @@
 use oc_bots_sdk::api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent};
-use oc_bots_sdk_canister::{env, HttpRequest, HttpResponse};
+use oc_bots_sdk_canister::{HttpRequest, HttpResponse, env};
 
 use crate::state;
 

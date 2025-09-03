@@ -1,6 +1,6 @@
 use crate::games::GAMES;
-use rand::rngs::StdRng;
 use rand::SeedableRng;
+use rand::rngs::StdRng;
 use rustyknife_z::{Continuation, ZMachine};
 use serde::{Deserialize, Serialize};
 
