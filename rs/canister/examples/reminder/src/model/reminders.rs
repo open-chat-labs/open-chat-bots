@@ -1,15 +1,15 @@
-use crate::state::{mutate, State};
+use crate::state::{State, mutate};
 use ::cron::Schedule;
 use chrono::DateTime;
 use chrono_tz::Tz;
 use english_to_cron::str_cron_syntax;
 use ic_cdk_timers::TimerId;
-use oc_bots_sdk::oc_api::actions::{send_message, ActionArgsBuilder};
+use oc_bots_sdk::oc_api::actions::{ActionArgsBuilder, send_message};
 use oc_bots_sdk::types::{
     ActionScope, AutonomousContext, BotPermissions, CanisterId, Chat, CommunityId,
     InstallationLocation, MessageContentInitial, TextContent, TimestampMillis, UserId,
 };
-use oc_bots_sdk_canister::{env, OPENCHAT_CLIENT_FACTORY};
+use oc_bots_sdk_canister::{OPENCHAT_CLIENT_FACTORY, env};
 use serde::{Deserialize, Serialize};
 use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -25,16 +25,16 @@ thread_local! {
 }
 
 pub(crate) fn start_job_if_required(state: &State) -> bool {
-    if TIMER_ID.get().is_none() {
-        if let Some(next_reminder_due) = state.reminders.peek().map(|(timestamp, _)| timestamp) {
-            let utc_now = env::now();
-            let timer_id = ic_cdk_timers::set_timer(
-                Duration::from_millis(next_reminder_due.saturating_sub(utc_now)),
-                run,
-            );
-            TIMER_ID.set(Some(timer_id));
-            return true;
-        }
+    if TIMER_ID.get().is_none()
+        && let Some(next_reminder_due) = state.reminders.peek().map(|(timestamp, _)| timestamp)
+    {
+        let utc_now = env::now();
+        let timer_id = ic_cdk_timers::set_timer(
+            Duration::from_millis(next_reminder_due.saturating_sub(utc_now)),
+            run,
+        );
+        TIMER_ID.set(Some(timer_id));
+        return true;
     }
 
     false
@@ -54,15 +54,15 @@ fn run() {
 
     mutate(|state| {
         while let Some(reminder) = state.reminders.pop_next_due_reminder(env::now()) {
-            if let Some(record) = state.installation_registry.get(&reminder.chat.into()) {
-                if BotPermissions::text_only().is_subset(&record.granted_autonomous_permissions) {
-                    ic_cdk::spawn(send_reminder(
-                        record.api_gateway,
-                        reminder.chat,
-                        reminder.message.clone(),
-                        reminder.chat_reminder_id,
-                    ));
-                }
+            if let Some(record) = state.installation_registry.get(&reminder.chat.into())
+                && BotPermissions::text_only().is_subset(&record.granted_autonomous_permissions)
+            {
+                ic_cdk::spawn(send_reminder(
+                    record.api_gateway,
+                    reminder.chat,
+                    reminder.message.clone(),
+                    reminder.chat_reminder_id,
+                ));
             }
         }
 
@@ -368,12 +368,11 @@ impl Reminders {
             .ok_or("No upcoming schedule found".to_string())?;
 
         // Return error if the reminder happens too often (less than 10 minutes apart)
-        if check_frequency {
-            if let Some(next) = schedule_iter.next() {
-                if next.timestamp_millis() as u64 - first < 10 * 60 * 1000 {
-                    return Err("The reminder is too frequent".to_string());
-                }
-            }
+        if check_frequency
+            && let Some(next) = schedule_iter.next()
+            && next.timestamp_millis() as u64 - first < 10 * 60 * 1000
+        {
+            return Err("The reminder is too frequent".to_string());
         }
 
         Ok(first)

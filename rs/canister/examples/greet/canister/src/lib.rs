@@ -42,7 +42,7 @@ fn pre_upgrade() {
     let mut state = state::take();
 
     // Use the current RNG to generate a new seed for the next instance
-    state.set_rng_seed(rng::gen());
+    state.set_rng_seed(rng::r#gen());
 
     state.serialize(&mut serializer).unwrap()
 }

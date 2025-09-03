@@ -4,7 +4,7 @@ use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::BotCommandContext;
 use oc_bots_sdk_offchain::AgentRuntime;
-use rand::{thread_rng, Rng};
+use rand::{Rng, thread_rng};
 use std::sync::LazyLock;
 
 static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Roll::definition);

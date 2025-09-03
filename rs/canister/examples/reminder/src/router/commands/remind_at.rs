@@ -9,7 +9,7 @@ use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::{
     BotCommandContext, BotCommandScope, BotPermissions, ChatRole, MessageContentInitial,
 };
-use oc_bots_sdk_canister::{env, CanisterRuntime};
+use oc_bots_sdk_canister::{CanisterRuntime, env};
 use std::sync::LazyLock;
 
 static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(RemindAt::definition);

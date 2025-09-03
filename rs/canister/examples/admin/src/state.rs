@@ -1,4 +1,4 @@
-use crate::model::{start_job_if_required, CommunityStateMachine};
+use crate::model::{CommunityStateMachine, start_job_if_required};
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 

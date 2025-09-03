@@ -1,6 +1,6 @@
 use oc_bots_sdk::mainnet::{mainnet_ic_url, mainnet_oc_public_key};
-use serde::de::Deserializer;
 use serde::Deserialize;
+use serde::de::Deserializer;
 use std::error::Error;
 use std::fs;
 use tracing::Level;
@@ -36,6 +36,8 @@ where
         "info" => Ok(Level::INFO),
         "warn" => Ok(Level::WARN),
         "error" => Ok(Level::ERROR),
-        _ => Err(serde::de::Error::custom("`log_level` has an unexpected value. Please use one of: trace, debug, info, warn, or error.")),
+        _ => Err(serde::de::Error::custom(
+            "`log_level` has an unexpected value. Please use one of: trace, debug, info, warn, or error.",
+        )),
     }
 }

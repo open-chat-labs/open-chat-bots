@@ -1,5 +1,5 @@
 use crate::types::{CanisterId, InstallationLocation};
-use rand::{rngs::StdRng, Rng};
+use rand::{Rng, rngs::StdRng};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -20,7 +20,7 @@ impl ApiKeyRegistry {
         location: InstallationLocation,
         rng: &mut StdRng,
     ) -> String {
-        let api_key = rng.gen::<u128>().to_string();
+        let api_key = rng.r#gen::<u128>().to_string();
 
         // Get the existing api key for this location, if any, and remove it from map_by_key.
         // This ensures that for a given location, there is only one api key.

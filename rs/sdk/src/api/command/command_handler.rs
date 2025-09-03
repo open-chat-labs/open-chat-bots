@@ -1,7 +1,7 @@
 use crate::api::command::*;
 use crate::api::definition::{BotCommandDefinition, BotCommandParam, BotCommandParamType};
-use crate::oc_api::client::{Client, ClientFactory};
 use crate::oc_api::Runtime;
+use crate::oc_api::client::{Client, ClientFactory};
 use crate::types::{BotCommandContext, TimestampMillis, TokenError};
 use async_trait::async_trait;
 use std::{collections::HashMap, sync::Arc};
@@ -48,7 +48,7 @@ impl<R: Runtime> CommandHandlerRegistry<R> {
                     TokenError::Expired => {
                         CommandResponse::BadRequest(BadRequest::AccessTokenExpired)
                     }
-                }
+                };
             }
         };
 

@@ -1,14 +1,14 @@
 use lazy_static::lazy_static;
 use oc_bots_sdk::api::event_notification::BotChatEvent;
-use oc_bots_sdk::oc_api::actions::send_message::Response;
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
+use oc_bots_sdk::oc_api::actions::send_message::Response;
 use oc_bots_sdk::types::{CanisterId, ChatEvent, MessagePermission, UnitResult};
 use oc_bots_sdk::{
+    InstallationRecord,
     api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent},
     types::{ActionScope, AutonomousContext, BotPermissionsBuilder, ChatPermission},
-    InstallationRecord,
 };
-use oc_bots_sdk_canister::{env, HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
+use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY, env};
 use regex::Regex;
 use std::collections::HashSet;
 

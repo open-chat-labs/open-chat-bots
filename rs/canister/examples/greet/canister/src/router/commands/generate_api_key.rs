@@ -52,7 +52,10 @@ impl CommandHandler<CanisterRuntime> for GenerateApiKey {
             };
 
             // Return the API key
-            format!("This API key allows an external system to call this bot's {} acting within this {}:\n\n```{}```\n\nMake sure to store this key somewhere secure and don't share it.", webhooks, scope, api_key)
+            format!(
+                "This API key allows an external system to call this bot's {} acting within this {}:\n\n```{}```\n\nMake sure to store this key somewhere secure and don't share it.",
+                webhooks, scope, api_key
+            )
         });
 
         // Reply to the initiator with an ephemeral message

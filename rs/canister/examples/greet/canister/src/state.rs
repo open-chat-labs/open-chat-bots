@@ -112,12 +112,12 @@ impl State {
             return "What is the difference between a duck? One of its legs is both the same!"
                 .to_string();
         }
-        let index = rng::gen::<u32>() % self.jokes.len() as u32;
+        let index = rng::r#gen::<u32>() % self.jokes.len() as u32;
         self.jokes[&index].clone()
     }
 
     pub fn store_blob(&mut self, blob: Blob) -> u128 {
-        let id = rng::gen();
+        let id = rng::r#gen();
         self.blobs.insert(id, blob);
         id
     }

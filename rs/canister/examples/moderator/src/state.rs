@@ -1,4 +1,4 @@
-use oc_bots_sdk::{types::CanisterId, InstallationRegistry};
+use oc_bots_sdk::{InstallationRegistry, types::CanisterId};
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::HashSet};
 
