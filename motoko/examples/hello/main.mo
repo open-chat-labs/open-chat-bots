@@ -5,7 +5,7 @@ import Env "mo:openchat-bot-sdk/env";
 import Definition "definition";
 import Hello "hello";
 
-actor class GreetBot(key : Text) {
+persistent actor class GreetBot(key : Text) {
     transient let ocPublicKey = Sdk.parsePublicKeyOrTrap(key);
 
     transient let registry = Sdk.Command.Registry().register(Hello.build());
