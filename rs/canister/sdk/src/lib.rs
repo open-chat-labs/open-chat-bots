@@ -1,6 +1,7 @@
 mod async_handler;
 mod canister_runtime;
 pub mod env;
+pub mod event_parser;
 pub mod http_command_handler;
 mod http_router;
 mod raw_rand;
