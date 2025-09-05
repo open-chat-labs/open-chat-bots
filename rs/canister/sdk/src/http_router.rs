@@ -1,7 +1,6 @@
 use crate::async_handler::{AsyncHandler, BoxedHandler};
 use ic_http_certification::HttpRequest as CanisterHttpRequest;
 use ic_http_certification::HttpResponse as CanisterHttpResponse;
-use oc_bots_sdk::serialize_to_json_bytes;
 use serde::Deserialize;
 use serde::Serialize;
 use std::str::FromStr;
@@ -150,7 +149,7 @@ impl HttpResponse {
     {
         Self::new(
             status_code,
-            serialize_to_json_bytes(value).unwrap(),
+            serde_json::to_vec(value).unwrap(),
             "application/json",
         )
     }

@@ -10,7 +10,6 @@ use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
 use oc_bots_sdk::api::definition::BotDefinition;
 use oc_bots_sdk::mainnet::IC_URL;
 use oc_bots_sdk::oc_api::client::ClientFactory;
-use oc_bots_sdk::serialize_to_json_bytes;
 use oc_bots_sdk_offchain::middleware::tower::{ExtractJwtLayer, OpenChatJwt};
 use oc_bots_sdk_offchain::{AgentRuntime, env};
 use std::net::{Ipv4Addr, SocketAddr};
@@ -87,17 +86,16 @@ async fn execute_command(
         .execute(&jwt, &state.oc_public_key, env::now())
         .await
     {
-        CommandResponse::Success(r) => (
-            StatusCode::OK,
-            Bytes::from(serialize_to_json_bytes(&r).unwrap()),
-        ),
+        CommandResponse::Success(r) => {
+            (StatusCode::OK, Bytes::from(serde_json::to_vec(&r).unwrap()))
+        }
         CommandResponse::BadRequest(r) => (
             StatusCode::BAD_REQUEST,
-            Bytes::from(serialize_to_json_bytes(&r).unwrap()),
+            Bytes::from(serde_json::to_vec(&r).unwrap()),
         ),
         CommandResponse::InternalError(err) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Bytes::from(serialize_to_json_bytes(&err).unwrap()),
+            Bytes::from(serde_json::to_vec(&err).unwrap()),
         ),
         CommandResponse::TooManyRequests => (StatusCode::TOO_MANY_REQUESTS, Bytes::new()),
     }

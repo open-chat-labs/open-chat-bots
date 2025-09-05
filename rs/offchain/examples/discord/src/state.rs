@@ -1,10 +1,8 @@
 use crate::errors::BotError;
-use crate::shared::RelayLink;
 use aes_gcm::{
     aead::{Aead, AeadCore, KeyInit, OsRng},
     Aes256Gcm, Key, Nonce,
 };
-use oc_bots_sdk::serialize_to_json_bytes;
 use poise::serenity_prelude::ChannelId;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -14,6 +12,8 @@ use std::io::Write;
 use std::sync::Arc;
 use std::{collections::HashMap, path::Path};
 use tokio::sync::RwLock;
+
+use crate::shared::RelayLink;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct AesKey(pub Vec<u8>);
@@ -169,7 +169,7 @@ impl BotState {
         // Serialise data!
         // TODO we're already using TOML, no need to have serde_json
         let serialised_data =
-            serialize_to_json_bytes(&persist_data).map_err(BotError::FailedToSerialiseState)?;
+            serde_json::to_vec(&persist_data).map_err(BotError::FailedToSerialiseState)?;
 
         Ok(if let Some(AesKey(encryption_key)) = &self.aes_key {
             // Encrypted data if key was provided!
