@@ -1,4 +1,3 @@
-use crate::utils::deserialize_int_or_string;
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
@@ -92,7 +91,6 @@ pub struct Rules {
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Document {
-    #[serde(deserialize_with = "deserialize_int_or_string")]
     pub id: u128,
     pub mime_type: String,
     pub data: Vec<u8>,

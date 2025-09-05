@@ -6,7 +6,6 @@ use oc_bots_sdk::{
         community_events::{self, CommunityEvent, EventsPageArgs, EventsSelectionCriteria},
         create_channel, delete_channel, invite_users, send_message,
     },
-    serialize_to_json,
     types::{
         ActionScope, AutonomousContext, CanisterId, ChannelId, Chat, ChatPermissionRole,
         ChatPermissions, CommunityId, CommunityRole, EventIndex, EventWrapper,
@@ -922,7 +921,7 @@ fn message_from_event(
         CommunityEvent::GateUpdated(event) => {
             if let Some(gate_config) = event.new_gate_config {
                 block_level_markdown = true;
-                let json = serialize_to_json(&gate_config).unwrap_or_default();
+                let json = serde_json::to_string_pretty(&gate_config).unwrap_or_default();
                 (
                     "Gate updated".to_string(),
                     Some(format!("```\n{json}\n```")),
@@ -933,7 +932,7 @@ fn message_from_event(
         }
         CommunityEvent::PermissionsChanged(event) => {
             block_level_markdown = true;
-            let json = serialize_to_json(&event.new_permissions).unwrap_or_default();
+            let json = serde_json::to_string_pretty(&event.new_permissions).unwrap_or_default();
             (
                 "Permissions changed".to_string(),
                 Some(format!("```\n{json}\n```")),

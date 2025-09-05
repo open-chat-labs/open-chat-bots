@@ -15,7 +15,6 @@ enum-repr = { workspace = true }
 ic-ledger-types = { workspace = true }
 icrc-ledger-types = { workspace = true }
 image = { workspace = true }
-itoa = { workspace = true }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 rand = { workspace = true }
 serde = { workspace = true }
