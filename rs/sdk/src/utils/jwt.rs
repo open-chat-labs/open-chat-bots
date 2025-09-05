@@ -1,12 +1,10 @@
 use ct_codecs::{Base64UrlSafeNoPadding, Decoder};
-use p256::ecdsa;
-use p256::ecdsa::signature::Verifier;
-use p256::pkcs8::DecodePublicKey;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
 use crate::types::TimestampMillis;
+use crate::utils::ecdsa;
 
 #[derive(Serialize, Deserialize)]
 pub struct Claims<T> {
@@ -50,24 +48,12 @@ pub fn verify<T: DeserializeOwned>(jwt: &str, public_key_pem: &str) -> Result<T,
     let mut parts = jwt.split('.');
     let header_json = parts.next().ok_or("Invalid jwt")?;
     let claims_json = parts.next().ok_or("Invalid jwt")?;
-    let signature_str = parts.next().ok_or("Invalid jwt")?;
-    let signature_bytes = decode_to_bytes(signature_str)?;
-    let signature = ecdsa::Signature::from_slice(&signature_bytes)?;
     let authenticated = format!("{header_json}.{claims_json}");
+    let signature_str = parts.next().ok_or("Invalid jwt")?;
 
-    let verifying_key = ecdsa::VerifyingKey::from_public_key_pem(public_key_pem)
-        .map_err(|e| format!("OC public key invalid: {e}"))?;
+    ecdsa::verify_payload(authenticated.as_bytes(), signature_str, public_key_pem)?;
 
-    verifying_key.verify(authenticated.as_bytes(), &signature)?;
+    let bytes = Base64UrlSafeNoPadding::decode_to_vec(claims_json, None)?;
 
-    decode_from_json(claims_json)
-}
-
-fn decode_from_json<T: DeserializeOwned>(s: &str) -> Result<T, Box<dyn Error>> {
-    let bytes = decode_to_bytes(s)?;
     Ok(serde_json::from_slice(&bytes)?)
-}
-
-fn decode_to_bytes(s: &str) -> Result<Vec<u8>, ct_codecs::Error> {
-    Base64UrlSafeNoPadding::decode_to_vec(s, None)
 }

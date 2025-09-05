@@ -3,16 +3,16 @@ use oc_bots_sdk::api::event_notification::BotChatEvent;
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
 use oc_bots_sdk::types::{CanisterId, Chat, ChatEvent, InstallationLocation};
 use oc_bots_sdk::{
-    api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent},
+    api::event_notification::{BotEvent, BotLifecycleEvent},
     types::{ActionScope, AutonomousContext},
 };
-use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY, env};
+use oc_bots_sdk_canister::event_parser::parse_event;
+use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
 
 pub async fn execute(request: HttpRequest) -> HttpResponse {
     let public_key = state::read(|state| state.oc_public_key().to_string());
-    let now = env::now();
 
-    let event_wrapper = match BotEventWrapper::parse(&request.body, &public_key, now) {
+    let event_wrapper = match parse_event(request, &public_key, None) {
         Ok(wrapper) => wrapper,
         Err(err) => {
             ic_cdk::println!("Failed to parse event wrapper: {}", err);
