@@ -1,15 +1,6 @@
-
-type InitArgs = record {
+type InitOrUpgradeArgs = record {
     oc_public_key : text;
-};
-
-type UpgradeArgs = record {
-    oc_public_key : opt text;
-};
-
-type InitOrUpgradeArgs = variant {
-    Init: InitArgs;
-    Upgrade: UpgradeArgs;
+    oc_origin : text;
 };
 
 service : (InitOrUpgradeArgs) -> {

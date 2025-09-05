@@ -10,6 +10,8 @@ thread_local! {
 #[derive(Serialize, Deserialize)]
 pub struct State {
     oc_public_key: String,
+    #[serde(default)]
+    oc_origin: String,
     pub communities: HashMap<CommunityId, Community>,
 }
 
@@ -39,20 +41,24 @@ pub fn take() -> State {
 }
 
 impl State {
-    pub fn new(oc_public_key: String) -> State {
+    pub fn new(oc_public_key: String, oc_origin: String) -> State {
         State {
             oc_public_key,
+            oc_origin,
             communities: HashMap::new(),
         }
     }
 
-    pub fn update(&mut self, oc_public_key: Option<String>) {
-        if let Some(oc_public_key) = oc_public_key {
-            self.oc_public_key = oc_public_key;
-        }
+    pub fn update(&mut self, oc_public_key: String, oc_origin: String) {
+        self.oc_public_key = oc_public_key;
+        self.oc_origin = oc_origin;
     }
 
     pub fn oc_public_key(&self) -> &str {
         &self.oc_public_key
+    }
+
+    pub fn oc_origin(&self) -> &str {
+        &self.oc_origin
     }
 }

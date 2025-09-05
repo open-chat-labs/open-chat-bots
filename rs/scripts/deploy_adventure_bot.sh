@@ -22,7 +22,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Build the echo_bot install args
+# Build the adventure_bot install args
 ARGS="(record { oc_public_key = \"$OC_PUBLIC_KEY\" } )"
 
 # Deploy the adventure_bot with the given MODE and ARGS

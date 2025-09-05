@@ -59,9 +59,11 @@ async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
             .unwrap_or_default()
     });
 
+    let oc_origin = state::read(|state| state.oc_origin().to_string());
+
     let message_url = format!(
-        "http://localhost:5001/community/{}/channel/{}/{}",
-        community_id, channel_id, message_index,
+        "{}/community/{}/channel/{}/{}",
+        oc_origin, community_id, channel_id, message_index,
     );
 
     let text = format!("[{}]({})", message_url, message_url);
