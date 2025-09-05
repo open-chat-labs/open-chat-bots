@@ -18,11 +18,7 @@ const READER_WRITER_BUFFER_SIZE: usize = 1024 * 1024; // 1MB
 
 #[init]
 fn init(args: InitOrUpgradeArgs) {
-    let InitOrUpgradeArgs::Init(args) = args else {
-        panic!("Expected InitArgs, got UpgradeArgs");
-    };
-
-    let state = State::new(args.oc_public_key);
+    let state = State::new(args.oc_public_key, args.oc_origin);
     state::init(state);
 }
 
@@ -38,17 +34,13 @@ fn pre_upgrade() {
 
 #[post_upgrade]
 fn post_upgrade(args: InitOrUpgradeArgs) {
-    let InitOrUpgradeArgs::Upgrade(args) = args else {
-        panic!("Expected UpgradeArgs, got InitArgs");
-    };
-
     let memory = get_upgrades_memory();
     let reader = BufferedReader::new(READER_WRITER_BUFFER_SIZE, Reader::new(&memory, 0));
     let mut deserializer = rmp_serde::Deserializer::new(reader);
 
     let mut state = State::deserialize(&mut deserializer).unwrap();
 
-    state.update(args.oc_public_key);
+    state.update(args.oc_public_key, args.oc_origin);
 
     state::init(state);
 }
@@ -64,17 +56,7 @@ async fn http_request_update(request: HttpRequest) -> HttpResponse {
 }
 
 #[derive(CandidType, Serialize, Deserialize, Debug)]
-pub enum InitOrUpgradeArgs {
-    Init(InitArgs),
-    Upgrade(UpgradeArgs),
-}
-
-#[derive(CandidType, Serialize, Deserialize, Debug)]
-pub struct InitArgs {
+pub struct InitOrUpgradeArgs {
     pub oc_public_key: String,
-}
-
-#[derive(CandidType, Serialize, Deserialize, Debug)]
-pub struct UpgradeArgs {
-    pub oc_public_key: Option<String>,
+    pub oc_origin: String,
 }

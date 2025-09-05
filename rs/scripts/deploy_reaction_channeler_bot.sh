@@ -13,22 +13,18 @@ SCRIPT_DIR=$(dirname "$SCRIPT")
 cd $SCRIPT_DIR
 
 MODE=${1:-install} # MODE is either install, reinstall or upgrade
+OC_ORIGIN="http://localhost:5001"
 
-if [[ $MODE = "install" ]] || [[ $MODE = "reinstall" ]]
-then
-    # Read the OpenChat public key from the website
-    OC_PUBLIC_KEY=$(curl -s http://localhost:5001/public-key) || exit 1
+# Read the OpenChat public key from the website
+OC_PUBLIC_KEY=$(curl -s http://localhost:5001/public-key)
 
-    # Build the reaction_channeler_bot install args
-    ARGS="(variant { Init = record { oc_public_key = \"$OC_PUBLIC_KEY\" } })"
-elif [ $MODE = "upgrade" ]
-then
-    # Build the reaction_channeler_bot upgrade args
-    ARGS="(variant { Upgrade = record {} })"
-else
-    echo "MODE must be either install, reinstall or upgrade"
+if [ $? -ne 0 ]; then
+    echo "OpenChat is not running on http://localhost:5001"
     exit 1
 fi
+
+# Build the reaction_channeler_bot install args
+ARGS="(record { oc_public_key = \"$OC_PUBLIC_KEY\"; oc_origin = \"$OC_ORIGIN\"; } )"
 
 # Deploy the reaction_channeler_bot with the given MODE and ARGS
 ./utils/deploy_bot.sh reaction_channeler_bot ReactionChannelerBot $MODE "$ARGS"
