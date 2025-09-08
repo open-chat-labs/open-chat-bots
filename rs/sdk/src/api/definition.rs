@@ -94,6 +94,6 @@ pub struct BotSubscriptions {
 #[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, Default)]
 pub enum BotDataEncoding {
     #[default]
-    Json,
+    MsgPack,
     Candid,
 }

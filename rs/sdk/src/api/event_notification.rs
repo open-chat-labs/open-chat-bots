@@ -1,15 +1,17 @@
 use crate::{
-    jwt::{self, Claims},
+    api::definition::BotDataEncoding,
+    ecdsa, msgpack,
     oc_api::actions::community_events::CommunityEvent,
     types::{
         BotInstalledEvent, BotRegisteredEvent, BotUninstalledEvent, CanisterId, Chat, ChatEvent,
         CommunityId, EventIndex, MessageIndex, TimestampMillis, TokenError,
     },
 };
+use candid::CandidType;
 use serde::Deserialize;
 use std::str;
 
-#[derive(Deserialize)]
+#[derive(CandidType, Deserialize)]
 pub struct BotEventWrapper {
     #[serde(alias = "g")]
     pub api_gateway: CanisterId,
@@ -22,25 +24,32 @@ pub struct BotEventWrapper {
 impl BotEventWrapper {
     pub fn parse(
         payload: &[u8],
+        signature_str: &str,
         public_key: &str,
+        data_encoding: Option<BotDataEncoding>,
         now: TimestampMillis,
     ) -> Result<Self, TokenError> {
-        let Some(jwt) = str::from_utf8(payload).ok() else {
-            return Err(TokenError::Invalid("Invalid UTF-8".into()));
+        ecdsa::verify_payload(payload, signature_str, public_key)
+            .map_err(|e| TokenError::Invalid(e.to_string()))?;
+
+        let result = match data_encoding.unwrap_or(BotDataEncoding::MsgPack) {
+            BotDataEncoding::MsgPack => msgpack::deserialize_from_slice::<Self>(payload)
+                .map_err(|e| TokenError::Invalid(e.to_string()))?,
+            BotDataEncoding::Candid => candid::decode_one::<Self>(payload)
+                .map_err(|e| TokenError::Invalid(e.to_string()))?,
         };
 
-        let claims = jwt::verify::<Claims<Self>>(jwt, public_key)
-            .map_err(|error| TokenError::Invalid(error.to_string()))?;
-
-        if claims.exp_ms() <= now {
-            return Err(TokenError::Expired);
+        if now > result.timestamp + 5 * 60 * 1000 {
+            return Err(TokenError::Invalid(
+                "Event timestamp is too old".to_string(),
+            ));
         }
 
-        Ok(claims.into_custom())
+        Ok(result)
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(CandidType, Deserialize, Debug)]
 pub enum BotEvent {
     #[serde(alias = "c")]
     Chat(BotChatEvent),
@@ -50,7 +59,7 @@ pub enum BotEvent {
     Lifecycle(BotLifecycleEvent),
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(CandidType, Deserialize, Debug)]
 pub struct BotChatEvent {
     #[serde(alias = "v")]
     pub event: ChatEvent,
@@ -64,7 +73,7 @@ pub struct BotChatEvent {
     pub latest_event_index: EventIndex,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(CandidType, Deserialize, Debug)]
 pub struct BotCommunityEvent {
     #[serde(alias = "e")]
     pub event: CommunityEvent,
@@ -76,7 +85,7 @@ pub struct BotCommunityEvent {
     pub latest_event_index: EventIndex,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(CandidType, Deserialize, Debug)]
 pub enum BotLifecycleEvent {
     #[serde(alias = "r")]
     Registered(BotRegisteredEvent),

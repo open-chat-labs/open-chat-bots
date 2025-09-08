@@ -1,14 +1,17 @@
-use oc_bots_sdk::api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent};
-use oc_bots_sdk_canister::{HttpRequest, HttpResponse, env};
+use oc_bots_sdk::api::event_notification::{BotEvent, BotLifecycleEvent};
+use oc_bots_sdk_canister::{HttpRequest, HttpResponse, event_parser::parse_event};
 
 use crate::state;
 
 pub async fn execute(request: HttpRequest) -> HttpResponse {
     let public_key = state::read(|state| state.oc_public_key().to_string());
-    let now = env::now();
 
-    let Some(event_wrapper) = BotEventWrapper::parse(&request.body, &public_key, now).ok() else {
-        return HttpResponse::status(400);
+    let event_wrapper = match parse_event(request, &public_key, None) {
+        Ok(wrapper) => wrapper,
+        Err(err) => {
+            ic_cdk::println!("Failed to parse event wrapper: {}", err);
+            return HttpResponse::status(400);
+        }
     };
 
     if let BotEvent::Lifecycle(BotLifecycleEvent::Uninstalled(event)) = event_wrapper.event {

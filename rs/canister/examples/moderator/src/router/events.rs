@@ -8,7 +8,8 @@ use oc_bots_sdk::{
     api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent},
     types::{ActionScope, AutonomousContext, BotPermissionsBuilder, ChatPermission},
 };
-use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY, env};
+use oc_bots_sdk_canister::event_parser::parse_event;
+use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
 use regex::Regex;
 use std::collections::HashSet;
 
@@ -16,11 +17,13 @@ use crate::state;
 
 pub async fn execute(request: HttpRequest) -> HttpResponse {
     let public_key = state::read(|state| state.oc_public_key().to_string());
-    let now = env::now();
 
-    let Some(event_wrapper) = BotEventWrapper::parse(&request.body, &public_key, now).ok() else {
-        ic_cdk::println!("Failed to parse event wrapper");
-        return HttpResponse::status(400);
+    let event_wrapper = match parse_event(request, &public_key, None) {
+        Ok(wrapper) => wrapper,
+        Err(err) => {
+            ic_cdk::println!("Failed to parse event wrapper: {}", err);
+            return HttpResponse::status(400);
+        }
     };
 
     handle_event(event_wrapper).await;
