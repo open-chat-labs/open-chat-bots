@@ -95,6 +95,5 @@ pub struct BotSubscriptions {
 pub enum BotDataEncoding {
     #[default]
     MsgPack,
-    Json,
     Candid,
 }

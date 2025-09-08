@@ -35,8 +35,6 @@ impl BotEventWrapper {
         let result = match data_encoding.unwrap_or(BotDataEncoding::MsgPack) {
             BotDataEncoding::MsgPack => msgpack::deserialize_from_slice::<Self>(payload)
                 .map_err(|e| TokenError::Invalid(e.to_string()))?,
-            BotDataEncoding::Json => serde_json::from_slice::<Self>(payload)
-                .map_err(|e| TokenError::Invalid(e.to_string()))?,
             BotDataEncoding::Candid => candid::decode_one::<Self>(payload)
                 .map_err(|e| TokenError::Invalid(e.to_string()))?,
         };
