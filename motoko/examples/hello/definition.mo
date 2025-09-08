@@ -7,7 +7,6 @@ module {
             commands = commands;
             autonomous_config = null;
             default_subscriptions = null;
-            data_encoding = ?#Candid;
             restricted_locations = null;
         };
 
