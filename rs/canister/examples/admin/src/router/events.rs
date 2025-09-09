@@ -2,14 +2,18 @@ use crate::model::start_job_if_required;
 use crate::state;
 use oc_bots_sdk::api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent};
 use oc_bots_sdk::types::InstallationLocation;
-use oc_bots_sdk_canister::{env, HttpRequest, HttpResponse};
+use oc_bots_sdk_canister::event_parser::parse_event;
+use oc_bots_sdk_canister::{HttpRequest, HttpResponse};
 
 pub async fn execute(request: HttpRequest) -> HttpResponse {
     let public_key = state::read(|state| state.oc_public_key().to_string());
-    let now = env::now();
 
-    let Some(event_wrapper) = BotEventWrapper::parse(&request.body, &public_key, now).ok() else {
-        return HttpResponse::status(400);
+    let event_wrapper = match parse_event(request, &public_key, None) {
+        Ok(wrapper) => wrapper,
+        Err(err) => {
+            ic_cdk::println!("Failed to parse event wrapper: {}", err);
+            return HttpResponse::status(400);
+        }
     };
 
     handle_event(event_wrapper).await;

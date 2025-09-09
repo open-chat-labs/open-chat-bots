@@ -1,0 +1,7 @@
+type InitOrUpgradeArgs = record {
+    oc_public_key : text;
+    oc_origin : text;
+};
+
+service : (InitOrUpgradeArgs) -> {
+}

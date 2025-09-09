@@ -1,5 +1,5 @@
 {
-  "dfx": "0.28.0",
+  "dfx": "0.29.0",
   "canisters": {
     "admin_bot": {
       "type": "rust",
@@ -11,6 +11,12 @@
       "type": "rust",
       "package": "adventure_bot",
       "candid": "canister/examples/adventure/can.did",
+      "gzip": true
+    },
+    "reaction_channeler_bot": {
+      "type": "rust",
+      "package": "reaction_channeler_bot",
+      "candid": "canister/examples/reaction_channeler/can.did",
       "gzip": true
     },
     "echo_bot": {

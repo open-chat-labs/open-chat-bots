@@ -1,7 +1,7 @@
 use crate::api::command::Message;
-use crate::oc_api::actions::send_message::*;
-use crate::oc_api::actions::ActionArgsBuilder;
 use crate::oc_api::Runtime;
+use crate::oc_api::actions::ActionArgsBuilder;
+use crate::oc_api::actions::send_message::*;
 use crate::types::BotChatContext;
 use crate::types::EventIndex;
 use crate::types::MessageIndex;
@@ -39,12 +39,12 @@ impl<'c, R: Runtime, C: ActionContext> SendMessageBuilder<'c, R, C> {
     }
 
     // This only takes effect for community scope
-    pub fn with_channel_id(mut self, channel_id: Option<ChannelId>) -> Self {
+    pub fn in_channel(mut self, channel_id: Option<ChannelId>) -> Self {
         self.channel_id = channel_id;
         self
     }
 
-    pub fn with_thread(mut self, thread: Option<MessageIndex>) -> Self {
+    pub fn in_thread(mut self, thread: Option<MessageIndex>) -> Self {
         self.thread = thread;
         self
     }

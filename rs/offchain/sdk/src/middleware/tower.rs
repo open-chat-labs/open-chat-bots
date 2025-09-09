@@ -1,5 +1,5 @@
-use futures::future::{ready, BoxFuture};
-use http::{header::HeaderName, Request, Response, StatusCode};
+use futures::future::{BoxFuture, ready};
+use http::{Request, Response, StatusCode, header::HeaderName};
 use std::task::{Context, Poll};
 use tower::{Layer, Service};
 

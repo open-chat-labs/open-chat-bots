@@ -2,8 +2,9 @@ use chrono::DateTime;
 use ic_cdk_timers::TimerId;
 use oc_bots_sdk::{
     oc_api::actions::{
+        ActionArgsBuilder,
         community_events::{self, CommunityEvent, EventsPageArgs, EventsSelectionCriteria},
-        create_channel, delete_channel, invite_users, send_message, ActionArgsBuilder,
+        create_channel, delete_channel, invite_users, send_message,
     },
     types::{
         ActionScope, AutonomousContext, CanisterId, ChannelId, Chat, ChatPermissionRole,
@@ -11,7 +12,7 @@ use oc_bots_sdk::{
         GroupInviteCodeChange, MessagePermissions, OCErrorCode, TimestampMillis, UserId,
     },
 };
-use oc_bots_sdk_canister::{env, OPENCHAT_CLIENT_FACTORY};
+use oc_bots_sdk_canister::{OPENCHAT_CLIENT_FACTORY, env};
 use serde::{Deserialize, Serialize};
 use std::{
     cell::Cell,
@@ -19,23 +20,23 @@ use std::{
     time::Duration,
 };
 
-use crate::state::{mutate, State};
+use crate::state::{State, mutate};
 
 thread_local! {
     static TIMER_ID: Cell<Option<TimerId>> = Cell::default();
 }
 
 pub(crate) fn start_job_if_required(state: &State) -> bool {
-    if TIMER_ID.get().is_none() {
-        if let Some(next_action) = state.community_state_machine.next_action() {
-            // Schedule the next action to run
-            let timer_id = ic_cdk_timers::set_timer(
-                Duration::from_millis(next_action.saturating_sub(env::now())),
-                run,
-            );
-            TIMER_ID.set(Some(timer_id));
-            return true;
-        }
+    if TIMER_ID.get().is_none()
+        && let Some(next_action) = state.community_state_machine.next_action()
+    {
+        // Schedule the next action to run
+        let timer_id = ic_cdk_timers::set_timer(
+            Duration::from_millis(next_action.saturating_sub(env::now())),
+            run,
+        );
+        TIMER_ID.set(Some(timer_id));
+        return true;
     }
 
     false
@@ -220,19 +221,19 @@ impl Community {
                 true
             }
             CommunityState::Failed(failed) => {
-                if let Some(next_attempt) = failed.next_attempt {
-                    if next_attempt <= env::now() {
-                        let attempt = failed.attempts + 1;
-                        match failed.action {
-                            Action::CreateChannel => self.create_channel(attempt),
-                            Action::InviteOwners => self.invite_owners(attempt),
-                            Action::RemoveUser => self.remove_user(attempt),
-                            Action::ReadEvents => self.read_events(attempt),
-                            Action::SendMessage => self.send_message(attempt),
-                            Action::DeleteChannel => self.delete_channel(attempt),
-                        }
-                        return true;
+                if let Some(next_attempt) = failed.next_attempt
+                    && next_attempt <= env::now()
+                {
+                    let attempt = failed.attempts + 1;
+                    match failed.action {
+                        Action::CreateChannel => self.create_channel(attempt),
+                        Action::InviteOwners => self.invite_owners(attempt),
+                        Action::RemoveUser => self.remove_user(attempt),
+                        Action::ReadEvents => self.read_events(attempt),
+                        Action::SendMessage => self.send_message(attempt),
+                        Action::DeleteChannel => self.delete_channel(attempt),
                     }
+                    return true;
                 }
                 false
             }
@@ -246,7 +247,7 @@ impl Community {
             }
             CommunityState::AwaitingNewEvents => {
                 let next_event_is_role_changed =
-                    self.events.first_key_value().map_or(false, |(_, event)| {
+                    self.events.first_key_value().is_some_and(|(_, event)| {
                         matches!(event.event, CommunityEvent::RoleChanged(_))
                     });
 
@@ -321,18 +322,18 @@ impl Community {
     }
 
     fn send_message(&mut self, attempt: u8) {
-        if let Some(channel_id) = self.admin_channel_id {
-            if let Some(event) = self.events.first_key_value() {
-                self.state = CommunityState::Busy(Action::SendMessage);
+        if let Some(channel_id) = self.admin_channel_id
+            && let Some(event) = self.events.first_key_value()
+        {
+            self.state = CommunityState::Busy(Action::SendMessage);
 
-                ic_cdk::spawn(send_message(
-                    self.api_gateway,
-                    self.community_id,
-                    channel_id,
-                    event.1.clone(),
-                    attempt,
-                ));
-            }
+            ic_cdk::spawn(send_message(
+                self.api_gateway,
+                self.community_id,
+                channel_id,
+                event.1.clone(),
+                attempt,
+            ));
         }
     }
 
@@ -509,7 +510,7 @@ async fn read_events(
                     let all_events_read = result
                         .events
                         .last()
-                        .map_or(true, |e| e.index == result.latest_event_index);
+                        .is_none_or(|e| e.index == result.latest_event_index);
 
                     for event in result.events {
                         community.events.insert(event.index, event);
@@ -813,8 +814,8 @@ fn message_from_event(
                 (
                     "Avatar changed".to_string(),
                     Some(format!(
-                    "![new avatar](http://{community_id}.raw.localhost:8080/avatar/{new_avatar})"
-                )),
+                        "![new avatar](http://{community_id}.raw.localhost:8080/avatar/{new_avatar})"
+                    )),
                 )
             } else {
                 ("Avatar removed".to_string(), None)

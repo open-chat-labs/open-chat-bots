@@ -1,8 +1,8 @@
+use rand::Rng;
+use rand::SeedableRng;
 use rand::distributions::Standard;
 use rand::prelude::Distribution;
 use rand::rngs::StdRng;
-use rand::Rng;
-use rand::SeedableRng;
 use std::cell::RefCell;
 
 thread_local! {
@@ -17,11 +17,11 @@ pub fn set(seed: [u8; 32]) {
     })
 }
 
-pub fn gen<T>() -> T
+pub fn r#gen<T>() -> T
 where
     Standard: Distribution<T>,
 {
-    RNG.with_borrow_mut(|s| s.as_mut().expect(RNG_NOT_INITIALIZED).gen::<T>())
+    RNG.with_borrow_mut(|s| s.as_mut().expect(RNG_NOT_INITIALIZED).r#gen::<T>())
 }
 
 pub fn mutate<F: FnOnce(&mut StdRng) -> R, R>(f: F) -> R {

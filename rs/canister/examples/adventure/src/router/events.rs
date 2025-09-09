@@ -1,17 +1,20 @@
 use oc_bots_sdk::{
-    api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent},
+    api::event_notification::{BotEvent, BotLifecycleEvent},
     types::{Chat, InstallationLocation},
 };
-use oc_bots_sdk_canister::{env, HttpRequest, HttpResponse};
+use oc_bots_sdk_canister::{HttpRequest, HttpResponse, event_parser::parse_event};
 
 use crate::state;
 
 pub async fn execute(request: HttpRequest) -> HttpResponse {
     let public_key = state::read(|state| state.oc_public_key().to_string());
-    let now = env::now();
 
-    let Some(event_wrapper) = BotEventWrapper::parse(&request.body, &public_key, now).ok() else {
-        return HttpResponse::status(400);
+    let event_wrapper = match parse_event(request, &public_key, None) {
+        Ok(wrapper) => wrapper,
+        Err(err) => {
+            ic_cdk::println!("Failed to parse event wrapper: {}", err);
+            return HttpResponse::status(400);
+        }
     };
 
     if let BotEvent::Lifecycle(BotLifecycleEvent::Uninstalled(event)) = event_wrapper.event {
@@ -19,6 +22,10 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
             match event.location {
                 InstallationLocation::Group(chat_id) => {
                     state.engines.remove(&Chat::Group(chat_id));
+
+                    // TODO: Remove this hack once the User canisters have been upgraded with this fix
+                    // https://github.com/open-chat-labs/open-chat/pull/8533
+                    state.engines.remove(&Chat::Direct(chat_id));
                 }
                 InstallationLocation::User(user_id) => {
                     state.engines.remove(&Chat::Direct(user_id));

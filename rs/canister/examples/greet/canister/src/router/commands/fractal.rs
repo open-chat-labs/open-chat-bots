@@ -8,7 +8,7 @@ use oc_bots_sdk::oc_api::actions::send_message;
 use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::MessageContentInitial;
 use oc_bots_sdk::types::{BlobReference, BotCommandContext, ImageContent};
-use oc_bots_sdk_canister::{env, CanisterRuntime};
+use oc_bots_sdk_canister::{CanisterRuntime, env};
 use std::io::Cursor;
 use std::sync::LazyLock;
 

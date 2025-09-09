@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::types::{ChatEventType, ChatRole, CommunityEventType};
+use crate::types::{ChatEventType, ChatRole, CommunityEventType, InstallationLocationType};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
@@ -10,10 +10,10 @@ pub use crate::types::{BotPermissions, ChatPermission, CommunityPermission, Mess
 pub struct BotDefinition {
     pub description: String,
     pub commands: Vec<BotCommandDefinition>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub autonomous_config: Option<AutonomousConfig>,
     pub default_subscriptions: Option<BotSubscriptions>,
     pub data_encoding: Option<BotDataEncoding>,
+    pub restricted_locations: Option<HashSet<InstallationLocationType>>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -94,6 +94,6 @@ pub struct BotSubscriptions {
 #[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, Default)]
 pub enum BotDataEncoding {
     #[default]
-    Json,
+    MsgPack,
     Candid,
 }

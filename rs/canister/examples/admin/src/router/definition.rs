@@ -1,6 +1,6 @@
 use oc_bots_sdk::{
     api::definition::*,
-    types::{BotPermissionsBuilder, CommunityEventType},
+    types::{BotPermissionsBuilder, CommunityEventType, InstallationLocationType},
 };
 use oc_bots_sdk_canister::{HttpRequest, HttpResponse};
 use std::collections::HashSet;
@@ -25,6 +25,10 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
                 community: CommunityEventType::all(),
             }),
             data_encoding: None,
+            restricted_locations: Some(HashSet::from([
+                InstallationLocationType::Community,
+                InstallationLocationType::Group,
+            ])),
         },
     )
 }

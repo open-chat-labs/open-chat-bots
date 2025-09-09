@@ -22,8 +22,8 @@ impl CommandHandler<CanisterRuntime> for SetWelcomeMessage {
         &self,
         oc_client: Client<CanisterRuntime, BotCommandContext>,
     ) -> Result<SuccessResult, String> {
-        let text = oc_client.context().command.arg("message");
         let cxt = oc_client.context();
+        let text = cxt.command.arg("message");
 
         state::mutate(|state| state.messages.set(*cxt.scope.chat().unwrap(), text));
 

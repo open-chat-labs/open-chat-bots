@@ -1,14 +1,15 @@
 use lazy_static::lazy_static;
 use oc_bots_sdk::api::event_notification::BotChatEvent;
-use oc_bots_sdk::oc_api::actions::send_message::Response;
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
+use oc_bots_sdk::oc_api::actions::send_message::Response;
 use oc_bots_sdk::types::{CanisterId, ChatEvent, MessagePermission, UnitResult};
 use oc_bots_sdk::{
+    InstallationRecord,
     api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent},
     types::{ActionScope, AutonomousContext, BotPermissionsBuilder, ChatPermission},
-    InstallationRecord,
 };
-use oc_bots_sdk_canister::{env, HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
+use oc_bots_sdk_canister::event_parser::parse_event;
+use oc_bots_sdk_canister::{HttpRequest, HttpResponse, OPENCHAT_CLIENT_FACTORY};
 use regex::Regex;
 use std::collections::HashSet;
 
@@ -16,11 +17,13 @@ use crate::state;
 
 pub async fn execute(request: HttpRequest) -> HttpResponse {
     let public_key = state::read(|state| state.oc_public_key().to_string());
-    let now = env::now();
 
-    let Some(event_wrapper) = BotEventWrapper::parse(&request.body, &public_key, now).ok() else {
-        ic_cdk::println!("Failed to parse event wrapper");
-        return HttpResponse::status(400);
+    let event_wrapper = match parse_event(request, &public_key, None) {
+        Ok(wrapper) => wrapper,
+        Err(err) => {
+            ic_cdk::println!("Failed to parse event wrapper: {}", err);
+            return HttpResponse::status(400);
+        }
     };
 
     handle_event(event_wrapper).await;
@@ -121,7 +124,7 @@ async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
 
         match client
             .send_text_message("Stop using bad language!".to_string())
-            .with_thread(chat_event.thread)
+            .in_thread(chat_event.thread)
             .replies_to(Some(chat_event.event_index))
             .execute_async()
             .await

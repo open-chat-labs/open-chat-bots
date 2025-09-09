@@ -1,4 +1,4 @@
-use oc_bots_sdk::oc_api::actions::{send_message, ActionArgsBuilder};
+use oc_bots_sdk::oc_api::actions::{ActionArgsBuilder, send_message};
 use oc_bots_sdk::types::{
     ActionScope, AutonomousContext, CanisterId, ChannelId, InstallationLocation,
     MessageContentInitial, TextContent,

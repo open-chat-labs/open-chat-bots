@@ -10,9 +10,8 @@ use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
 use oc_bots_sdk::api::definition::BotDefinition;
 use oc_bots_sdk::mainnet::IC_URL;
 use oc_bots_sdk::oc_api::client::ClientFactory;
-use oc_bots_sdk_offchain::env;
 use oc_bots_sdk_offchain::middleware::tower::{ExtractJwtLayer, OpenChatJwt};
-use oc_bots_sdk_offchain::AgentRuntime;
+use oc_bots_sdk_offchain::{AgentRuntime, env};
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use tower::ServiceBuilder;
@@ -109,6 +108,7 @@ async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> Js
         autonomous_config: None,
         default_subscriptions: None,
         data_encoding: None,
+        restricted_locations: None,
     })
 }
 
