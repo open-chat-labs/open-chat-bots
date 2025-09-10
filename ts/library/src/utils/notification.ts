@@ -1,4 +1,5 @@
-import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import { joseToDer } from "ecdsa-sig-formatter";
 import type { BotClient } from "../clients/bot_client";
 import { BotClientFactory } from "../clients/client_factory";
 import {
@@ -8,37 +9,72 @@ import {
     type InstallationLocation,
     type Permissions,
 } from "../domain";
-import type { BotEvent, BotEventParseFailure, BotEventWrapper } from "../domain/bot_events";
-import { parseBotNotification } from "./botEventParser";
+import type {
+    BotEvent,
+    BotEventParseFailure,
+    BotEventResult,
+    BotEventWrapper,
+} from "../domain/bot_events";
+import { botEventWrapper } from "../mapping";
+import { MsgpackCanisterAgent } from "../services/canisterAgent/msgpack";
+import { BotEventWrapper as ApiBotEventWrapper } from "../typebox/typebox";
+
+export function verify(publicKey: string, message: Buffer, base64Sig: string) {
+    const derSig = joseToDer(base64Sig, "ES256");
+    const verifier = crypto.createVerify("SHA256");
+    verifier.update(message);
+    verifier.end();
+    return verifier.verify(publicKey.replace(/\\n/g, "\n"), derSig);
+}
+
+function verifyAndDecodeNotification(
+    publicKey: string,
+    signature: string,
+    bytes: Buffer,
+): BotEventResult {
+    try {
+        const valid = verify(publicKey, bytes, signature);
+        if (valid) {
+            return MsgpackCanisterAgent.processMsgpackResponse(
+                MsgpackCanisterAgent.bufferToArrayBuffer(bytes),
+                botEventWrapper,
+                ApiBotEventWrapper,
+            );
+        }
+        return { kind: "bot_event_parse_failure", error: "Unable to verify bot event signature" };
+    } catch (err) {
+        console.error("Unable to verify and decode bot event", err);
+        return { kind: "bot_event_parse_failure", error: err };
+    }
+}
 
 export async function handleNotification<T>(
-    token: string,
+    signature: string,
+    rawNotification: Buffer,
     factory: BotClientFactory,
     handler: (client: BotClient, ev: BotEvent, apiGateway: string) => Promise<T>,
     error: (error: BotEventParseFailure) => T,
     autonomousPermissions?: Permissions,
 ): Promise<T> {
-    const publicKey = factory.env.openchatPublicKey.replace(/\\n/g, "\n");
-    const decoded = jwt.verify(token, publicKey, { algorithms: ["ES256"] });
-    if (typeof decoded !== "string") {
-        const parsed = parseBotNotification(decoded);
-        if (parsed.kind === "bot_event_wrapper") {
-            const scope = scopeFromBotEventWrapper(parsed);
-            if (scope !== undefined) {
-                const client = factory.createClientInAutonomouseContext(
-                    scope,
-                    parsed.apiGateway,
-                    autonomousPermissions,
-                );
-                return handler(client, parsed.event, parsed.apiGateway);
-            } else {
-                return error({ kind: "bot_event_parse_failure", error: "Invalid scope" });
-            }
+    const parsed = verifyAndDecodeNotification(
+        factory.env.openchatPublicKey,
+        signature,
+        rawNotification,
+    );
+    if (parsed.kind === "bot_event_wrapper") {
+        const scope = scopeFromBotEventWrapper(parsed);
+        if (scope !== undefined) {
+            const client = factory.createClientInAutonomouseContext(
+                scope,
+                parsed.apiGateway,
+                autonomousPermissions,
+            );
+            return handler(client, parsed.event, parsed.apiGateway);
         } else {
-            return error(parsed);
+            return error({ kind: "bot_event_parse_failure", error: "Invalid scope" });
         }
     } else {
-        return error({ kind: "bot_event_parse_failure", error: "Unable to decode jst" });
+        return error(parsed);
     }
 }
 

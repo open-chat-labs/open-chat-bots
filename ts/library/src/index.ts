@@ -5,7 +5,6 @@ export * from "./domain";
 export * from "./services/bot_gateway";
 export { BotDefinition, type MemberType } from "./typebox/typebox";
 export * from "./utils/badrequest";
-export { parseBotNotification } from "./utils/botEventParser";
 export { handleNotification } from "./utils/notification";
 
 //@ts-ignore

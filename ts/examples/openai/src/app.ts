@@ -9,13 +9,8 @@ import { createCommandChatClient } from "./middleware/botclient";
 const app = express();
 
 app.use(cors());
-app.post(
-  "/execute_command",
-  express.text(),
-  createCommandChatClient(factory),
-  executeCommand
-);
-app.post("/notify", express.text(), notify);
+app.post("/execute_command", express.text(), createCommandChatClient(factory), executeCommand);
+app.post("/notify", express.raw({ type: "application/msgpack" }), notify);
 app.get("/bot_definition", schema);
 app.get("/", schema);
 
