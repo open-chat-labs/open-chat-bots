@@ -17,8 +17,6 @@ import CommunitySummary "client/communitySummary";
 import InviteUsers "client/inviteUsers";
 import RemoveUser "client/removeUser";
 import Members "client/members";
-import SubscribeToEvents "client/subscribeToEvents";
-import UnsubscribeFromEvents "client/unsubscribeFromEvents";
 
 module {
     public class OpenChatClient(context : ActionContext.ActionContext) {
@@ -52,17 +50,6 @@ module {
 
         public func deleteChannel(channelId : B.ChannelId) : DeleteChannel.Builder {
             DeleteChannel.Builder(context, channelId);
-        };
-
-        public func subscribeToEvents(
-            communityEvents : [E.CommunityEventType],
-            chatEvents : [E.ChatEventType],
-        ) : SubscribeToEvents.Builder {
-            SubscribeToEvents.Builder(context, communityEvents, chatEvents);
-        };
-
-        public func unsubscribeFromEvents() : UnsubscribeFromEvents.Builder {
-            UnsubscribeFromEvents.Builder(context);
         };
 
         public func chatSummary() : ChatSummary.Builder {

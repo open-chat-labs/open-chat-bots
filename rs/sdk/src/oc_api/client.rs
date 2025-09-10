@@ -5,8 +5,7 @@ use crate::oc_api::actions::members::MemberType;
 use crate::oc_api::client::members::MembersBuilder;
 use crate::oc_api::client::remove_user::RemoveUserBuilder;
 use crate::types::{
-    ActionContext, ChannelId, ChatEventType, CommunityEventType, MessageContentInitial, MessageId,
-    Reaction, TextContent, UserId,
+    ActionContext, ChannelId, MessageContentInitial, MessageId, Reaction, TextContent, UserId,
 };
 use add_reaction::AddReactionBuilder;
 use chat_events::ChatEventsBuilder;
@@ -20,8 +19,6 @@ use invite_users::InviteUsersBuilder;
 use send_message::SendMessageBuilder;
 use std::collections::HashSet;
 use std::sync::Arc;
-use subscribe_to_events::SubscribeToEventsBuilder;
-use unsubscribe_from_events::UnsubscribeFromEventsBuilder;
 
 mod add_reaction;
 mod chat_events;
@@ -35,8 +32,6 @@ mod invite_users;
 mod members;
 mod remove_user;
 mod send_message;
-mod subscribe_to_events;
-mod unsubscribe_from_events;
 
 pub struct ClientFactory<R> {
     runtime: Arc<R>,
@@ -127,17 +122,5 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
 
     pub fn send_text_message(&self, text: String) -> SendMessageBuilder<'_, R, C> {
         self.send_message(MessageContentInitial::Text(TextContent { text }))
-    }
-
-    pub fn subscribe_to_chat_events(
-        &self,
-        chat_events: HashSet<ChatEventType>,
-        community_events: HashSet<CommunityEventType>,
-    ) -> SubscribeToEventsBuilder<'_, R, C> {
-        SubscribeToEventsBuilder::new(self, chat_events, community_events)
-    }
-
-    pub fn unsubscribe_from_chat_events(&self) -> UnsubscribeFromEventsBuilder<'_, R, C> {
-        UnsubscribeFromEventsBuilder::new(self)
     }
 }

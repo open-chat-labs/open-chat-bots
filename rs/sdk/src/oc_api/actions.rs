@@ -17,7 +17,6 @@ pub mod invite_users;
 pub mod members;
 pub mod remove_user;
 pub mod send_message;
-pub mod subscribe_to_events;
 
 pub trait ActionDef {
     type Args: CandidType + Clone + Send + 'static;
