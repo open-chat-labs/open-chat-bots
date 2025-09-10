@@ -16,7 +16,6 @@ module {
                 community = [];
                 chat = [#Message, #MessageEdited];
             };
-            data_encoding = ?#Candid;
             restricted_locations = ?[#Community, #Group];
         };
 

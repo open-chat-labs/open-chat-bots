@@ -20,7 +20,7 @@ module {
 
     public func handler(state : State.State, ocPublicKey : Ecdsa.PublicKey) : Sdk.Http.UpdateHandler {
         func (request : Sdk.Http.Request) : async Sdk.Http.Response {
-            let eventWrapper = switch (BotEvents.parseJwt(request.body, ocPublicKey)) {
+            let eventWrapper = switch (BotEvents.parseRequest(request, ocPublicKey)) {
                 case (#ok(eventWrapper)) eventWrapper;
                 case (#err(e)) {
                     Debug.print(e);
