@@ -44,8 +44,6 @@
         "ecdsa-sig-formatter": "^1.0.11",
         "js-sha3": "^0.9.3",
         "jsonwebtoken": "^9.0.2",
-        "jwa": "^2.0.1",
-        "jws": "^4.0.0",
         "msgpackr": "^1.11.2"
     }
 }
