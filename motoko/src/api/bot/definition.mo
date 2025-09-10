@@ -16,7 +16,6 @@ module Definition {
         commands : [Command];
         autonomous_config : ?AutonomousConfig;
         default_subscriptions: ?BotSubscriptions;
-        data_encoding: ?BotDataEncoding;
         restricted_locations: ?[InstallationLocationType]
     };
 
@@ -84,15 +83,11 @@ module Definition {
         chat : [E.ChatEventType];
     };
 
-    public type BotDataEncoding = {
-        #Json;
-        #Candid;
-    };
-
     public func serialize(definition : Bot) : Json.Json {
         var fields = [
             ("description", #string(definition.description)),
             ("commands", Serialize.arrayOfValues(definition.commands, serializeBotCommand)),
+            ("data_encoding", #string("Candid")),
         ];
         switch (definition.autonomous_config) {
             case (null) ();
@@ -101,10 +96,6 @@ module Definition {
         switch (definition.default_subscriptions) {
             case (null) ();
             case (?config) fields := Array.append(fields, [("default_subscriptions", serializeDefaultSubscriptions(config))]);
-        };
-        switch (definition.data_encoding) {
-            case (null) ();
-            case (?config) fields := Array.append(fields, [("data_encoding", serializeDataEncoding(config))]);
         };
         switch (definition.restricted_locations) {
             case (null) ();
@@ -235,13 +226,6 @@ module Definition {
             ("community", Serialize.arrayOfValues(subscriptions.community, E.serializeCommunityEventType)),
             ("chat", Serialize.arrayOfValues(subscriptions.chat, E.serializeChatEventType)),
         ]);
-    };
-
-    private func serializeDataEncoding(encoding : BotDataEncoding) : Json.Json {
-        switch (encoding) {
-            case (#Json) #string("Json");
-            case (#Candid) #string("Candid");
-        };
     };
 
     private func serializeRestrictedLocationType(location : InstallationLocationType) : Json.Json {

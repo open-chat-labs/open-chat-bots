@@ -13,7 +13,6 @@ module {
                 };
             };
             default_subscriptions = null;
-            data_encoding = ?#Candid;
             restricted_locations = null;
         };
 
