@@ -39,8 +39,6 @@
         "@dfinity/identity-secp256k1": "^2.2.0",
         "@dfinity/principal": "^2.2.0",
         "@sinclair/typebox": "^0.34.16",
-        "@types/jwa": "^2.0.3",
-        "@types/jws": "^3.2.10",
         "ecdsa-sig-formatter": "^1.0.11",
         "js-sha3": "^0.9.3",
         "jsonwebtoken": "^9.0.2",
