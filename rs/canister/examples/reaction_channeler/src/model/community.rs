@@ -25,11 +25,16 @@ impl Community {
         &self.rules
     }
 
-    pub fn fork_message(&mut self, message: Message) -> Vec<ChannelId> {
+    pub fn fork_message(
+        &mut self,
+        message: Message,
+        message_channel_id: ChannelId,
+    ) -> Vec<ChannelId> {
         let mut channels = Vec::new();
 
         for (emoji, _) in &message.reactions {
             if let Some(&channel_id) = self.rules.get(emoji)
+                && channel_id != message_channel_id
                 && !self
                     .messages_copied
                     .get(&message.message_id)

@@ -33,7 +33,7 @@ impl CommandHandler<CanisterRuntime> for ListRules {
                         community
                             .get_rules()
                             .iter()
-                            .map(|(emoji, channel)| format!("{} -> #Channel({})", emoji, channel))
+                            .map(|(emoji, channel)| format!("{} -> {}", emoji, channel))
                             .collect::<Vec<_>>()
                             .join("\n")
                     })
