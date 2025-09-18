@@ -55,7 +55,7 @@ async fn handle_chat_event(chat_event: BotChatEvent, api_gateway: CanisterId) {
         state
             .communities
             .get_mut(&community_id)
-            .map(|community| community.fork_message(*message))
+            .map(|community| community.fork_message(*message, channel_id))
             .unwrap_or_default()
     });
 
