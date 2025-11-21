@@ -10,7 +10,9 @@ static GUSSDEATH_ZCODE: &[u8] = include_bytes!("games/gussdeath.z3");
 static LIBRARY_OF_HORROR_ZCODE: &[u8] = include_bytes!("games/library_of_horror.z3");
 static MOONGLOW_ZCODE: &[u8] = include_bytes!("games/moonglow.z3");
 static SUBMARINE_SABOTAGE_ZCODE: &[u8] = include_bytes!("games/submarine_sabotage.z3");
-static ZORK_ZCODE: &[u8] = include_bytes!("games/zork1.z3");
+static ZORK1_ZCODE: &[u8] = include_bytes!("games/zork1.z3");
+static ZORK2_ZCODE: &[u8] = include_bytes!("games/zork2.z3");
+static ZORK3_ZCODE: &[u8] = include_bytes!("games/zork3.z3");
 
 lazy_static! {
     pub static ref GAMES: BTreeMap<&'static str, &'static [u8]> = BTreeMap::from([
@@ -23,6 +25,8 @@ lazy_static! {
         ("Library of Horror", LIBRARY_OF_HORROR_ZCODE),
         ("Moonglow", MOONGLOW_ZCODE),
         ("Submarine Sabotage", SUBMARINE_SABOTAGE_ZCODE),
-        ("Zork", ZORK_ZCODE),
+        ("Zork", ZORK1_ZCODE),
+        ("Zork2", ZORK2_ZCODE),
+        ("Zork3", ZORK3_ZCODE),
     ]);
 }
