@@ -26,7 +26,7 @@ lazy_static! {
         ("Moonglow", MOONGLOW_ZCODE),
         ("Submarine Sabotage", SUBMARINE_SABOTAGE_ZCODE),
         ("Zork", ZORK1_ZCODE),
-        ("Zork2", ZORK2_ZCODE),
-        ("Zork3", ZORK3_ZCODE),
+        ("Zork II", ZORK2_ZCODE),
+        ("Zork III", ZORK3_ZCODE),
     ]);
 }
