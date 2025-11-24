@@ -89,7 +89,7 @@ export abstract class MsgpackCanisterAgent extends CanisterAgent {
                     canisterId: Principal.from(canisterId),
                     blsVerify: undefined,
                 });
-                const path = [new TextEncoder().encode("request_status"), requestId];
+                const path = [new TextEncoder().encode("request_status").buffer, requestId];
                 const status = new TextDecoder().decode(
                     lookupResultToBuffer(certificate.lookup([...path, "status"])),
                 );
@@ -167,10 +167,14 @@ export abstract class MsgpackCanisterAgent extends CanisterAgent {
         validator: T,
     ): ArrayBuffer {
         const validated = MsgpackCanisterAgent.validate(value, validator);
-        return Packer.pack(validated);
+        return this.bufferToArrayBuffer(Packer.pack(validated));
     }
 
-    private static processMsgpackResponse<Resp extends TSchema, Out>(
+    static bufferToArrayBuffer(b: Buffer): ArrayBuffer {
+        return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer;
+    }
+
+    static processMsgpackResponse<Resp extends TSchema, Out>(
         responseBytes: ArrayBuffer,
         mapper: (from: Static<Resp>) => Out,
         validator: Resp,

@@ -16,7 +16,6 @@ module {
                 community = [#MemberJoined];
                 chat = [#MembersJoined];
             };
-            data_encoding = ?#Candid;
             restricted_locations = ?[#Community, #Group];
         };
 

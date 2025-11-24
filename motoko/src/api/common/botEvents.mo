@@ -1,16 +1,17 @@
-import B "../common/base";
-import Chat "../common/chat";
-import ChatEvents "../common/chatEvents";
-import CommunityEvents "../common/communityEvents";
-import InstallationLocation "../common/installationLocation";
-import Permissions "../common/permissions";
+import B "base";
+import Chat "chat";
+import ChatEvents "chatEvents";
+import CommunityEvents "communityEvents";
+import Env "../../env";
+import Http "../../http";
+import InstallationLocation "installationLocation";
+import Permissions "permissions";
 import Text "mo:base/Text";
 import Result "mo:base/Result";
 import Blob "mo:base/Blob";
 import Ecdsa "mo:ecdsa";
-import Json "mo:json";
-import JWT "mo:jwt";
-import Base64 "mo:base64";
+import Sha256 "mo:sha2/Sha256";
+import BaseX "mo:base-x-encoder";
 
 module {
     type ChatEvent = ChatEvents.ChatEvent;
@@ -68,57 +69,45 @@ module {
         location : InstallationLocation;
     };
 
-    public func parseJwt(payload : Blob, ocPublicKey : Ecdsa.PublicKey) : Result.Result<BotEventWrapper, Text> {
-        let ?jwt = Text.decodeUtf8(payload) else {
-            return #err "Invalid UTF-8 encoding";
+    public func parseRequest(request : Http.Request, ocPublicKey : Ecdsa.PublicKey) : Result.Result<BotEventWrapper, Text> {
+        // Extract signature from header
+        let ?signature = Http.requestHeader(request, "x-oc-signature") else {
+            return #err "Missing x-oc-signature header";
         };
 
-        let token = switch (JWT.parse(jwt)) {
-            case (#ok(token)) token;
-            case (#err(e)) return #err ("Failed to parse JWT: " # debug_show (e));
+        // Decode signature from base64
+        let signatureBytes = switch (BaseX.fromBase64(signature)) {
+            case (#err(e)) return #err("Failed to decode signature base64 value '" # signature # "'. Error: " # e);
+            case (#ok(signatureBytes)) Blob.fromArray(signatureBytes);
         };
 
-        if (JWT.getPayloadValue(token, "claim_type") != ?#string("BotEventCandid")) {
-            return #err "Invalid claim type";
+        // Verify the signature
+        if (not verifyEcdsaSignature(request.body, ocPublicKey, signatureBytes)) {
+            return #err "Invalid x-oc-signature";
         };
-
-        switch (
-            JWT.validate(
-                token,
-                {
-                    expiration = true;
-                    notBefore = true;
-                    issuer = #skip;
-                    audience = #skip;
-                    signature = #key(#ecdsa(ocPublicKey));
-                },
-            )
-        ) {
-            case (#ok()) {};
-            case (#err(e)) {
-                return #err ("Invalid JWT signature: " # debug_show (e));
-            };
-        };
-
-        // Extract the 'payload' field from the JWT 
-        let payloadText = switch (Json.getAsText(Json.obj(token.payload), "payload")) {
-            case (#ok(payload)) payload;
-            case (#err(e)) return #err ("Invalid 'payload' field: " # debug_show (e));
-        };
-
-        // Base64 decode the payload
-        let base64Engine = Base64.Base64(#v(Base64.V2), ?false);
-        let candidPayload = Blob.fromArray(base64Engine.decode(payloadText));
 
         // Candid decode the payload
-        let eventWrapperOption : ?BotEventWrapper = from_candid(candidPayload);
-        switch (eventWrapperOption) {
-            case (?eventWrapper) {
-                #ok eventWrapper;
-            };
-            case null {
-                #err "Failed to candid decode event wrapper";
-            };
+        let eventWrapperOption : ?BotEventWrapper = from_candid(request.body);
+        let ?eventWrapper = eventWrapperOption else {
+            return #err "Failed to candid decode event wrapper";
         };
+
+        // Check that the event timestamp is recent (within the last 5 minutes)
+        let now = Env.nowMillis();
+        if (now > eventWrapper.timestamp + 5 * 60 * 1000) {
+            return #err "Event timestamp is not recent";
+        };
+
+        return #ok eventWrapper;
+    };
+
+    private func verifyEcdsaSignature(
+        data : Blob,
+        publicKey : Ecdsa.PublicKey,
+        signature : Blob,
+    ) : Bool {
+        let #ok(sig) = Ecdsa.signatureFromBytes(signature.vals(), publicKey.curve, #raw) else return false;
+        let hash = Sha256.fromBlob(#sha256, data);
+        publicKey.verifyHashed(hash.vals(), sig);
     };
 };

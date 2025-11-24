@@ -24,7 +24,7 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
                 community: HashSet::default(),
                 chat: HashSet::from_iter([ChatEventType::MessageReaction, ChatEventType::Message]),
             }),
-            data_encoding: None,
+            data_encoding: Some(BotDataEncoding::MsgPack),
             restricted_locations: Some(HashSet::from([InstallationLocationType::Community])),
         },
     )
