@@ -4,6 +4,7 @@ import type { ChatEvent, CommunityEvent } from "./event";
 import type { CommunityIdentifier } from "./identifiers";
 import type { CommunityPermissions, GroupPermissions } from "./permissions";
 import type { VersionedRules } from "./rules";
+import type { UserSummary } from "./user";
 import type { VideoCall } from "./video";
 
 export type SendMessageResponse = SendMessageSuccess | OCError;
@@ -131,6 +132,12 @@ export type SendMessageSuccess = {
     timestamp: bigint;
     expiresAt?: bigint;
 };
+
+export type UserSummaryResponse = UserSummarySuccess | UserNotFound | OCError;
+
+export type UserSummarySuccess = { kind: "success"; user: UserSummary };
+
+export type UserNotFound = { kind: "user_not_found" };
 
 export type UnitResult = Success | OCError;
 

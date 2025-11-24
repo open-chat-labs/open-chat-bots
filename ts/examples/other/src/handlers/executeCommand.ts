@@ -9,6 +9,7 @@
 import { commandNotFound } from "@open-ic/openchat-botclient-ts";
 import { Request, Response } from "express";
 import { WithBotClient } from "../types";
+import { ephemeral } from "./ephemeral";
 import { chatEvents, communityEvents } from "./events";
 import file from "./file";
 import image from "./image";
@@ -20,7 +21,7 @@ import sayHello from "./sayHello";
 import subscribe from "./subscribe";
 import summary from "./summary";
 import unsubscribe from "./unsubscribe";
-import { ephemeral } from "./ephemeral";
+import userSummary from "./usersummary";
 
 function hasBotClient(req: Request): req is WithBotClient {
     return (req as WithBotClient).botClient !== undefined;
@@ -34,6 +35,8 @@ export default function executeCommand(req: Request, res: Response) {
     const client = req.botClient;
 
     switch (client.commandName) {
+        case "user_summary":
+            return userSummary(req, res);
         case "chat_members":
             return chatMembers(req, res);
         case "community_members":

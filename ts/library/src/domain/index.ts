@@ -13,4 +13,5 @@ export * from "./permissions";
 export * from "./response";
 export * from "./rules";
 export * from "./scope";
+export * from "./user";
 export * from "./video";

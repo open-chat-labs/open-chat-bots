@@ -205,6 +205,16 @@ function getBotDefinition(): BotDefinition {
                 params: [],
             },
             {
+                name: "user_summary",
+                default_role: "Participant",
+                description: "Return the summary of the calling user",
+                permissions: Permissions.encodePermissions({
+                    ...emptyPermissions,
+                    message: ["Text"],
+                }),
+                params: [],
+            },
+            {
                 name: "chat_events",
                 default_role: "Participant",
                 description: "Return the most recent messages for this chat",
