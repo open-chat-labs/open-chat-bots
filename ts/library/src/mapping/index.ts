@@ -98,7 +98,9 @@ import type {
     GroupChatSummary,
     MembersResponse,
     OCError,
+    UserSummaryResponse,
 } from "../domain/response";
+import type { DiamondMembershipStatus, UserSummary } from "../domain/user";
 import {
     type AccessGate as ApiAccessGate,
     type AccessGateConfig as ApiAccessGateConfig,
@@ -132,6 +134,7 @@ import {
     type CryptoTransaction as ApiCryptoTransaction,
     type CustomContent as ApiCustomContent,
     type DeletedBy as ApiDeletedBy,
+    type DiamondMembershipStatus as ApiDiamondMembershipStatus,
     type EventsResponse as ApiEventsResponse,
     type EventWrapperChatEvent as ApiEventWrapperChatEvent,
     type EventWrapperCommunityEvent as ApiEventWrapperCommunityEvent,
@@ -170,6 +173,7 @@ import {
     type ThreadSummary as ApiThreadSummary,
     type TokenInfo as ApiTokenInfo,
     type TotalVotes as ApiTotalVotes,
+    type UserSummary as ApiUserSummary,
     type VideoCall as ApiVideoCall,
     type VideoCallContent as ApiVideoCallContent,
     type VideoCallType as ApiVideoCallType,
@@ -185,6 +189,7 @@ import {
     type Chat,
     ChatSummary,
     MemberType,
+    UserIndexUserResponse,
 } from "../typebox/typebox";
 import { toBigInt32, toBigInt64 } from "../utils/bigint";
 import { UnsupportedValueError } from "../utils/error";
@@ -2165,4 +2170,45 @@ export function installationLocation(api: ApiBotInstallationLocation): Installat
         return new DirectChatIdentifier(principalBytesToString(api.User));
     }
     throw new Error("Unexpected ApiBotInstallationLocation received");
+}
+
+export function userSummaryResponse(api: UserIndexUserResponse): UserSummaryResponse {
+    if (api === "UserNotFound") {
+        return { kind: "user_not_found" };
+    } else if ("Success" in api) {
+        return { kind: "success", user: userSummary(api.Success) };
+    } else {
+        return ocError(api.Error);
+    }
+}
+
+function userSummary(api: ApiUserSummary): UserSummary {
+    return {
+        kind: api.is_bot ? "bot" : "user",
+        userId: principalBytesToString(api.user_id),
+        username: api.username,
+        displayName: optional(api.display_name, identity),
+        blobReference: optional(api.avatar_id, (id) => ({
+            blobId: id,
+            canisterId: principalBytesToString(api.user_id),
+        })),
+        suspended: api.suspended,
+        diamondStatus: diamondStatus(api.diamond_membership_status),
+        chitBalance: api.chit_balance,
+        totalChitEarned: api.total_chit_earned,
+        streak: api.streak,
+        maxStreak: api.max_streak,
+        isUniquePerson: api.is_unique_person,
+    };
+}
+
+function diamondStatus(api: ApiDiamondMembershipStatus): DiamondMembershipStatus {
+    switch (api) {
+        case "Active":
+            return "active";
+        case "Inactive":
+            return "inactive";
+        case "Lifetime":
+            return "lifetime";
+    }
 }
