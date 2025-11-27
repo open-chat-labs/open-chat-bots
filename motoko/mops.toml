@@ -11,7 +11,7 @@ csprng = "1.1.0"
 
 [package]
 name = "openchat-bot-sdk"
-version = "0.3.0"
+version = "0.4.0"
 description = "An SDK for developing bots which plugin to the OpenChat bot framework + examples"
 repository = "https://github.com/open-chat-labs/open-chat-bots"
 keywords = [ "openchat", "sdk", "bots", "examples" ]
