@@ -20,7 +20,6 @@ impl<'c, R: Runtime, C: ActionContext> InviteUsersBuilder<'c, R, C> {
         }
     }
 
-    // This only takes effect for community scope
     pub fn with_channel_id(mut self, channel_id: ChannelId) -> Self {
         self.channel_id = Some(channel_id);
         self
@@ -45,6 +44,7 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for InviteUsersBuilder<'
                 self.channel_id,
             )
             .unwrap(),
+            channel_id: self.channel_id,
             user_ids: self.user_ids,
         }
     }

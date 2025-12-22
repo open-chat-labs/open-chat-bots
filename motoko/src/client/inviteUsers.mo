@@ -25,6 +25,7 @@ module {
             try {
                 let response = await botApiActor.bot_invite_users({
                     chat_context = botChatContext;
+                    channel_id = channelId;
                     user_ids = user_ids;
                 });
 
