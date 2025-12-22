@@ -8,6 +8,7 @@ module {
 
     public type Args = {
         chat_context : C.BotChatContext;
+        channel_id : ?B.ChannelId;
         user_ids : [B.UserId];
     };
 
