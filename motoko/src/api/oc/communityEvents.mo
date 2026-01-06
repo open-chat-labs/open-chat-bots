@@ -39,7 +39,7 @@ module {
 
     public type Response = {
         #Success : EventsResponse;
-        #Error : (Nat16, ?Text);
+        #Error : B.OCError;
     };
 
     public type EventsResponse = {

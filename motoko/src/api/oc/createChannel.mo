@@ -24,7 +24,7 @@ module {
 
     public type Response = {
         #Success : SuccessResult;
-        #Error : (Nat16, ?Text);
+        #Error : B.OCError;
     };
 
     public type SuccessResult = {
