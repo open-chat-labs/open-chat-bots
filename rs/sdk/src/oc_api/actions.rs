@@ -6,6 +6,7 @@ use std::future::Future;
 use std::sync::Arc;
 
 pub mod add_reaction;
+pub mod change_role;
 pub mod chat_events;
 pub mod chat_summary;
 pub mod community_events;

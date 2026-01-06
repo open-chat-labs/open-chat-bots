@@ -1,5 +1,6 @@
 import B "../common/base";
 import E "../common/communityEvents";
+import R "../common/chatRole";
 
 module {
     type UserId = B.UserId;
@@ -10,7 +11,7 @@ module {
     type MessageId = B.MessageId;
     type MessageIndex = B.MessageIndex;
     type EventIndex = B.EventIndex;
-    type ChatRole = B.ChatRole;
+    type ChatRole = R.ChatRole;
 
     public type Actor = actor {
         bot_community_events_c2c : (Args) -> async Response;
