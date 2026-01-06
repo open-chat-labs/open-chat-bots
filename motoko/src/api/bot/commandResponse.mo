@@ -33,7 +33,7 @@ module {
         #Other : Text;
     };
 
-    public type C2CError = (Int32, Text);    
+    public type C2CError = (Int32, Text);
 
     public type SuccessResult = {
         message : ?Message;
