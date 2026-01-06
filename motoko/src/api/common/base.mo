@@ -18,16 +18,11 @@ module {
 
     public type CallResult<T> = Result.Result<T, Error.Error>;
 
+    public type OCError = (Nat16, ?Text);
+
     public type UnitResult = {
         #Success;
-        #Error : (Nat16, ?Text);
-    };
-
-    public type ChatRole = {
-        #Owner;
-        #Admin;
-        #Moderator;
-        #Participant;
+        #Error : OCError;
     };
 
     public type Rules = {

@@ -3,6 +3,7 @@ import Json "mo:json";
 
 import B "../common/base";
 import E "../common/eventTypes";
+import R "../common/chatRole";
 import Permissions "../common/permissions";
 import Serialize "../common/serialization";
 import InstallationLocation "../common/installationLocation";
@@ -29,7 +30,7 @@ module Definition {
         placeholder : ?Text;
         params : [CommandParam];
         permissions : Permissions;
-        default_role : ?B.ChatRole;
+        default_role : ?R.ChatRole;
         direct_messages : ?Bool;
     };
 
@@ -142,7 +143,7 @@ module Definition {
         #object_(fields);
     };
 
-    private func serializeChatRole(chat_role : B.ChatRole) : Json.Json {
+    private func serializeChatRole(chat_role : R.ChatRole) : Json.Json {
         switch (chat_role) {
             case (#Owner) #string("Owner");
             case (#Admin) #string("Admin");

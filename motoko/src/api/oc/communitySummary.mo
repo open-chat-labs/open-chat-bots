@@ -14,7 +14,7 @@ module {
 
     public type Response = {
         #Success : CommunitySummary;
-        #Error : (Nat16, ?Text);
+        #Error : B.OCError;
     };
 
     public type CommunitySummary = {

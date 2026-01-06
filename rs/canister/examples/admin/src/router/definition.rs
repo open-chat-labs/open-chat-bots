@@ -1,3 +1,4 @@
+use crate::router::commands;
 use oc_bots_sdk::{
     api::definition::*,
     types::{BotPermissionsBuilder, CommunityEventType, InstallationLocationType},
@@ -10,7 +11,7 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
         200,
         &BotDefinition {
             description: "This bot assists admin of communities and groups.".to_string(),
-            commands: vec![],
+            commands: commands::definitions(),
             autonomous_config: Some(AutonomousConfig {
                 permissions: BotPermissionsBuilder::new()
                     .with_message(MessagePermission::Text)

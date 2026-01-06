@@ -5,9 +5,11 @@ use crate::oc_api::actions::members::MemberType;
 use crate::oc_api::client::members::MembersBuilder;
 use crate::oc_api::client::remove_user::RemoveUserBuilder;
 use crate::types::{
-    ActionContext, ChannelId, MessageContentInitial, MessageId, Reaction, TextContent, UserId,
+    ActionContext, ChannelId, ChatRole, MessageContentInitial, MessageId, Reaction, TextContent,
+    UserId,
 };
 use add_reaction::AddReactionBuilder;
+use change_role::ChangeRoleBuilder;
 use chat_events::ChatEventsBuilder;
 use chat_summary::ChatSummaryBuilder;
 use community_events::CommunityEventsBuilder;
@@ -21,6 +23,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 mod add_reaction;
+mod change_role;
 mod chat_events;
 mod chat_summary;
 mod community_events;
@@ -71,6 +74,14 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
         reaction: Reaction,
     ) -> AddReactionBuilder<'_, R, C> {
         AddReactionBuilder::new(self, message_id, reaction)
+    }
+
+    pub fn change_role(
+        &self,
+        user_ids: Vec<UserId>,
+        new_role: ChatRole,
+    ) -> ChangeRoleBuilder<'_, R, C> {
+        ChangeRoleBuilder::new(self, user_ids, new_role)
     }
 
     pub fn chat_summary(&self) -> ChatSummaryBuilder<'_, R, C> {
