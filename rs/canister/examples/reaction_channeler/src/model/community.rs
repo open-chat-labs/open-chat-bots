@@ -32,19 +32,21 @@ impl Community {
     ) -> Vec<ChannelId> {
         let mut channels = Vec::new();
 
-        for (emoji, _) in &message.reactions {
-            if let Some(&channel_id) = self.rules.get(emoji)
-                && channel_id != message_channel_id
-                && !self
-                    .messages_copied
-                    .get(&message.message_id)
-                    .is_some_and(|chs| chs.contains(&channel_id))
-            {
-                channels.push(channel_id);
-                self.messages_copied
-                    .entry(message.message_id)
-                    .or_default()
-                    .push(channel_id);
+        if let Some(reactions) = message.reactions.as_ref() {
+            for (emoji, _) in reactions {
+                if let Some(&channel_id) = self.rules.get(emoji)
+                    && channel_id != message_channel_id
+                    && !self
+                        .messages_copied
+                        .get(&message.message_id)
+                        .is_some_and(|chs| chs.contains(&channel_id))
+                {
+                    channels.push(channel_id);
+                    self.messages_copied
+                        .entry(message.message_id)
+                        .or_default()
+                        .push(channel_id);
+                }
             }
         }
         channels

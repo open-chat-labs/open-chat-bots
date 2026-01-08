@@ -81,6 +81,7 @@ import {
     type TipsReceived,
     type TokenInfo,
     type TotalPollVotes,
+    type VersionedRules,
     type VideoCall,
     type VideoCallContent,
     type VideoCallParticipant,
@@ -359,12 +360,12 @@ function communitySummary(api: ApiCommunitySummary): CommunitySummary {
         description: api.description,
         avatarId: optional(api.avatar_id, identity),
         bannerId: optional(api.banner_id, identity),
-        isPublic: api.is_public,
-        verified: api.verified,
+        isPublic: api.is_public ?? false,
+        verified: api.verified ?? false,
         memberCount: api.member_count,
         permissions: communityPermissions(api.permissions),
         publicChannels: api.public_channels.map(channelSummary),
-        rules: api.rules,
+        rules: api.rules ?? defaultRules(),
         frozen: optional(api.frozen, frozenGroupInfo),
         gateConfig: optional(api.gate_config, accessGateConfig),
         primaryLanguage: api.primary_language,
@@ -388,11 +389,11 @@ function chatSummary(api: ChatSummary): GroupChatSummary | DirectChatSummary {
             name: group.name,
             description: group.description,
             avatarId: group.avatar_id,
-            isPublic: group.is_public,
-            historyVisibleToNewJoiners: group.history_visible_to_new_joiners,
-            messagesVisibleToNonMembers: group.messages_visible_to_non_members,
+            isPublic: group.is_public ?? false,
+            historyVisibleToNewJoiners: group.history_visible_to_new_joiners ?? false,
+            messagesVisibleToNonMembers: group.messages_visible_to_non_members ?? false,
             permissions: groupPermissions(group.permissions),
-            rules: group.rules,
+            rules: group.rules ?? defaultRules(),
             eventsTtl: group.events_ttl,
             eventsTtlLastUpdated: group.events_ttl_last_updated,
             gateConfig: optional(group.gate_config, accessGateConfig),
@@ -1265,13 +1266,13 @@ export function message(value: ApiMessage): MessageEvent {
         repliesTo: optional(value.replies_to, replyContext),
         messageId: toBigInt64(value.message_id),
         messageIndex: value.message_index,
-        reactions: reactions(value.reactions),
-        tips: tips(value.tips),
-        edited: value.edited,
-        forwarded: value.forwarded,
+        reactions: reactions(value.reactions ?? []),
+        tips: tips(value.tips ?? []),
+        edited: value.edited ?? false,
+        forwarded: value.forwarded ?? false,
         deleted: content.kind === "deleted_content",
         thread: optional(value.thread_summary, threadSummary),
-        blockLevelMarkdown: value.block_level_markdown,
+        blockLevelMarkdown: value.block_level_markdown ?? false,
         senderContext: optional(value.sender_context, senderContext),
     };
 }
@@ -2212,3 +2213,10 @@ function diamondStatus(api: ApiDiamondMembershipStatus): DiamondMembershipStatus
             return "lifetime";
     }
 }
+ function defaultRules(): VersionedRules {
+    return {
+        text: "",
+        version: 0,
+        enabled: false,
+    };
+ }

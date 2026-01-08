@@ -62,12 +62,12 @@ pub struct Message {
     pub content: MessageContent,
     pub bot_context: Option<BotMessageContext>,
     pub replies_to: Option<ReplyContext>,
-    pub reactions: Vec<(String, Vec<UserId>)>,
-    pub tips: Tips,
+    pub reactions: Option<Vec<(String, Vec<UserId>)>>,
+    pub tips: Option<Tips>,
     pub thread_summary: Option<ThreadSummary>,
-    pub edited: bool,
-    pub forwarded: bool,
-    pub block_level_markdown: bool,
+    pub edited: Option<bool>,
+    pub forwarded: Option<bool>,
+    pub block_level_markdown: Option<bool>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -103,15 +103,16 @@ pub enum ChatEventCategory {
 }
 
 type Events = Vec<EventWrapper<ChatEvent>>;
-type ExpiredEventRanges = Vec<(EventIndex, EventIndex)>;
 type Unauthorized = Vec<EventIndex>;
+type ExpiredEventRanges = Vec<(EventIndex, EventIndex)>;
+type ExpiredMessageRanges = Vec<(MessageIndex, MessageIndex)>;
 
 #[derive(CandidType, Serialize, Deserialize, Debug)]
 pub struct EventsResponse {
     pub events: Events,
-    pub unauthorized: Unauthorized,
-    pub expired_event_ranges: ExpiredEventRanges,
-    pub expired_message_ranges: Vec<(MessageIndex, MessageIndex)>,
+    pub unauthorized: Option<Unauthorized>,
+    pub expired_event_ranges: Option<ExpiredEventRanges>,
+    pub expired_message_ranges: Option<ExpiredMessageRanges>,
     pub latest_event_index: EventIndex,
     pub chat_last_updated: TimestampMillis,
 }
