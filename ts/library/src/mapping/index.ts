@@ -364,9 +364,9 @@ function chatEventsSuccessResponse(api: ApiEventsResponse): ChatEventsSuccess {
     return {
         kind: "success",
         events: api.events.map(eventWrapper),
-        unauthorized: api.unauthorized,
-        expiredEventRanges: api.expired_event_ranges,
-        expiredMessageRanges: api.expired_message_ranges,
+        unauthorized: api.unauthorized ?? [],
+        expiredEventRanges: api.expired_event_ranges ?? [],
+        expiredMessageRanges: api.expired_message_ranges ?? [],
         latestEventIndex: api.latest_event_index,
         chatLastUpdated: api.chat_last_updated,
     };
