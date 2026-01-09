@@ -3,6 +3,7 @@ import Sdk "mo:openchat-bot-sdk";
 import Env "mo:openchat-bot-sdk/env";
 import ChangeRole "commands/changeRole";
 import ChatMembers "commands/chatMembers";
+import ChatSummary "commands/chatSummary";
 import CommunityMembers "commands/communityMembers";
 import Echo "commands/echo";
 import GenerateApiKey "commands/generateApiKey";
@@ -24,6 +25,7 @@ persistent actor class PingBot(key : Text) {
     transient let registry = Sdk.Command.Registry()
         .register(ChangeRole.build())
         .register(ChatMembers.build())
+        .register(ChatSummary.build())
         .register(CommunityMembers.build())
         .register(Echo.build())
         .register(GenerateApiKey.build(state))
