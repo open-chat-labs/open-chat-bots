@@ -6,11 +6,10 @@ use crate::{
         CommunityId, EventIndex, MessageIndex, TimestampMillis, TokenError,
     },
 };
-use candid::CandidType;
 use serde::Deserialize;
 use std::str;
 
-#[derive(CandidType, Deserialize)]
+#[derive(Deserialize)]
 pub struct BotEventWrapper {
     #[serde(alias = "g")]
     pub api_gateway: CanisterId,
@@ -43,7 +42,7 @@ impl BotEventWrapper {
     }
 }
 
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub enum BotEvent {
     #[serde(alias = "c")]
     Chat(BotChatEvent),
@@ -53,7 +52,7 @@ pub enum BotEvent {
     Lifecycle(BotLifecycleEvent),
 }
 
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct BotChatEvent {
     #[serde(alias = "v")]
     pub event: ChatEvent,
@@ -67,7 +66,7 @@ pub struct BotChatEvent {
     pub latest_event_index: EventIndex,
 }
 
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct BotCommunityEvent {
     #[serde(alias = "e")]
     pub event: CommunityEvent,
@@ -79,7 +78,7 @@ pub struct BotCommunityEvent {
     pub latest_event_index: EventIndex,
 }
 
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub enum BotLifecycleEvent {
     #[serde(alias = "r")]
     Registered(BotRegisteredEvent),

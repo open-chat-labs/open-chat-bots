@@ -1136,6 +1136,7 @@ dependencies = [
  "clap 4.5.26",
  "csv",
  "ic-agent",
+ "ic_principal",
  "itertools 0.13.0",
  "oc_bots_sdk_offchain",
  "serde",
@@ -1875,6 +1876,7 @@ dependencies = [
  "axum",
  "candid",
  "ic-agent",
+ "ic_principal",
  "oc_bots_sdk",
  "oc_bots_sdk_offchain",
  "serde",
@@ -2058,6 +2060,7 @@ dependencies = [
  "dataurl",
  "enum-repr",
  "ic-ledger-types",
+ "ic_principal",
  "icrc-ledger-types",
  "image",
  "p256",
@@ -2073,10 +2076,11 @@ dependencies = [
 name = "oc_bots_sdk_canister"
 version = "0.1.0"
 dependencies = [
- "candid",
  "ic-cdk",
  "ic-http-certification",
+ "ic_principal",
  "oc_bots_sdk",
+ "rmp-serde",
  "serde",
  "serde_json",
  "sha2 0.10.8",
@@ -2086,11 +2090,12 @@ dependencies = [
 name = "oc_bots_sdk_offchain"
 version = "0.1.0"
 dependencies = [
- "candid",
  "futures",
  "http 1.2.0",
  "ic-agent",
  "oc_bots_sdk",
+ "rmp-serde",
+ "serde",
  "tokio",
  "tower",
 ]

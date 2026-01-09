@@ -1,9 +1,9 @@
 use crate::types::{CallResult, CanisterId, TimestampMillis};
-use candid::utils::{ArgumentDecoder, ArgumentEncoder};
+use serde::{Deserialize, Serialize};
 use std::future::Future;
 
 pub trait Runtime: Send + Sync + 'static {
-    fn call_canister<A: ArgumentEncoder + Send, R: for<'a> ArgumentDecoder<'a>>(
+    fn call_canister<A: Serialize + Send, R: for<'a> Deserialize<'a>>(
         &self,
         canister_id: CanisterId,
         method_name: &str,

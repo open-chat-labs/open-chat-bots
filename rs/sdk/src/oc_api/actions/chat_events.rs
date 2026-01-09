@@ -2,8 +2,7 @@ use super::ActionDef;
 use crate::types::{
     BotChatContext, ChatEvent, EventIndex, EventWrapper, MessageIndex, OCError, TimestampMillis,
 };
-use candid::{CandidType, Deserialize};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 pub struct ChatEventsAction;
 
@@ -23,20 +22,20 @@ impl ActionDef for ChatEventsAction {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Args {
     pub chat_context: BotChatContext,
     pub thread: Option<MessageIndex>,
     pub events: EventsSelectionCriteria,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Response {
     Success(EventsResponse),
     Error(OCError),
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct EventsResponse {
     pub events: Vec<EventWrapper<ChatEvent>>,
     pub unauthorized: Vec<EventIndex>,
@@ -46,14 +45,14 @@ pub struct EventsResponse {
     pub chat_last_updated: TimestampMillis,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum EventsSelectionCriteria {
     Page(EventsPageArgs),
     ByIndex(EventsByIndexArgs),
     Window(EventsWindowArgs),
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EventsPageArgs {
     pub start_index: EventIndex,
     pub ascending: bool,
@@ -61,12 +60,12 @@ pub struct EventsPageArgs {
     pub max_events: u32,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EventsByIndexArgs {
     pub events: Vec<EventIndex>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EventsWindowArgs {
     pub mid_point: MessageIndex,
     pub max_messages: u32,

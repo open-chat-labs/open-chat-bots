@@ -3,8 +3,7 @@ use crate::types::{
     AccessGateConfig, BotChatContext, ChatPermissions, EventIndex, FrozenGroupInfo, MessageIndex,
     Milliseconds, OCError, TimestampMillis, VersionedRules, VideoCall,
 };
-use candid::{CandidType, Deserialize};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 pub struct ChatSummaryAction;
 
@@ -24,26 +23,26 @@ impl ActionDef for ChatSummaryAction {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Args {
     pub chat_context: BotChatContext,
 }
 
 #[expect(clippy::large_enum_variant)]
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Response {
     Success(ChatSummary),
     Error(OCError),
 }
 
 #[expect(clippy::large_enum_variant)]
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum ChatSummary {
     Group(ChatSummaryGroup),
     Direct(ChatSummaryDirect),
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ChatSummaryGroup {
     pub name: String,
     pub description: String,
@@ -67,7 +66,7 @@ pub struct ChatSummaryGroup {
     pub member_count: u32,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ChatSummaryDirect {
     pub last_updated: TimestampMillis,
     pub latest_event_index: EventIndex,

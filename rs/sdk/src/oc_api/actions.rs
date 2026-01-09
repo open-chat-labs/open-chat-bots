@@ -1,6 +1,6 @@
 use super::Runtime;
 use crate::types::{CallResult, CanisterId};
-use candid::CandidType;
+use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::future::Future;
 use std::sync::Arc;
@@ -20,8 +20,8 @@ pub mod remove_user;
 pub mod send_message;
 
 pub trait ActionDef {
-    type Args: CandidType + Clone + Send + 'static;
-    type Response: CandidType + DeserializeOwned;
+    type Args: Serialize + Clone + Send + 'static;
+    type Response: DeserializeOwned;
 
     fn method_name(is_canister_runtime: bool) -> &'static str;
 }

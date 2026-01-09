@@ -1,7 +1,6 @@
 use super::ActionDef;
 use crate::types::{BotCommunityOrGroupContext, ChannelId, OCError, TimestampMillis, UserId};
-use candid::{CandidType, Deserialize};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use strum_macros::{EnumIter, EnumString};
 
@@ -23,26 +22,14 @@ impl ActionDef for MembersAction {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Args {
     pub community_or_group_context: BotCommunityOrGroupContext,
     pub channel_id: Option<ChannelId>,
     pub member_types: HashSet<MemberType>,
 }
 
-#[derive(
-    CandidType,
-    Serialize,
-    Deserialize,
-    Clone,
-    Copy,
-    Debug,
-    PartialEq,
-    Eq,
-    Hash,
-    EnumString,
-    EnumIter,
-)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash, EnumString, EnumIter)]
 pub enum MemberType {
     Owner,
     Admin,
@@ -55,13 +42,13 @@ pub enum MemberType {
     Webhook,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Response {
     Success(MembersResult),
     Error(OCError),
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct MembersResult {
     pub members_map: HashMap<MemberType, Vec<UserId>>,
     pub timestamp: TimestampMillis,

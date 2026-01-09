@@ -1,4 +1,4 @@
-use candid::Principal;
+use ic_principal::Principal;
 use serde::Serializer;
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MAX_SAFE_INTEGER

@@ -1,11 +1,10 @@
 use crate::bitflags::{decode_from_bitflags, encode_as_bitflags};
-use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::hash::Hash;
 use std::str::FromStr;
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
 pub struct BotPermissions {
     #[serde(default, skip_serializing_if = "is_zero")]
     community: u32,
@@ -176,7 +175,7 @@ fn union_bits(x: u32, y: u32) -> u32 {
 }
 
 #[repr(u8)]
-#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum CommunityPermission {
     ChangeRoles = 0,
     UpdateDetails = 1,
@@ -215,7 +214,7 @@ impl TryFrom<u8> for CommunityPermission {
 }
 
 #[repr(u8)]
-#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ChatPermission {
     ChangeRoles = 0,
     UpdateGroup = 1,
@@ -262,7 +261,7 @@ impl TryFrom<u8> for ChatPermission {
 }
 
 #[repr(u8)]
-#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum MessagePermission {
     Text = 0,
     Image = 1,
@@ -304,7 +303,7 @@ impl TryFrom<u8> for MessagePermission {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommunityPermissions {
     pub change_roles: CommunityPermissionRole,
     pub update_details: CommunityPermissionRole,
@@ -315,7 +314,7 @@ pub struct CommunityPermissions {
     pub manage_user_groups: CommunityPermissionRole,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ChatPermissions {
     pub change_roles: ChatPermissionRole,
     pub update_group: ChatPermissionRole,
@@ -331,14 +330,14 @@ pub struct ChatPermissions {
     pub thread_permissions: Option<MessagePermissions>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 pub enum CommunityPermissionRole {
     Owners,
     Admins,
     Members,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ChatPermissionRole {
     None,
     Owner,
@@ -347,7 +346,7 @@ pub enum ChatPermissionRole {
     Members,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MessagePermissions {
     pub default: ChatPermissionRole,
     pub text: Option<ChatPermissionRole>,
@@ -364,13 +363,13 @@ pub struct MessagePermissions {
     pub custom: Vec<CustomPermission>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CustomPermission {
     pub subtype: String,
     pub role: ChatPermissionRole,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Copy, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Default)]
 pub enum ChatRole {
     Owner,
     Admin,
@@ -394,7 +393,7 @@ impl FromStr for ChatRole {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Copy, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Default)]
 pub enum CommunityRole {
     Owner,
     Admin,

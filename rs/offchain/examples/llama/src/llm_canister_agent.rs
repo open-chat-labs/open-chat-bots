@@ -1,5 +1,6 @@
-use candid::{CandidType, Principal};
+use candid::CandidType;
 use ic_agent::Agent;
+use ic_principal::Principal;
 use serde::Serialize;
 use std::sync::LazyLock;
 
