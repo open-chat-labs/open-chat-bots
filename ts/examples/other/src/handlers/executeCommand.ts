@@ -9,6 +9,7 @@
 import { commandNotFound } from "@open-ic/openchat-botclient-ts";
 import { Request, Response } from "express";
 import { WithBotClient } from "../types";
+import changeRole from "./changeRole";
 import { ephemeral } from "./ephemeral";
 import { chatEvents, communityEvents } from "./events";
 import file from "./file";
@@ -66,6 +67,8 @@ export default function executeCommand(req: Request, res: Response) {
             return news(req, res);
         case "image":
             return image(req, res);
+        case "change_role":
+            return changeRole(req, res);
 
         default:
             res.status(400).send(commandNotFound());
