@@ -47,17 +47,15 @@ pub trait ActionArgsBuilder<R: Runtime>: Sized {
         on_response: F,
     ) {
         let runtime = self.runtime();
-        let is_canister_runtime = runtime.is_canister();
         let runtime_clone = runtime.clone();
         let api_gateway = self.api_gateway();
-        let method_name = Self::Action::method_name(is_canister_runtime);
+        let method_name = self.method_name();
         let args = self.into_args();
 
         runtime.spawn(async move {
             let response = runtime_clone
-                .call_canister(api_gateway, method_name, (args.clone(),))
-                .await
-                .map(|(r,)| r);
+                .call_canister(api_gateway, &method_name, args.clone())
+                .await;
 
             on_response(args, response);
         });
@@ -68,16 +66,15 @@ pub trait ActionArgsBuilder<R: Runtime>: Sized {
     ) -> impl Future<Output = CallResult<<Self::Action as ActionDef>::Response>> + Send {
         let runtime = self.runtime();
         let api_gateway = self.api_gateway();
-        let is_canister_runtime = runtime.is_canister();
-        let method_name =
-            String::new() + Self::Action::method_name(is_canister_runtime) + "_msgpack";
+        let method_name = self.method_name();
         let args = self.into_args();
 
-        async move {
-            runtime
-                .call_canister(api_gateway, &method_name, (args,))
-                .await
-                .map(|(r,)| r)
-        }
+        async move { runtime.call_canister(api_gateway, &method_name, args).await }
+    }
+
+    fn method_name(&self) -> String {
+        let runtime = self.runtime();
+        let is_canister_runtime = runtime.is_canister();
+        String::new() + Self::Action::method_name(is_canister_runtime) + "_msgpack"
     }
 }
