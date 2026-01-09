@@ -14,7 +14,6 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
             commands: commands::definitions(),
             autonomous_config: None,
             default_subscriptions: None,
-            data_encoding: None,
             restricted_locations: Some(HashSet::from([
                 InstallationLocationType::User,
                 InstallationLocationType::Group,

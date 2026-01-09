@@ -12,7 +12,6 @@ pub struct BotDefinition {
     pub commands: Vec<BotCommandDefinition>,
     pub autonomous_config: Option<AutonomousConfig>,
     pub default_subscriptions: Option<BotSubscriptions>,
-    pub data_encoding: Option<BotDataEncoding>,
     pub restricted_locations: Option<HashSet<InstallationLocationType>>,
 }
 
@@ -89,11 +88,4 @@ pub struct DateTimeParam {
 pub struct BotSubscriptions {
     pub community: HashSet<CommunityEventType>,
     pub chat: HashSet<ChatEventType>,
-}
-
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, Default)]
-pub enum BotDataEncoding {
-    #[default]
-    MsgPack,
-    Candid,
 }

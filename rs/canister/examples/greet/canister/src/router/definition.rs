@@ -19,7 +19,6 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
                     .with_message(&HashSet::from_iter(vec![MessagePermission::Text])),
             }),
             default_subscriptions: None,
-            data_encoding: None,
             restricted_locations: Some(HashSet::from([
                 InstallationLocationType::User,
                 InstallationLocationType::Group,

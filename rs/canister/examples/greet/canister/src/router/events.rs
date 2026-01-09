@@ -6,7 +6,7 @@ use crate::state;
 pub async fn execute(request: HttpRequest) -> HttpResponse {
     let public_key = state::read(|state| state.oc_public_key().to_string());
 
-    let event_wrapper = match parse_event(request, &public_key, None) {
+    let event_wrapper = match parse_event(request, &public_key) {
         Ok(wrapper) => wrapper,
         Err(err) => {
             ic_cdk::println!("Failed to parse event wrapper: {}", err);

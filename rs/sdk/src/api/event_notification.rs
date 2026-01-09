@@ -1,5 +1,4 @@
 use crate::{
-    api::definition::BotDataEncoding,
     ecdsa, msgpack,
     oc_api::actions::community_events::CommunityEvent,
     types::{
@@ -26,18 +25,13 @@ impl BotEventWrapper {
         payload: &[u8],
         signature_str: &str,
         public_key: &str,
-        data_encoding: Option<BotDataEncoding>,
         now: TimestampMillis,
     ) -> Result<Self, TokenError> {
         ecdsa::verify_payload(payload, signature_str, public_key)
             .map_err(|e| TokenError::Invalid(e.to_string()))?;
 
-        let result = match data_encoding.unwrap_or(BotDataEncoding::MsgPack) {
-            BotDataEncoding::MsgPack => msgpack::deserialize_from_slice::<Self>(payload)
-                .map_err(|e| TokenError::Invalid(e.to_string()))?,
-            BotDataEncoding::Candid => candid::decode_one::<Self>(payload)
-                .map_err(|e| TokenError::Invalid(e.to_string()))?,
-        };
+        let result = msgpack::deserialize_from_slice::<Self>(payload)
+            .map_err(|e| TokenError::Invalid(e.to_string()))?;
 
         if now > result.timestamp + 5 * 60 * 1000 {
             return Err(TokenError::Invalid(
