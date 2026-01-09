@@ -1,8 +1,9 @@
 import ActionContext "api/bot/actionContext";
 import B "api/common/base";
-import E "api/common/eventTypes";
+import R "api/common/chatRole";
 import MessageContent "api/common/messageContent";
 import MemberType "api/common/memberType";
+import ChangeRole "client/changeRole";
 import ChatEventsApi "api/oc/chatEvents";
 import ChatSummary "client/chatSummary";
 import ChatEvents "client/chatEvents";
@@ -50,6 +51,10 @@ module {
 
         public func deleteChannel(channelId : B.ChannelId) : DeleteChannel.Builder {
             DeleteChannel.Builder(context, channelId);
+        };
+
+        public func changeRole(userIds: [B.UserId], newRole: R.ChatRole) : ChangeRole.Builder {
+            ChangeRole.Builder(context, userIds, newRole);
         };
 
         public func chatSummary() : ChatSummary.Builder {

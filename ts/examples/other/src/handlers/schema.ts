@@ -19,6 +19,13 @@ const memberTypes = [
     { name: "Webhook", value: "Webhook" },
 ];
 
+const roles = [
+    { name: "Owner", value: "owner" },
+    { name: "Admin", value: "admin" },
+    { name: "Moderator", value: "moderator" },
+    { name: "Member", value: "member" },
+];
+
 function getBotDefinition(): BotDefinition {
     return {
         autonomous_config: {
@@ -205,6 +212,16 @@ function getBotDefinition(): BotDefinition {
                 params: [],
             },
             {
+                name: "user_summary",
+                default_role: "Participant",
+                description: "Return the summary of the calling user",
+                permissions: Permissions.encodePermissions({
+                    ...emptyPermissions,
+                    message: ["Text"],
+                }),
+                params: [],
+            },
+            {
                 name: "chat_events",
                 default_role: "Participant",
                 description: "Return the most recent messages for this chat",
@@ -230,6 +247,36 @@ function getBotDefinition(): BotDefinition {
                         description: "The user to say hello to",
                         placeholder: "Please select a user",
                         param_type: "UserParam",
+                    },
+                ],
+            },
+            {
+                name: "change_role",
+                default_role: "Admin",
+                description: "Change the role of the given chat member",
+                permissions: Permissions.encodePermissions({
+                    ...emptyPermissions,
+                    chat: ["ChangeRoles"],
+                }),
+                params: [
+                    {
+                        name: "User",
+                        required: true,
+                        description: "The member whose role is being changed",
+                        param_type: "UserParam",
+                    },
+                    {
+                        name: "New role",
+                        required: true,
+                        description: "The new role",
+                        param_type: {
+                            StringParam: {
+                                min_length: 0,
+                                max_length: 100,
+                                choices: roles,
+                                multi_line: false,
+                            },
+                        },
                     },
                 ],
             },

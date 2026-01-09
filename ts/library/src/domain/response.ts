@@ -4,10 +4,12 @@ import type { ChatEvent, CommunityEvent } from "./event";
 import type { CommunityIdentifier } from "./identifiers";
 import type { CommunityPermissions, GroupPermissions } from "./permissions";
 import type { VersionedRules } from "./rules";
+import type { UserSummary } from "./user";
 import type { VideoCall } from "./video";
 
 export type SendMessageResponse = SendMessageSuccess | OCError;
 export type CreateChannelResponse = CreateChannelSuccess | OCError;
+export type ChangeRoleResponse = ChangeRoleSuccess | ChangeRolePartialSuccess | OCError;
 export type DeleteChannelResponse = DeleteChannelSuccess | OCError;
 export type ChatSummaryResponse = GroupChatSummary | DirectChatSummary | OCError;
 export type ChatEventsResponse = ChatEventsSuccess | OCError;
@@ -123,6 +125,15 @@ export type CreateChannelSuccess = {
     channelId: bigint;
 };
 
+export type ChangeRoleSuccess = {
+    kind: "success";
+};
+
+export type ChangeRolePartialSuccess = {
+    kind: "partial_success";
+    failures: Record<string, OCError>;
+};
+
 export type SendMessageSuccess = {
     kind: "success";
     messageId: bigint;
@@ -131,6 +142,12 @@ export type SendMessageSuccess = {
     timestamp: bigint;
     expiresAt?: bigint;
 };
+
+export type UserSummaryResponse = UserSummarySuccess | UserNotFound | OCError;
+
+export type UserSummarySuccess = { kind: "success"; user: UserSummary };
+
+export type UserNotFound = { kind: "user_not_found" };
 
 export type UnitResult = Success | OCError;
 

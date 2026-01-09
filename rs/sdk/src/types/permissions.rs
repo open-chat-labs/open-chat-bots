@@ -3,6 +3,7 @@ use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::hash::Hash;
+use std::str::FromStr;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
 pub struct BotPermissions {
@@ -376,6 +377,21 @@ pub enum ChatRole {
     Moderator,
     #[default]
     Participant,
+}
+
+impl FromStr for ChatRole {
+    type Err = ();
+
+    fn from_str(input: &str) -> Result<ChatRole, Self::Err> {
+        match input {
+            "Owner" => Ok(ChatRole::Owner),
+            "Admin" => Ok(ChatRole::Admin),
+            "Moderator" => Ok(ChatRole::Moderator),
+            "Participant" => Ok(ChatRole::Participant),
+            "Member" => Ok(ChatRole::Participant),
+            _ => Err(()),
+        }
+    }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Copy, Clone, Debug, Default)]

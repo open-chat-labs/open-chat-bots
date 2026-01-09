@@ -1,33 +1,36 @@
 use super::Client;
 use crate::oc_api::Runtime;
 use crate::oc_api::actions::ActionArgsBuilder;
-use crate::oc_api::actions::invite_users::{Args, InviteUsersAction};
-use crate::types::{ActionContext, BotChatContext, CanisterId, ChannelId, UserId};
+use crate::oc_api::actions::change_role::{Args, ChangeRoleAction};
+use crate::types::{ActionContext, BotChatContext, CanisterId, ChannelId, ChatRole, UserId};
 use std::sync::Arc;
 
-pub struct InviteUsersBuilder<'c, R, C> {
+pub struct ChangeRoleBuilder<'c, R, C> {
     client: &'c Client<R, C>,
     channel_id: Option<ChannelId>,
     user_ids: Vec<UserId>,
+    new_role: ChatRole,
 }
 
-impl<'c, R: Runtime, C: ActionContext> InviteUsersBuilder<'c, R, C> {
-    pub fn new(client: &'c Client<R, C>, user_ids: Vec<UserId>) -> Self {
-        InviteUsersBuilder {
+impl<'c, R: Runtime, C: ActionContext> ChangeRoleBuilder<'c, R, C> {
+    pub fn new(client: &'c Client<R, C>, user_ids: Vec<UserId>, new_role: ChatRole) -> Self {
+        ChangeRoleBuilder {
             client,
             channel_id: None,
             user_ids,
+            new_role,
         }
     }
 
+    // This only takes effect for community scope
     pub fn with_channel_id(mut self, channel_id: ChannelId) -> Self {
         self.channel_id = Some(channel_id);
         self
     }
 }
 
-impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for InviteUsersBuilder<'_, R, C> {
-    type Action = InviteUsersAction;
+impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for ChangeRoleBuilder<'_, R, C> {
+    type Action = ChangeRoleAction;
 
     fn runtime(&self) -> Arc<R> {
         self.client.runtime.clone()
@@ -44,8 +47,8 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for InviteUsersBuilder<'
                 self.channel_id,
             )
             .unwrap(),
-            channel_id: self.channel_id,
             user_ids: self.user_ids,
+            new_role: self.new_role,
         }
     }
 }

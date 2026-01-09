@@ -40,7 +40,7 @@ module {
             |> Option.map(_, func((_ : MemberType, userIds : [B.UserId])) : [B.UserId] = userIds)
             |> Utils.userIdsToText(_);
 
-        let message = CommandResponse.EphemeralMessageBuilder(#Text { text = text }, chatDetails.message_id).build();
+        let message = CommandResponse.EphemeralMessageBuilder(#Text { text }, chatDetails.message_id).build();
 
         return #ok { message = ?message };
     };

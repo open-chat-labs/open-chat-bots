@@ -3,6 +3,7 @@ import type {
     BotChatContext,
     BotClientConfig,
     BotCommunityOrGroupContext,
+    ChangeRoleResponse,
     ChannelIdentifier,
     ChatEventsCriteria,
     ChatEventsResponse,
@@ -15,6 +16,7 @@ import type {
     DeleteChannelResponse,
     MembersResponse,
     Message,
+    PermissionRole,
     SendMessageResponse,
     UnitResult,
 } from "../../domain";
@@ -24,6 +26,8 @@ import {
     apiBotCommunityOrGroupContext,
     apiChatEventsCriteria,
     apiCommunityEventsCriteria,
+    apiGroupRole,
+    changeRoleResponse,
     chatEventsResponse,
     chatSummaryResponse,
     communityEventsResponse,
@@ -39,6 +43,8 @@ import {
     MembersResponse as ApiMembersResponse,
     UnitResult as ApiUnitResult,
     LocalUserIndexBotAddReactionArgs as BotAddReactionArgs,
+    LocalUserIndexBotChangeRoleArgs as BotChangeRoleArgs,
+    LocalUserIndexBotChangeRoleResponse as BotChangeRoleResponse,
     LocalUserIndexBotChatEventsArgs as BotChatEventsArgs,
     LocalUserIndexBotChatEventsResponse as BotChatEventsResponse,
     LocalUserIndexBotChatSummaryArgs as BotChatSummaryArgs,
@@ -171,6 +177,27 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
             BotDeleteChannelResponse,
         ).catch((err) => {
             console.error("Call to bot_delete_channel failed with: ", JSON.stringify(err));
+            throw err;
+        });
+    }
+
+    changeRole(
+        ctx: BotChatContext,
+        userIds: string[],
+        newRole: PermissionRole,
+    ): Promise<ChangeRoleResponse> {
+        return this.executeMsgpackUpdate(
+            "bot_change_role",
+            {
+                chat_context: apiBotChatContext(ctx),
+                user_ids: userIds.map(principalStringToBytes),
+                new_role: apiGroupRole(newRole),
+            },
+            changeRoleResponse,
+            BotChangeRoleArgs,
+            BotChangeRoleResponse,
+        ).catch((err) => {
+            console.error("Call to bot_change_role failed with: ", JSON.stringify(err));
             throw err;
         });
     }

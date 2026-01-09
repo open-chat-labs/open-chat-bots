@@ -134,6 +134,7 @@ export type BotClientConfig = {
     icHost: string;
     identityPrivateKey: string;
     openchatPublicKey: string;
+    userIndexCanisterId?: string;
 };
 
 export type CommandArg = CommandArgCommon & CommandArgType;

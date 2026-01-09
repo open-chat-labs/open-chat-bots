@@ -1,7 +1,7 @@
 import A "accessGates";
 import B "base";
-import C "botChatContext";
 import P "chatPermissions";
+import R "chatRole";
 import Command "command";
 import MessageContent "messageContent";
 
@@ -13,7 +13,7 @@ module {
     type MessageId = B.MessageId;
     type MessageIndex = B.MessageIndex;
     type EventIndex = B.EventIndex;
-    type ChatRole = B.ChatRole;
+    type ChatRole = R.ChatRole;
 
     public type ChatEvent = {
         #Empty;

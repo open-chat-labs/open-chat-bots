@@ -88,6 +88,7 @@ import {
     type VideoContent,
 } from "../domain";
 import type {
+    ChangeRoleResponse,
     ChannelSummary,
     CommunityEventsResponse,
     CommunityEventsSuccess,
@@ -98,7 +99,9 @@ import type {
     GroupChatSummary,
     MembersResponse,
     OCError,
+    UserSummaryResponse,
 } from "../domain/response";
+import type { DiamondMembershipStatus, UserSummary } from "../domain/user";
 import {
     type AccessGate as ApiAccessGate,
     type AccessGateConfig as ApiAccessGateConfig,
@@ -132,6 +135,7 @@ import {
     type CryptoTransaction as ApiCryptoTransaction,
     type CustomContent as ApiCustomContent,
     type DeletedBy as ApiDeletedBy,
+    type DiamondMembershipStatus as ApiDiamondMembershipStatus,
     type EventsResponse as ApiEventsResponse,
     type EventWrapperChatEvent as ApiEventWrapperChatEvent,
     type EventWrapperCommunityEvent as ApiEventWrapperCommunityEvent,
@@ -170,10 +174,12 @@ import {
     type ThreadSummary as ApiThreadSummary,
     type TokenInfo as ApiTokenInfo,
     type TotalVotes as ApiTotalVotes,
+    type UserSummary as ApiUserSummary,
     type VideoCall as ApiVideoCall,
     type VideoCallContent as ApiVideoCallContent,
     type VideoCallType as ApiVideoCallType,
     type VideoContent as ApiVideoContent,
+    type LocalUserIndexBotChangeRoleResponse as BotChangeRoleResponse,
     type LocalUserIndexBotChatEventsResponse as BotChatEventsResponse,
     type LocalUserIndexBotChatSummaryResponse as BotChatSummaryResponse,
     BotCommandArg,
@@ -185,6 +191,7 @@ import {
     type Chat,
     ChatSummary,
     MemberType,
+    UserIndexUserResponse,
 } from "../typebox/typebox";
 import { toBigInt32, toBigInt64 } from "../utils/bigint";
 import { UnsupportedValueError } from "../utils/error";
@@ -275,6 +282,7 @@ export function mapChatIdentifier(api: Chat): ChatIdentifier {
 }
 
 export function membersResponse(api: ApiMembersResponse): MembersResponse {
+    console.log("membersResponse: ", api);
     return mapResult(api, (success) => {
         const entries: [MemberType, string[]][] = Object.entries(success.members_map).map(
             ([k, v]) => [k as MemberType, v.map(principalBytesToString)],
@@ -284,6 +292,7 @@ export function membersResponse(api: ApiMembersResponse): MembersResponse {
 }
 
 export function sendMessageResponse(api: BotSendMessageResponse): SendMessageResponse {
+    console.log("sendMessageResponse: ", api);
     return mapResult(api, (success) => ({
         kind: "success",
         messageId: toBigInt64(success.message_id),
@@ -299,6 +308,23 @@ export function createChannelResponse(api: BotCreateChannelResponse): CreateChan
         kind: "success",
         channelId: toBigInt32(success.channel_id),
     }));
+}
+
+export function changeRoleResponse(api: BotChangeRoleResponse): ChangeRoleResponse {
+    if (api === "Success") return { kind: "success" };
+
+    if ("PartialSuccess" in api) {
+        const failures: Record<string, OCError> = {};
+        for (const [userId, error] of Object.entries(api.PartialSuccess)) {
+            failures[principalBytesToString(userId)] = ocError(error as ApiOCError);
+        }
+        return {
+            kind: "partial_success",
+            failures,
+        };
+    }
+
+    return ocError(api.Error);
 }
 
 export function deleteChannelResponse(api: BotDeleteChannelResponse): DeleteChannelResponse {
@@ -696,6 +722,21 @@ export function apiPermissionRole(domain: PermissionRole): ApiPermissionRole {
             return "Moderators";
         case "none":
             return "None";
+        case "owner":
+            return "Owner";
+    }
+}
+
+export function apiGroupRole(domain: PermissionRole): ApiGroupRole {
+    switch (domain) {
+        case "admin":
+            return "Admin";
+        case "member":
+            return "Participant";
+        case "moderator":
+            return "Moderator";
+        case "none":
+            return "Participant";
         case "owner":
             return "Owner";
     }
@@ -2165,4 +2206,45 @@ export function installationLocation(api: ApiBotInstallationLocation): Installat
         return new DirectChatIdentifier(principalBytesToString(api.User));
     }
     throw new Error("Unexpected ApiBotInstallationLocation received");
+}
+
+export function userSummaryResponse(api: UserIndexUserResponse): UserSummaryResponse {
+    if (api === "UserNotFound") {
+        return { kind: "user_not_found" };
+    } else if ("Success" in api) {
+        return { kind: "success", user: userSummary(api.Success) };
+    } else {
+        return ocError(api.Error);
+    }
+}
+
+function userSummary(api: ApiUserSummary): UserSummary {
+    return {
+        kind: api.is_bot ? "bot" : "user",
+        userId: principalBytesToString(api.user_id),
+        username: api.username,
+        displayName: optional(api.display_name, identity),
+        blobReference: optional(api.avatar_id, (id) => ({
+            blobId: id,
+            canisterId: principalBytesToString(api.user_id),
+        })),
+        suspended: api.suspended,
+        diamondStatus: diamondStatus(api.diamond_membership_status),
+        chitBalance: api.chit_balance,
+        totalChitEarned: api.total_chit_earned,
+        streak: api.streak,
+        maxStreak: api.max_streak,
+        isUniquePerson: api.is_unique_person,
+    };
+}
+
+function diamondStatus(api: ApiDiamondMembershipStatus): DiamondMembershipStatus {
+    switch (api) {
+        case "Active":
+            return "active";
+        case "Inactive":
+            return "inactive";
+        case "Lifetime":
+            return "lifetime";
+    }
 }

@@ -11,6 +11,7 @@ import {
     PollMessage,
     TextMessage,
     type BotClientConfig,
+    type ChangeRoleResponse,
     type ChatEventsCriteria,
     type ChatEventsResponse,
     type ChatIdentifier,
@@ -22,17 +23,21 @@ import {
     type DeleteChannelResponse,
     type MembersResponse,
     type Message,
+    type PermissionRole,
     type SendMessageResponse,
     type UnitResult,
+    type UserSummaryResponse,
 } from "../domain";
 import type { ActionContext } from "../domain/action_context";
 import type { Channel } from "../domain/channel";
 import { apiOptional, principalBytesToString } from "../mapping";
 import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
 import { DataClient } from "../services/data/data.client";
+import { UserIndexClient } from "../services/user_index/user_index_client";
 import { BotCommand, BotCommandArg, MemberType } from "../typebox/typebox";
 
 export class BotClient {
+    #userIndexService: UserIndexClient;
     #botService: BotGatewayClient;
     #env: BotClientConfig;
     #agent: HttpAgent;
@@ -43,6 +48,7 @@ export class BotClient {
         this.#env = env;
         this.#agent = agent;
         this.#botService = new BotGatewayClient(this.#botApiGateway, agent, env);
+        this.#userIndexService = new UserIndexClient(agent, env);
     }
 
     get #botApiGateway(): string {
@@ -160,6 +166,19 @@ export class BotClient {
             }
             return resp;
         });
+    }
+
+    public changeRole(userIds: string[], newRole: PermissionRole): Promise<ChangeRoleResponse> {
+        return this.#botService
+            .changeRole(this.#actionContext.chatContext(), userIds, newRole)
+            .then((resp) => {
+                if (resp.kind === "error") {
+                    console.error("OpenChat botClient.changeRole failed with: ", resp);
+                } else if (resp.kind === "partial_success") {
+                    console.error("OpenChat botClient.changeRole failed for some users: ", resp);
+                }
+                return resp;
+            });
     }
 
     public get scope(): ActionScope {
@@ -366,5 +385,16 @@ export class BotClient {
         } else {
             return Promise.resolve({ kind: "error", code: 0, message: undefined });
         }
+    }
+
+    userSummary(userId?: string): Promise<UserSummaryResponse> {
+        const u = userId ?? this.initiator;
+        if (u === undefined) {
+            console.error(
+                "No userId provided and no userId can be derived from the execution context",
+            );
+            return Promise.resolve({ kind: "user_not_found" });
+        }
+        return this.#userIndexService.userSummary(u);
     }
 }

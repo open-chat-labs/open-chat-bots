@@ -1,5 +1,5 @@
 use crate::oc_api::actions::ActionDef;
-use crate::types::{BotChatContext, UnitResult, UserId};
+use crate::types::{BotChatContext, ChannelId, UnitResult, UserId};
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
@@ -17,6 +17,7 @@ impl ActionDef for InviteUsersAction {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Args {
     pub chat_context: BotChatContext,
+    pub channel_id: Option<ChannelId>,
     pub user_ids: Vec<UserId>,
 }
 
