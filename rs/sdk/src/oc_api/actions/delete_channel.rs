@@ -1,6 +1,5 @@
 use crate::oc_api::actions::ActionDef;
 use crate::types::{ChannelId, CommunityId, UnitResult};
-use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
 pub struct DeleteChannelAction;
@@ -14,7 +13,7 @@ impl ActionDef for DeleteChannelAction {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Args {
     pub community_id: CommunityId,
     pub channel_id: ChannelId,

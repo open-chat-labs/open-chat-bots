@@ -25,7 +25,6 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
                 chat: HashSet::default(),
                 community: CommunityEventType::all(),
             }),
-            data_encoding: None,
             restricted_locations: Some(HashSet::from([
                 InstallationLocationType::Community,
                 InstallationLocationType::Group,

@@ -1,6 +1,5 @@
 use crate::types::{BotCommunityOrGroupContext, ChannelId, UnitResult};
 use crate::{oc_api::actions::ActionDef, types::UserId};
-use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
 pub struct RemoveUserAction;
@@ -14,7 +13,7 @@ impl ActionDef for RemoveUserAction {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Args {
     pub community_or_group_context: BotCommunityOrGroupContext,
     pub channel_id: Option<ChannelId>,

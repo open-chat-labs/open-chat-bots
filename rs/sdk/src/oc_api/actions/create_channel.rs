@@ -3,7 +3,6 @@ use crate::types::{
     AccessGateConfig, ChannelId, ChatPermissions, CommunityId, Document, Milliseconds, OCError,
     Rules,
 };
-use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
 pub struct CreateChannelAction;
@@ -17,7 +16,7 @@ impl ActionDef for CreateChannelAction {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Args {
     pub community_id: CommunityId,
     pub is_public: bool,
@@ -33,13 +32,13 @@ pub struct Args {
     pub external_url: Option<String>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Response {
     Success(SuccessResult),
     Error(OCError),
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SuccessResult {
     pub channel_id: ChannelId,
 }

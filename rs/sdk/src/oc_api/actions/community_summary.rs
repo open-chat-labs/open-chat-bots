@@ -4,8 +4,7 @@ use crate::types::{
     OCError, TimestampMillis, VersionedRules,
 };
 use crate::utils::is_default;
-use candid::{CandidType, Deserialize};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 pub struct CommunitySummaryAction;
 
@@ -25,19 +24,19 @@ impl ActionDef for CommunitySummaryAction {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Args {
     pub community_id: CommunityId,
 }
 
 #[expect(clippy::large_enum_variant)]
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Response {
     Success(CommunitySummary),
     Error(OCError),
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommunitySummary {
     pub community_id: CommunityId,
     pub last_updated: TimestampMillis,
@@ -60,7 +59,7 @@ pub struct CommunitySummary {
     pub latest_event_index: EventIndex,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ChannelSummary {
     pub channel_id: ChannelId,
     pub last_updated: TimestampMillis,

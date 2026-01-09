@@ -1,5 +1,5 @@
-use candid::Principal;
 use clap::Parser;
+use ic_principal::Principal;
 use oc_bots_sdk_offchain::build_agent;
 use std::{collections::HashMap, error::Error, fs::File};
 

@@ -1,7 +1,8 @@
-use candid::utils::{ArgumentDecoder, ArgumentEncoder};
 use ic_agent::Agent;
+use oc_bots_sdk::msgpack;
 use oc_bots_sdk::oc_api::Runtime;
 use oc_bots_sdk::types::{CallResult, CanisterId, TimestampMillis};
+use serde::{Deserialize, Serialize};
 use std::future::Future;
 use std::time::SystemTime;
 
@@ -17,7 +18,7 @@ impl AgentRuntime {
 }
 
 impl Runtime for AgentRuntime {
-    async fn call_canister<A: ArgumentEncoder + Send, R: for<'a> ArgumentDecoder<'a>>(
+    async fn call_canister<A: Serialize + Send, R: for<'a> Deserialize<'a>>(
         &self,
         canister_id: CanisterId,
         method_name: &str,
@@ -26,11 +27,11 @@ impl Runtime for AgentRuntime {
         match self
             .agent
             .update(&canister_id.into(), method_name)
-            .with_arg(candid::encode_args(args).unwrap())
+            .with_arg(msgpack::serialize_then_unwrap(args))
             .call_and_wait()
             .await
         {
-            Ok(bytes) => Ok(candid::decode_args(&bytes).unwrap()),
+            Ok(bytes) => Ok(msgpack::deserialize_then_unwrap(&bytes)),
             Err(error) => Err((0, error.to_string())),
         }
     }

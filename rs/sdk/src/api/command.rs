@@ -1,12 +1,11 @@
 use crate::types::{MessageContentInitial, MessageId, TimestampMillis, UserId};
-use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
 pub use command_handler::{CommandHandler, CommandHandlerRegistry};
 
 mod command_handler;
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Command {
     pub name: String,
     pub args: Vec<CommandArg>,
@@ -45,13 +44,13 @@ impl Command {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommandArg {
     pub name: String,
     pub value: CommandArgValue,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum CommandArgValue {
     String(String),
     Integer(i64),
@@ -237,7 +236,7 @@ impl TryFrom<CommandArgValue> for UserId {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum CommandResponse {
     Success(SuccessResult),
     BadRequest(BadRequest),
@@ -245,12 +244,12 @@ pub enum CommandResponse {
     InternalError(InternalError),
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SuccessResult {
     pub message: Option<Message>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Message {
     pub(crate) id: MessageId,
     pub(crate) content: MessageContentInitial,
@@ -259,7 +258,7 @@ pub struct Message {
     pub(crate) ephemeral: bool,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum BadRequest {
     AccessTokenNotFound,
     AccessTokenInvalid(String),
@@ -268,21 +267,21 @@ pub enum BadRequest {
     ArgsInvalid,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum InternalError {
     CommandError(String),
     CanisterError(CanisterError),
     C2CError(i32, String),
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum CanisterError {
     NotAuthorized,
     Frozen,
     Other(String),
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CommandMeta {
     pub timezone: String, // IANA timezone e.g. "Europe/London"
     pub language: String, // The language selected in OpenChat e.g. "en"

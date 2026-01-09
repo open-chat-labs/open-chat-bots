@@ -1,5 +1,4 @@
 use crate::{
-    api::definition::BotDataEncoding,
     ecdsa, msgpack,
     oc_api::actions::community_events::CommunityEvent,
     types::{
@@ -7,11 +6,10 @@ use crate::{
         CommunityId, EventIndex, MessageIndex, TimestampMillis, TokenError,
     },
 };
-use candid::CandidType;
 use serde::Deserialize;
 use std::str;
 
-#[derive(CandidType, Deserialize)]
+#[derive(Deserialize)]
 pub struct BotEventWrapper {
     #[serde(alias = "g")]
     pub api_gateway: CanisterId,
@@ -26,18 +24,13 @@ impl BotEventWrapper {
         payload: &[u8],
         signature_str: &str,
         public_key: &str,
-        data_encoding: Option<BotDataEncoding>,
         now: TimestampMillis,
     ) -> Result<Self, TokenError> {
         ecdsa::verify_payload(payload, signature_str, public_key)
             .map_err(|e| TokenError::Invalid(e.to_string()))?;
 
-        let result = match data_encoding.unwrap_or(BotDataEncoding::MsgPack) {
-            BotDataEncoding::MsgPack => msgpack::deserialize_from_slice::<Self>(payload)
-                .map_err(|e| TokenError::Invalid(e.to_string()))?,
-            BotDataEncoding::Candid => candid::decode_one::<Self>(payload)
-                .map_err(|e| TokenError::Invalid(e.to_string()))?,
-        };
+        let result = msgpack::deserialize_from_slice::<Self>(payload)
+            .map_err(|e| TokenError::Invalid(e.to_string()))?;
 
         if now > result.timestamp + 5 * 60 * 1000 {
             return Err(TokenError::Invalid(
@@ -49,7 +42,7 @@ impl BotEventWrapper {
     }
 }
 
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub enum BotEvent {
     #[serde(alias = "c")]
     Chat(BotChatEvent),
@@ -59,7 +52,7 @@ pub enum BotEvent {
     Lifecycle(BotLifecycleEvent),
 }
 
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct BotChatEvent {
     #[serde(alias = "v")]
     pub event: ChatEvent,
@@ -73,7 +66,7 @@ pub struct BotChatEvent {
     pub latest_event_index: EventIndex,
 }
 
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct BotCommunityEvent {
     #[serde(alias = "e")]
     pub event: CommunityEvent,
@@ -85,7 +78,7 @@ pub struct BotCommunityEvent {
     pub latest_event_index: EventIndex,
 }
 
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub enum BotLifecycleEvent {
     #[serde(alias = "r")]
     Registered(BotRegisteredEvent),

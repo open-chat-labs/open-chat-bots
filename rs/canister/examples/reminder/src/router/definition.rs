@@ -13,7 +13,6 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
             commands: commands::definitions(),
             autonomous_config: Some(AutonomousConfig { permissions: BotPermissions::text_only() }),
             default_subscriptions: None,
-            data_encoding: None,
             restricted_locations: None,
         },
     )

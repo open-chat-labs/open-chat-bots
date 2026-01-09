@@ -1,5 +1,5 @@
 use crate::rng;
-use candid::Principal;
+use ic_principal::Principal;
 use oc_bots_sdk::ApiKeyRegistry;
 use oc_bots_sdk_canister::env;
 use serde::{Deserialize, Serialize};

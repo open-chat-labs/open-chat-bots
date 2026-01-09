@@ -1,9 +1,9 @@
 use super::{TimestampMillis, UserId};
 use crate::utils::{serialize_large_uint, serialize_principal_as_bytes};
-use candid::{CandidType, Principal};
+use ic_principal::Principal;
 use serde::{Deserialize, Serialize};
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum MessageContentInitial {
     Text(TextContent),
     Image(ImageContent),
@@ -21,7 +21,7 @@ impl MessageContentInitial {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum MessageContent {
     Text(TextContent),
     Image(ImageContent),
@@ -52,7 +52,7 @@ impl MessageContent {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TextContent {
     pub text: String,
 }
@@ -63,7 +63,7 @@ impl From<String> for TextContent {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ImageContent {
     pub width: u32,
     pub height: u32,
@@ -75,7 +75,7 @@ pub struct ImageContent {
     pub blob_reference: Option<BlobReference>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GiphyImageVariant {
     pub width: u32,
     pub height: u32,
@@ -83,7 +83,7 @@ pub struct GiphyImageVariant {
     pub mime_type: String,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GiphyContent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub caption: Option<String>,
@@ -92,7 +92,7 @@ pub struct GiphyContent {
     pub mobile: GiphyImageVariant,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct VideoContent {
     pub width: u32,
     pub height: u32,
@@ -106,7 +106,7 @@ pub struct VideoContent {
     pub video_blob_reference: Option<BlobReference>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AudioContent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub caption: Option<String>,
@@ -115,7 +115,7 @@ pub struct AudioContent {
     pub blob_reference: Option<BlobReference>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FileContent {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -126,12 +126,12 @@ pub struct FileContent {
     pub blob_reference: Option<BlobReference>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PollContent {
     pub config: PollConfig,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PollConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
@@ -144,10 +144,10 @@ pub struct PollConfig {
     pub allow_user_to_change_vote: bool,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ThumbnailData(pub String);
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BlobReference {
     #[serde(serialize_with = "serialize_principal_as_bytes")]
     pub canister_id: Principal,
@@ -155,19 +155,19 @@ pub struct BlobReference {
     pub blob_id: u128,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DeletedBy {
     pub deleted_by: UserId,
     pub timestamp: TimestampMillis,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CustomContent {
     pub kind: String,
     pub data: Vec<u8>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UnsupportedContent {
     pub kind: String,
 }

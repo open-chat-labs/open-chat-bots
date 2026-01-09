@@ -1,7 +1,5 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-use candid::{CandidType, Deserialize};
-use serde::Serialize;
 
 use crate::{
     api::command::Command,
@@ -33,44 +31,44 @@ impl ActionDef for CommunityEventsAction {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Args {
     pub community_id: CommunityId,
     pub events: EventsSelectionCriteria,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Response {
     Success(EventsResponse),
     Error(OCError),
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct EventsResponse {
     pub events: Vec<EventWrapper<CommunityEvent>>,
     pub latest_event_index: EventIndex,
     pub community_last_updated: TimestampMillis,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum EventsSelectionCriteria {
     Page(EventsPageArgs),
     ByIndex(EventsByIndexArgs),
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EventsPageArgs {
     pub start_index: EventIndex,
     pub ascending: bool,
     pub max_events: u32,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EventsByIndexArgs {
     pub events: Vec<EventIndex>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum CommunityEvent {
     Created(Box<CommunityCreated>),
     NameChanged(Box<NameChanged>),
@@ -169,55 +167,55 @@ impl CommunityEvent {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommunityCreated {
     pub name: String,
     pub description: String,
     pub created_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BannerChanged {
     pub new_banner: Option<u128>,
     pub previous_banner: Option<u128>,
     pub changed_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommunityMembersRemoved {
     pub user_ids: Vec<UserId>,
     pub removed_by: UserId,
     pub referred_by: HashMap<UserId, UserId>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommunityMemberJoined {
     pub user_id: UserId,
     pub channel_id: Option<ChannelId>,
     pub invited_by: Option<UserId>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommunityUsersBlocked {
     pub user_ids: Vec<UserId>,
     pub blocked_by: UserId,
     pub referred_by: HashMap<UserId, UserId>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommunityPermissionsChanged {
     pub old_permissions: CommunityPermissions,
     pub new_permissions: CommunityPermissions,
     pub changed_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommunityVisibilityChanged {
     pub now_public: bool,
     pub changed_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommunityRoleChanged {
     pub user_ids: Vec<UserId>,
     pub changed_by: UserId,
@@ -225,13 +223,13 @@ pub struct CommunityRoleChanged {
     pub new_role: CommunityRole,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GroupImported {
     pub group_id: ChatId,
     pub channel_id: ChannelId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ChannelCreated {
     pub channel_id: ChannelId,
     pub is_public: bool,
@@ -239,7 +237,7 @@ pub struct ChannelCreated {
     pub created_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ChannelDeleted {
     pub channel_id: ChannelId,
     pub name: String,
@@ -247,25 +245,25 @@ pub struct ChannelDeleted {
     pub bot_command: Option<Command>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PrimaryLanguageChanged {
     pub previous: String,
     pub new: String,
     pub changed_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommunityFrozen {
     pub frozen_by: UserId,
     pub reason: Option<String>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommunityUnfrozen {
     pub unfrozen_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommunityUsersUnblocked {
     pub user_ids: Vec<UserId>,
     pub unblocked_by: UserId,

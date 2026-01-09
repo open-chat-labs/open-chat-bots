@@ -1,8 +1,7 @@
 use crate::types::{ActionContext, ActionScope, ChannelId, Chat};
-use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum BotChatContext {
     Command(String),
     Autonomous(Chat),

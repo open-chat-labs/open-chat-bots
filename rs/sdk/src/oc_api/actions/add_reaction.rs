@@ -1,6 +1,5 @@
 use crate::oc_api::actions::ActionDef;
 use crate::types::{BotChatContext, MessageId, MessageIndex, Reaction, UnitResult};
-use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
 pub struct AddReactionAction;
@@ -14,7 +13,7 @@ impl ActionDef for AddReactionAction {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Args {
     pub chat_context: BotChatContext,
     pub thread: Option<MessageIndex>,

@@ -1,8 +1,7 @@
-use candid::CandidType;
 use enum_repr::EnumRepr;
 use serde::{Deserialize, Serialize};
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct OCError(u16, Option<String>);
 
 impl OCError {
