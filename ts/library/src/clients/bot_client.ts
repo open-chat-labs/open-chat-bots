@@ -11,6 +11,7 @@ import {
     PollMessage,
     TextMessage,
     type BotClientConfig,
+    type ChangeRoleResponse,
     type ChatEventsCriteria,
     type ChatEventsResponse,
     type ChatIdentifier,
@@ -22,6 +23,7 @@ import {
     type DeleteChannelResponse,
     type MembersResponse,
     type Message,
+    type PermissionRole,
     type SendMessageResponse,
     type UnitResult,
     type UserSummaryResponse,
@@ -164,6 +166,19 @@ export class BotClient {
             }
             return resp;
         });
+    }
+
+    public changeRole(userIds: string[], newRole: PermissionRole): Promise<ChangeRoleResponse> {
+        return this.#botService
+            .changeRole(this.#actionContext.chatContext(), userIds, newRole)
+            .then((resp) => {
+                if (resp.kind === "error") {
+                    console.error("OpenChat botClient.changeRole failed with: ", resp);
+                } else if (resp.kind === "partial_success") {
+                    console.error("OpenChat botClient.changeRole failed for some users: ", resp);
+                }
+                return resp;
+            });
     }
 
     public get scope(): ActionScope {

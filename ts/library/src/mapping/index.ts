@@ -88,6 +88,7 @@ import {
     type VideoContent,
 } from "../domain";
 import type {
+    ChangeRoleResponse,
     ChannelSummary,
     CommunityEventsResponse,
     CommunityEventsSuccess,
@@ -178,6 +179,7 @@ import {
     type VideoCallContent as ApiVideoCallContent,
     type VideoCallType as ApiVideoCallType,
     type VideoContent as ApiVideoContent,
+    type LocalUserIndexBotChangeRoleResponse as BotChangeRoleResponse,
     type LocalUserIndexBotChatEventsResponse as BotChatEventsResponse,
     type LocalUserIndexBotChatSummaryResponse as BotChatSummaryResponse,
     BotCommandArg,
@@ -280,6 +282,7 @@ export function mapChatIdentifier(api: Chat): ChatIdentifier {
 }
 
 export function membersResponse(api: ApiMembersResponse): MembersResponse {
+    console.log("membersResponse: ", api);
     return mapResult(api, (success) => {
         const entries: [MemberType, string[]][] = Object.entries(success.members_map).map(
             ([k, v]) => [k as MemberType, v.map(principalBytesToString)],
@@ -289,6 +292,7 @@ export function membersResponse(api: ApiMembersResponse): MembersResponse {
 }
 
 export function sendMessageResponse(api: BotSendMessageResponse): SendMessageResponse {
+    console.log("sendMessageResponse: ", api);
     return mapResult(api, (success) => ({
         kind: "success",
         messageId: toBigInt64(success.message_id),
@@ -304,6 +308,23 @@ export function createChannelResponse(api: BotCreateChannelResponse): CreateChan
         kind: "success",
         channelId: toBigInt32(success.channel_id),
     }));
+}
+
+export function changeRoleResponse(api: BotChangeRoleResponse): ChangeRoleResponse {
+    if (api === "Success") return { kind: "success" };
+
+    if ("PartialSuccess" in api) {
+        const failures: Record<string, OCError> = {};
+        for (const [userId, error] of Object.entries(api.PartialSuccess)) {
+            failures[principalBytesToString(userId)] = ocError(error as ApiOCError);
+        }
+        return {
+            kind: "partial_success",
+            failures,
+        };
+    }
+
+    return ocError(api.Error);
 }
 
 export function deleteChannelResponse(api: BotDeleteChannelResponse): DeleteChannelResponse {
@@ -701,6 +722,21 @@ export function apiPermissionRole(domain: PermissionRole): ApiPermissionRole {
             return "Moderators";
         case "none":
             return "None";
+        case "owner":
+            return "Owner";
+    }
+}
+
+export function apiGroupRole(domain: PermissionRole): ApiGroupRole {
+    switch (domain) {
+        case "admin":
+            return "Admin";
+        case "member":
+            return "Participant";
+        case "moderator":
+            return "Moderator";
+        case "none":
+            return "Participant";
         case "owner":
             return "Owner";
     }
