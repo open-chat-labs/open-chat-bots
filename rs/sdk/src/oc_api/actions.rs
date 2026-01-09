@@ -73,8 +73,9 @@ pub trait ActionArgsBuilder<R: Runtime>: Sized {
     }
 
     fn method_name(&self) -> String {
-        let runtime = self.runtime();
-        let is_canister_runtime = runtime.is_canister();
-        String::new() + Self::Action::method_name(is_canister_runtime) + "_msgpack"
+        format!(
+            "{}_msgpack",
+            Self::Action::method_name(self.runtime().is_canister())
+        )
     }
 }
