@@ -69,12 +69,13 @@ pub trait ActionArgsBuilder<R: Runtime>: Sized {
         let runtime = self.runtime();
         let api_gateway = self.api_gateway();
         let is_canister_runtime = runtime.is_canister();
-        let method_name = Self::Action::method_name(is_canister_runtime);
+        let method_name =
+            String::new() + Self::Action::method_name(is_canister_runtime) + "_msgpack";
         let args = self.into_args();
 
         async move {
             runtime
-                .call_canister(api_gateway, method_name, (args,))
+                .call_canister(api_gateway, &method_name, (args,))
                 .await
                 .map(|(r,)| r)
         }
