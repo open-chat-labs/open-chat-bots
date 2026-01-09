@@ -84,7 +84,7 @@ pub struct FrozenGroupInfo {
     pub reason: Option<String>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+#[derive(CandidType, Serialize, Deserialize, Debug, Clone, Default, Eq, PartialEq)]
 pub struct VersionedRules {
     pub text: String,
     pub version: u32,
