@@ -35,7 +35,7 @@ pub enum Response {
     Error(OCError),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EventsResponse {
     pub events: Vec<EventWrapper<ChatEvent>>,
     pub unauthorized: Vec<EventIndex>,
