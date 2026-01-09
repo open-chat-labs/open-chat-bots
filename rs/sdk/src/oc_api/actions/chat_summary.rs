@@ -3,6 +3,7 @@ use crate::types::{
     AccessGateConfig, BotChatContext, ChatPermissions, EventIndex, FrozenGroupInfo, MessageIndex,
     Milliseconds, OCError, TimestampMillis, VersionedRules, VideoCall,
 };
+use crate::utils::is_default;
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
 
@@ -48,16 +49,21 @@ pub struct ChatSummaryGroup {
     pub name: String,
     pub description: String,
     pub avatar_id: Option<u128>,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub is_public: bool,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub history_visible_to_new_joiners: bool,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub messages_visible_to_non_members: bool,
     pub permissions: ChatPermissions,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub rules: VersionedRules,
     pub events_ttl: Option<Milliseconds>,
     pub events_ttl_last_updated: Option<TimestampMillis>,
     pub gate_config: Option<AccessGateConfig>,
     pub video_call_in_progress: Option<VideoCall>,
-    pub verified: Option<bool>,
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub verified: bool,
     pub frozen: Option<FrozenGroupInfo>,
     pub date_last_pinned: Option<TimestampMillis>,
     pub last_updated: TimestampMillis,

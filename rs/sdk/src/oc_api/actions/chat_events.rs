@@ -1,7 +1,5 @@
 use super::ActionDef;
-use crate::types::{
-    BotChatContext, ChatEvent, EventIndex, EventWrapper, MessageIndex, OCError, TimestampMillis,
-};
+use crate::types::{BotChatContext, EventIndex, EventsResponse, MessageIndex, OCError};
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
 
@@ -34,16 +32,6 @@ pub struct Args {
 pub enum Response {
     Success(EventsResponse),
     Error(OCError),
-}
-
-#[derive(CandidType, Serialize, Deserialize, Debug)]
-pub struct EventsResponse {
-    pub events: Vec<EventWrapper<ChatEvent>>,
-    pub unauthorized: Vec<EventIndex>,
-    pub expired_event_ranges: Vec<(EventIndex, EventIndex)>,
-    pub expired_message_ranges: Vec<(MessageIndex, MessageIndex)>,
-    pub latest_event_index: EventIndex,
-    pub chat_last_updated: TimestampMillis,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Debug, Clone)]

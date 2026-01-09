@@ -3,6 +3,7 @@ use crate::types::{
     AccessGateConfig, ChannelId, CommunityId, CommunityPermissions, EventIndex, FrozenGroupInfo,
     OCError, TimestampMillis, VersionedRules,
 };
+use crate::utils::is_default;
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
 
@@ -44,11 +45,14 @@ pub struct CommunitySummary {
     pub description: String,
     pub avatar_id: Option<u128>,
     pub banner_id: Option<u128>,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub is_public: bool,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub verified: bool,
     pub member_count: u32,
     pub permissions: CommunityPermissions,
     pub public_channels: Vec<ChannelSummary>,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub rules: VersionedRules,
     pub frozen: Option<FrozenGroupInfo>,
     pub gate_config: Option<AccessGateConfig>,

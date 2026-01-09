@@ -1,14 +1,13 @@
-use std::collections::HashSet;
-
-use crate::api::command::Command;
-
 use super::{
     AccessGateConfig, BotPermissions, CanisterId, Chat, ChatPermissions, ChatRole, EventIndex,
     InstallationLocation, MessageContent, MessageId, MessageIndex, Milliseconds, TimestampMillis,
     UserId,
 };
+use crate::api::command::Command;
+use crate::utils::is_default;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct EventWrapper<T> {
@@ -62,11 +61,16 @@ pub struct Message {
     pub content: MessageContent,
     pub bot_context: Option<BotMessageContext>,
     pub replies_to: Option<ReplyContext>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub reactions: Vec<(String, Vec<UserId>)>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tips: Tips,
     pub thread_summary: Option<ThreadSummary>,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub edited: bool,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub forwarded: bool,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub block_level_markdown: bool,
 }
 
@@ -85,9 +89,6 @@ pub struct ThreadSummary {
     pub latest_event_timestamp: TimestampMillis,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
-pub struct Tips(Vec<(CanisterId, Vec<(UserId, u128)>)>);
-
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct BotMessageContext {
     pub command: Option<Command>,
@@ -103,15 +104,20 @@ pub enum ChatEventCategory {
 }
 
 type Events = Vec<EventWrapper<ChatEvent>>;
-type ExpiredEventRanges = Vec<(EventIndex, EventIndex)>;
 type Unauthorized = Vec<EventIndex>;
+type ExpiredEventRanges = Vec<(EventIndex, EventIndex)>;
+type ExpiredMessageRanges = Vec<(MessageIndex, MessageIndex)>;
+type Tips = Vec<(CanisterId, Vec<(UserId, u128)>)>;
 
 #[derive(CandidType, Serialize, Deserialize, Debug)]
 pub struct EventsResponse {
     pub events: Events,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub unauthorized: Unauthorized,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub expired_event_ranges: ExpiredEventRanges,
-    pub expired_message_ranges: Vec<(MessageIndex, MessageIndex)>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub expired_message_ranges: ExpiredMessageRanges,
     pub latest_event_index: EventIndex,
     pub chat_last_updated: TimestampMillis,
 }

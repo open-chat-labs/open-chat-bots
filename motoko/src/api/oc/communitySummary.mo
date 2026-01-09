@@ -24,12 +24,12 @@ module {
         description: Text;
         avatar_id: ?Nat;
         banner_id: ?Nat;
-        is_public: Bool;
-        verified: Bool;
+        is_public: ?Bool;
+        verified: ?Bool;
         member_count: Nat32;
         permissions: P.CommunityPermissions;
         public_channels: [ChannelSummary];
-        rules: C.VersionedRules;
+        rules: ?C.VersionedRules;
         frozen: ?C.FrozenGroupInfo;
         gate_config: ?A.AccessGateConfig;
         primary_language: Text;
