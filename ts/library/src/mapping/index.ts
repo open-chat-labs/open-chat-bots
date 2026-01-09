@@ -386,7 +386,7 @@ function communitySummary(api: ApiCommunitySummary): CommunitySummary {
         memberCount: api.member_count,
         permissions: communityPermissions(api.permissions),
         publicChannels: api.public_channels.map(channelSummary),
-        rules: api.rules ?? defaultRules(),
+        rules: api.rules ?? emptyRules(),
         frozen: optional(api.frozen, frozenGroupInfo),
         gateConfig: optional(api.gate_config, accessGateConfig),
         primaryLanguage: api.primary_language,
@@ -414,7 +414,7 @@ function chatSummary(api: ChatSummary): GroupChatSummary | DirectChatSummary {
             historyVisibleToNewJoiners: group.history_visible_to_new_joiners ?? false,
             messagesVisibleToNonMembers: group.messages_visible_to_non_members ?? false,
             permissions: groupPermissions(group.permissions),
-            rules: group.rules ?? defaultRules(),
+            rules: group.rules ?? emptyRules(),
             eventsTtl: group.events_ttl,
             eventsTtlLastUpdated: group.events_ttl_last_updated,
             gateConfig: optional(group.gate_config, accessGateConfig),
@@ -2249,7 +2249,7 @@ function diamondStatus(api: ApiDiamondMembershipStatus): DiamondMembershipStatus
             return "lifetime";
     }
 }
- function defaultRules(): VersionedRules {
+ function emptyRules(): VersionedRules {
     return {
         text: "",
         version: 0,
