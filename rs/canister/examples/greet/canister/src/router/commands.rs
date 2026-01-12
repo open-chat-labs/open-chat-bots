@@ -9,6 +9,7 @@ use oc_bots_sdk_canister::{HttpRequest, HttpResponse};
 use std::sync::LazyLock;
 
 mod chat_members;
+mod chat_summary;
 mod community_members;
 mod fractal;
 mod generate_api_key;
@@ -19,6 +20,7 @@ mod message;
 static COMMANDS: LazyLock<CommandHandlerRegistry<CanisterRuntime>> = LazyLock::new(|| {
     CommandHandlerRegistry::new(OPENCHAT_CLIENT_FACTORY.clone())
         .register(chat_members::ChatMembers)
+        .register(chat_summary::ChatSummary)
         .register(community_members::CommunityMembers)
         .register(generate_api_key::GenerateApiKey)
         .register(greet::Greet)

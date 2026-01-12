@@ -13,11 +13,25 @@ module {
     };
 
     public type Response = {
-        #Success : ChatDetails;
+        #Success : ChatSummary;
         #Error : B.OCError;
     };
 
-    public type ChatDetails = {
+    public type ChatSummary = {
+        #Direct : DirectChatSummary;
+        #Group : GroupChatSummary;
+    };
+
+    public type DirectChatSummary = {
+        last_updated : B.TimestampMillis;
+        latest_event_index : B.EventIndex;
+        latest_message_index : ?B.MessageIndex;
+        events_ttl : ?B.Milliseconds;
+        events_ttl_last_updated : ?B.TimestampMillis;
+        video_call_in_progress : ?VideoCall;
+    };
+
+    public type GroupChatSummary = {
         name : Text;
         description : Text;
         avatar_id : ?Nat;
