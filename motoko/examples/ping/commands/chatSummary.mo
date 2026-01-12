@@ -1,3 +1,4 @@
+import Text "mo:base/Text";
 import Sdk "mo:openchat-bot-sdk";
 import CommandScope "mo:openchat-bot-sdk/api/common/commandScope";
 import CommandResponse "mo:openchat-bot-sdk/api/bot/commandResponse";
@@ -23,7 +24,7 @@ module {
             case (#err(_, text)) return #err("C2C error calling bot_chat_summary: " # text);
         };
 
-        let text = "```" # debug_show(result) # "```";
+        let text = debug_show(result) |> Text.replace(_, #text "\"", "&quot;");
 
         let message = CommandResponse.EphemeralMessageBuilder(#Text { text }, chatDetails.message_id).build();
 
