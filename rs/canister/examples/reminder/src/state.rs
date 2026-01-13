@@ -1,7 +1,11 @@
-use crate::model::reminders::{self, Reminders};
-use oc_bots_sdk::InstallationRegistry;
+use crate::{
+    installations::load_installation_events,
+    model::reminders::{self, Reminders},
+};
+use ic_principal::Principal;
+use oc_bots_sdk::{InstallationRegistry, types::CanisterId};
 use serde::{Deserialize, Serialize};
-use std::cell::RefCell;
+use std::{cell::RefCell, time::Duration};
 
 thread_local! {
     static STATE: RefCell<Option<State>> = RefCell::default();
@@ -10,8 +14,16 @@ thread_local! {
 #[derive(Serialize, Deserialize)]
 pub struct State {
     oc_public_key: String,
+    #[serde(default = "prod_user_index_canister_id")]
+    pub user_index_canister_id: CanisterId,
     pub installation_registry: InstallationRegistry,
     pub reminders: Reminders,
+}
+
+fn prod_user_index_canister_id() -> CanisterId {
+    Principal::from_text("4bkt6-4aaaa-aaaaf-aaaiq-cai")
+        .unwrap()
+        .into()
 }
 
 const STATE_ALREADY_INITIALIZED: &str = "State has already been initialized";
@@ -40,19 +52,30 @@ pub fn take() -> State {
 }
 
 impl State {
-    pub fn new(oc_public_key: String) -> State {
+    pub fn new(oc_public_key: String, user_index_canister_id: Option<CanisterId>) -> State {
         State {
             oc_public_key,
+            user_index_canister_id: user_index_canister_id
+                .unwrap_or_else(prod_user_index_canister_id),
             installation_registry: InstallationRegistry::new(),
             reminders: Reminders::default(),
         }
     }
 
-    pub fn update(&mut self, oc_public_key: Option<String>) {
+    pub fn update(
+        &mut self,
+        oc_public_key: Option<String>,
+        user_index_canister_id: Option<CanisterId>,
+    ) {
         if let Some(oc_public_key) = oc_public_key {
             self.oc_public_key = oc_public_key;
         }
 
+        if let Some(user_index_canister_id) = user_index_canister_id {
+            self.user_index_canister_id = user_index_canister_id;
+        }
+
+        ic_cdk_timers::set_timer(Duration::ZERO, load_installation_events);
         reminders::start_job_if_required(self);
     }
 

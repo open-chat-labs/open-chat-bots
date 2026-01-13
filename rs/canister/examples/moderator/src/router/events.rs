@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use oc_bots_sdk::api::event_notification::BotChatEvent;
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
 use oc_bots_sdk::oc_api::actions::send_message::Response;
-use oc_bots_sdk::types::{CanisterId, ChatEvent, MessagePermission, UnitResult};
+use oc_bots_sdk::types::{CanisterId, ChatEvent, MessagePermission, TimestampMillis, UnitResult};
 use oc_bots_sdk::{
     InstallationRecord,
     api::event_notification::{BotEvent, BotEventWrapper, BotLifecycleEvent},
@@ -34,7 +34,11 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
 async fn handle_event(event_wrapper: BotEventWrapper) {
     match event_wrapper.event {
         BotEvent::Lifecycle(lifecycle_event) => {
-            handle_lifecycle_event(lifecycle_event, event_wrapper.api_gateway);
+            handle_lifecycle_event(
+                lifecycle_event,
+                event_wrapper.api_gateway,
+                event_wrapper.timestamp,
+            );
         }
         BotEvent::Chat(chat_event) => {
             let Some(bot_id) = state::read(|state| state.bot_id) else {
@@ -51,7 +55,11 @@ async fn handle_event(event_wrapper: BotEventWrapper) {
     }
 }
 
-fn handle_lifecycle_event(lifecycle_event: BotLifecycleEvent, api_gateway: CanisterId) {
+fn handle_lifecycle_event(
+    lifecycle_event: BotLifecycleEvent,
+    api_gateway: CanisterId,
+    timestamp: TimestampMillis,
+) {
     state::mutate(|state| match lifecycle_event {
         BotLifecycleEvent::Registered(event) => {
             ic_cdk::println!("Bot registered: {:?}", event);
@@ -64,11 +72,14 @@ fn handle_lifecycle_event(lifecycle_event: BotLifecycleEvent, api_gateway: Canis
                     api_gateway,
                     granted_command_permissions: event.granted_command_permissions,
                     granted_autonomous_permissions: event.granted_autonomous_permissions,
+                    last_updated: timestamp,
                 },
             );
         }
         BotLifecycleEvent::Uninstalled(event) => {
-            state.installation_registry.remove(&event.location);
+            state
+                .installation_registry
+                .remove(&event.location, timestamp);
         }
     });
 }
