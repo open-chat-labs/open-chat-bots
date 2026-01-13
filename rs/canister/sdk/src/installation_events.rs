@@ -4,20 +4,20 @@ use oc_bots_sdk::{
         ActionArgsBuilder,
         installation_events::{BotInstallationEvent, Response},
     },
-    types::CanisterId,
+    types::{CanisterId, UserId},
 };
 use std::time::Duration;
 
 const PAGE_SIZE: u16 = 5000;
 
-pub fn load<F: FnOnce(Vec<BotInstallationEvent>) + 'static>(
+pub fn load<F: FnOnce(UserId, Vec<BotInstallationEvent>) + 'static>(
     user_index_canister_id: CanisterId,
     callback: F,
 ) {
     load_page(user_index_canister_id, Vec::new(), 0, callback);
 }
 
-fn load_page<F: FnOnce(Vec<BotInstallationEvent>) + 'static>(
+fn load_page<F: FnOnce(UserId, Vec<BotInstallationEvent>) + 'static>(
     user_index_canister_id: CanisterId,
     installation_events: Vec<BotInstallationEvent>,
     from: u32,
@@ -30,7 +30,7 @@ fn load_page<F: FnOnce(Vec<BotInstallationEvent>) + 'static>(
         callback,
     ));
 
-    async fn load_inner<F: FnOnce(Vec<BotInstallationEvent>) + 'static>(
+    async fn load_inner<F: FnOnce(UserId, Vec<BotInstallationEvent>) + 'static>(
         user_index_canister_id: CanisterId,
         mut installation_events: Vec<BotInstallationEvent>,
         from: u32,
@@ -55,7 +55,7 @@ fn load_page<F: FnOnce(Vec<BotInstallationEvent>) + 'static>(
                         load_page(user_index_canister_id, installation_events, from, callback)
                     });
                 } else {
-                    callback(installation_events);
+                    callback(result.bot_id, installation_events);
                 }
             }
             error => {

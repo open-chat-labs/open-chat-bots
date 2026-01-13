@@ -5,7 +5,7 @@ use oc_bots_sdk_canister::installation_events;
 pub fn load_installation_events() {
     let user_index_canister_id = state::read(|state| state.user_index_canister_id);
 
-    installation_events::load(user_index_canister_id, |events| {
+    installation_events::load(user_index_canister_id, |_, events| {
         ic_cdk::println!("Loaded {} events", events.len());
         state::mutate(|state| {
             for event in events {
