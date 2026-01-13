@@ -13,6 +13,7 @@ SCRIPT_DIR=$(dirname "$SCRIPT")
 cd $SCRIPT_DIR
 
 MODE=${1:-install} # MODE is either install, reinstall or upgrade
+USER_INDEX_CANISTER_ID=${2:-none} 
 
 if [[ $MODE = "install" ]] || [[ $MODE = "reinstall" ]]
 then
@@ -20,7 +21,12 @@ then
     OC_PUBLIC_KEY=$(curl -s http://localhost:5001/public-key) || exit 1
 
     # Build the reminder_bot install args
-    ARGS="(variant { Init = record { oc_public_key = \"$OC_PUBLIC_KEY\" } })"
+    if [ $USER_INDEX_CANISTER_ID == "none" ] 
+    then
+        ARGS="(variant { Init = record { oc_public_key = \"$OC_PUBLIC_KEY\" }})"
+    else
+        ARGS="(variant { Init = record { oc_public_key = \"$OC_PUBLIC_KEY\" ; user_index_canister_id = opt principal \"$USER_INDEX_CANISTER_ID\" }})"
+    fi
 elif [ $MODE = "upgrade" ]
 then
     # Build the reminder_bot upgrade args

@@ -1973,6 +1973,7 @@ dependencies = [
  "getrandom",
  "http 1.2.0",
  "ic-cdk",
+ "ic-cdk-timers",
  "ic-http-certification",
  "ic-stable-structures",
  "ic_principal",
@@ -2077,6 +2078,7 @@ name = "oc_bots_sdk_canister"
 version = "0.1.0"
 dependencies = [
  "ic-cdk",
+ "ic-cdk-timers",
  "ic-http-certification",
  "ic_principal",
  "oc_bots_sdk",

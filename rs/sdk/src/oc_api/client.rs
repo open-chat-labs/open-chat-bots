@@ -5,8 +5,8 @@ use crate::oc_api::actions::members::MemberType;
 use crate::oc_api::client::members::MembersBuilder;
 use crate::oc_api::client::remove_user::RemoveUserBuilder;
 use crate::types::{
-    ActionContext, ChannelId, ChatRole, MessageContentInitial, MessageId, Reaction, TextContent,
-    UserId,
+    ActionContext, CanisterId, ChannelId, ChatRole, MessageContentInitial, MessageId, Reaction,
+    TextContent, UserId,
 };
 use add_reaction::AddReactionBuilder;
 use change_role::ChangeRoleBuilder;
@@ -17,6 +17,7 @@ use community_summary::CommunitySummaryBuilder;
 use create_channel::CreateChannelBuilder;
 use delete_channel::DeleteChannelBuilder;
 use delete_messages::DeleteMessagesBuilder;
+use installation_events::InstallationEventsBuilder;
 use invite_users::InviteUsersBuilder;
 use send_message::SendMessageBuilder;
 use std::collections::HashSet;
@@ -31,6 +32,7 @@ mod community_summary;
 mod create_channel;
 mod delete_channel;
 mod delete_messages;
+mod installation_events;
 mod invite_users;
 mod members;
 mod remove_user;
@@ -133,5 +135,11 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
 
     pub fn send_text_message(&self, text: String) -> SendMessageBuilder<'_, R, C> {
         self.send_message(MessageContentInitial::Text(TextContent { text }))
+    }
+}
+
+impl<R: Runtime> Client<R, CanisterId> {
+    pub fn installation_events(&self) -> InstallationEventsBuilder<'_, R> {
+        InstallationEventsBuilder::new(self)
     }
 }

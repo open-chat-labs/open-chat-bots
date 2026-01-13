@@ -4,6 +4,7 @@ pub mod env;
 pub mod event_parser;
 pub mod http_command_handler;
 mod http_router;
+pub mod installation_events;
 mod raw_rand;
 
 pub use http_router::*;

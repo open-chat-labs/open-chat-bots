@@ -1,10 +1,12 @@
 
 type InitArgs = record {
     oc_public_key : text;
+    user_index_canister_id: opt principal;
 };
 
 type UpgradeArgs = record {
     oc_public_key : opt text;
+    user_index_canister_id: opt principal;
 };
 
 type InitOrUpgradeArgs = variant {
