@@ -15,6 +15,7 @@ import DeleteMessages "client/deleteMessages";
 import SendMessage "client/sendMessage";
 import AddReaction "client/addReaction";
 import CommunitySummary "client/communitySummary";
+import InstallationEvents "client/installationEvents";
 import InviteUsers "client/inviteUsers";
 import RemoveUser "client/removeUser";
 import Members "client/members";
@@ -77,4 +78,10 @@ module {
             Members.Builder(context, memberTypes);
         };
     };
+
+    public class UserIndexClient(userIndexCanisterId : B.CanisterId) {
+        public func installationEvents() : InstallationEvents.Builder {
+            InstallationEvents.Builder(userIndexCanisterId);
+        };
+    }
 };
