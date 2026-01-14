@@ -22,16 +22,13 @@ impl InstallationRegistry {
     }
 
     pub fn insert(&mut self, location: InstallationLocation, new_record: InstallationRecord) {
-        if let Some(record) = self.locations.get_mut(&location) {
-            if new_record.last_updated > record.last_updated {
-                record.api_gateway = new_record.api_gateway;
-                record.granted_command_permissions = new_record.granted_command_permissions;
-                record.granted_autonomous_permissions = new_record.granted_autonomous_permissions;
-                record.last_updated = new_record.last_updated;
-            }
-        } else {
-            self.locations.insert(location, new_record);
+        if let Some(record) = self.locations.get_mut(&location)
+            && new_record.last_updated <= record.last_updated
+        {
+            return;
         }
+
+        self.locations.insert(location, new_record);
     }
 
     pub fn remove(&mut self, location: &InstallationLocation, timestamp: TimestampMillis) {

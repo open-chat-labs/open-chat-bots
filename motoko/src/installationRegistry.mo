@@ -15,12 +15,27 @@ module {
                 InstallationLocation.equal, 
                 InstallationLocation.hash);
 
-        public func insert(location: InstallationLocation, details: InstallationRecord) {
-            map.put(location, details);
+        public func insert(location: InstallationLocation, newRecord: InstallationRecord) {
+            switch (map.get(location)) {
+                case (?record) {
+                    if (newRecord.lastUpdated <= record.lastUpdated) {
+                        return;
+                    }
+                };
+                case null {};
+            };
+
+            map.put(location, newRecord);
         };
 
-        public func remove(location: InstallationLocation) {
-            map.delete(location);
+        public func remove(location: InstallationLocation, timestamp: Base.TimestampMillis) {
+            let ?record = map.get(location) else {
+                return;
+            };
+
+            if (timestamp > record.lastUpdated) {
+                map.delete(location);
+            }
         };
 
         public func get(location: InstallationLocation) : ?InstallationRecord {
@@ -40,5 +55,6 @@ module {
         apiGateway: Base.CanisterId;
         grantedCommandPermissions: Permissions.Permissions;
         grantedAutonomousPermissions: Permissions.Permissions;
+        lastUpdated : Base.TimestampMillis;
     };
 };

@@ -39,10 +39,11 @@ module {
                                 apiGateway = eventWrapper.api_gateway;
                                 grantedCommandPermissions = Permissions.fromRaw(event.granted_command_permissions);
                                 grantedAutonomousPermissions = Permissions.fromRaw(event.granted_autonomous_permissions);
+                                lastUpdated = eventWrapper.timestamp;
                             });
                         };
                         case (#Uninstalled event) {
-                            state.installationRegistry.remove(event.location);
+                            state.installationRegistry.remove(event.location, eventWrapper.timestamp);
                         };
                     };
                 };
