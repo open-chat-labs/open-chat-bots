@@ -41,7 +41,7 @@ export class UserIndexClient extends MsgpackCanisterAgent {
     }
 
     async installationEvents(): Promise<BotInstallationEventsResponse> {
-        const pageSize = 1;
+        const pageSize = 5000;
         let from = 0;
         let finished = false;
         const success = {
