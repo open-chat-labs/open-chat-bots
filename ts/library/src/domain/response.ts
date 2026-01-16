@@ -1,8 +1,9 @@
 import type { MemberType } from "../typebox/typebox";
 import type { AccessGateConfig } from "./access";
+import type { InstallationLocation } from "./bot";
 import type { ChatEvent, CommunityEvent } from "./event";
 import type { CommunityIdentifier } from "./identifiers";
-import type { CommunityPermissions, GroupPermissions } from "./permissions";
+import type { CommunityPermissions, GroupPermissions, Permissions } from "./permissions";
 import type { VersionedRules } from "./rules";
 import type { UserSummary } from "./user";
 import type { VideoCall } from "./video";
@@ -146,6 +147,33 @@ export type SendMessageSuccess = {
 export type UserSummaryResponse = UserSummarySuccess | UserNotFound | OCError;
 
 export type UserSummarySuccess = { kind: "success"; user: UserSummary };
+
+export type BotInstallationEventsResponse = BotInstallationEventsSuccess | OCError;
+
+export type BotInstallationEventsSuccess = {
+    kind: "success";
+    botId: string;
+    events: BotInstallationEvent[];
+};
+
+export type BotInstallationEvent = BotInstalled | BotUninstalled;
+
+export type BotInstalled = {
+    kind: "installed";
+    location: InstallationLocation;
+    apiGateway: string;
+    grantedCommandPermissions: Permissions;
+    grantedAutonomousPermissions: Permissions;
+    installedBy: string;
+    installedAt: bigint;
+};
+
+export type BotUninstalled = {
+    kind: "uninstalled";
+    location: InstallationLocation;
+    uninstalledBy: string;
+    uninstalledAt: bigint;
+};
 
 export type UserNotFound = { kind: "user_not_found" };
 

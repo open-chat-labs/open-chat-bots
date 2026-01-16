@@ -89,6 +89,9 @@ import {
     type VideoContent,
 } from "../domain";
 import type {
+    BotInstallationEvent,
+    BotInstallationEventsResponse,
+    BotInstallationEventsSuccess,
     ChangeRoleResponse,
     ChannelSummary,
     CommunityEventsResponse,
@@ -192,6 +195,9 @@ import {
     type Chat,
     ChatSummary,
     MemberType,
+    UserIndexBotInstallationEventsBotInstallationEvent,
+    UserIndexBotInstallationEventsResponse,
+    UserIndexBotInstallationEventsSuccessResult,
     UserIndexUserResponse,
 } from "../typebox/typebox";
 import { toBigInt32, toBigInt64 } from "../utils/bigint";
@@ -2249,10 +2255,56 @@ function diamondStatus(api: ApiDiamondMembershipStatus): DiamondMembershipStatus
             return "lifetime";
     }
 }
- function emptyRules(): VersionedRules {
+function emptyRules(): VersionedRules {
     return {
         text: "",
         version: 0,
         enabled: false,
     };
- }
+}
+
+export function installationEventsResponse(
+    api: UserIndexBotInstallationEventsResponse,
+): BotInstallationEventsResponse {
+    if ("Success" in api) {
+        return installationEventsSuccess(api.Success);
+    } else {
+        return ocError(api.Error);
+    }
+}
+
+function installationEventsSuccess(
+    api: UserIndexBotInstallationEventsSuccessResult,
+): BotInstallationEventsSuccess {
+    return {
+        kind: "success",
+        botId: principalBytesToString(api.bot_id),
+        events: api.events.map(botInstallationEvent),
+    };
+}
+
+function botInstallationEvent(
+    api: UserIndexBotInstallationEventsBotInstallationEvent,
+): BotInstallationEvent {
+    if ("Installed" in api) {
+        return {
+            kind: "installed",
+            location: installationLocation(api.Installed.location),
+            apiGateway: principalBytesToString(api.Installed.api_gateway),
+            grantedCommandPermissions: new Permissions(api.Installed.granted_permissions),
+            grantedAutonomousPermissions: new Permissions(
+                api.Installed.granted_autonomous_permissions,
+            ),
+            installedBy: principalBytesToString(api.Installed.installed_by),
+            installedAt: api.Installed.timestamp,
+        };
+    } else if ("Uninstalled" in api) {
+        return {
+            kind: "uninstalled",
+            location: installationLocation(api.Uninstalled.location),
+            uninstalledBy: principalBytesToString(api.Uninstalled.uninstalled_by),
+            uninstalledAt: api.Uninstalled.timestamp,
+        };
+    }
+    throw new UnsupportedValueError("Unexpected ApiBotInstallationEvent type received", api);
+}
