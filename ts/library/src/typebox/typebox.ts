@@ -2194,6 +2194,12 @@ export const UserIndexUsersArgs = Type.Object({
     users_suspended_since: Type.Optional(Type.BigInt()),
 });
 
+export type UserIndexBotInstallationEventsArgs = Static<typeof UserIndexBotInstallationEventsArgs>;
+export const UserIndexBotInstallationEventsArgs = Type.Object({
+    from: Type.Number(),
+    size: Type.Number(),
+});
+
 export type UserIndexSubmitProofOfUniquePersonhoodResponse = Static<
     typeof UserIndexSubmitProofOfUniquePersonhoodResponse
 >;
@@ -5982,23 +5988,6 @@ export const UserIndexUsersChitResponse = Type.Object({
     Success: UserIndexUsersChitSuccessResult,
 });
 
-export type UserIndexBotInstallationsArgs = Static<typeof UserIndexBotInstallationsArgs>;
-export const UserIndexBotInstallationsArgs = Type.Object({
-    installed_since: Type.Optional(BotInstallationLocation),
-    max_results: Type.Number(),
-});
-
-export type UserIndexBotInstallationsInstallationDetails = Static<
-    typeof UserIndexBotInstallationsInstallationDetails
->;
-export const UserIndexBotInstallationsInstallationDetails = Type.Object({
-    location: BotInstallationLocation,
-    installed_at: Type.BigInt(),
-    local_user_index: TSPrincipal,
-    granted_permissions: BotPermissions,
-    granted_autonomous_permissions: BotPermissions,
-});
-
 export type UserIndexPlatformModeratorsResponse = Static<
     typeof UserIndexPlatformModeratorsResponse
 >;
@@ -6054,6 +6043,27 @@ export const UserIndexSearchResult = Type.Object({
 export type UserIndexSearchResponse = Static<typeof UserIndexSearchResponse>;
 export const UserIndexSearchResponse = Type.Object({
     Success: UserIndexSearchResult,
+});
+
+export type UserIndexBotInstallationEventsBotUninstalled = Static<
+    typeof UserIndexBotInstallationEventsBotUninstalled
+>;
+export const UserIndexBotInstallationEventsBotUninstalled = Type.Object({
+    location: BotInstallationLocation,
+    uninstalled_by: UserId,
+    timestamp: Type.BigInt(),
+});
+
+export type UserIndexBotInstallationEventsBotInstalled = Static<
+    typeof UserIndexBotInstallationEventsBotInstalled
+>;
+export const UserIndexBotInstallationEventsBotInstalled = Type.Object({
+    location: BotInstallationLocation,
+    api_gateway: TSPrincipal,
+    granted_permissions: BotPermissions,
+    granted_autonomous_permissions: BotPermissions,
+    installed_by: UserId,
+    timestamp: Type.BigInt(),
 });
 
 export type UserIndexExploreBotsArgs = Static<typeof UserIndexExploreBotsArgs>;
@@ -6485,7 +6495,6 @@ export const IdentityAuthPrincipalsUserPrincipal = Type.Object({
     principal: TSPrincipal,
     originating_canister: TSPrincipal,
     is_ii_principal: Type.Boolean(),
-    is_current_identity: Type.Boolean(),
     webauthn_key: Type.Optional(IdentityWebAuthnKey),
     last_used: Type.BigInt(),
 });
@@ -7347,22 +7356,25 @@ export const RegistryUpdatesResponse = Type.Union([
     Type.Literal("SuccessNoUpdates"),
 ]);
 
-export type UserIndexBotInstallationsSuccessResult = Static<
-    typeof UserIndexBotInstallationsSuccessResult
+export type UserIndexBotInstallationEventsBotInstallationEvent = Static<
+    typeof UserIndexBotInstallationEventsBotInstallationEvent
 >;
-export const UserIndexBotInstallationsSuccessResult = Type.Object({
-    installations: Type.Array(UserIndexBotInstallationsInstallationDetails),
-});
-
-export type UserIndexBotInstallationsResponse = Static<typeof UserIndexBotInstallationsResponse>;
-export const UserIndexBotInstallationsResponse = Type.Union([
+export const UserIndexBotInstallationEventsBotInstallationEvent = Type.Union([
     Type.Object({
-        Success: UserIndexBotInstallationsSuccessResult,
+        Installed: UserIndexBotInstallationEventsBotInstalled,
     }),
     Type.Object({
-        Error: OCError,
+        Uninstalled: UserIndexBotInstallationEventsBotUninstalled,
     }),
 ]);
+
+export type UserIndexBotInstallationEventsSuccessResult = Static<
+    typeof UserIndexBotInstallationEventsSuccessResult
+>;
+export const UserIndexBotInstallationEventsSuccessResult = Type.Object({
+    bot_id: UserId,
+    events: Type.Array(UserIndexBotInstallationEventsBotInstallationEvent),
+});
 
 export type UserIndexCurrentUserSuccessResult = Static<typeof UserIndexCurrentUserSuccessResult>;
 export const UserIndexCurrentUserSuccessResult = Type.Object({
@@ -7935,6 +7947,18 @@ export type UserIndexUsersResponse = Static<typeof UserIndexUsersResponse>;
 export const UserIndexUsersResponse = Type.Object({
     Success: UserIndexUsersResult,
 });
+
+export type UserIndexBotInstallationEventsResponse = Static<
+    typeof UserIndexBotInstallationEventsResponse
+>;
+export const UserIndexBotInstallationEventsResponse = Type.Union([
+    Type.Object({
+        Success: UserIndexBotInstallationEventsSuccessResult,
+    }),
+    Type.Object({
+        Error: OCError,
+    }),
+]);
 
 export type UserIndexExploreBotsSuccessResult = Static<typeof UserIndexExploreBotsSuccessResult>;
 export const UserIndexExploreBotsSuccessResult = Type.Object({
@@ -9693,30 +9717,30 @@ export type UserUpdatesSuccessResult = Static<typeof UserUpdatesSuccessResult>;
 export const UserUpdatesSuccessResult = Type.Object({
     timestamp: Type.BigInt(),
     username: Type.Optional(Type.String()),
-    display_name: OptionUpdateString,
-    direct_chats: UserUpdatesDirectChatsUpdates,
-    group_chats: UserUpdatesGroupChatsUpdates,
-    favourite_chats: UserUpdatesFavouriteChatsUpdates,
-    communities: UserUpdatesCommunitiesUpdates,
-    avatar_id: OptionUpdateU128,
+    display_name: Type.Optional(OptionUpdateString),
+    direct_chats: Type.Optional(UserUpdatesDirectChatsUpdates),
+    group_chats: Type.Optional(UserUpdatesGroupChatsUpdates),
+    favourite_chats: Type.Optional(UserUpdatesFavouriteChatsUpdates),
+    communities: Type.Optional(UserUpdatesCommunitiesUpdates),
+    avatar_id: Type.Optional(OptionUpdateU128),
     blocked_users: Type.Optional(Type.Array(UserId)),
     suspended: Type.Optional(Type.Boolean()),
-    pin_number_settings: OptionUpdatePinNumberSettings,
-    achievements: Type.Array(ChitEvent),
+    pin_number_settings: Type.Optional(OptionUpdatePinNumberSettings),
+    achievements: Type.Optional(Type.Array(ChitEvent)),
     achievements_last_seen: Type.Optional(Type.BigInt()),
     total_chit_earned: Type.Number(),
     chit_balance: Type.Number(),
     streak: Type.Number(),
     streak_ends: Type.BigInt(),
     max_streak: Type.Number(),
-    streak_insurance: OptionUpdateStreakInsurance,
+    streak_insurance: Type.Optional(OptionUpdateStreakInsurance),
     next_daily_claim: Type.BigInt(),
     is_unique_person: Type.Optional(Type.Boolean()),
     wallet_config: Type.Optional(UserWalletConfig),
-    referrals: Type.Array(UserReferral),
+    referrals: Type.Optional(Type.Array(UserReferral)),
     message_activity_summary: Type.Optional(UserMessageActivitySummary),
-    bots_added_or_updated: Type.Array(InstalledBotDetails),
-    bots_removed: Type.Array(UserId),
+    bots_added_or_updated: Type.Optional(Type.Array(InstalledBotDetails)),
+    bots_removed: Type.Optional(Type.Array(UserId)),
     btc_address: Type.Optional(Type.String()),
     one_sec_address: Type.Optional(Type.String()),
     premium_items: Type.Optional(Type.Array(Type.Number())),

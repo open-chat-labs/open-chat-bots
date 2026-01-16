@@ -7,12 +7,25 @@ export class InstallationRegistry {
         this.#map = map ?? new Map();
     }
 
-    set(location: InstallationLocation, record: InstallationRecord) {
-        this.#map.set(JSON.stringify(location), record);
+    set(location: InstallationLocation, newRecord: InstallationRecord) {
+        const key = JSON.stringify(location);
+        const record = this.#map.get(key);
+
+        if (record !== undefined && newRecord.lastUpdated <= record.lastUpdated) {
+            return;
+        }
+
+        this.#map.set(key, newRecord);
     }
 
-    delete(location: InstallationLocation): boolean {
-        return this.#map.delete(JSON.stringify(location));
+    delete(location: InstallationLocation, timestamp: bigint): boolean {
+        const key = JSON.stringify(location);
+        const record = this.#map.get(key);
+        if (record !== undefined && record.lastUpdated < timestamp) {
+            return this.#map.delete(key);
+        } else {
+            return false;
+        }
     }
 
     get(location: InstallationLocation): InstallationRecord | undefined {

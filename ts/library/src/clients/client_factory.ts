@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import type { ActionScope, BotClientConfig, RawCommandJwt } from "../domain";
 import { ActionContext } from "../domain/action_context";
 import { Permissions } from "../domain/permissions";
+import { UserIndexClient } from "../services/user_index/user_index_client";
 import { BadRequestError } from "../utils/badrequest";
 import { BotClient } from "./bot_client";
 
@@ -89,5 +90,9 @@ export class BotClientFactory {
             console.error(`Unable to decode jwt`, err, token);
             throw new BadRequestError("AccessTokenInvalid");
         }
+    }
+
+    createUserIndexClient(): UserIndexClient {
+        return new UserIndexClient(this.#agent, this.env);
     }
 }

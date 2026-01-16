@@ -52,7 +52,7 @@ export async function handleNotification<T>(
     signature: string,
     rawNotification: Buffer,
     factory: BotClientFactory,
-    handler: (client: BotClient, ev: BotEvent, apiGateway: string) => Promise<T>,
+    handler: (client: BotClient, ev: BotEvent, timestamp: bigint, apiGateway: string) => Promise<T>,
     error: (error: BotEventParseFailure) => T,
     autonomousPermissions?: Permissions,
 ): Promise<T> {
@@ -69,7 +69,7 @@ export async function handleNotification<T>(
                 parsed.apiGateway,
                 autonomousPermissions,
             );
-            return handler(client, parsed.event, parsed.apiGateway);
+            return handler(client, parsed.event, parsed.timestamp, parsed.apiGateway);
         } else {
             return error({ kind: "bot_event_parse_failure", error: "Invalid scope" });
         }
