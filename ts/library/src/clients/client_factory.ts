@@ -4,9 +4,9 @@ import jwt from "jsonwebtoken";
 import type { ActionScope, BotClientConfig, RawCommandJwt } from "../domain";
 import { ActionContext } from "../domain/action_context";
 import { Permissions } from "../domain/permissions";
-import { UserIndexClient } from "../services/user_index/user_index_client";
 import { BadRequestError } from "../utils/badrequest";
 import { BotClient } from "./bot_client";
+import { UserIndexClient } from "./user_index_client";
 
 export function isMainnet(icUrl: string): boolean {
     return icUrl.includes("icp-api.io");
@@ -93,6 +93,6 @@ export class BotClientFactory {
     }
 
     createUserIndexClient(): UserIndexClient {
-        return new UserIndexClient(this.#agent, this.env);
+        return new UserIndexClient(this.#agent, this.env.userIndexCanisterId);
     }
 }

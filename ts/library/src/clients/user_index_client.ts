@@ -1,30 +1,29 @@
 import { HttpAgent } from "@dfinity/agent";
 import type {
-    BotClientConfig,
     BotInstallationEvent,
     BotInstallationEventsResponse,
     BotInstallationEventsSuccess,
     UserSummaryResponse,
-} from "../../domain";
+} from "../domain";
 import {
     installationEventsResponse,
     principalStringToBytes,
     userSummaryResponse,
-} from "../../mapping";
+} from "../mapping";
+import { MsgpackCanisterAgent } from "../services/canisterAgent/msgpack";
 import {
     UserIndexBotInstallationEventsArgs,
     UserIndexBotInstallationEventsResponse,
     UserIndexUserArgs,
     UserIndexUserResponse,
-} from "../../typebox/typebox";
-import { MsgpackCanisterAgent } from "../canisterAgent/msgpack";
+} from "../typebox/typebox";
 
 export class UserIndexClient extends MsgpackCanisterAgent {
     constructor(
         agent: HttpAgent,
-        protected env: BotClientConfig,
+        protected userIndexCanisterId: string | undefined,
     ) {
-        super(agent, env.userIndexCanisterId ?? "4bkt6-4aaaa-aaaaf-aaaiq-cai");
+        super(agent, userIndexCanisterId ?? "4bkt6-4aaaa-aaaaf-aaaiq-cai");
     }
 
     userSummary(userId: string): Promise<UserSummaryResponse> {
