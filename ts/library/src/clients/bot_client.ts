@@ -11,6 +11,7 @@ import {
     PollMessage,
     TextMessage,
     type BotClientConfig,
+    type BotInstallationEventsResponse,
     type ChangeRoleResponse,
     type ChatEventsCriteria,
     type ChatEventsResponse,
@@ -33,11 +34,11 @@ import type { Channel } from "../domain/channel";
 import { apiOptional, principalBytesToString } from "../mapping";
 import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
 import { DataClient } from "../services/data/data.client";
-import { UserIndexClient } from "../services/user_index/user_index_client";
 import { BotCommand, BotCommandArg, MemberType } from "../typebox/typebox";
+import { GlobalClient } from "./global_client";
 
 export class BotClient {
-    #userIndexService: UserIndexClient;
+    #globalService: GlobalClient;
     #botService: BotGatewayClient;
     #env: BotClientConfig;
     #agent: HttpAgent;
@@ -48,7 +49,7 @@ export class BotClient {
         this.#env = env;
         this.#agent = agent;
         this.#botService = new BotGatewayClient(this.#botApiGateway, agent, env);
-        this.#userIndexService = new UserIndexClient(agent, env);
+        this.#globalService = new GlobalClient(agent, env);
     }
 
     get #botApiGateway(): string {
@@ -395,6 +396,10 @@ export class BotClient {
             );
             return Promise.resolve({ kind: "user_not_found" });
         }
-        return this.#userIndexService.userSummary(u);
+        return this.#globalService.userSummary(u);
+    }
+
+    installationEvents(): Promise<BotInstallationEventsResponse> {
+        return this.#globalService.installationEvents();
     }
 }

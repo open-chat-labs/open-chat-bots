@@ -72,6 +72,7 @@ type StringifiedInstallationRecord = {
     apiGateway: string;
     grantedCommandPermissions: BotPermissions;
     grantedAutonomousPermissions: BotPermissions;
+    lastUpdated: string;
 };
 
 export class InstallationRecord {
@@ -79,6 +80,7 @@ export class InstallationRecord {
         public apiGateway: string,
         public grantedCommandPermissions: Permissions,
         public grantedAutonomousPermissions: Permissions,
+        public lastUpdated: bigint,
     ) {}
 
     toString() {
@@ -86,6 +88,7 @@ export class InstallationRecord {
             apiGateway: this.apiGateway,
             grantedCommandPermissions: this.grantedCommandPermissions.rawPermissions,
             grantedAutonomousPermissions: this.grantedAutonomousPermissions.rawPermissions,
+            lastUpdated: this.lastUpdated.toString(),
         });
     }
 
@@ -95,6 +98,7 @@ export class InstallationRecord {
             json.apiGateway,
             new Permissions(json.grantedCommandPermissions),
             new Permissions(json.grantedAutonomousPermissions),
+            BigInt(json.lastUpdated),
         );
     }
 }
