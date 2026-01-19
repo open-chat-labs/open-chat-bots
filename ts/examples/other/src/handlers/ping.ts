@@ -99,7 +99,7 @@ export class Ping {
 
     private loadInstallations(): Promise<boolean> {
         return this.factory
-            .createUserIndexClient()
+            .createGlobalClient()
             .installationEvents()
             .then((resp) => {
                 if (resp.kind === "success") {

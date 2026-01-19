@@ -92,7 +92,7 @@ export class BotClientFactory {
         }
     }
 
-    createUserIndexClient(): GlobalClient {
+    createGlobalClient(): GlobalClient {
         return new GlobalClient(this.#agent, this.env);
     }
 }
