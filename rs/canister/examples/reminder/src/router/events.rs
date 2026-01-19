@@ -8,7 +8,7 @@ use oc_bots_sdk_canister::{HttpRequest, HttpResponse, event_parser::parse_event}
 pub async fn execute(request: HttpRequest) -> HttpResponse {
     let public_key = state::read(|state| state.oc_public_key().to_string());
 
-    let event_wrapper = match parse_event(request, &public_key, None) {
+    let event_wrapper = match parse_event(request, &public_key) {
         Ok(wrapper) => wrapper,
         Err(err) => {
             ic_cdk::println!("Failed to parse event wrapper: {}", err);
@@ -25,11 +25,14 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
                         api_gateway: event_wrapper.api_gateway,
                         granted_command_permissions: event.granted_command_permissions,
                         granted_autonomous_permissions: event.granted_autonomous_permissions,
+                        last_updated: event_wrapper.timestamp,
                     },
                 );
             }
             BotLifecycleEvent::Uninstalled(event) => {
-                state.installation_registry.remove(&event.location);
+                state
+                    .installation_registry
+                    .remove(&event.location, event_wrapper.timestamp);
                 state.reminders.delete_from_location(&event.location);
             }
             _ => (),

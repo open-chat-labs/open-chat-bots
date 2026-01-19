@@ -1,7 +1,8 @@
 use crate::memory::get_upgrades_memory;
-use candid::{CandidType, Principal};
+use candid::CandidType;
 use ic_cdk::{init, post_upgrade, pre_upgrade, query, update};
 use ic_http_certification::{HttpRequest, HttpResponse};
+use ic_principal::Principal;
 use ic_stable_structures::{
     reader::{BufferedReader, Reader},
     writer::{BufferedWriter, Writer},

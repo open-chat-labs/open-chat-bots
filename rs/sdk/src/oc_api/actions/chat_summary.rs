@@ -3,8 +3,8 @@ use crate::types::{
     AccessGateConfig, BotChatContext, ChatPermissions, EventIndex, FrozenGroupInfo, MessageIndex,
     Milliseconds, OCError, TimestampMillis, VersionedRules, VideoCall,
 };
-use candid::{CandidType, Deserialize};
-use serde::Serialize;
+use crate::utils::is_default;
+use serde::{Deserialize, Serialize};
 
 pub struct ChatSummaryAction;
 
@@ -24,40 +24,45 @@ impl ActionDef for ChatSummaryAction {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Args {
     pub chat_context: BotChatContext,
 }
 
 #[expect(clippy::large_enum_variant)]
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Response {
     Success(ChatSummary),
     Error(OCError),
 }
 
 #[expect(clippy::large_enum_variant)]
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum ChatSummary {
     Group(ChatSummaryGroup),
     Direct(ChatSummaryDirect),
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ChatSummaryGroup {
     pub name: String,
     pub description: String,
     pub avatar_id: Option<u128>,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub is_public: bool,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub history_visible_to_new_joiners: bool,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub messages_visible_to_non_members: bool,
     pub permissions: ChatPermissions,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub rules: VersionedRules,
     pub events_ttl: Option<Milliseconds>,
     pub events_ttl_last_updated: Option<TimestampMillis>,
     pub gate_config: Option<AccessGateConfig>,
     pub video_call_in_progress: Option<VideoCall>,
-    pub verified: Option<bool>,
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub verified: bool,
     pub frozen: Option<FrozenGroupInfo>,
     pub date_last_pinned: Option<TimestampMillis>,
     pub last_updated: TimestampMillis,
@@ -67,7 +72,7 @@ pub struct ChatSummaryGroup {
     pub member_count: u32,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ChatSummaryDirect {
     pub last_updated: TimestampMillis,
     pub latest_event_index: EventIndex,

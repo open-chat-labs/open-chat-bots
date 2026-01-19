@@ -13,7 +13,7 @@ export async function notify(req: Request, res: Response) {
         req.headers["x-oc-signature"] as string,
         req.body as Buffer,
         factory,
-        async (_: BotClient, ev: BotEvent, apiGateway: string) => {
+        async (_: BotClient, ev: BotEvent, timestamp: bigint, apiGateway: string) => {
             if (ev.kind === "bot_installed_event") {
                 ping.install(
                     ev.location,
@@ -21,8 +21,11 @@ export async function notify(req: Request, res: Response) {
                         apiGateway,
                         ev.grantedAutonomousPermissions,
                         ev.grantedCommandPermissions,
+                        timestamp,
                     ),
                 );
+            } else if (ev.kind === "bot_uninstalled_event") {
+                ping.uninstall(ev.location, timestamp);
             }
             res.status(200).json({});
         },

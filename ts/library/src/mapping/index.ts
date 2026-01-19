@@ -81,6 +81,7 @@ import {
     type TipsReceived,
     type TokenInfo,
     type TotalPollVotes,
+    type VersionedRules,
     type VideoCall,
     type VideoCallContent,
     type VideoCallParticipant,
@@ -88,6 +89,9 @@ import {
     type VideoContent,
 } from "../domain";
 import type {
+    BotInstallationEvent,
+    BotInstallationEventsResponse,
+    BotInstallationEventsSuccess,
     ChangeRoleResponse,
     ChannelSummary,
     CommunityEventsResponse,
@@ -191,6 +195,9 @@ import {
     type Chat,
     ChatSummary,
     MemberType,
+    UserIndexBotInstallationEventsBotInstallationEvent,
+    UserIndexBotInstallationEventsResponse,
+    UserIndexBotInstallationEventsSuccessResult,
     UserIndexUserResponse,
 } from "../typebox/typebox";
 import { toBigInt32, toBigInt64 } from "../utils/bigint";
@@ -363,9 +370,9 @@ function chatEventsSuccessResponse(api: ApiEventsResponse): ChatEventsSuccess {
     return {
         kind: "success",
         events: api.events.map(eventWrapper),
-        unauthorized: api.unauthorized,
-        expiredEventRanges: api.expired_event_ranges,
-        expiredMessageRanges: api.expired_message_ranges,
+        unauthorized: api.unauthorized ?? [],
+        expiredEventRanges: api.expired_event_ranges ?? [],
+        expiredMessageRanges: api.expired_message_ranges ?? [],
         latestEventIndex: api.latest_event_index,
         chatLastUpdated: api.chat_last_updated,
     };
@@ -380,12 +387,12 @@ function communitySummary(api: ApiCommunitySummary): CommunitySummary {
         description: api.description,
         avatarId: optional(api.avatar_id, identity),
         bannerId: optional(api.banner_id, identity),
-        isPublic: api.is_public,
-        verified: api.verified,
+        isPublic: api.is_public ?? false,
+        verified: api.verified ?? false,
         memberCount: api.member_count,
         permissions: communityPermissions(api.permissions),
         publicChannels: api.public_channels.map(channelSummary),
-        rules: api.rules,
+        rules: api.rules ?? emptyRules(),
         frozen: optional(api.frozen, frozenGroupInfo),
         gateConfig: optional(api.gate_config, accessGateConfig),
         primaryLanguage: api.primary_language,
@@ -409,11 +416,11 @@ function chatSummary(api: ChatSummary): GroupChatSummary | DirectChatSummary {
             name: group.name,
             description: group.description,
             avatarId: group.avatar_id,
-            isPublic: group.is_public,
-            historyVisibleToNewJoiners: group.history_visible_to_new_joiners,
-            messagesVisibleToNonMembers: group.messages_visible_to_non_members,
+            isPublic: group.is_public ?? false,
+            historyVisibleToNewJoiners: group.history_visible_to_new_joiners ?? false,
+            messagesVisibleToNonMembers: group.messages_visible_to_non_members ?? false,
             permissions: groupPermissions(group.permissions),
-            rules: group.rules,
+            rules: group.rules ?? emptyRules(),
             eventsTtl: group.events_ttl,
             eventsTtlLastUpdated: group.events_ttl_last_updated,
             gateConfig: optional(group.gate_config, accessGateConfig),
@@ -1301,13 +1308,13 @@ export function message(value: ApiMessage): MessageEvent {
         repliesTo: optional(value.replies_to, replyContext),
         messageId: toBigInt64(value.message_id),
         messageIndex: value.message_index,
-        reactions: reactions(value.reactions),
-        tips: tips(value.tips),
-        edited: value.edited,
-        forwarded: value.forwarded,
+        reactions: reactions(value.reactions ?? []),
+        tips: tips(value.tips ?? []),
+        edited: value.edited ?? false,
+        forwarded: value.forwarded ?? false,
         deleted: content.kind === "deleted_content",
         thread: optional(value.thread_summary, threadSummary),
-        blockLevelMarkdown: value.block_level_markdown,
+        blockLevelMarkdown: value.block_level_markdown ?? false,
         senderContext: optional(value.sender_context, senderContext),
     };
 }
@@ -2247,4 +2254,57 @@ function diamondStatus(api: ApiDiamondMembershipStatus): DiamondMembershipStatus
         case "Lifetime":
             return "lifetime";
     }
+}
+function emptyRules(): VersionedRules {
+    return {
+        text: "",
+        version: 0,
+        enabled: false,
+    };
+}
+
+export function installationEventsResponse(
+    api: UserIndexBotInstallationEventsResponse,
+): BotInstallationEventsResponse {
+    if ("Success" in api) {
+        return installationEventsSuccess(api.Success);
+    } else {
+        return ocError(api.Error);
+    }
+}
+
+function installationEventsSuccess(
+    api: UserIndexBotInstallationEventsSuccessResult,
+): BotInstallationEventsSuccess {
+    return {
+        kind: "success",
+        botId: principalBytesToString(api.bot_id),
+        events: api.events.map(botInstallationEvent),
+    };
+}
+
+function botInstallationEvent(
+    api: UserIndexBotInstallationEventsBotInstallationEvent,
+): BotInstallationEvent {
+    if ("Installed" in api) {
+        return {
+            kind: "installed",
+            location: installationLocation(api.Installed.location),
+            apiGateway: principalBytesToString(api.Installed.api_gateway),
+            grantedCommandPermissions: new Permissions(api.Installed.granted_permissions),
+            grantedAutonomousPermissions: new Permissions(
+                api.Installed.granted_autonomous_permissions,
+            ),
+            installedBy: principalBytesToString(api.Installed.installed_by),
+            installedAt: api.Installed.timestamp,
+        };
+    } else if ("Uninstalled" in api) {
+        return {
+            kind: "uninstalled",
+            location: installationLocation(api.Uninstalled.location),
+            uninstalledBy: principalBytesToString(api.Uninstalled.uninstalled_by),
+            uninstalledAt: api.Uninstalled.timestamp,
+        };
+    }
+    throw new UnsupportedValueError("Unexpected ApiBotInstallationEvent type received", api);
 }

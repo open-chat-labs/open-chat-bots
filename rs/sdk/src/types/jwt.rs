@@ -1,7 +1,6 @@
 use super::{ActionScope, BotPermissions, CanisterId, Chat, MessageId, MessageIndex, UserId};
 use crate::api::command::Command;
 use crate::types::ChannelId;
-use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::Display;
@@ -22,7 +21,7 @@ impl Display for TokenError {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BotActionByCommandClaims {
     pub bot_api_gateway: CanisterId,
     pub bot: UserId,
@@ -31,7 +30,7 @@ pub struct BotActionByCommandClaims {
     pub command: Command,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum BotCommandScope {
     Chat(BotActionChatDetails),
     Community(BotActionCommunityDetails),
@@ -83,7 +82,7 @@ impl From<BotCommandScope> for ActionScope {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BotActionChatDetails {
     pub chat: Chat,
     pub thread: Option<MessageIndex>,
@@ -91,7 +90,7 @@ pub struct BotActionChatDetails {
     pub user_message_id: Option<MessageId>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BotActionCommunityDetails {
     pub community_id: CanisterId,
 }

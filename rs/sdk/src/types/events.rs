@@ -1,16 +1,14 @@
-use std::collections::HashSet;
-
-use crate::api::command::Command;
-
 use super::{
     AccessGateConfig, BotPermissions, CanisterId, Chat, ChatPermissions, ChatRole, EventIndex,
     InstallationLocation, MessageContent, MessageId, MessageIndex, Milliseconds, TimestampMillis,
     UserId,
 };
-use candid::CandidType;
+use crate::api::command::Command;
+use crate::utils::is_default;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct EventWrapper<T> {
     pub index: EventIndex,
     pub timestamp: TimestampMillis,
@@ -19,7 +17,7 @@ pub struct EventWrapper<T> {
     pub event: T,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum ChatEvent {
     Empty,
     Message(Box<Message>),
@@ -54,7 +52,7 @@ pub enum ChatEvent {
     FailedToDeserialize,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Message {
     pub message_index: MessageIndex,
     pub message_id: MessageId,
@@ -62,21 +60,26 @@ pub struct Message {
     pub content: MessageContent,
     pub bot_context: Option<BotMessageContext>,
     pub replies_to: Option<ReplyContext>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub reactions: Vec<(String, Vec<UserId>)>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tips: Tips,
     pub thread_summary: Option<ThreadSummary>,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub edited: bool,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub forwarded: bool,
+    #[serde(default, skip_serializing_if = "is_default")]
     pub block_level_markdown: bool,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ReplyContext {
     pub chat_if_other: Option<(Chat, Option<MessageIndex>)>,
     pub event_index: EventIndex,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ThreadSummary {
     pub participant_ids: Vec<UserId>,
     pub followed_by_me: bool,
@@ -85,16 +88,13 @@ pub struct ThreadSummary {
     pub latest_event_timestamp: TimestampMillis,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
-pub struct Tips(Vec<(CanisterId, Vec<(UserId, u128)>)>);
-
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BotMessageContext {
     pub command: Option<Command>,
     pub finalised: bool,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
 #[repr(u8)]
 pub enum ChatEventCategory {
     Message = 0,    // Messages + edits, reaction, tips, etc.
@@ -103,98 +103,103 @@ pub enum ChatEventCategory {
 }
 
 type Events = Vec<EventWrapper<ChatEvent>>;
-type ExpiredEventRanges = Vec<(EventIndex, EventIndex)>;
 type Unauthorized = Vec<EventIndex>;
+type ExpiredEventRanges = Vec<(EventIndex, EventIndex)>;
+type ExpiredMessageRanges = Vec<(MessageIndex, MessageIndex)>;
+type Tips = Vec<(CanisterId, Vec<(UserId, u128)>)>;
 
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct EventsResponse {
     pub events: Events,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub unauthorized: Unauthorized,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub expired_event_ranges: ExpiredEventRanges,
-    pub expired_message_ranges: Vec<(MessageIndex, MessageIndex)>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub expired_message_ranges: ExpiredMessageRanges,
     pub latest_event_index: EventIndex,
     pub chat_last_updated: TimestampMillis,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct MessagesResponse {
     pub messages: Vec<EventWrapper<Message>>,
     pub latest_event_index: EventIndex,
     pub chat_last_updated: TimestampMillis,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GroupCreated {
     pub name: String,
     pub description: String,
     pub created_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NameChanged {
     pub new_name: String,
     pub previous_name: String,
     pub changed_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DescriptionChanged {
     pub new_description: String,
     pub previous_description: String,
     pub changed_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RulesChanged {
     pub enabled: bool,
     pub prev_enabled: bool,
     pub changed_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AvatarChanged {
     pub new_avatar: Option<u128>,
     pub previous_avatar: Option<u128>,
     pub changed_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MembersAdded {
     pub user_ids: Vec<UserId>,
     pub added_by: UserId,
     pub unblocked: Vec<UserId>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MembersRemoved {
     pub user_ids: Vec<UserId>,
     pub removed_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UsersBlocked {
     pub user_ids: Vec<UserId>,
     pub blocked_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UsersUnblocked {
     pub user_ids: Vec<UserId>,
     pub unblocked_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MemberJoined {
     pub user_id: UserId,
     pub invited_by: Option<UserId>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MemberLeft {
     pub user_id: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RoleChanged {
     pub user_ids: Vec<UserId>,
     pub changed_by: UserId,
@@ -202,102 +207,102 @@ pub struct RoleChanged {
     pub new_role: ChatRole,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MessagePinned {
     pub message_index: MessageIndex,
     pub pinned_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MessageUnpinned {
     pub message_index: MessageIndex,
     pub unpinned_by: UserId,
     pub due_to_message_deleted: bool,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PermissionsChanged {
     pub old_permissions_v2: ChatPermissions,
     pub new_permissions_v2: ChatPermissions,
     pub changed_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GroupVisibilityChanged {
     pub public: Option<bool>,
     pub messages_visible_to_non_members: Option<bool>,
     pub changed_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct InviteCodeChanged {
     pub change: GroupInviteCodeChange,
     pub changed_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum GroupInviteCodeChange {
     Enabled,
     Disabled,
     Reset,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GroupFrozen {
     pub frozen_by: UserId,
     pub reason: Option<String>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GroupUnfrozen {
     pub unfrozen_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct EventsTimeToLiveUpdated {
     pub updated_by: UserId,
     pub new_ttl: Option<Milliseconds>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GateUpdated {
     pub updated_by: UserId,
     pub new_gate_config: Option<AccessGateConfig>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MembersAddedToDefaultChannel {
     pub count: u32,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ExternalUrlUpdated {
     pub updated_by: UserId,
     pub new_url: Option<String>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 pub struct DirectChatCreated {}
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UsersInvited {
     pub user_ids: Vec<UserId>,
     pub invited_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BotAdded {
     pub user_id: UserId,
     pub added_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BotRemoved {
     pub user_id: UserId,
     pub removed_by: UserId,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BotUpdated {
     pub user_id: UserId,
     pub updated_by: UserId,
@@ -376,18 +381,14 @@ impl ChatEvent {
     }
 }
 
-#[derive(
-    CandidType, Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord,
-)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum CommunityEventCategory {
     Membership = 0, // User added, blocked, invited, role changed, etc.
     Details = 1,    // Name, description, rules, permissions changed, etc.
 }
 
-#[derive(
-    CandidType, Serialize, Deserialize, Clone, Debug, Copy, Hash, PartialEq, Eq, PartialOrd, Ord,
-)]
+#[derive(Serialize, Deserialize, Clone, Debug, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChatEventType {
     // Message category
     Message,
@@ -465,9 +466,7 @@ impl From<ChatEventType> for ChatEventCategory {
     }
 }
 
-#[derive(
-    CandidType, Serialize, Deserialize, Clone, Debug, Copy, Hash, PartialEq, Eq, PartialOrd, Ord,
-)]
+#[derive(Serialize, Deserialize, Clone, Debug, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CommunityEventType {
     // Details category
     Created,
@@ -569,7 +568,7 @@ impl From<CommunityEventType> for CommunityEventCategory {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BotRegisteredEvent {
     #[serde(alias = "i")]
     pub bot_id: UserId,
@@ -577,7 +576,7 @@ pub struct BotRegisteredEvent {
     pub bot_name: String,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BotInstalledEvent {
     #[serde(alias = "u")]
     pub installed_by: UserId,
@@ -589,7 +588,7 @@ pub struct BotInstalledEvent {
     pub granted_autonomous_permissions: BotPermissions,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BotUninstalledEvent {
     #[serde(alias = "u")]
     pub uninstalled_by: UserId,

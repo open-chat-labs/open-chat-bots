@@ -1,14 +1,13 @@
 use crate::types::{ActionContext, ActionScope, Chat, ChatId, CommunityId};
-use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum BotCommunityOrGroupContext {
     Command(String),
     Autonomous(CommunityOrGroup),
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CommunityOrGroup {
     Community(CommunityId),
     Group(ChatId),

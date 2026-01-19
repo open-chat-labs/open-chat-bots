@@ -13,19 +13,33 @@ module {
     };
 
     public type Response = {
-        #Success : ChatDetails;
+        #Success : ChatSummary;
         #Error : B.OCError;
     };
 
-    public type ChatDetails = {
+    public type ChatSummary = {
+        #Direct : DirectChatSummary;
+        #Group : GroupChatSummary;
+    };
+
+    public type DirectChatSummary = {
+        last_updated : B.TimestampMillis;
+        latest_event_index : B.EventIndex;
+        latest_message_index : ?B.MessageIndex;
+        events_ttl : ?B.Milliseconds;
+        events_ttl_last_updated : ?B.TimestampMillis;
+        video_call_in_progress : ?VideoCall;
+    };
+
+    public type GroupChatSummary = {
         name : Text;
         description : Text;
         avatar_id : ?Nat;
-        is_public : Bool;
-        history_visible_to_new_joiners : Bool;
-        messages_visible_to_non_members : Bool;
+        is_public : ?Bool;
+        history_visible_to_new_joiners : ?Bool;
+        messages_visible_to_non_members : ?Bool;
         permissions : P.ChatPermissions;
-        rules : VersionedRules;
+        rules : ?VersionedRules;
         events_ttl : ?B.Milliseconds;
         events_ttl_last_updated : ?B.TimestampMillis;
         gate_config : ?A.AccessGateConfig;

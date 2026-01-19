@@ -1,6 +1,5 @@
 use crate::oc_api::actions::ActionDef;
 use crate::types::{BotChatContext, ChatRole, OCError, UserId};
-use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -15,14 +14,14 @@ impl ActionDef for ChangeRoleAction {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Args {
     pub chat_context: BotChatContext,
     pub user_ids: Vec<UserId>,
     pub new_role: ChatRole,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Response {
     Success,
     PartialSuccess(HashMap<UserId, OCError>),

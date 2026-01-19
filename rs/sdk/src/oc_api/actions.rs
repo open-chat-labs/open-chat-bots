@@ -1,6 +1,6 @@
 use super::Runtime;
 use crate::types::{CallResult, CanisterId};
-use candid::CandidType;
+use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::future::Future;
 use std::sync::Arc;
@@ -14,14 +14,15 @@ pub mod community_summary;
 pub mod create_channel;
 pub mod delete_channel;
 pub mod delete_messages;
+pub mod installation_events;
 pub mod invite_users;
 pub mod members;
 pub mod remove_user;
 pub mod send_message;
 
 pub trait ActionDef {
-    type Args: CandidType + Clone + Send + 'static;
-    type Response: CandidType + DeserializeOwned;
+    type Args: Serialize + Clone + Send + 'static;
+    type Response: DeserializeOwned;
 
     fn method_name(is_canister_runtime: bool) -> &'static str;
 }
@@ -47,17 +48,15 @@ pub trait ActionArgsBuilder<R: Runtime>: Sized {
         on_response: F,
     ) {
         let runtime = self.runtime();
-        let is_canister_runtime = runtime.is_canister();
         let runtime_clone = runtime.clone();
         let api_gateway = self.api_gateway();
-        let method_name = Self::Action::method_name(is_canister_runtime);
+        let method_name = self.method_name();
         let args = self.into_args();
 
         runtime.spawn(async move {
             let response = runtime_clone
-                .call_canister(api_gateway, method_name, (args.clone(),))
-                .await
-                .map(|(r,)| r);
+                .call_canister(api_gateway, &method_name, args.clone())
+                .await;
 
             on_response(args, response);
         });
@@ -68,15 +67,16 @@ pub trait ActionArgsBuilder<R: Runtime>: Sized {
     ) -> impl Future<Output = CallResult<<Self::Action as ActionDef>::Response>> + Send {
         let runtime = self.runtime();
         let api_gateway = self.api_gateway();
-        let is_canister_runtime = runtime.is_canister();
-        let method_name = Self::Action::method_name(is_canister_runtime);
+        let method_name = self.method_name();
         let args = self.into_args();
 
-        async move {
-            runtime
-                .call_canister(api_gateway, method_name, (args,))
-                .await
-                .map(|(r,)| r)
-        }
+        async move { runtime.call_canister(api_gateway, &method_name, args).await }
+    }
+
+    fn method_name(&self) -> String {
+        format!(
+            "{}_msgpack",
+            Self::Action::method_name(self.runtime().is_canister())
+        )
     }
 }

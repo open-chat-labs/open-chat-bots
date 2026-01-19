@@ -9,7 +9,7 @@ use crate::state;
 pub async fn execute(request: HttpRequest) -> HttpResponse {
     let public_key = state::read(|state| state.oc_public_key().to_string());
 
-    let event_wrapper = match parse_event(request, &public_key, None) {
+    let event_wrapper = match parse_event(request, &public_key) {
         Ok(wrapper) => wrapper,
         Err(err) => {
             ic_cdk::println!("Failed to parse event wrapper: {}", err);
@@ -22,10 +22,6 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
             match event.location {
                 InstallationLocation::Group(chat_id) => {
                     state.engines.remove(&Chat::Group(chat_id));
-
-                    // TODO: Remove this hack once the User canisters have been upgraded with this fix
-                    // https://github.com/open-chat-labs/open-chat/pull/8533
-                    state.engines.remove(&Chat::Direct(chat_id));
                 }
                 InstallationLocation::User(user_id) => {
                     state.engines.remove(&Chat::Direct(user_id));

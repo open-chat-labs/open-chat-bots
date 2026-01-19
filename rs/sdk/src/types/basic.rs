@@ -1,10 +1,10 @@
-use candid::{CandidType, Principal};
+use ic_principal::Principal;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 
 use super::{BotCommandScope, OCError};
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CanisterId(Principal);
 
 pub type CommunityId = CanisterId;
@@ -22,7 +22,7 @@ pub type TimestampNanos = u64;
 pub type CallResult<T> = Result<T, CallError>;
 pub type CallError = (i32, String);
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum UnitResult {
     Success,
     Error(OCError),
@@ -52,7 +52,7 @@ impl From<CanisterId> for Principal {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum Chat {
     Direct(ChatId),
     Group(ChatId),
@@ -83,20 +83,20 @@ impl Chat {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Rules {
     pub text: String,
     pub enabled: bool,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Document {
     pub id: u128,
     pub mime_type: String,
     pub data: Vec<u8>,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum ActionScope {
     Chat(Chat),
     Community(CommunityId),
@@ -134,12 +134,10 @@ impl ActionScope {
     }
 }
 
-#[derive(
-    CandidType, Serialize, Deserialize, Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash,
-)]
+#[derive(Serialize, Deserialize, Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct Reaction(String);
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum InstallationLocation {
     Community(CommunityId),
     Group(ChatId),
@@ -167,7 +165,7 @@ impl From<BotCommandScope> for InstallationLocation {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum InstallationLocationType {
     Community,
     Group,

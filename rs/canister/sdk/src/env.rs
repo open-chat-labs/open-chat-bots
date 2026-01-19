@@ -1,4 +1,4 @@
-use candid::Principal;
+use ic_principal::Principal;
 use oc_bots_sdk::types::{Hash, Nanoseconds, TimestampMillis, TimestampNanos};
 use sha2::{Digest, Sha256};
 

@@ -6,6 +6,7 @@ import { ActionContext } from "../domain/action_context";
 import { Permissions } from "../domain/permissions";
 import { BadRequestError } from "../utils/badrequest";
 import { BotClient } from "./bot_client";
+import { GlobalClient } from "./global_client";
 
 export function isMainnet(icUrl: string): boolean {
     return icUrl.includes("icp-api.io");
@@ -89,5 +90,9 @@ export class BotClientFactory {
             console.error(`Unable to decode jwt`, err, token);
             throw new BadRequestError("AccessTokenInvalid");
         }
+    }
+
+    createGlobalClient(): GlobalClient {
+        return new GlobalClient(this.#agent, this.env);
     }
 }

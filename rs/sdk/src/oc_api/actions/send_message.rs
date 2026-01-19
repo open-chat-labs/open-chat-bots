@@ -3,8 +3,7 @@ use crate::types::{
     BotChatContext, EventIndex, MessageContentInitial, MessageId, MessageIndex, OCError,
     TimestampMillis,
 };
-use candid::{CandidType, Deserialize};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 pub struct SendMessageAction;
 
@@ -17,7 +16,7 @@ impl ActionDef for SendMessageAction {
     }
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Args {
     pub chat_context: BotChatContext,
     pub thread: Option<MessageIndex>,
@@ -28,13 +27,13 @@ pub struct Args {
     pub finalised: bool,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Response {
     Success(SuccessResult),
     Error(OCError),
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SuccessResult {
     pub message_id: MessageId,
     pub event_index: EventIndex,
