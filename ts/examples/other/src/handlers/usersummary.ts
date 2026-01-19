@@ -1,13 +1,11 @@
 import { type UserSummary } from "@open-ic/openchat-botclient-ts";
 import { Response } from "express";
-import { factory } from "../factory";
 import { WithBotClient } from "../types";
 import { success } from "./success";
 
 export default async function (req: WithBotClient, res: Response) {
-    const resp = await factory.createUserIndexClient().userSummary(req.botClient.initiator!);
-
     const client = req.botClient;
+    const resp = await client.userSummary();
     if (resp.kind === "success") {
         const msg = createSuccessMessage(resp.user);
         const details = (await client.createTextMessage(msg)).setFinalised(true);

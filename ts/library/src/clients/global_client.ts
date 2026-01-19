@@ -1,5 +1,6 @@
 import { HttpAgent } from "@dfinity/agent";
 import type {
+    BotClientConfig,
     BotInstallationEvent,
     BotInstallationEventsResponse,
     BotInstallationEventsSuccess,
@@ -18,12 +19,12 @@ import {
     UserIndexUserResponse,
 } from "../typebox/typebox";
 
-export class UserIndexClient extends MsgpackCanisterAgent {
+export class GlobalClient extends MsgpackCanisterAgent {
     constructor(
         agent: HttpAgent,
-        protected userIndexCanisterId: string | undefined,
+        protected env: BotClientConfig,
     ) {
-        super(agent, userIndexCanisterId ?? "4bkt6-4aaaa-aaaaf-aaaiq-cai");
+        super(agent, env.userIndexCanisterId ?? "4bkt6-4aaaa-aaaaf-aaaiq-cai");
     }
 
     userSummary(userId: string): Promise<UserSummaryResponse> {

@@ -11,6 +11,7 @@ import {
     PollMessage,
     TextMessage,
     type BotClientConfig,
+    type BotInstallationEventsResponse,
     type ChangeRoleResponse,
     type ChatEventsCriteria,
     type ChatEventsResponse,
@@ -26,6 +27,7 @@ import {
     type PermissionRole,
     type SendMessageResponse,
     type UnitResult,
+    type UserSummaryResponse,
 } from "../domain";
 import type { ActionContext } from "../domain/action_context";
 import type { Channel } from "../domain/channel";
@@ -33,8 +35,10 @@ import { apiOptional, principalBytesToString } from "../mapping";
 import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
 import { DataClient } from "../services/data/data.client";
 import { BotCommand, BotCommandArg, MemberType } from "../typebox/typebox";
+import { GlobalClient } from "./global_client";
 
 export class BotClient {
+    #globalService: GlobalClient;
     #botService: BotGatewayClient;
     #env: BotClientConfig;
     #agent: HttpAgent;
@@ -45,6 +49,7 @@ export class BotClient {
         this.#env = env;
         this.#agent = agent;
         this.#botService = new BotGatewayClient(this.#botApiGateway, agent, env);
+        this.#globalService = new GlobalClient(agent, env);
     }
 
     get #botApiGateway(): string {
@@ -381,5 +386,20 @@ export class BotClient {
         } else {
             return Promise.resolve({ kind: "error", code: 0, message: undefined });
         }
+    }
+
+    userSummary(userId?: string): Promise<UserSummaryResponse> {
+        const u = userId ?? this.initiator;
+        if (u === undefined) {
+            console.error(
+                "No userId provided and no userId can be derived from the execution context",
+            );
+            return Promise.resolve({ kind: "user_not_found" });
+        }
+        return this.#globalService.userSummary(u);
+    }
+
+    installationEvents(): Promise<BotInstallationEventsResponse> {
+        return this.#globalService.installationEvents();
     }
 }
