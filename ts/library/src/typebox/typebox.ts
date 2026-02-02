@@ -136,12 +136,6 @@ export const ProposalsBotCanisterInstallMode = Type.Union([
 export type ProposalsBotTreasury = Static<typeof ProposalsBotTreasury>;
 export const ProposalsBotTreasury = Type.Union([Type.Literal("ICP"), Type.Literal("SNS")]);
 
-export type IdentityChallenge = Static<typeof IdentityChallenge>;
-export const IdentityChallenge = Type.Object({
-    key: Type.Number(),
-    png_base64: Type.String(),
-});
-
 export type IdentityRemoveIdentityLinkResponse = Static<typeof IdentityRemoveIdentityLinkResponse>;
 export const IdentityRemoveIdentityLinkResponse = Type.Union([
     Type.Literal("Success"),
@@ -156,21 +150,6 @@ export type IdentityVerifyAccountLinkingCodeArgs = Static<
 export const IdentityVerifyAccountLinkingCodeArgs = Type.Object({
     code: Type.String(),
 });
-
-export type IdentityChallengeAttempt = Static<typeof IdentityChallengeAttempt>;
-export const IdentityChallengeAttempt = Type.Object({
-    key: Type.Number(),
-    chars: Type.String(),
-});
-
-export type IdentityGenerateChallengeResponse = Static<typeof IdentityGenerateChallengeResponse>;
-export const IdentityGenerateChallengeResponse = Type.Union([
-    Type.Object({
-        Success: IdentityChallenge,
-    }),
-    Type.Literal("AlreadyRegistered"),
-    Type.Literal("Throttled"),
-]);
 
 export type OnlineUsersMinutesOnlineArgs = Static<typeof OnlineUsersMinutesOnlineArgs>;
 export const OnlineUsersMinutesOnlineArgs = Type.Object({
@@ -545,12 +524,6 @@ export const ProposalDecisionStatus = Type.Union([
     Type.Literal("Adopted"),
     Type.Literal("Executed"),
     Type.Literal("Failed"),
-]);
-
-export type CanisterUpgradeStatus = Static<typeof CanisterUpgradeStatus>;
-export const CanisterUpgradeStatus = Type.Union([
-    Type.Literal("InProgress"),
-    Type.Literal("NotRequired"),
 ]);
 
 export type OptionUpdateU128 = Static<typeof OptionUpdateU128>;
@@ -3737,8 +3710,6 @@ export const IdentityCreateIdentityResponse = Type.Union([
     Type.Object({
         OriginatingCanisterInvalid: TSPrincipal,
     }),
-    Type.Literal("ChallengeRequired"),
-    Type.Literal("ChallengeFailed"),
 ]);
 
 export type IdentityCreateIdentityArgs = Static<typeof IdentityCreateIdentityArgs>;
@@ -3748,7 +3719,6 @@ export const IdentityCreateIdentityArgs = Type.Object({
     webauthn_key: Type.Optional(IdentityWebAuthnKey),
     is_ii_principal: Type.Optional(Type.Boolean()),
     max_time_to_live: Type.Optional(Type.BigInt()),
-    challenge_attempt: Type.Optional(IdentityChallengeAttempt),
 });
 
 export type OnlineUsersLastOnlineArgs = Static<typeof OnlineUsersLastOnlineArgs>;
@@ -4241,6 +4211,25 @@ export const UserCancelP2pSwapArgs = Type.Object({
     message_id: MessageId,
 });
 
+export type UserSetPinNumberPinNumberVerification = Static<
+    typeof UserSetPinNumberPinNumberVerification
+>;
+export const UserSetPinNumberPinNumberVerification = Type.Union([
+    Type.Literal("None"),
+    Type.Object({
+        PIN: PinNumberWrapper,
+    }),
+    Type.Object({
+        Reauthenticated: Type.String(),
+    }),
+]);
+
+export type UserSetPinNumberArgs = Static<typeof UserSetPinNumberArgs>;
+export const UserSetPinNumberArgs = Type.Object({
+    new: Type.Optional(PinNumberWrapper),
+    verification: UserSetPinNumberPinNumberVerification,
+});
+
 export type UserSwapTokensExchangeSwapArgs = Static<typeof UserSwapTokensExchangeSwapArgs>;
 export const UserSwapTokensExchangeSwapArgs = Type.Object({
     swap_canister_id: TSPrincipal,
@@ -4702,15 +4691,15 @@ export const UserSummary = Type.Object({
     username: Type.String(),
     display_name: Type.Optional(Type.String()),
     avatar_id: Type.Optional(Type.BigInt()),
-    is_bot: Type.Boolean(),
-    suspended: Type.Boolean(),
-    diamond_member: Type.Boolean(),
-    diamond_membership_status: DiamondMembershipStatus,
+    is_bot: Type.Optional(Type.Boolean()),
+    suspended: Type.Optional(Type.Boolean()),
+    diamond_member: Type.Optional(Type.Boolean()),
+    diamond_membership_status: Type.Optional(DiamondMembershipStatus),
     total_chit_earned: Type.Number(),
     chit_balance: Type.Number(),
     streak: Type.Number(),
     max_streak: Type.Number(),
-    is_unique_person: Type.Boolean(),
+    is_unique_person: Type.Optional(Type.Boolean()),
 });
 
 export type DirectMessageTipped = Static<typeof DirectMessageTipped>;
@@ -5013,10 +5002,10 @@ export const UserSummaryStable = Type.Object({
     display_name: Type.Optional(Type.String()),
     avatar_id: Type.Optional(Type.BigInt()),
     profile_background_id: Type.Optional(Type.BigInt()),
-    is_bot: Type.Boolean(),
-    suspended: Type.Boolean(),
-    diamond_membership_status: DiamondMembershipStatus,
-    is_unique_person: Type.Boolean(),
+    is_bot: Type.Optional(Type.Boolean()),
+    suspended: Type.Optional(Type.Boolean()),
+    diamond_membership_status: Type.Optional(DiamondMembershipStatus),
+    is_unique_person: Type.Optional(Type.Boolean()),
 });
 
 export type StringParam = Static<typeof StringParam>;
@@ -7383,8 +7372,6 @@ export const UserIndexCurrentUserSuccessResult = Type.Object({
     date_created: Type.BigInt(),
     display_name: Type.Optional(Type.String()),
     avatar_id: Type.Optional(Type.BigInt()),
-    canister_upgrade_status: CanisterUpgradeStatus,
-    wasm_version: BuildVersion,
     icp_account: Type.Tuple([
         Type.Number(),
         Type.Number(),
@@ -7639,28 +7626,6 @@ export const UserCreateGroupResponse = Type.Union([
     }),
 ]);
 
-export type UserSetPinNumberPinNumberVerification = Static<
-    typeof UserSetPinNumberPinNumberVerification
->;
-export const UserSetPinNumberPinNumberVerification = Type.Union([
-    Type.Literal("None"),
-    Type.Object({
-        PIN: PinNumberWrapper,
-    }),
-    Type.Object({
-        Delegation: SignedDelegation,
-    }),
-    Type.Object({
-        Reauthenticated: Type.String(),
-    }),
-]);
-
-export type UserSetPinNumberArgs = Static<typeof UserSetPinNumberArgs>;
-export const UserSetPinNumberArgs = Type.Object({
-    new: Type.Optional(PinNumberWrapper),
-    verification: UserSetPinNumberPinNumberVerification,
-});
-
 export type UserSendMessageWithTransferToGroupSuccessResult = Static<
     typeof UserSendMessageWithTransferToGroupSuccessResult
 >;
@@ -7840,15 +7805,15 @@ export const CurrentUserSummary = Type.Object({
     display_name: Type.Optional(Type.String()),
     avatar_id: Type.Optional(Type.BigInt()),
     profile_background_id: Type.Optional(Type.BigInt()),
-    is_bot: Type.Boolean(),
-    is_platform_moderator: Type.Boolean(),
-    is_platform_operator: Type.Boolean(),
+    is_bot: Type.Optional(Type.Boolean()),
+    is_platform_moderator: Type.Optional(Type.Boolean()),
+    is_platform_operator: Type.Optional(Type.Boolean()),
     suspension_details: Type.Optional(SuspensionDetails),
-    is_suspected_bot: Type.Boolean(),
+    is_suspected_bot: Type.Optional(Type.Boolean()),
     diamond_membership_details: Type.Optional(DiamondMembershipDetails),
-    diamond_membership_status: DiamondMembershipStatusFull,
-    moderation_flags_enabled: Type.Number(),
-    is_unique_person: Type.Boolean(),
+    diamond_membership_status: Type.Optional(DiamondMembershipStatusFull),
+    moderation_flags_enabled: Type.Optional(Type.Number()),
+    is_unique_person: Type.Optional(Type.Boolean()),
     total_chit_earned: Type.Number(),
     chit_balance: Type.Number(),
     streak: Type.Number(),
@@ -7937,9 +7902,9 @@ export const UserIndexBotUpdatesBotDetails = Type.Object({
 
 export type UserIndexUsersResult = Static<typeof UserIndexUsersResult>;
 export const UserIndexUsersResult = Type.Object({
-    users: Type.Array(UserSummaryV2),
+    users: Type.Optional(Type.Array(UserSummaryV2)),
     current_user: Type.Optional(CurrentUserSummary),
-    deleted: Type.Array(UserId),
+    deleted: Type.Optional(Type.Array(UserId)),
     timestamp: Type.BigInt(),
 });
 

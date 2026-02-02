@@ -2235,22 +2235,23 @@ function userSummary(api: ApiUserSummary): UserSummary {
             blobId: id,
             canisterId: principalBytesToString(api.user_id),
         })),
-        suspended: api.suspended,
+        suspended: api.suspended ?? false,
         diamondStatus: diamondStatus(api.diamond_membership_status),
         chitBalance: api.chit_balance,
         totalChitEarned: api.total_chit_earned,
         streak: api.streak,
         maxStreak: api.max_streak,
-        isUniquePerson: api.is_unique_person,
+        isUniquePerson: api.is_unique_person ?? false,
     };
 }
 
-function diamondStatus(api: ApiDiamondMembershipStatus): DiamondMembershipStatus {
+function diamondStatus(api: ApiDiamondMembershipStatus | undefined): DiamondMembershipStatus {
     switch (api) {
-        case "Active":
-            return "active";
+        case undefined:
         case "Inactive":
             return "inactive";
+        case "Active":
+            return "active";
         case "Lifetime":
             return "lifetime";
     }
