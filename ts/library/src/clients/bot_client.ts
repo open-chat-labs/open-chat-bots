@@ -52,6 +52,10 @@ export class BotClient {
         this.#globalService = new GlobalClient(agent, env);
     }
 
+    get apiGateway(): string {
+        return this.#actionContext.apiGateway;
+    }
+
     get #botApiGateway(): string {
         return this.#actionContext.apiGateway;
     }
@@ -329,6 +333,21 @@ export class BotClient {
             .members(
                 this.#actionContext.communityOrGroupChatContext(),
                 memberTypes,
+                channelId ?? this.channelId,
+            )
+            .then((resp) => {
+                if (resp.kind === "error") {
+                    console.error("OpenChat botClient.members failed with: ", resp);
+                }
+                return resp;
+            });
+    }
+
+    inviteUsers(userIds: string[], channelId?: bigint): Promise<UnitResult> {
+        return this.#botService
+            .inviteUsers(
+                this.#actionContext.chatContext(channelId),
+                userIds,
                 channelId ?? this.channelId,
             )
             .then((resp) => {

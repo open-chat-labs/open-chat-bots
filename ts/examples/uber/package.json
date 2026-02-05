@@ -1,0 +1,32 @@
+{
+  "name": "@open-ic/digest_bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "nodemon --exec ts-node ./src/server.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "OpenChat bot for summarizing chat activity",
+  "dependencies": {
+    "@dfinity/identity-secp256k1": "^2.2.0",
+    "@open-ic/openchat-botclient-ts": "../../library",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
+    "node-cron": "^3.0.3",
+    "openai": "^4.85.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.5",
+    "@types/node-cron": "^3.0.11",
+    "nodemon": "^3.1.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}

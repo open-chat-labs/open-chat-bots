@@ -21,3 +21,5 @@ bot_store.db
 local/
 rs/canister_ids.json
 *.pem
+claude.md
+GEMINI.md

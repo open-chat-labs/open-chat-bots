@@ -58,6 +58,7 @@ import {
     LocalUserIndexBotDeleteChannelArgs as BotDeleteChannelArgs,
     UnitResult as BotDeleteChannelResponse,
     LocalUserIndexBotDeleteMessagesArgs as BotDeleteMessagesArgs,
+    LocalUserIndexBotInviteUsersArgs as BotInviteUsersArgs,
     LocalUserIndexBotMembersArgs as BotMemberArgs,
     LocalUserIndexBotSendMessageArgs as BotSendMessageArgs,
     LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
@@ -125,6 +126,23 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
             ApiUnitResult,
         ).catch((err) => {
             console.error("Call to bot_delete_messages failed with: ", JSON.stringify(err));
+            throw err;
+        });
+    }
+
+    inviteUsers(ctx: BotChatContext, userIds: string[], channelId?: bigint): Promise<UnitResult> {
+        return this.executeMsgpackUpdate(
+            "bot_invite_users",
+            {
+                chat_context: apiBotChatContext(ctx),
+                user_ids: userIds.map(principalStringToBytes),
+                channel_id: channelId,
+            },
+            unitResult,
+            BotInviteUsersArgs,
+            ApiUnitResult,
+        ).catch((err) => {
+            console.error("Call to bot_invite_users failed with: ", JSON.stringify(err));
             throw err;
         });
     }
