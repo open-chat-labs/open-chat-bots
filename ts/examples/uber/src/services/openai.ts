@@ -147,6 +147,17 @@ export async function handleCommand(client: BotClient, prompt: string): Promise<
                     }
                 }
 
+                if (toolCall.function.name === "propose_plan") {
+                    const plan = JSON.parse(toolCall.function.arguments);
+                    // we will store the plan against the message we are about to write
+                    // and then serialise a human readable version to the message
+                    messages.push({
+                        role: "tool",
+                        tool_call_id: toolCall.id,
+                        content: JSON.stringify(plan),
+                    });
+                }
+
                 if (toolCall.function.name === "create_channel") {
                     if (client.scope.isChatScope() && client.scope.chat.isChannel()) {
                         // This is super hacky - for some reason we need to have a CommunityActionScope

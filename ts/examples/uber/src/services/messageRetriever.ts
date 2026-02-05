@@ -1,6 +1,7 @@
 import { BotClient } from "@open-ic/openchat-botclient-ts";
 import { ChatMessage } from "../types";
 
+// TODO - this should _probably_ ignore messages that been sent by the bot itself
 export async function getRecentMessages(client: BotClient, count: number): Promise<ChatMessage[]> {
     const maxCount = Math.min(count, 300);
 
