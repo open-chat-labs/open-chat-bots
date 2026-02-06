@@ -7,6 +7,7 @@ import {
 } from "@open-ic/openchat-botclient-ts";
 import { Request, Response } from "express";
 import { factory } from "../factory";
+import { executePlan, getPlan } from "../services/planStore";
 
 export async function notify(req: Request, res: Response) {
     handleNotification(
@@ -28,5 +29,11 @@ export async function notify(req: Request, res: Response) {
 }
 
 async function handleTextMessage(client: BotClient, message: MessageEvent<MessageContent>) {
+    // let's assume this was a message reaction
+    // There is some error handling that needs to happen here
+    const plan = await getPlan(message.messageId);
+    if (plan !== undefined) {
+        await executePlan(client, plan);
+    }
     console.log("Message received: ", message);
 }
