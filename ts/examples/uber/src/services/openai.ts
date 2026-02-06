@@ -18,6 +18,8 @@ import { inviteUsers } from "./inviteUsers";
 import { deleteMessage } from "./messageDeleter";
 import { reactToMessage } from "./messageReactor";
 import { getRecentMessages } from "./messageRetriever";
+import { validatePlan } from "./planSchema";
+import { proposePlan } from "./planStore";
 import { getTheRules } from "./rulesRetriever";
 import { allTools } from "./tools";
 
@@ -38,6 +40,17 @@ async function getFormattedMessages(client: BotClient, messageCount: number): Pr
 }
 
 export async function handleCommand(client: BotClient, prompt: string): Promise<string> {
+    const messageId = client.messageId;
+    const initiator = client.initiator;
+
+    if (messageId === undefined) {
+        return "Unable to process command because messageId is missing";
+    }
+
+    if (initiator === undefined) {
+        return "Unable to process command because initiator is missing";
+    }
+
     try {
         const messages: ChatCompletionMessageParam[] = [
             {
@@ -49,10 +62,28 @@ export async function handleCommand(client: BotClient, prompt: string): Promise<
    - NEVER replace with generic terms like "a user", "someone", or "user abc12"
    - Copy the @UserId(...) exactly as it appears - this is essential for the system to work
 3. Be objective and factual in your own messages
-4. You must only handle prompts that relate to OpenChat and result in tool calls for supplied tools. If you cannot resolve with tool calls, just say so.
 5. When asked for recent messages get the last 50 messages by default.
-6. User get_rules tool to find out the rules in the current context
-7. You should consider the words Group and Channel to by synonymous with Chat`,
+6. Use get_rules tool to find out the rules in the current context
+7. You should consider the words Group and Channel to by synonymous with Chat
+8. When you receive something that looks like a proposal_plan, summarise it concisely with bullet points and add the phrase "Approve 👍 or Reject 👎 this plan".
+CRITICAL TOOL CONSTRAINTS:
+- You may use tools to acquire the information required to build a propsal_plan
+- You must only handle prompts that use relate to OpenChat and result in tool calls for the supplied tools. If you cannot resolve with tool calls, just say so.
+- When calling propose_plan, each step MUST be one of the explicitly defined action schemas.
+- Each step MUST include a "action" field.
+- The "action" field MUST be exactly one of the following strings:
+  - "create_channel"
+  - "delete_channel"
+  - "change_role"
+  - "delete_message"
+  - "react_to_message"
+  - "react_to_messages"
+- Use a single bulk tool call rather than repeatedly calling an individual tool if possible e.g. use react_to_messages once rather than react_to_message n times
+- NO other "action" values are allowed.
+- Do NOT invent new step actions.
+- Do NOT use descriptive or generic actions such as "message", "channel", "user", or similar.
+- If none of the allowed step actions apply, do NOT call propose_plan and explain why instead.
+`,
             },
             {
                 role: "user",
@@ -148,14 +179,25 @@ export async function handleCommand(client: BotClient, prompt: string): Promise<
                 }
 
                 if (toolCall.function.name === "propose_plan") {
-                    const plan = JSON.parse(toolCall.function.arguments);
-                    // we will store the plan against the message we are about to write
-                    // and then serialise a human readable version to the message
-                    messages.push({
-                        role: "tool",
-                        tool_call_id: toolCall.id,
-                        content: JSON.stringify(plan),
-                    });
+                    try {
+                        const planJson = JSON.parse(toolCall.function.arguments);
+                        const plan = validatePlan(planJson);
+                        proposePlan(initiator, messageId, plan);
+
+                        // we will store the plan against the message we are about to write
+                        // and then serialise  human readable version to the message
+                        messages.push({
+                            role: "tool",
+                            tool_call_id: toolCall.id,
+                            content: JSON.stringify(toolCall.function.arguments),
+                        });
+                    } catch (err) {
+                        messages.push({
+                            role: "tool",
+                            tool_call_id: toolCall.id,
+                            content: JSON.stringify(err),
+                        });
+                    }
                 }
 
                 if (toolCall.function.name === "create_channel") {
@@ -186,7 +228,7 @@ export async function handleCommand(client: BotClient, prompt: string): Promise<
                             args.isPublic,
                         );
                         results.push(createResult);
-                        if (createResult.kind === "success" && client.initiator) {
+                        if (createResult.kind === "success" && initiator) {
                             // if it worked, invite the initiator
                             const invitedResult = await inviteUsers(
                                 communityClient,

@@ -1182,6 +1182,7 @@ export function event(value: ApiChatEvent): ChatEvent {
             newRole: permissionRole(value.RoleChanged.new_role),
         };
     }
+
     if ("MessagePinned" in value) {
         return {
             kind: "message_pinned",

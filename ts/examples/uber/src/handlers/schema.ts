@@ -20,7 +20,7 @@ function getBotDefinition(): BotDefinition {
         },
         default_subscriptions: {
             community: [],
-            chat: [],
+            chat: ["MessageReaction", "Message"],
         },
         commands: [
             {

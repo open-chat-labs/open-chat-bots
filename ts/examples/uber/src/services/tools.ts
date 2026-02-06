@@ -35,6 +35,25 @@ const reactToMessage = {
         },
     },
     required: ["messageId", "reaction"],
+    additionalProperties: false,
+};
+
+const reactToMessages = {
+    type: "object",
+    properties: {
+        messageIds: {
+            type: "array",
+            items: { type: "string" },
+            description: "The IDs of the messages to react to",
+            minItems: 1,
+        },
+        reaction: {
+            type: "string",
+            description: "The reaction to add to the messages",
+        },
+    },
+    required: ["messageIds", "reaction"],
+    additionalProperties: false,
 };
 
 const deleteMessage = {
@@ -46,6 +65,7 @@ const deleteMessage = {
         },
     },
     required: ["messageId"],
+    additionalProperties: false,
 };
 
 const changeRole = {
@@ -128,8 +148,25 @@ export const proposePlan = {
     type: "function" as const,
     function: {
         name: "propose_plan",
-        description:
-            "Propose a sequence of actions to be approved by the user. Each step must match the schema for its action. Nothing is executed until approved.",
+        description: `
+        Propose a sequence of actions for user approval.
+        STRICT RULES:
+        - Each step MUST be one of the allowed action types listed below.
+        - The "action" field MUST be exactly one of:
+          - "create_channel"
+          - "delete_channel"
+          - "change_role"
+          - "delete_message"
+          - "react_to_message"
+          - "react_to_messages"
+        - No other "action" values are allowed.
+        - Do NOT invent new step actions.
+        - If no valid step action applies, do NOT return propose_plan.
+        - Each step MUST exactly match its schema.
+        - Do NOT omit required fields.
+        - Do NOT include extra fields.
+        Nothing is executed until approved.
+        `,
         parameters: {
             type: "object",
             properties: {
@@ -147,46 +184,55 @@ export const proposePlan = {
                             {
                                 ...createChannel,
                                 properties: {
-                                    type: { const: "create_channel" },
+                                    action: { const: "create_channel" },
                                     ...createChannel.properties,
                                 },
-                                required: ["type", ...(createChannel.required || [])],
+                                required: ["action", ...(createChannel.required || [])],
                                 additionalProperties: false,
                             },
                             {
                                 ...deleteChannel,
                                 properties: {
-                                    type: { const: "delete_channel" },
+                                    action: { const: "delete_channel" },
                                     ...deleteChannel.properties,
                                 },
-                                required: ["type", ...(deleteChannel.required || [])],
+                                required: ["action", ...(deleteChannel.required || [])],
                                 additionalProperties: false,
                             },
                             {
                                 ...changeRole,
                                 properties: {
-                                    type: { const: "change_role" },
+                                    action: { const: "change_role" },
                                     ...changeRole.properties,
                                 },
-                                required: ["type", ...(changeRole.required || [])],
+                                required: ["action", ...(changeRole.required || [])],
                                 additionalProperties: false,
                             },
                             {
                                 ...deleteMessage,
                                 properties: {
-                                    type: { const: "delete_message" },
+                                    action: { const: "delete_message" },
                                     ...deleteMessage.properties,
                                 },
-                                required: ["type", ...(deleteMessage.required || [])],
+                                required: ["action", ...(deleteMessage.required || [])],
                                 additionalProperties: false,
                             },
                             {
                                 ...reactToMessage,
                                 properties: {
-                                    type: { const: "react_to_message" },
+                                    action: { const: "react_to_message" },
                                     ...reactToMessage.properties,
                                 },
-                                required: ["type", ...(reactToMessage.required || [])],
+                                required: ["action", ...(reactToMessage.required || [])],
+                                additionalProperties: false,
+                            },
+                            {
+                                ...reactToMessages,
+                                properties: {
+                                    action: { const: "react_to_messages" },
+                                    ...reactToMessages.properties,
+                                },
+                                required: ["action", ...(reactToMessages.required || [])],
                                 additionalProperties: false,
                             },
                         ],
