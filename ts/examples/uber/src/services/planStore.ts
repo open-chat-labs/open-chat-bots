@@ -15,7 +15,7 @@ type ProposedPlan = {
     proposedBy: string;
 };
 
-const store: Map<bigint, ProposedPlan> = new Map();
+const store: Map<string, ProposedPlan> = new Map();
 
 export function proposePlan(proposedBy: string, messageId: bigint, plan: Plan) {
     const proposal: ProposedPlan = {
@@ -24,12 +24,16 @@ export function proposePlan(proposedBy: string, messageId: bigint, plan: Plan) {
         proposedAt: +new Date(),
         proposedBy,
     };
-    store.set(messageId, proposal);
-    console.log("ProposedPlan: ", proposal);
+    store.set(messageId.toString(), proposal);
 }
 
 export function getPlan(messageId: bigint): Promise<ProposedPlan | undefined> {
-    return Promise.resolve(store.get(messageId));
+    return Promise.resolve(store.get(messageId.toString()));
+}
+
+export function removePlan(messageId: bigint): Promise<boolean> {
+    const removed = store.delete(messageId.toString());
+    return Promise.resolve(removed);
 }
 
 export async function executePlan(client: BotClient, { plan }: ProposedPlan): Promise<void> {

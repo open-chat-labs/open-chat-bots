@@ -13,9 +13,16 @@ function getBotDefinition(): BotDefinition {
             "A bot that can perform any function or sequence of functions that the bot sdk itself can perform. Just describe naturally what you would like to do - but be careful because this bot can do anything.",
         autonomous_config: {
             permissions: Permissions.encodePermissions({
-                message: [],
+                message: ["Text"],
                 community: ["CreatePublicChannel", "CreatePrivateChannel", "ReadCommunitySummary"],
-                chat: [],
+                chat: [
+                    "AddMembers",
+                    "ChangeRoles",
+                    "DeleteMessages",
+                    "ReactToMessages",
+                    "ReadChatSummary",
+                    "ReadMessages",
+                ],
             }),
         },
         default_subscriptions: {

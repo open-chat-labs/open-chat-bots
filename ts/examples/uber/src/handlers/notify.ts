@@ -7,7 +7,7 @@ import {
 } from "@open-ic/openchat-botclient-ts";
 import { Request, Response } from "express";
 import { factory } from "../factory";
-import { executePlan, getPlan } from "../services/planStore";
+import { executePlan, getPlan, removePlan } from "../services/planStore";
 
 export async function notify(req: Request, res: Response) {
     handleNotification(
@@ -15,9 +15,7 @@ export async function notify(req: Request, res: Response) {
         req.body as Buffer,
         factory,
         async (client: BotClient, ev: BotEvent) => {
-            console.log("Event: ", JSON.stringify(ev));
             if (ev.kind === "bot_chat_event" && ev.event.kind === "message") {
-                console.log("Message received: ", ev.event);
                 handleTextMessage(client, ev.event as MessageEvent<MessageContent>);
             }
             res.status(200).json({});
@@ -29,11 +27,22 @@ export async function notify(req: Request, res: Response) {
 }
 
 async function handleTextMessage(client: BotClient, message: MessageEvent<MessageContent>) {
-    // let's assume this was a message reaction
-    // There is some error handling that needs to happen here
+    // This kind of sucks - it means we have to try to find a plan for every message in every chat in this community
+    // We should ensure that plans are stored in memory and only looked up from the db when the service starts
     const plan = await getPlan(message.messageId);
     if (plan !== undefined) {
-        await executePlan(client, plan);
+        // make sure that the initiator of this plan has approved it
+        const approval = message.reactions.find(
+            (r) => r.reaction === "👍️" && r.userIds.has(plan.proposedBy),
+        );
+        const rejection = message.reactions.find(
+            (r) => r.reaction === "👎" && r.userIds.has(plan.proposedBy),
+        );
+        if (rejection !== undefined) {
+            await removePlan(message.messageId);
+        } else if (approval !== undefined) {
+            await executePlan(client, plan);
+            await removePlan(message.messageId);
+        }
     }
-    console.log("Message received: ", message);
 }
