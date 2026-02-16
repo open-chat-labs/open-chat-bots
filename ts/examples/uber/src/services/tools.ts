@@ -68,6 +68,22 @@ const deleteMessage = {
     additionalProperties: false,
 };
 
+const replyToMessage = {
+    type: "object",
+    properties: {
+        eventIndex: {
+            type: "string",
+            description: "The event index of the message to reply to",
+        },
+        reply: {
+            type: "string",
+            description: "The message to add as a reply",
+        },
+    },
+    required: ["eventIndex", "reply"],
+    additionalProperties: false,
+};
+
 const changeRole = {
     type: "object",
     properties: {
@@ -126,6 +142,26 @@ const getChatSummary = {
     },
 };
 
+const getMessageUrl = {
+    type: "function" as const,
+    function: {
+        name: "get_message_url",
+        description:
+            "Gets a url to represent a chat message suitable to inserted into a chat message",
+        parameters: {
+            type: "object",
+            properties: {
+                messageIndex: {
+                    type: "string",
+                    description: "The index of the message to reference",
+                },
+            },
+            required: ["messageIndex"],
+            additionalProperties: false,
+        },
+    },
+};
+
 const getCommunitySummary = {
     type: "function" as const,
     function: {
@@ -157,6 +193,7 @@ export const proposePlan = {
           - "delete_channel"
           - "change_role"
           - "delete_message"
+          - "reply_to_message"
           - "react_to_message"
           - "react_to_messages"
         - No other "action" values are allowed.
@@ -218,6 +255,15 @@ export const proposePlan = {
                                 additionalProperties: false,
                             },
                             {
+                                ...replyToMessage,
+                                properties: {
+                                    action: { const: "reply_to_message" },
+                                    ...replyToMessage.properties,
+                                },
+                                required: ["action", ...(replyToMessage.required || [])],
+                                additionalProperties: false,
+                            },
+                            {
                                 ...reactToMessage,
                                 properties: {
                                     action: { const: "react_to_message" },
@@ -250,5 +296,6 @@ export const allTools: ChatCompletionTool[] = [
     getTheRules,
     getChatSummary,
     getCommunitySummary,
+    getMessageUrl,
     proposePlan,
 ];

@@ -11,4 +11,5 @@ export interface ChatMessage {
     timestamp: bigint;
     messageIndex: number;
     messageId: bigint;
+    eventIndex: number;
 }

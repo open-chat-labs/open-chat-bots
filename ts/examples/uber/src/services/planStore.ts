@@ -5,6 +5,7 @@ import { deleteChannel } from "./deleteChannel";
 import { deleteMessage } from "./messageDeleter";
 import { reactToMessage, reactToMessages } from "./messageReactor";
 import { Plan } from "./planSchema";
+import { replyToMessage } from "./replyToMessage";
 
 type PlanStatus = "proposed" | "approved" | "rejected" | "expired";
 
@@ -49,6 +50,10 @@ export async function executePlan(client: BotClient, { plan }: ProposedPlan): Pr
             case "delete_channel":
                 // Note this doesn't have enough information any more as we are in autonomous scope
                 await deleteChannel(client, new ChannelIdentifier("", BigInt(step.channelId)));
+                break;
+            case "reply_to_message":
+                // Note this doesn't have enough information any more as we are in autonomous scope
+                await replyToMessage(client, Number(step.eventIndex), step.reply);
                 break;
             case "delete_message":
                 await deleteMessage(client, BigInt(step.messageId));

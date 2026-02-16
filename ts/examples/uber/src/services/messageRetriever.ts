@@ -38,6 +38,7 @@ export async function getRecentMessages(client: BotClient, count: number): Promi
                     timestamp: eventWrapper.timestamp,
                     messageIndex: eventWrapper.event.messageIndex,
                     messageId: eventWrapper.event.messageId,
+                    eventIndex: eventWrapper.index,
                 });
 
                 // Stop once we have enough messages

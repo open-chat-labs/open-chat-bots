@@ -9,6 +9,15 @@ export const DeleteMessageStep = Type.Object(
     { additionalProperties: false },
 );
 
+export const ReplyToMessage = Type.Object(
+    {
+        action: Type.Literal("reply_to_message"),
+        eventIndex: Type.String(),
+        reply: Type.String(),
+    },
+    { additionalProperties: false },
+);
+
 export const ReactToMessage = Type.Object(
     {
         action: Type.Literal("react_to_message"),
@@ -65,6 +74,7 @@ export const PlanStep = Type.Union([
     ChangeRoleStep,
     CreateChannelStep,
     DeleteChannelStep,
+    ReplyToMessage,
     ReactToMessage,
     ReactToMessages,
 ]);

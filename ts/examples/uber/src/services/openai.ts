@@ -1,6 +1,7 @@
 import {
     BotClient,
     ChannelIdentifier,
+    ChatActionScope,
     CommunityActionScope,
     CommunityIdentifier,
     Permissions,
@@ -14,6 +15,7 @@ import { chatSummary } from "./chatSummary";
 import { communitySummary } from "./communitySummary";
 import { createChannel } from "./createChannel";
 import { deleteChannel } from "./deleteChannel";
+import { getMessageUrl } from "./getMessageUrl";
 import { inviteUsers } from "./inviteUsers";
 import { deleteMessage } from "./messageDeleter";
 import { reactToMessage } from "./messageReactor";
@@ -70,12 +72,14 @@ CRITICAL TOOL CONSTRAINTS:
 - You may use tools to acquire the information required to build a propsal_plan
 - You must only handle prompts that use relate to OpenChat and result in tool calls for the supplied tools. If you cannot resolve with tool calls, just say so.
 - When calling propose_plan, each step MUST be one of the explicitly defined action schemas.
+- When you need to refer to a specific message in a proposal plan summary, please use the getMessageUrl tool to build a suitable url. Do not print out the message id.
 - Each step MUST include a "action" field.
 - The "action" field MUST be exactly one of the following strings:
   - "create_channel"
   - "delete_channel"
   - "change_role"
   - "delete_message"
+  - "reply_to_message"
   - "react_to_message"
   - "react_to_messages"
 - Use a single bulk tool call rather than repeatedly calling an individual tool if possible e.g. use react_to_messages once rather than react_to_message n times
@@ -105,6 +109,16 @@ CRITICAL TOOL CONSTRAINTS:
             messages.push(response.choices[0].message);
 
             for (const toolCall of toolCalls) {
+                if (toolCall.function.name === "get_message_url") {
+                    const args = JSON.parse(toolCall.function.arguments);
+                    const url = getMessageUrl(client.scope as ChatActionScope, args.messageIndex);
+                    messages.push({
+                        role: "tool",
+                        tool_call_id: toolCall.id,
+                        content: url,
+                    });
+                }
+
                 if (toolCall.function.name === "get_recent_messages") {
                     const args = JSON.parse(toolCall.function.arguments);
                     const count = args.count || 50;
