@@ -52,7 +52,6 @@ export async function executePlan(client: BotClient, { plan }: ProposedPlan): Pr
                 await deleteChannel(client, new ChannelIdentifier("", BigInt(step.channelId)));
                 break;
             case "reply_to_message":
-                // Note this doesn't have enough information any more as we are in autonomous scope
                 await replyToMessage(client, Number(step.eventIndex), step.reply);
                 break;
             case "delete_message":

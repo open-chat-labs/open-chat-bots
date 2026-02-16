@@ -26,9 +26,7 @@ export default async function prompt(req: WithBotClient, res: Response) {
             return;
         }
 
-        const placeholder = (
-            await client.createTextMessage("🔍 OK let's see what we can do...")
-        ).setFinalised(false);
+        const placeholder = (await client.createTextMessage("🤔 Thinking...")).setFinalised(false);
         res.status(200).json(success(placeholder));
 
         const answer = await handleCommand(client, prompt);
