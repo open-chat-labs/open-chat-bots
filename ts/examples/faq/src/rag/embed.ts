@@ -31,10 +31,26 @@ async function embedHuggingFace(text: string): Promise<number[]> {
   if (!res.ok) {
     throw new Error(`HF embedding failed: ${res.status} ${await res.text()}`);
   }
-  const data = (await res.json()) as number[] | number[][];
-  // Some HF sentence-transformer endpoints return [dim] directly; others return [[dim]].
-  if (Array.isArray(data) && Array.isArray(data[0])) {
+  const data = (await res.json()) as unknown;
+  return toSentenceEmbedding(data);
+}
+
+// Sentence-transformer endpoints may return [dim] (pooled) or [[dim]]
+// (batch of one). Token-level outputs like [tokens][dim] are rejected
+// so the caller sees a clear error instead of a silently-wrong vector.
+function toSentenceEmbedding(data: unknown): number[] {
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error("HF embedding: unexpected empty response");
+  }
+  if (typeof data[0] === "number") {
+    return data as number[];
+  }
+  if (Array.isArray(data[0]) && data.length === 1 && typeof data[0][0] === "number") {
     return data[0] as number[];
   }
-  return data as number[];
+  throw new Error(
+    "HF embedding: response is not a sentence embedding. " +
+      "The configured model likely returns token-level vectors; " +
+      "use a sentence-transformers model or switch EMBEDDING_PROVIDER."
+  );
 }

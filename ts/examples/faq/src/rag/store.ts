@@ -43,9 +43,8 @@ export function search(db: Database.Database, queryEmbedding: number[], k: numbe
       `SELECT chunks.id as id, chunks.text as text, vec_chunks.distance as distance
        FROM vec_chunks
        JOIN chunks ON chunks.id = vec_chunks.rowid
-       WHERE vec_chunks.embedding MATCH ?
-       ORDER BY vec_chunks.distance
-       LIMIT ?`
+       WHERE vec_chunks.embedding MATCH ? AND k = ?
+       ORDER BY vec_chunks.distance`
     )
     .all(Buffer.from(new Float32Array(queryEmbedding).buffer), k) as Array<{
     id: number;

@@ -38,18 +38,21 @@ ts/examples/faq/
 
 ## Setup
 
+All commands assume you start from the repository root.
+
 1. Build the shared TypeScript SDK once:
 
    ```sh
-   cd ../../library
+   cd ts/library
    npm install
    npm run build
-   cd -
+   cd ../..
    ```
 
-2. Install this example's dependencies:
+2. Switch into this example and install its dependencies:
 
    ```sh
+   cd ts/examples/faq
    npm install
    ```
 
@@ -80,7 +83,7 @@ ts/examples/faq/
 
 Drop any markdown file in `data/`, point `FAQ_SOURCE` at it, and re-run `npm run ingest`.
 Chunks are separated by blank lines, so shape your source accordingly (one Q+A pair per
-chunk works well).
+chunk works well). Chunks that are only markdown headings are skipped automatically.
 
 ## Provider swap
 

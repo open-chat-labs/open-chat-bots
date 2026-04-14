@@ -1,4 +1,5 @@
 import { Response } from "express";
+import fs from "fs";
 import path from "path";
 import { argumentsInvalid } from "@open-ic/openchat-botclient-ts";
 import { WithBotClient } from "../types";
@@ -10,12 +11,17 @@ import { openIndex, search, Chunk } from "../rag/store";
 const indexPath = path.resolve(process.cwd(), process.env.FAQ_INDEX || "./data/faq.db");
 const topK = Number(process.env.TOP_K || 4);
 
-let dbPromise: ReturnType<typeof openIndex> | null = null;
+let cachedDb: ReturnType<typeof openIndex> | null = null;
 function getDb() {
-  if (!dbPromise) {
-    dbPromise = openIndex(indexPath);
+  if (!cachedDb) {
+    if (!fs.existsSync(indexPath)) {
+      throw new Error(
+        `FAQ index not found at ${indexPath}. Run \`npm run ingest\` to build it.`
+      );
+    }
+    cachedDb = openIndex(indexPath);
   }
-  return dbPromise;
+  return cachedDb;
 }
 
 function buildPrompt(question: string, chunks: Chunk[]): ChatMessage[] {
@@ -36,16 +42,17 @@ function buildPrompt(question: string, chunks: Chunk[]): ChatMessage[] {
 
 export default async function ask(req: WithBotClient, res: Response) {
   const client = req.botClient;
-  const placeholder = (
-    await client.createTextMessage("Searching the FAQ...")
-  ).setFinalised(false);
-  res.status(200).json(success(placeholder));
 
   const question = client.stringArg("question");
   if (question === undefined) {
     res.status(400).send(argumentsInvalid());
     return;
   }
+
+  const placeholder = (
+    await client.createTextMessage("Searching the FAQ...")
+  ).setFinalised(false);
+  res.status(200).json(success(placeholder));
 
   try {
     const db = getDb();

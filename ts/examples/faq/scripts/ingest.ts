@@ -3,14 +3,20 @@
  *
  * Usage: npm run ingest
  *
- * Splits FAQ_SOURCE on blank lines into chunks, embeds each chunk via the
- * configured EMBEDDING_PROVIDER, and writes them to FAQ_INDEX (sqlite-vec).
+ * Splits FAQ_SOURCE on blank lines into chunks, discards chunks that are
+ * only markdown headings, embeds each remaining chunk via the configured
+ * EMBEDDING_PROVIDER, and writes them to FAQ_INDEX (sqlite-vec).
  */
 import "dotenv/config";
 import fs from "fs";
 import path from "path";
 import { embed } from "../src/rag/embed";
 import { initIndex, insertChunk } from "../src/rag/store";
+
+function isHeadingOnly(chunk: string): boolean {
+  const lines = chunk.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
+  return lines.length > 0 && lines.every((l) => /^#{1,6}\s/.test(l));
+}
 
 async function main() {
   const sourcePath = path.resolve(process.cwd(), process.env.FAQ_SOURCE || "./data/faq.md");
@@ -24,7 +30,7 @@ async function main() {
   const chunks = raw
     .split(/\n\s*\n/)
     .map((c) => c.trim())
-    .filter((c) => c.length > 0);
+    .filter((c) => c.length > 0 && !isHeadingOnly(c));
 
   if (chunks.length === 0) {
     throw new Error("No chunks found in FAQ source");
