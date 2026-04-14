@@ -46,15 +46,18 @@ async function main() {
   }
   const db = initIndex(indexPath, dim);
 
-  insertChunk(db, chunks[0], first);
-  for (let i = 1; i < chunks.length; i++) {
-    const vec = await embed(chunks[i]);
-    insertChunk(db, chunks[i], vec);
-    if ((i + 1) % 10 === 0) {
-      console.log(`  ${i + 1}/${chunks.length} embedded`);
+  try {
+    insertChunk(db, chunks[0], first);
+    for (let i = 1; i < chunks.length; i++) {
+      const vec = await embed(chunks[i]);
+      insertChunk(db, chunks[i], vec);
+      if ((i + 1) % 10 === 0) {
+        console.log(`  ${i + 1}/${chunks.length} embedded`);
+      }
     }
+  } finally {
+    db.close();
   }
-  db.close();
   console.log(`Index written to ${indexPath}`);
 }
 

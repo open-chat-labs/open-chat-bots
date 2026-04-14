@@ -9,7 +9,15 @@ import { chat, ChatMessage } from "../rag/llm";
 import { openIndex, search, Chunk } from "../rag/store";
 
 const indexPath = path.resolve(process.cwd(), process.env.FAQ_INDEX || "./data/faq.db");
-const topK = Number(process.env.TOP_K || 4);
+
+function resolveTopK(raw: string | undefined): number {
+  const fallback = 4;
+  if (raw === undefined) return fallback;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return parsed;
+}
+const topK = resolveTopK(process.env.TOP_K);
 
 let cachedDb: ReturnType<typeof openIndex> | null = null;
 function getDb() {
@@ -49,29 +57,42 @@ export default async function ask(req: WithBotClient, res: Response) {
     return;
   }
 
-  const placeholder = (
-    await client.createTextMessage("Searching the FAQ...")
-  ).setFinalised(false);
-  res.status(200).json(success(placeholder));
-
   try {
+    const placeholder = (
+      await client.createTextMessage("Searching the FAQ...")
+    ).setFinalised(false);
+    res.status(200).json(success(placeholder));
+
     const db = getDb();
     const queryEmbedding = await embed(question);
     const chunks = search(db, queryEmbedding, topK);
-    const messages = buildPrompt(question, chunks);
-    const answer = await chat(messages);
-    const finalText = answer && answer.trim().length > 0
-      ? answer
-      : "I could not find an answer in the FAQ.";
+
+    let finalText: string;
+    if (chunks.length === 0) {
+      finalText = "I could not find anything relevant in the FAQ to answer that.";
+    } else {
+      const messages = buildPrompt(question, chunks);
+      const answer = await chat(messages);
+      finalText = answer.trim();
+    }
+
     const msg = (await client.createTextMessage(finalText))
       .setFinalised(true)
       .setBlockLevelMarkdown(true);
     await client.sendMessage(msg);
   } catch (err) {
     console.error("ask handler failed:", err);
-    const msg = (await client.createTextMessage(
-      "Sorry, I ran into an error while answering. Please try again later."
-    )).setFinalised(true);
-    await client.sendMessage(msg);
+    if (!res.headersSent) {
+      res.status(500).send("Internal server error");
+      return;
+    }
+    try {
+      const msg = (await client.createTextMessage(
+        "Sorry, I ran into an error while answering. Please try again later."
+      )).setFinalised(true);
+      await client.sendMessage(msg);
+    } catch (sendErr) {
+      console.error("ask handler failed to report error:", sendErr);
+    }
   }
 }

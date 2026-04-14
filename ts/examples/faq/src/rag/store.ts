@@ -31,10 +31,14 @@ export function initIndex(path: string, dim: number): Database.Database {
 }
 
 export function insertChunk(db: Database.Database, text: string, embedding: number[]): void {
-  const info = db.prepare("INSERT INTO chunks (text) VALUES (?)").run(text);
-  const id = info.lastInsertRowid as number;
-  db.prepare("INSERT INTO vec_chunks (rowid, embedding) VALUES (?, ?)")
-    .run(id, Buffer.from(new Float32Array(embedding).buffer));
+  const insertText = db.prepare("INSERT INTO chunks (text) VALUES (?)");
+  const insertVec = db.prepare("INSERT INTO vec_chunks (rowid, embedding) VALUES (?, ?)");
+  const tx = db.transaction((t: string, e: number[]) => {
+    const info = insertText.run(t);
+    const id = info.lastInsertRowid as number;
+    insertVec.run(id, Buffer.from(new Float32Array(e).buffer));
+  });
+  tx(text, embedding);
 }
 
 export function search(db: Database.Database, queryEmbedding: number[], k: number): Chunk[] {

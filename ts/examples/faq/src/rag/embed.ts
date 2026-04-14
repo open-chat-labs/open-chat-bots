@@ -3,6 +3,8 @@
  * Swap via EMBEDDING_PROVIDER env var.
  */
 
+const EMBED_TIMEOUT_MS = 60_000;
+
 export async function embed(text: string): Promise<number[]> {
   const provider = process.env.EMBEDDING_PROVIDER || "hf";
   switch (provider) {
@@ -21,6 +23,7 @@ async function embedHuggingFace(text: string): Promise<number[]> {
   }
   const url = `https://api-inference.huggingface.co/pipeline/feature-extraction/${model}`;
   const res = await fetch(url, {
+    signal: AbortSignal.timeout(EMBED_TIMEOUT_MS),
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,

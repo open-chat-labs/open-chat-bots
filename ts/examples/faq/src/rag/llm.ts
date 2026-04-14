@@ -2,6 +2,8 @@
  * LLM provider. Swap via LLM_PROVIDER env var.
  */
 
+const CHAT_TIMEOUT_MS = 120_000;
+
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -19,6 +21,16 @@ export async function chat(messages: ChatMessage[]): Promise<string> {
   }
 }
 
+function extractAnswer(data: any, provider: string): string {
+  const content = data?.choices?.[0]?.message?.content;
+  if (typeof content !== "string" || content.length === 0) {
+    throw new Error(
+      `${provider} chat response missing choices[0].message.content: ${JSON.stringify(data).slice(0, 400)}`
+    );
+  }
+  return content;
+}
+
 async function chatHuggingFace(messages: ChatMessage[]): Promise<string> {
   const model = process.env.HF_LLM_MODEL || "HuggingFaceH4/zephyr-7b-beta";
   const token = process.env.HF_TOKEN;
@@ -27,6 +39,7 @@ async function chatHuggingFace(messages: ChatMessage[]): Promise<string> {
   }
   const url = `https://api-inference.huggingface.co/models/${model}/v1/chat/completions`;
   const res = await fetch(url, {
+    signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -42,8 +55,7 @@ async function chatHuggingFace(messages: ChatMessage[]): Promise<string> {
   if (!res.ok) {
     throw new Error(`HF chat failed: ${res.status} ${await res.text()}`);
   }
-  const data = (await res.json()) as any;
-  return data.choices?.[0]?.message?.content ?? "";
+  return extractAnswer(await res.json(), "HF");
 }
 
 async function chatGroq(messages: ChatMessage[]): Promise<string> {
@@ -53,6 +65,7 @@ async function chatGroq(messages: ChatMessage[]): Promise<string> {
   }
   const model = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -68,6 +81,5 @@ async function chatGroq(messages: ChatMessage[]): Promise<string> {
   if (!res.ok) {
     throw new Error(`Groq chat failed: ${res.status} ${await res.text()}`);
   }
-  const data = (await res.json()) as any;
-  return data.choices?.[0]?.message?.content ?? "";
+  return extractAnswer(await res.json(), "Groq");
 }
