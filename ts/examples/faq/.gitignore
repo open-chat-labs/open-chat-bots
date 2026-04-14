@@ -1,0 +1,2 @@
+# Generated FAQ vector index (rebuild with `npm run ingest`)
+data/*.db
