@@ -107,3 +107,26 @@ Additional providers can be added by extending the switch in `src/rag/{embed,llm
 - **Preferred provider defaults.** Defaulting to Hugging Face free tier to keep the
   example free to try; open to changing the default if the project has a preferred
   provider.
+
+
+## Evaluation
+
+A small smoke-grade evaluation script is included to pin retrieval quality.
+
+`data/eval.jsonl` holds (query, expected_keyword) pairs. The script embeds each
+query, retrieves the top-k chunks via `sqlite-vec`, and reports hit rate plus
+retrieval latency:
+
+```sh
+npm run ingest      # build the index from data/faq.md
+npm run eval        # run the eval set against the index
+```
+
+A "hit" means the expected keyword appears (case-insensitive) somewhere in the
+retrieved chunk. This is coarse on purpose: it pins regressions without
+requiring chunk-id stability across re-ingests. Replace `data/eval.jsonl` with
+your own queries when you swap in your real FAQ corpus.
+
+The script reads `FAQ_EVAL` (default `./data/eval.jsonl`), `FAQ_INDEX`
+(default `./data/faq.db`), and `FAQ_EVAL_K` (default `3`). It exits non-zero if
+any query misses entirely, so it can run as a CI smoke test.
