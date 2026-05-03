@@ -4,7 +4,8 @@
  * Reads (query, expected_keyword) pairs from FAQ_EVAL (default
  * ./data/eval.jsonl), runs each query against the configured embedding
  * provider + sqlite-vec index, and reports top-1 / top-k hit rate plus
- * mean retrieval latency.
+ * embedding-call and sqlite-vec search latencies separately so the
+ * remote-API time does not get reported as retrieval latency.
  *
  * A "hit" means the expected keyword appears (case-insensitive) somewhere
  * in the retrieved chunk text. This is intentionally coarse — it pins
@@ -27,6 +28,15 @@ import { openIndex, search } from "../src/rag/store";
 interface EvalCase {
   query: string;
   expected_keyword: string;
+}
+
+function summarize(label: string, samples: number[]): void {
+  if (samples.length === 0) return;
+  const sorted = [...samples].sort((a, b) => a - b);
+  const avg = samples.reduce((a, b) => a + b, 0) / samples.length;
+  const p50 = sorted[Math.floor(samples.length * 0.5)];
+  const p95 = sorted[Math.min(Math.floor(samples.length * 0.95), samples.length - 1)];
+  console.log(`  ${label} p50/p95/avg: ${p50} / ${p95} / ${avg.toFixed(0)} ms`);
 }
 
 async function main() {
@@ -54,14 +64,18 @@ async function main() {
   const db = openIndex(indexPath);
   let top1Hits = 0;
   let topKHits = 0;
-  const latenciesMs: number[] = [];
+  const embedMs: number[] = [];
+  const searchMs: number[] = [];
 
   try {
     for (const c of cases) {
-      const start = Date.now();
+      const embedStart = Date.now();
       const queryVec = await embed(c.query);
+      embedMs.push(Date.now() - embedStart);
+
+      const searchStart = Date.now();
       const results = search(db, queryVec, k);
-      latenciesMs.push(Date.now() - start);
+      searchMs.push(Date.now() - searchStart);
 
       const expected = c.expected_keyword.toLowerCase();
       const top1Hit = results.length > 0 && results[0].text.toLowerCase().includes(expected);
@@ -78,16 +92,12 @@ async function main() {
   }
 
   const n = cases.length;
-  const avgMs = latenciesMs.reduce((a, b) => a + b, 0) / n;
-  const sorted = [...latenciesMs].sort((a, b) => a - b);
-  const p50 = sorted[Math.floor(n * 0.5)];
-  const p95 = sorted[Math.min(Math.floor(n * 0.95), n - 1)];
-
   console.log("");
   console.log(`Results: ${n} queries, top-${k}`);
   console.log(`  top-1   hit rate: ${top1Hits}/${n}  = ${((top1Hits / n) * 100).toFixed(1)}%`);
   console.log(`  top-${k}   hit rate: ${topKHits}/${n}  = ${((topKHits / n) * 100).toFixed(1)}%`);
-  console.log(`  latency p50/p95/avg: ${p50} / ${p95} / ${avgMs.toFixed(0)} ms`);
+  summarize("embed   latency", embedMs);
+  summarize("search  latency", searchMs);
 
   if (topKHits < n) {
     process.exitCode = 1;
