@@ -98,6 +98,28 @@ describe("extractEnabledLinks", () => {
             "https://example.com/a",
         ]);
     });
+
+    test("de-duplicates a url against its own LINK_REMOVED form", () => {
+        // The marker is stripped before de-duplication, so these collapse to one entry rather
+        // than surviving as two and burning two of the three preview slots on one link.
+        expect(
+            extractEnabledLinks("https://example.com/a https://example.com/a#LINK_REMOVED"),
+        ).toEqual(["https://example.com/a"]);
+    });
+
+    test("marker-stripped duplicates do not eat into the cap", () => {
+        const text = [
+            "https://example.com/1",
+            "https://example.com/1#LINK_REMOVED",
+            "https://example.com/2",
+            "https://example.com/3",
+        ].join(" ");
+        expect(extractEnabledLinks(text)).toEqual([
+            "https://example.com/1",
+            "https://example.com/2",
+            "https://example.com/3",
+        ]);
+    });
 });
 
 describe("fetchOgPreviews", () => {
@@ -154,6 +176,24 @@ describe("fetchOgPreviews", () => {
         expect(previews).toHaveLength(2);
         expect(previews.every((p) => p.image === undefined)).toBe(true);
         expect(previews.every((p) => p.description === "")).toBe(true);
+    });
+
+    test("a url and its LINK_REMOVED form are fetched only once", async () => {
+        const spy = mockFetch(() => okResponse({ title: "t" }));
+        const previews = await fetchOgPreviewsForText(
+            "https://example.com/a https://example.com/a#LINK_REMOVED",
+            PROXY,
+        );
+        expect(previews).toHaveLength(1);
+        expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    test("trims a trailing slash off the configured proxy url", async () => {
+        const spy = mockFetch(() => okResponse({ title: "t" }));
+        await fetchOgPreviews(["https://example.com/a"], "https://preview.test/");
+        expect(String(spy.mock.calls[0][0])).toBe(
+            "https://preview.test/preview?url=https%3A%2F%2Fexample.com%2Fa",
+        );
     });
 
     test("treats a response with no title as no preview", async () => {

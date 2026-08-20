@@ -68,7 +68,7 @@ function extractRawUrls(text: string): string[] {
     // matched separately from the (potentially different) href url. Bots very often post
     // markdown links rather than bare urls, so this is the common case not the edge case.
     const withoutMarkdownDisplayText = text.replace(/\[[^\]]*\]\((https?:\/\/[^)]*)\)/g, "$1");
-    return [...new Set(withoutMarkdownDisplayText.match(URL_REGEX) ?? [])];
+    return withoutMarkdownDisplayText.match(URL_REGEX) ?? [];
 }
 
 function isOcUrl(url: URL): boolean {
@@ -99,19 +99,24 @@ function isOcMessageUrl(urlText: string): boolean {
  */
 export function extractEnabledLinks(text?: string): string[] {
     if (!text) return [];
-    return extractRawUrls(text)
+    const stripped = extractRawUrls(text)
         .map((url) =>
             url.endsWith(LINK_REMOVED) ? url.substring(0, url.length - LINK_REMOVED.length) : url,
         )
-        .filter((url) => !isOcMessageUrl(url))
-        .slice(0, MAX_LINK_PREVIEWS);
+        .filter((url) => !isOcMessageUrl(url));
+
+    // De-duplicate *after* stripping the marker, otherwise "https://x" and
+    // "https://x#LINK_REMOVED" survive as two entries, get fetched twice and burn two of the
+    // three preview slots on one link.
+    return [...new Set(stripped)].slice(0, MAX_LINK_PREVIEWS);
 }
 
 async function requestOgData(url: string, proxyUrl: string): Promise<OgData | undefined> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), PREVIEW_TIMEOUT_MS);
     try {
-        const response = await fetch(`${proxyUrl}/preview?url=${encodeURIComponent(url)}`, {
+        const base = proxyUrl.replace(/\/+$/, "");
+        const response = await fetch(`${base}/preview?url=${encodeURIComponent(url)}`, {
             signal: controller.signal,
         });
         if (!response.ok) return undefined;

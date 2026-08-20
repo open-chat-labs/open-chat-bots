@@ -25,8 +25,10 @@ pub struct Args {
     pub content: MessageContentInitial,
     pub block_level_markdown: bool,
     pub finalised: bool,
-    // `None` and `Some(vec![])` are meaningfully different here - `None` leaves it to the client
-    // to decide whether to look previews up, `Some(vec![])` means "definitely no previews".
+    // OpenChat treats `None` and `Some(vec![])` identically (it does
+    // `og_previews.unwrap_or_default()`), so this distinction is purely client-side: `None` means
+    // "the runtime may look previews up", `Some(vec![])` means "don't". By the time the args
+    // reach here the runtime has already acted on that, so both send no previews.
     pub og_previews: Option<Vec<OgPreview>>,
 }
 

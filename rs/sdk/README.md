@@ -224,6 +224,10 @@ The field is tri-state:
 
 Anything you set explicitly always wins.
 
+Note this tri-state is **client-side only**. OpenChat collapses an absent field and an empty list
+to the same thing (`og_previews.unwrap_or_default()`), so on the wire "unset" and "empty" are
+identical - both mean no previews. The difference is purely in what this SDK does before sending.
+
 ### Automatic lookup differs by runtime
 
 | runtime | automatic lookup | explicit previews |
@@ -245,6 +249,17 @@ second timeout and every failure degrades to fewer previews, never to a send fai
 cached by url for ten minutes (failures for thirty seconds), up to 500 entries, and in-flight
 requests for the same url are shared, so fanning the same message out to many chats only asks the
 preview service once.
+
+### Message ordering
+
+The preview lookup happens on the send path, so a send that carries links now takes longer to
+reach the canister than one that does not. If you issue two sends concurrently (or use `execute`,
+which spawns and returns immediately), a link-free message will very likely arrive **before** a
+message containing links, because the latter blocks on up to three lookups first. If ordering
+matters, `await` each `execute_async` before issuing the next.
+
+Because results are cached, this only bites on the first send of a given set of urls - repeat
+sends of the same links resolve from cache and are fast.
 
 To configure or disable it, build the runtime with an `OgPreviewConfig`:
 

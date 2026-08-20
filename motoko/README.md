@@ -49,13 +49,17 @@ let result = await client
     .execute();
 ```
 
-The field is tri-state:
-
 | `withOgPreviews` | behaviour |
 | --- | --- |
-| not called | no previews are sent, and OpenChat is left to decide |
+| not called | no previews are sent |
 | called with a non-empty array | that array is sent as-is |
 | called with `[]` | no previews are sent |
+
+Note that "not called" and "called with `[]`" are **equivalent in effect** here. OpenChat collapses
+an absent field and an empty list to the same thing (`og_previews.unwrap_or_default()`), and this
+SDK never fetches anything of its own, so neither results in any previews. The distinction only
+means something in the offchain SDKs, where leaving the field unset is what allows them to look
+previews up automatically.
 
 This SDK is **pass-through only** - it will never fetch previews for you. Doing so would mean an
 http outcall to a scraper from inside your canister, replicated across the subnet and costing

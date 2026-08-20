@@ -73,6 +73,10 @@ import {
     type Reaction,
     type ReplyContext,
     type ReportedMessageContent,
+    type AuthorityReport,
+    type MediaScanMatch,
+    type ModerationReportContent,
+    type ModerationReportStatus,
     type SenderContext,
     type SendMessageResponse,
     type Success,
@@ -173,6 +177,10 @@ import {
     type ProposalRewardStatus as ApiProposalRewardStatus,
     type ReplyContext as ApiReplyContext,
     type ReportedMessage as ApiReportedMessage,
+    type AuthorityReportState as ApiAuthorityReportState,
+    type MediaScanMatch as ApiMediaScanMatch,
+    type ModerationReportContent as ApiModerationReportContent,
+    type ModerationReportStatus as ApiModerationReportStatus,
     type SenderContext as ApiSenderContext,
     type TextContent as ApiTextContent,
     type ThreadSummary as ApiThreadSummary,
@@ -1271,6 +1279,14 @@ export function event(value: ApiChatEvent): ChatEvent {
         };
     }
 
+    if ("HistoryDeleted" in value) {
+        return {
+            kind: "history_deleted",
+            before: value.HistoryDeleted.before,
+            deletedBy: principalBytesToString(value.HistoryDeleted.deleted_by),
+        };
+    }
+
     if ("BotAdded" in value) {
         return {
             kind: "bot_added",
@@ -1367,6 +1383,9 @@ export function messageContent(value: ApiMessageContent, sender: string): Messag
     }
     if ("ReportedMessage" in value) {
         return reportedMessage(value.ReportedMessage);
+    }
+    if ("ModerationReport" in value) {
+        return moderationReportContent(value.ModerationReport);
     }
     if ("P2PSwap" in value) {
         return p2pSwapContent(value.P2PSwap);
@@ -1855,6 +1874,76 @@ function reportedMessage(value: ApiReportedMessage): ReportedMessageContent {
             timestamp: Number(r.timestamp),
             reportedBy: principalBytesToString(r.reported_by),
         })),
+    };
+}
+
+function moderationReportContent(value: ApiModerationReportContent): ModerationReportContent {
+    return {
+        kind: "moderation_report_content",
+        reportIndex: value.report_index,
+        chatId: mapChatIdentifier(value.chat_id),
+        threadRootMessageIndex: value.thread_root_message_index,
+        messageIndex: value.message_index,
+        messageId: toBigInt64(value.message_id),
+        sender: principalBytesToString(value.sender),
+        reporters: value.reporters.map(principalBytesToString),
+        flaggedCategories: value.flagged_categories,
+        classificationFailed: value.classification_failed ?? false,
+        isBlockedAttempt: value.is_blocked_attempt ?? false,
+        authorityReport: optional(value.authority_report, authorityReport),
+        autoSanctioned: value.auto_sanctioned,
+        contentExcerpt: value.content_excerpt,
+        blobReferences: value.blob_references.map(blobReference),
+        mediaMatches: (value.media_matches ?? []).map(mediaScanMatch),
+        reportedAt: value.reported_at,
+        status: moderationReportStatus(value.status),
+    };
+}
+
+function authorityReport(value: ApiAuthorityReportState): AuthorityReport {
+    if ("Due" in value) {
+        return { kind: "due", urgent: value.Due.urgent };
+    }
+    return { kind: "filed", portalReference: value.Filed.portal_reference };
+}
+
+function mediaScanMatch(value: ApiMediaScanMatch): MediaScanMatch {
+    return {
+        // The wire spells this "PhotoDna"; everywhere it is shown to a human it is "PhotoDNA"
+        provider: value.provider === "PhotoDna" ? "PhotoDNA" : String(value.provider),
+        blobId: value.blob_id,
+        source: value.source,
+        violations: value.violations,
+        matchDistance: value.match_distance,
+        matchId: value.match_id,
+    };
+}
+
+function moderationReportStatus(value: ApiModerationReportStatus): ModerationReportStatus {
+    if (value === "Pending") {
+        return { kind: "pending" };
+    }
+    if (value === "Contested") {
+        return { kind: "contested" };
+    }
+    if ("Upheld" in value) {
+        return {
+            kind: "upheld",
+            moderator: principalBytesToString(value.Upheld.moderator),
+            timestamp: value.Upheld.timestamp,
+        };
+    }
+    if ("UpheldAsCsam" in value) {
+        return {
+            kind: "upheld_as_csam",
+            moderator: principalBytesToString(value.UpheldAsCsam.moderator),
+            timestamp: value.UpheldAsCsam.timestamp,
+        };
+    }
+    return {
+        kind: "dismissed",
+        moderator: principalBytesToString(value.Dismissed.moderator),
+        timestamp: value.Dismissed.timestamp,
     };
 }
 

@@ -205,8 +205,34 @@ The field is tri-state:
 So passing `[]` is how you suppress previews for one particular message. Anything you set
 explicitly always wins over the automatic lookup.
 
+Note this tri-state is **client-side only**. OpenChat collapses an absent field and an empty list
+to the same thing (`og_previews.unwrap_or_default()`), so on the wire "unset" and "empty" are
+identical - both mean no previews. The difference is purely in what this SDK does before sending.
+
 Note that ephemeral messages never carry previews - they are not sent to the OpenChat backend at
 all, so no lookup is performed for them.
+
+### Message ordering
+
+The preview lookup happens inside `sendMessage`, so a send that carries links now takes longer to
+reach the canister than one that does not. If you issue two sends without awaiting the first:
+
+```typescript
+client.sendMessage(a); // contains links - blocks on up to 3 lookups
+client.sendMessage(b); // no links - goes straight out
+```
+
+`b` will very likely arrive **before** `a`. Previously both went out immediately, so their relative
+order was much more likely to hold. **If ordering matters, await each send before issuing the
+next:**
+
+```typescript
+await client.sendMessage(a);
+await client.sendMessage(b);
+```
+
+Because results are cached, this only bites on the first send of a given set of urls - repeat
+sends of the same links resolve from cache and are fast.
 
 ### Configuration
 

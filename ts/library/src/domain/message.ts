@@ -35,6 +35,8 @@ export abstract class Message {
     #ephemeral: boolean = false;
     // undefined means "not specified" which allows the client to fetch previews automatically.
     // An empty array means "explicitly no previews" and suppresses the automatic fetch.
+    // Note this distinction is client-side only - OpenChat collapses an absent field and an
+    // empty list to the same thing, so both end up sending no previews.
     #ogPreviews?: OgPreview[];
 
     protected content: MessageContent;

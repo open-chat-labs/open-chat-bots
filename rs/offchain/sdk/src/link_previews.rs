@@ -119,14 +119,8 @@ async fn fetch_single_preview(
     proxy_url: &str,
     url: &str,
 ) -> Option<OgPreview> {
-    let request_url = format!(
-        "{}/preview?url={}",
-        proxy_url.trim_end_matches('/'),
-        urlencoding_encode(url)
-    );
-
     let response = client
-        .get(request_url)
+        .get(preview_request_url(proxy_url, url))
         .timeout(PREVIEW_TIMEOUT)
         .send()
         .await
@@ -146,6 +140,16 @@ async fn fetch_single_preview(
         description: data.description.clone().unwrap_or_default(),
         image: og_preview_image(&data),
     })
+}
+
+// Builds the preview service url. The configured base is trimmed of any trailing slash so that
+// a proxy configured as "https://host/" does not produce "https://host//preview".
+fn preview_request_url(proxy_url: &str, url: &str) -> String {
+    format!(
+        "{}/preview?url={}",
+        proxy_url.trim_end_matches('/'),
+        urlencoding_encode(url)
+    )
 }
 
 // Minimal percent encoding for a url being passed as a query string value. We only need to
@@ -366,6 +370,42 @@ mod tests {
         assert_eq!(
             extract_enabled_links("https://example.com/a#LINK_REMOVED"),
             vec!["https://example.com/a"]
+        );
+    }
+
+    #[test]
+    fn deduplicates_against_link_removed_form() {
+        // The marker is stripped before the de-duplication check, so these collapse to one entry
+        // rather than surviving as two and burning two of the three preview slots on one link.
+        assert_eq!(
+            extract_enabled_links("https://example.com/a https://example.com/a#LINK_REMOVED"),
+            vec!["https://example.com/a"]
+        );
+    }
+
+    #[test]
+    fn marker_stripped_duplicates_do_not_eat_into_the_cap() {
+        let text = "https://example.com/1 https://example.com/1#LINK_REMOVED https://example.com/2 https://example.com/3";
+        assert_eq!(
+            extract_enabled_links(text),
+            vec![
+                "https://example.com/1",
+                "https://example.com/2",
+                "https://example.com/3"
+            ]
+        );
+    }
+
+    #[test]
+    fn trims_trailing_slash_from_proxy_url() {
+        let expected = "https://preview.test/preview?url=https%3A%2F%2Fexample.com%2Fa";
+        assert_eq!(
+            preview_request_url("https://preview.test/", "https://example.com/a"),
+            expected
+        );
+        assert_eq!(
+            preview_request_url("https://preview.test", "https://example.com/a"),
+            expected
         );
     }
 

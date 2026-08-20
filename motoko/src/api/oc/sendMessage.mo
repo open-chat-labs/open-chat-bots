@@ -15,8 +15,10 @@ module {
         content : MessageContent.MessageContentInitial;
         block_level_markdown : Bool;
         finalised : Bool;
-        // `null` and `?[]` are meaningfully different here - `null` leaves it to OpenChat to
-        // decide, `?[]` means "definitely no previews".
+        // OpenChat treats `null` and `?[]` identically (it does `og_previews.unwrap_or_default()`),
+        // so for this pass-through SDK the two are equivalent in effect - neither results in any
+        // previews. The distinction only means something in the offchain SDKs, where `null` is
+        // what lets them fetch previews automatically.
         og_previews : ?[MessageContent.OgPreview];
     };
 
