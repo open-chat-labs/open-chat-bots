@@ -34,7 +34,8 @@ import type { Channel } from "../domain/channel";
 import { apiOptional, principalBytesToString } from "../mapping";
 import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
 import { DataClient } from "../services/data/data.client";
-import { BotCommand, BotCommandArg, MemberType } from "../typebox/typebox";
+import { BotCommand, BotCommandArg, MemberType, OgPreview } from "../typebox/typebox";
+import { DEFAULT_PREVIEW_PROXY_URL, fetchOgPreviewsForText } from "../utils/linkPreviews";
 import { GlobalClient } from "./global_client";
 
 export class BotClient {
@@ -94,25 +95,48 @@ export class BotClient {
         );
     }
 
-    public sendMessage(message: Message): Promise<SendMessageResponse> {
+    // Works out what to send as og_previews. Previews explicitly set on the message always win
+    // (an empty array being an explicit "no previews"), otherwise - unless the bot has opted out -
+    // we look for links in the message text and ask the preview service about them.
+    //
+    // This must never throw. A failure to obtain previews must never become a send failure.
+    async #resolveOgPreviews(message: Message): Promise<OgPreview[] | undefined> {
+        try {
+            if (message.ogPreviews !== undefined) return message.ogPreviews;
+            if (this.#env.autoFetchOgPreviews === false) return undefined;
+            const previews = await fetchOgPreviewsForText(
+                message.text,
+                this.#env.previewProxyUrl ?? DEFAULT_PREVIEW_PROXY_URL,
+            );
+            return previews.length > 0 ? previews : undefined;
+        } catch (err) {
+            console.error("OpenChat botClient: unable to obtain og previews: ", err);
+            return undefined;
+        }
+    }
+
+    public async sendMessage(message: Message): Promise<SendMessageResponse> {
         if (!this.#messagePermitted(message)) {
-            return Promise.resolve({
+            return {
                 kind: "error",
                 code: OCErrorCode.InitiatorNotAuthorized,
                 message: "Not authorized",
-            });
+            };
         }
         if (message.isEphemeral) {
             const msg = "An ephemeral message should not be sent to the OpenChat backend";
             console.error(msg);
-            return Promise.resolve({
+            return {
                 kind: "error",
                 code: OCErrorCode.InvalidRequest,
                 message: msg,
-            });
+            };
         }
+        // Note we only get here for messages that are actually going to be sent, so we never pay
+        // for a preview lookup on a message that is rejected above.
+        const ogPreviews = await this.#resolveOgPreviews(message);
         return this.#botService
-            .sendMessage(this.#actionContext.chatContext(message.channelId), message)
+            .sendMessage(this.#actionContext.chatContext(message.channelId), message, ogPreviews)
             .then((resp) => {
                 if (resp.kind !== "success") {
                     console.error("OpenChat botClient.sendMessage failed with: ", resp);

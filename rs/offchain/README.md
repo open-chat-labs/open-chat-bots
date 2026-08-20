@@ -21,3 +21,8 @@ Note: the DiscordBot cannot be deployed locally because it needs to be reachable
 ## SDK
 
 [Start here](../sdk/README.md)
+
+## Link previews
+
+Offchain bots fetch OpenGraph link previews for messages automatically. See
+[the SDK README](../sdk/README.md#link-previews-og_previews) for how to configure or disable that.

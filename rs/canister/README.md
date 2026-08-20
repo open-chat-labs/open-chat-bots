@@ -19,3 +19,9 @@ In the root of the repo there are scripts to deploy the Rust canister example bo
 ## SDK
 
 [Start here](../sdk/README.md)
+
+## Link previews
+
+Canister bots can attach OpenGraph link previews to messages but do not fetch them - that would
+mean a replicated http outcall on the send path. See
+[the SDK README](../sdk/README.md#link-previews-og_previews).
