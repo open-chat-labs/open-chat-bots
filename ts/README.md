@@ -170,3 +170,25 @@ Note also that it is always possible for the calls to the OpenChat back end to r
 Here is a full description of the BotClient interface.
 
 TBD
+
+## Maintaining the typebox definitions
+
+`./library/src/typebox/typebox.ts` is **not** generated in this repo - it is a copy of
+`frontend/openchat-agent/src/typebox.ts` from the [open-chat](https://github.com/open-chat-labs/open-chat)
+repo (where it is generated from the canister types by `scripts/generate-typebox-types.sh`).
+
+The SDK validates every request and response against these schemas at runtime, so if this copy falls
+behind the OpenChat backend then newly added fields cannot be sent. Whenever the backend API changes,
+resync it:
+
+```bash
+cd ./library
+./sync-typebox.sh /path/to/open-chat
+
+# or, to re-run the upstream generator first:
+./sync-typebox.sh /path/to/open-chat --regenerate
+```
+
+The repo path can also be supplied via the `OPEN_CHAT_REPO` environment variable. Always rebuild
+(`npm run build`) and run the tests (`npx vitest run`) after a resync - upstream schemas occasionally
+get stricter.
