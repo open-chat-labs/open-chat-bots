@@ -192,3 +192,71 @@ Each command handler implements it's portion of the [BotDefinition](#bot-definit
 ## OpenChat API
 
 TBD
+
+
+## Link previews (og_previews)
+
+OpenChat messages can carry OpenGraph link previews - the title/description/image card you see
+under a link. OpenChat does not scrape links itself, it just stores whatever the sender gives it,
+so bots have to supply them.
+
+`SendMessageBuilder::with_og_previews` sets them explicitly:
+
+```rust
+client
+    .send_text_message("check this out https://example.com".to_string())
+    .with_og_previews(vec![OgPreview {
+        url: "https://example.com".to_string(),
+        title: "Example".to_string(),
+        description: "An example".to_string(),
+        image: None,
+    }])
+    .execute_then_return_message(|_, _| ());
+```
+
+The field is tri-state:
+
+| `with_og_previews` | behaviour |
+| --- | --- |
+| not called | the runtime decides - see below |
+| called with a non-empty list | that list is sent as-is, nothing is fetched |
+| called with an empty list | no previews are sent, nothing is fetched |
+
+Anything you set explicitly always wins.
+
+### Automatic lookup differs by runtime
+
+| runtime | automatic lookup | explicit previews |
+| --- | --- | --- |
+| `oc_bots_sdk_offchain` (`AgentRuntime`) | yes | yes |
+| `oc_bots_sdk_canister` (`CanisterRuntime`) | no | yes |
+
+In-canister bots are pass-through only on purpose. Scraping a link from a canister means an http
+outcall replicated across the subnet and a cycles cost on the send path, which is not a reasonable
+thing to do every time a bot posts a link.
+
+Offchain, whenever you send a **text** message the runtime extracts up to three links from the
+text and fetches previews before the call goes out. Markdown links (`[title](https://...)`) are
+unwrapped first, and links to OpenChat messages are skipped because the OpenChat client renders
+those itself. If the message is not a text message, or contains no links, no http calls are made.
+
+A preview lookup can never stop a message being sent. Requests are made concurrently with a five
+second timeout and every failure degrades to fewer previews, never to a send failure. Results are
+cached by url for ten minutes (failures for thirty seconds), up to 500 entries, and in-flight
+requests for the same url are shared, so fanning the same message out to many chats only asks the
+preview service once.
+
+To configure or disable it, build the runtime with an `OgPreviewConfig`:
+
+```rust
+use oc_bots_sdk_offchain::{AgentRuntime, OgPreviewConfig};
+
+let runtime = AgentRuntime::new_with_og_preview_config(
+    agent,
+    tokio_runtime,
+    OgPreviewConfig {
+        auto_fetch: false, // defaults to true
+        proxy_url: "https://my-preview-service".to_string(),
+    },
+);
+```

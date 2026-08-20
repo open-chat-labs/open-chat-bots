@@ -2096,10 +2096,13 @@ dependencies = [
  "http 1.2.0",
  "ic-agent",
  "oc_bots_sdk",
+ "regex",
+ "reqwest",
  "rmp-serde",
  "serde",
  "tokio",
  "tower",
+ "url",
 ]
 
 [[package]]

@@ -4,6 +4,7 @@ import type {
     FileContent,
     ImageContent,
     BotMessageContent as MessageContent,
+    OgPreview,
     PollContent,
 } from "../typebox/typebox";
 import { random64 } from "../utils/rng";
@@ -32,6 +33,9 @@ export abstract class Message {
     #finalised: boolean = true;
     #blockLevelMarkdown: boolean = false;
     #ephemeral: boolean = false;
+    // undefined means "not specified" which allows the client to fetch previews automatically.
+    // An empty array means "explicitly no previews" and suppresses the automatic fetch.
+    #ogPreviews?: OgPreview[];
 
     protected content: MessageContent;
 
@@ -69,6 +73,26 @@ export abstract class Message {
         return this as unknown as T;
     }
 
+    /**
+     * Sets the OpenGraph link previews to attach to this message. Setting this - to a populated
+     * list *or* to an empty list - disables the client's automatic preview lookup, so passing []
+     * is how you explicitly suppress previews for a single message.
+     */
+    setOgPreviews<T extends Message>(previews: OgPreview[]): T {
+        this.#ogPreviews = previews;
+        return this as unknown as T;
+    }
+
+    /** The previews explicitly set on this message, or undefined if none were set. */
+    public get ogPreviews(): OgPreview[] | undefined {
+        return this.#ogPreviews;
+    }
+
+    /** The text of this message, if it is a text message. Used to find links to preview. */
+    public get text(): string | undefined {
+        return "Text" in this.content ? this.content.Text.text : undefined;
+    }
+
     setMessageId<T extends Message>(messageId?: bigint): T {
         this.#messageId = messageId;
         return this as unknown as T;
@@ -99,7 +123,9 @@ export abstract class Message {
         };
     }
 
-    toInputArgs(ctx: BotChatContext): BotSendMessageArgs {
+    // ogPreviews are passed in rather than fetched here because this method is synchronous and
+    // the automatic lookup is async. Anything explicitly set on the message always wins.
+    toInputArgs(ctx: BotChatContext, ogPreviews?: OgPreview[]): BotSendMessageArgs {
         return {
             chat_context: apiBotChatContext(ctx),
             message_id: apiOptional(this.#messageId, identity),
@@ -108,6 +134,7 @@ export abstract class Message {
             content: this.content as MessageContent,
             finalised: this.#finalised,
             block_level_markdown: this.#blockLevelMarkdown ?? false,
+            og_previews: this.#ogPreviews ?? ogPreviews,
         };
     }
 }

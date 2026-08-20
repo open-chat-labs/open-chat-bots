@@ -15,6 +15,9 @@ module {
         content : MessageContent.MessageContentInitial;
         block_level_markdown : Bool;
         finalised : Bool;
+        // `null` and `?[]` are meaningfully different here - `null` leaves it to OpenChat to
+        // decide, `?[]` means "definitely no previews".
+        og_previews : ?[MessageContent.OgPreview];
     };
 
     public type Response = {
