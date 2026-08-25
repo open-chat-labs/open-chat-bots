@@ -1,0 +1,32 @@
+name: Deploy Discord Bot!
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: ./.github/workflows/setup-rust
+      
+      - name: Build the binary
+        run: TARGET_CC=x86_64-linux-musl-gcc cargo build --release -p discord-bot --target="x86_64-unknown-linux-musl"
+  
+      - name: Upload binary to EC2
+        env:
+          BOTS_EC2_SSH_PRIVATE_KEY: ${{ secrets.BOTS_EC2_SSH_PRIVATE_KEY }}
+          BOTS_EC2_USER: ubuntu
+          BOTS_EC2_HOST: ${{ secrets.BOTS_EC2_HOST }}
+        run: |
+          echo "$BOTS_EC2_SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          scp -i private_key.pem target/x86_64-unknown-linux-musl/release/discord-bot $BOTS_EC2_USER@$BOTS_EC2_HOST:~/bot-services/discord-bot/
+          ssh -i private_key.pem $BOTS_EC2_USER@$BOTS_EC2_HOST 'sudo systemctl restart discord-bot'
+      
+      - name: Cleanup
+        run: rm -f private_key.pem
+          
