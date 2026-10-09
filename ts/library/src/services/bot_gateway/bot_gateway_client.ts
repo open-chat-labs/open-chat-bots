@@ -62,6 +62,7 @@ import {
     LocalUserIndexBotSendMessageArgs as BotSendMessageArgs,
     LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
     MemberType,
+    OgPreview,
 } from "../../typebox/typebox";
 import { MsgpackCanisterAgent } from "../canisterAgent/msgpack";
 
@@ -95,10 +96,14 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
         });
     }
 
-    sendMessage(ctx: BotChatContext, message: Message): Promise<SendMessageResponse> {
+    sendMessage(
+        ctx: BotChatContext,
+        message: Message,
+        ogPreviews?: OgPreview[],
+    ): Promise<SendMessageResponse> {
         return this.executeMsgpackUpdate(
             "bot_send_message",
-            message.toInputArgs(ctx),
+            message.toInputArgs(ctx, ogPreviews),
             sendMessageResponse,
             BotSendMessageArgs,
             BotSendMessageResponse,

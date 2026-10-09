@@ -132,6 +132,22 @@ module {
         kind : Text;
     };
 
+    // An OpenGraph link preview. OpenChat stores whatever it is given here, it does not scrape
+    // links itself, so it is up to the sender to populate these. In-canister bots must build
+    // them explicitly - see the offchain SDKs if you want them fetched automatically.
+    public type OgPreview = {
+        url : Text;
+        title : Text;
+        description : Text;
+        image : ?OgPreviewImage;
+    };
+
+    public type OgPreviewImage = {
+        url : Text;
+        width : Nat32;
+        height : Nat32;
+    };
+
     public module Ser {
         public func serialize(content : MessageContentInitial) : J.Json {
             let (kind, value) : (Text, J.Json) = switch (content) {

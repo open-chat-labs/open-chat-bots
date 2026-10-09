@@ -1,6 +1,6 @@
 use crate::oc_api::actions::ActionDef;
 use crate::types::{
-    BotChatContext, EventIndex, MessageContentInitial, MessageId, MessageIndex, OCError,
+    BotChatContext, EventIndex, MessageContentInitial, MessageId, MessageIndex, OCError, OgPreview,
     TimestampMillis,
 };
 use serde::{Deserialize, Serialize};
@@ -25,6 +25,11 @@ pub struct Args {
     pub content: MessageContentInitial,
     pub block_level_markdown: bool,
     pub finalised: bool,
+    // OpenChat treats `None` and `Some(vec![])` identically (it does
+    // `og_previews.unwrap_or_default()`), so this distinction is purely client-side: `None` means
+    // "the runtime may look previews up", `Some(vec![])` means "don't". By the time the args
+    // reach here the runtime has already acted on that, so both send no previews.
+    pub og_previews: Option<Vec<OgPreview>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

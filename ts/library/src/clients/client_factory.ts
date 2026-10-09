@@ -5,6 +5,7 @@ import type { ActionScope, BotClientConfig, RawCommandJwt } from "../domain";
 import { ActionContext } from "../domain/action_context";
 import { Permissions } from "../domain/permissions";
 import { BadRequestError } from "../utils/badrequest";
+import { DEFAULT_PREVIEW_PROXY_URL } from "../utils/linkPreviews";
 import { BotClient } from "./bot_client";
 import { GlobalClient } from "./global_client";
 
@@ -56,7 +57,11 @@ export class BotClientFactory {
         } else if (env.openchatPublicKey === undefined) {
             throw new Error("OpenChat public key not provided");
         }
-        return env;
+        return {
+            ...env,
+            autoFetchOgPreviews: env.autoFetchOgPreviews ?? true,
+            previewProxyUrl: env.previewProxyUrl ?? DEFAULT_PREVIEW_PROXY_URL,
+        };
     }
 
     get env(): BotClientConfig {

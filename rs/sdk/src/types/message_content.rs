@@ -171,3 +171,22 @@ pub struct CustomContent {
 pub struct UnsupportedContent {
     pub kind: String,
 }
+
+/// An OpenGraph link preview. OpenChat stores whatever it is given here, it does not scrape
+/// links itself, so it is up to the sender to populate these. The offchain SDK can do that
+/// automatically - see `SendMessageBuilder::with_og_previews`.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct OgPreview {
+    pub url: String,
+    pub title: String,
+    pub description: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image: Option<OgPreviewImage>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct OgPreviewImage {
+    pub url: String,
+    pub width: u32,
+    pub height: u32,
+}

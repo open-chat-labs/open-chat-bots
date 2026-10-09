@@ -165,8 +165,121 @@ Note that each time we call `sendTextMessage` within the lifecycle of a single c
 
 Note also that it is always possible for the calls to the OpenChat back end to return error responses or to throw errors so you will need appropriate error handling. The typescript types will help you track the possible ways that a call to the OpenChat backend can fail.
 
+## Link previews (og_previews)
+
+OpenChat messages can carry OpenGraph link previews - the title/description/image card you see
+under a link. OpenChat does not scrape links itself, it just stores whatever the sender gives it,
+so bots have to supply them.
+
+By default this library does it for you: whenever you send a **text** message the client extracts
+up to three links from the text and fetches previews for them before sending. Markdown links
+(`[title](https://...)`) are unwrapped first, and links to OpenChat messages are skipped because
+the OpenChat client renders those itself. If the message is not a text message, or contains no
+links, no http calls are made at all.
+
+A preview lookup can never stop a message being sent. Requests are made concurrently with a five
+second timeout and every failure - timeout, bad status, malformed response, network error -
+results in the message being sent with fewer previews (or none), never in a send failure.
+
+Results are cached by url for ten minutes (failures for thirty seconds), up to 500 entries, and
+in-flight requests for the same url are shared. So a bot that fans the same message out to many
+chats only asks the preview service once.
+
+### Supplying previews yourself
+
+```typescript
+const message = (await client.createTextMessage("check this out https://example.com")).setOgPreviews([
+  { url: "https://example.com", title: "Example", description: "An example" },
+]);
+await client.sendMessage(message);
+```
+
+The field is tri-state:
+
+| `setOgPreviews` | behaviour |
+| --- | --- |
+| not called | previews are fetched automatically (unless disabled - see below) |
+| called with a non-empty list | that list is sent as-is, nothing is fetched |
+| called with `[]` | no previews are sent, nothing is fetched |
+
+So passing `[]` is how you suppress previews for one particular message. Anything you set
+explicitly always wins over the automatic lookup.
+
+Note this tri-state is **client-side only**. OpenChat collapses an absent field and an empty list
+to the same thing (`og_previews.unwrap_or_default()`), so on the wire "unset" and "empty" are
+identical - both mean no previews. The difference is purely in what this SDK does before sending.
+
+Note that ephemeral messages never carry previews - they are not sent to the OpenChat backend at
+all, so no lookup is performed for them.
+
+### Message ordering
+
+The preview lookup happens inside `sendMessage`, so a send that carries links now takes longer to
+reach the canister than one that does not. If you issue two sends without awaiting the first:
+
+```typescript
+client.sendMessage(a); // contains links - blocks on up to 3 lookups
+client.sendMessage(b); // no links - goes straight out
+```
+
+`b` will very likely arrive **before** `a`. Previously both went out immediately, so their relative
+order was much more likely to hold. **If ordering matters, await each send before issuing the
+next:**
+
+```typescript
+await client.sendMessage(a);
+await client.sendMessage(b);
+```
+
+Because results are cached, this only bites on the first send of a given set of urls - repeat
+sends of the same links resolve from cache and are fast.
+
+### Configuration
+
+Two optional fields on `BotClientConfig`:
+
+```typescript
+const factory = new BotClientFactory({
+  ...
+  autoFetchOgPreviews: false, // defaults to true
+  previewProxyUrl: "https://my-preview-service", // defaults to the service OpenChat uses
+});
+```
+
+With `autoFetchOgPreviews: false` the client never contacts the preview service and only sends
+previews that you set explicitly.
+
+### Other SDKs
+
+The Rust and Motoko SDKs support the same `og_previews` field, but only the *offchain* targets
+fetch automatically. In-canister bots (`oc_bots_sdk_canister`, the Motoko SDK) are pass-through
+only, because scraping a link from a canister would mean a consensus-replicated http outcall and
+a cycles cost on every send.
+
 ## BotClient interface
 
 Here is a full description of the BotClient interface.
 
 TBD
+
+## Maintaining the typebox definitions
+
+`./library/src/typebox/typebox.ts` is **not** generated in this repo - it is a copy of
+`frontend/openchat-agent/src/typebox.ts` from the [open-chat](https://github.com/open-chat-labs/open-chat)
+repo (where it is generated from the canister types by `scripts/generate-typebox-types.sh`).
+
+The SDK validates every request and response against these schemas at runtime, so if this copy falls
+behind the OpenChat backend then newly added fields cannot be sent. Whenever the backend API changes,
+resync it:
+
+```bash
+cd ./library
+./sync-typebox.sh /path/to/open-chat
+
+# or, to re-run the upstream generator first:
+./sync-typebox.sh /path/to/open-chat --regenerate
+```
+
+The repo path can also be supplied via the `OPEN_CHAT_REPO` environment variable. Always rebuild
+(`npm run build`) and run the tests (`npx vitest run`) after a resync - upstream schemas occasionally
+get stricter.

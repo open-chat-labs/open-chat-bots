@@ -10,10 +10,13 @@ futures = "0.3.31"
 http.workspace = true
 ic-agent = { workspace = true }
 oc_bots_sdk = { path = "../../sdk" }
+regex = { workspace = true }
+reqwest = { version = "0.12.12", default-features = false, features = ["json", "rustls-tls"] }
 rmp-serde = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true, features = ["rt"] }
 tower = { version = "0.5.2", optional = true }
+url = "2.5.4"
 
 [features]
 tower = ["dep:tower"]

@@ -1,6 +1,6 @@
 import type { BotCommand } from "../typebox/typebox";
 import type { CommandArg } from "./bot";
-import type { DataContent } from "./data";
+import type { BlobReference, DataContent } from "./data";
 import type { ChatIdentifier } from "./identifiers";
 import type { CommunityPermissions, GroupPermissions, PermissionRole } from "./permissions";
 import type { VideoCallType } from "./video";
@@ -62,12 +62,19 @@ export type ChatEvent =
     | UsersInvitedEvent
     | MembersAddedToDefaultChannel
     | ExternalUrlUpdated
+    | HistoryDeleted
     | BotAdded
     | BotRemoved
     | BotUpdated;
 
 export type EmptyEvent = {
     kind: "empty";
+};
+
+export type HistoryDeleted = {
+    kind: "history_deleted";
+    before: bigint;
+    deletedBy: string;
 };
 
 export type GroupChatCreated = {
@@ -404,6 +411,7 @@ export type MessageContent =
     | MessageReminderCreatedContent
     | MessageReminderContent
     | ReportedMessageContent
+    | ModerationReportContent
     | UserReferralCard
     | MemeFighterContent
     | VideoCallContent;
@@ -773,6 +781,49 @@ export type MessageReport = {
     timestamp: number;
     reportedBy: string;
 };
+
+export type ModerationReportContent = {
+    kind: "moderation_report_content";
+    reportIndex: bigint | undefined;
+    chatId: ChatIdentifier;
+    threadRootMessageIndex: number | undefined;
+    messageIndex: number;
+    messageId: bigint;
+    sender: string;
+    reporters: string[];
+    flaggedCategories: number;
+    classificationFailed: boolean;
+    // True for a blocked re-post attempt report: it resolves with its original report
+    isBlockedAttempt: boolean;
+    authorityReport: AuthorityReport | undefined;
+    autoSanctioned: boolean;
+    contentExcerpt: string | undefined;
+    blobReferences: BlobReference[];
+    // Present when the detection was a media hash match rather than the text classifier
+    mediaMatches: MediaScanMatch[];
+    reportedAt: bigint;
+    status: ModerationReportStatus;
+};
+
+export type AuthorityReport =
+    | { kind: "due"; urgent: boolean }
+    | { kind: "filed"; portalReference: string };
+
+export type MediaScanMatch = {
+    provider: string;
+    blobId: bigint;
+    source: string;
+    violations: string[];
+    matchDistance: bigint;
+    matchId: string | undefined;
+};
+
+export type ModerationReportStatus =
+    | { kind: "pending" }
+    | { kind: "contested" }
+    | { kind: "upheld"; moderator: string; timestamp: bigint }
+    | { kind: "upheld_as_csam"; moderator: string; timestamp: bigint }
+    | { kind: "dismissed"; moderator: string; timestamp: bigint };
 
 export type UserReferralCard = {
     kind: "user_referral_card";

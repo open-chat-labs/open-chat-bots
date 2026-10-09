@@ -19,6 +19,7 @@ module {
         var repliesTo : ?B.EventIndex = null;
         var blockLevelMarkdown : Bool = false;
         var finalised : Bool = true;
+        var ogPreviews : ?[MessageContent.OgPreview] = null;
 
         // This only takes effect for community scope
         public func inChannel(value : ?B.ChannelId) : Builder {
@@ -55,6 +56,15 @@ module {
             this;
         };
 
+        // Sets the OpenGraph link previews to attach to this message. In-canister bots have to
+        // supply these themselves - fetching them would mean a consensus-replicated http outcall
+        // on the send path - so nothing is attached unless you call this. Passing an empty array
+        // explicitly tells OpenChat there are no previews.
+        public func withOgPreviews(value : [MessageContent.OgPreview]) : Builder {
+            ogPreviews := ?value;
+            this;
+        };
+
         public func executeThenReturnMessage(onResponseOpt : ?(Result -> ())) : async ?CommandResponse.Message {
             // Only return a message if the context has a message id
             let message = Option.map(context.messageId, func (messageId : B.MessageId) : CommandResponse.Message {
@@ -82,6 +92,7 @@ module {
                     content = content;
                     block_level_markdown = blockLevelMarkdown;
                     finalised = finalised;
+                    og_previews = ogPreviews;
                 });
 
                 switch (onResponseOpt) {
@@ -113,6 +124,7 @@ module {
                     content = content;
                     block_level_markdown = blockLevelMarkdown;
                     finalised = finalised;
+                    og_previews = ogPreviews;
                 });
 
                 #ok response;

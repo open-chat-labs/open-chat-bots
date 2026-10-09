@@ -139,6 +139,11 @@ export type BotClientConfig = {
     identityPrivateKey: string;
     openchatPublicKey: string;
     userIndexCanisterId?: string;
+    // When true (the default) the client looks for links in the text of any message it sends and
+    // populates the message's og_previews from the preview service. Set to false to opt out.
+    autoFetchOgPreviews?: boolean;
+    // The base url of the OpenGraph preview service. Defaults to the service used by OpenChat.
+    previewProxyUrl?: string;
 };
 
 export type CommandArg = CommandArgCommon & CommandArgType;
