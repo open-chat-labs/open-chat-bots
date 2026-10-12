@@ -30,6 +30,7 @@ export class Channel {
         addMembers: "admin",
         mentionAllMembers: "member",
         reactToMessages: "member",
+        tipMessages: "member",
         startVideoCall: "member",
         messagePermissions: {
             custom: [],

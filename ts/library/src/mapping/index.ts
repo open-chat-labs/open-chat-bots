@@ -482,6 +482,7 @@ function groupPermissions(api: ApiGroupPermissions): GroupPermissions {
         deleteMessages: permissionRole(api.delete_messages),
         pinMessages: permissionRole(api.pin_messages),
         reactToMessages: permissionRole(api.react_to_messages),
+        tipMessages: permissionRole(api.tip_messages),
         mentionAllMembers: permissionRole(api.mention_all_members),
         startVideoCall: permissionRole(api.start_video_call),
         messagePermissions: messagePermissions(api.message_permissions),
@@ -792,6 +793,7 @@ export function apiGroupPermissions(domain: GroupPermissions): ApiGroupPermissio
         add_members: apiPermissionRole(domain.addMembers),
         pin_messages: apiPermissionRole(domain.pinMessages),
         react_to_messages: apiPermissionRole(domain.reactToMessages),
+        tip_messages: apiPermissionRole(domain.tipMessages),
     };
 }
 
