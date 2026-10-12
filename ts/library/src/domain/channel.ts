@@ -20,7 +20,8 @@ export type Rules = { text: string; enabled: boolean };
 
 export class Channel {
     #isPublic = true;
-    #permissions: GroupPermissions = {
+    // Unless it's set, `tipMessages` follows `reactToMessages`, as it does on the server
+    #permissions: Omit<GroupPermissions, "tipMessages"> & { tipMessages?: PermissionRole } = {
         changeRoles: "admin",
         removeMembers: "moderator",
         deleteMessages: "moderator",
@@ -72,7 +73,7 @@ export class Channel {
         return this;
     }
 
-    public setGroupPermission(perm: ChatPermission, role: PermissionRole): Channel {
+    public setGroupPermission(perm: ChatPermission | "tipMessages", role: PermissionRole): Channel {
         this.#permissions[perm] = role;
         return this;
     }
@@ -112,10 +113,14 @@ export class Channel {
     ) {}
 
     public toInputArgs(communityId: CommunityIdentifier): LocalUserIndexBotCreateChannelArgs {
+        const permissions: GroupPermissions = {
+            ...this.#permissions,
+            tipMessages: this.#permissions.tipMessages ?? this.#permissions.reactToMessages,
+        };
         return {
             community_id: principalStringToBytes(communityId.communityId),
             is_public: this.#isPublic,
-            permissions: apiOptional(this.#permissions, apiGroupPermissions),
+            permissions: apiGroupPermissions(permissions),
             gate_config: apiOptional(this.#gateConfig, apiAccessGateConfig),
             external_url: apiOptional(this.#externalUrl, identity),
             name: this.name,

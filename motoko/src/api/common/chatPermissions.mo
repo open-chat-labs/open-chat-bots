@@ -8,6 +8,7 @@ module {
         delete_messages : ChatPermissionRole;
         pin_messages : ChatPermissionRole;
         react_to_messages : ChatPermissionRole;
+        tip_messages : ChatPermissionRole;
         mention_all_members : ChatPermissionRole;
         start_video_call : ChatPermissionRole;
         message_permissions : MessagePermissions;

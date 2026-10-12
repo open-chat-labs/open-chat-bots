@@ -65,6 +65,7 @@ export type LowercaseCommunityPermission = LowercaseFirstLetter<
 >;
 
 export type GroupPermissions = Record<LowercaseChatPermission, PermissionRole> & {
+    tipMessages: PermissionRole;
     messagePermissions: MessagePermissions;
     threadPermissions?: MessagePermissions;
 };

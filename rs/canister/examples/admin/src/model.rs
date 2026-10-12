@@ -397,6 +397,7 @@ async fn create_channel(api_gateway: CanisterId, community_id: CommunityId, atte
         delete_messages: ChatPermissionRole::Owner,
         pin_messages: ChatPermissionRole::Members,
         react_to_messages: ChatPermissionRole::Members,
+        tip_messages: ChatPermissionRole::Members,
         mention_all_members: ChatPermissionRole::Owner,
         start_video_call: ChatPermissionRole::None,
         message_permissions: MessagePermissions {

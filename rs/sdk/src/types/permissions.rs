@@ -324,6 +324,7 @@ pub struct ChatPermissions {
     pub delete_messages: ChatPermissionRole,
     pub pin_messages: ChatPermissionRole,
     pub react_to_messages: ChatPermissionRole,
+    pub tip_messages: ChatPermissionRole,
     pub mention_all_members: ChatPermissionRole,
     pub start_video_call: ChatPermissionRole,
     pub message_permissions: MessagePermissions,
