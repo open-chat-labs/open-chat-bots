@@ -14,9 +14,10 @@ In the root of the repo there are scripts to deploy the Rust offchain example bo
   ./scripts/deploy_llama_bot.sh
 ```
 
-Note: the DiscordBot cannot be deployed locally because it needs to be reachable by Discord.
+Note: the Discord bridge isn't deployed locally, since it needs a Discord app and must be reachable
+by OpenChat.
 
-- [DiscordBot](./rs/offchain/examples/discord/README.md)
+- [Discord bridge](./bridges/discord/README.md)
 
 ## SDK
 
