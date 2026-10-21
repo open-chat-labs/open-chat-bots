@@ -193,7 +193,7 @@ pub struct PollConfig {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ThumbnailData(pub String);
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct BlobReference {
     #[serde(serialize_with = "serialize_principal_as_bytes")]
     pub canister_id: Principal,

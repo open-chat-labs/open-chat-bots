@@ -15,7 +15,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --tests --manifest-path rs/Cargo.toml -- -D warnings
+          args: --tests --all-features --manifest-path rs/Cargo.toml -- -D warnings
 
   clippy:
     name: run clippy
@@ -26,7 +26,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --tests --manifest-path rs/Cargo.toml -- -D warnings
+          args: --tests --all-features --manifest-path rs/Cargo.toml -- -D warnings
 
   unit_tests:
     name: run unit tests
@@ -37,4 +37,4 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --manifest-path rs/Cargo.toml
+          args: --all-features --manifest-path rs/Cargo.toml
