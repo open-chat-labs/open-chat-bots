@@ -1,4 +1,5 @@
 use super::{CanisterId, MessageIndex, Milliseconds, TimestampMillis, UserId};
+use crate::utils::tolerant_enum;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -8,7 +9,8 @@ pub struct AccessGateConfig {
     pub expiry: Option<Milliseconds>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+/// A kind of gate this SDK doesn't know yet decodes as `Unsupported`, with its name
+#[derive(Serialize, Clone, Debug, Eq, PartialEq)]
 pub enum AccessGate {
     DiamondMember,
     LifetimeDiamondMember,
@@ -20,6 +22,28 @@ pub enum AccessGate {
     Composite(CompositeGate),
     Locked,
     ReferredByMember,
+    TotalChitEarned(ChitEarnedGate),
+    Unsupported(String),
+}
+
+tolerant_enum!(
+    AccessGate,
+    variants: [
+        VerifiedCredential,
+        SnsNeuron,
+        Payment,
+        TokenBalance,
+        Composite,
+        TotalChitEarned,
+        Unsupported,
+    ],
+    units: [DiamondMember, LifetimeDiamondMember, UniquePerson, Locked, ReferredByMember],
+    unknown: |tag| AccessGate::Unsupported(tag),
+);
+
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+pub struct ChitEarnedGate {
+    pub min_chit_earned: u32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
@@ -63,7 +87,8 @@ pub struct CompositeGate {
     pub and: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+/// A kind of gate this SDK doesn't know yet decodes as `Unsupported`, with its name
+#[derive(Serialize, Clone, Debug, Eq, PartialEq)]
 pub enum AccessGateNonComposite {
     DiamondMember,
     LifetimeDiamondMember,
@@ -74,7 +99,16 @@ pub enum AccessGateNonComposite {
     TokenBalance(TokenBalanceGate),
     Locked,
     ReferredByMember,
+    TotalChitEarned(ChitEarnedGate),
+    Unsupported(String),
 }
+
+tolerant_enum!(
+    AccessGateNonComposite,
+    variants: [VerifiedCredential, SnsNeuron, Payment, TokenBalance, TotalChitEarned, Unsupported],
+    units: [DiamondMember, LifetimeDiamondMember, UniquePerson, Locked, ReferredByMember],
+    unknown: |tag| AccessGateNonComposite::Unsupported(tag),
+);
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FrozenGroupInfo {

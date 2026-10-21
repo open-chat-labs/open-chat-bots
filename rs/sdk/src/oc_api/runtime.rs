@@ -10,6 +10,17 @@ pub trait Runtime: Send + Sync + 'static {
         args: A,
     ) -> impl Future<Output = CallResult<R>> + Send;
 
+    /// Calls a query method. Runtimes which can't make query calls, eg. canisters, which call
+    /// queries as updates, can rely on the default, which calls `call_canister`.
+    fn query_canister<A: Serialize + Send, R: for<'a> Deserialize<'a>>(
+        &self,
+        canister_id: CanisterId,
+        method_name: &str,
+        args: A,
+    ) -> impl Future<Output = CallResult<R>> + Send {
+        self.call_canister(canister_id, method_name, args)
+    }
+
     fn spawn<F: Future<Output = ()> + Send + 'static>(&self, f: F);
 
     fn now(&self) -> TimestampMillis;

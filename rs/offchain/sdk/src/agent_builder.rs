@@ -23,8 +23,12 @@ pub async fn build_agent(url: String, pem_file: &str) -> Agent {
     agent
 }
 
+// Mainnet's root key is built into the agent. Fetching it instead would trust whichever server
+// answers.
 fn is_mainnet(url: &str) -> bool {
-    url.contains("ic0.app")
+    ["ic0.app", "icp0.io", "icp-api.io"]
+        .iter()
+        .any(|host| url.contains(host))
 }
 
 fn load_identity_from_pem_file(pem_file: &str) -> Box<dyn Identity> {

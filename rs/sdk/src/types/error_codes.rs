@@ -175,6 +175,17 @@ pub enum OCErrorCode {
     WebhookNotFound = 339,
     InvalidWebhook = 340,
     InvalidOriginatingCanister = 341,
+    LinkingCodeNotFound = 342,
+    MaxLinkedIdentitiesLimitReached = 343,
+    ItemNotFound = 344,
+    AmountNotSpecified = 345,
+    ProfileBackgroundTooBig = 346,
+    LedgerNotFound = 347,
+    PrizeUserNotElligible = 348,
+    NoEventsToDelete = 349,
+    InsufficientAllowance = 350,
+    LimitReached = 354,
+    UserMovedToNewSubnet = 355,
 
     // InternalError
     C2CError = 500,

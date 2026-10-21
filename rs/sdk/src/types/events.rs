@@ -1,10 +1,10 @@
 use super::{
-    AccessGateConfig, BotPermissions, CanisterId, Chat, ChatPermissions, ChatRole, EventIndex,
-    InstallationLocation, MessageContent, MessageId, MessageIndex, Milliseconds, TimestampMillis,
-    UserId,
+    AccessGateConfig, BotPermissions, BridgedUserId, CanisterId, Chat, ChatPermissions, ChatRole,
+    EventIndex, InstallationLocation, MessageContent, MessageId, MessageIndex, Milliseconds,
+    OgPreview, TimestampMillis, UserId,
 };
 use crate::api::command::Command;
-use crate::utils::is_default;
+use crate::utils::{is_default, tolerant_enum};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
@@ -17,7 +17,8 @@ pub struct EventWrapper<T> {
     pub event: T,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+/// A kind of event this SDK doesn't know yet decodes as `Unsupported`, with its name
+#[derive(Serialize, Clone, Debug)]
 pub enum ChatEvent {
     Empty,
     Message(Box<Message>),
@@ -49,8 +50,49 @@ pub enum ChatEvent {
     BotAdded(BotAdded),
     BotRemoved(BotRemoved),
     BotUpdated(BotUpdated),
+    HistoryDeleted(HistoryDeleted),
     FailedToDeserialize,
+    Unsupported(String),
 }
+
+tolerant_enum!(
+    ChatEvent,
+    variants: [
+        Message,
+        GroupChatCreated,
+        DirectChatCreated,
+        GroupNameChanged,
+        GroupDescriptionChanged,
+        GroupRulesChanged,
+        AvatarChanged,
+        ParticipantsAdded,
+        ParticipantsRemoved,
+        ParticipantJoined,
+        ParticipantLeft,
+        RoleChanged,
+        UsersBlocked,
+        UsersUnblocked,
+        MessagePinned,
+        MessageUnpinned,
+        PermissionsChanged,
+        GroupVisibilityChanged,
+        GroupInviteCodeChanged,
+        ChatFrozen,
+        ChatUnfrozen,
+        EventsTimeToLiveUpdated,
+        GroupGateUpdated,
+        UsersInvited,
+        MembersAddedToDefaultChannel,
+        ExternalUrlUpdated,
+        BotAdded,
+        BotRemoved,
+        BotUpdated,
+        HistoryDeleted,
+        Unsupported,
+    ],
+    units: [Empty, FailedToDeserialize],
+    unknown: |tag| ChatEvent::Unsupported(tag),
+);
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Message {
@@ -58,7 +100,7 @@ pub struct Message {
     pub message_id: MessageId,
     pub sender: UserId,
     pub content: MessageContent,
-    pub bot_context: Option<BotMessageContext>,
+    pub sender_context: Option<SenderContext>,
     pub replies_to: Option<ReplyContext>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub reactions: Vec<(String, Vec<UserId>)>,
@@ -71,7 +113,40 @@ pub struct Message {
     pub forwarded: bool,
     #[serde(default, skip_serializing_if = "is_default")]
     pub block_level_markdown: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub og_previews: Vec<OgPreview>,
 }
+
+impl Message {
+    /// Set if a bot sent the message
+    pub fn bot_context(&self) -> Option<&BotMessageContext> {
+        match &self.sender_context {
+            Some(SenderContext::Bot(context)) => Some(context),
+            _ => None,
+        }
+    }
+
+    /// The account on another platform which a bridge bot relayed the message from, if it did
+    pub fn bridged_from(&self) -> Option<BridgedUserId> {
+        self.bot_context().and_then(|context| context.bridged_from)
+    }
+}
+
+/// Who sent a message, when it wasn't sent by a user directly. A kind this SDK doesn't know yet
+/// decodes as `Unsupported`, with its name.
+#[derive(Serialize, Clone, Debug)]
+pub enum SenderContext {
+    Bot(BotMessageContext),
+    Webhook,
+    Unsupported(String),
+}
+
+tolerant_enum!(
+    SenderContext,
+    variants: [Bot, Unsupported],
+    units: [Webhook],
+    unknown: |tag| SenderContext::Unsupported(tag),
+);
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ReplyContext {
@@ -92,6 +167,10 @@ pub struct ThreadSummary {
 pub struct BotMessageContext {
     pub command: Option<Command>,
     pub finalised: bool,
+    /// Set on the messages a bridge bot relays from another platform, eg. Discord: the author's
+    /// account there
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bridged_from: Option<BridgedUserId>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -308,6 +387,13 @@ pub struct BotUpdated {
     pub updated_by: UserId,
 }
 
+/// The chat's history before `before` was deleted
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct HistoryDeleted {
+    pub before: TimestampMillis,
+    pub deleted_by: UserId,
+}
+
 impl ChatEvent {
     pub fn event_category(&self) -> Option<ChatEventCategory> {
         match self {
@@ -327,7 +413,8 @@ impl ChatEvent {
             | ChatEvent::ChatUnfrozen(_)
             | ChatEvent::EventsTimeToLiveUpdated(_)
             | ChatEvent::GroupGateUpdated(_)
-            | ChatEvent::ExternalUrlUpdated(_) => Some(ChatEventCategory::Details),
+            | ChatEvent::ExternalUrlUpdated(_)
+            | ChatEvent::HistoryDeleted(_) => Some(ChatEventCategory::Details),
             ChatEvent::ParticipantsAdded(_)
             | ChatEvent::ParticipantsRemoved(_)
             | ChatEvent::ParticipantJoined(_)
@@ -340,7 +427,7 @@ impl ChatEvent {
             | ChatEvent::BotAdded(_)
             | ChatEvent::BotRemoved(_)
             | ChatEvent::BotUpdated(_) => Some(ChatEventCategory::Membership),
-            ChatEvent::Empty | ChatEvent::FailedToDeserialize => None,
+            ChatEvent::Empty | ChatEvent::FailedToDeserialize | ChatEvent::Unsupported(_) => None,
         }
     }
 
@@ -375,8 +462,10 @@ impl ChatEvent {
             ChatEvent::BotAdded(ba) => Some(ba.added_by),
             ChatEvent::BotRemoved(br) => Some(br.removed_by),
             ChatEvent::BotUpdated(bu) => Some(bu.updated_by),
+            ChatEvent::HistoryDeleted(hd) => Some(hd.deleted_by),
             ChatEvent::FailedToDeserialize => None,
             ChatEvent::Empty => None,
+            ChatEvent::Unsupported(_) => None,
         }
     }
 }
@@ -416,6 +505,7 @@ pub enum ChatEventType {
     Frozen,   // Applies to group chats only
     Unfrozen, // Applies to group chats only
     DisappearingMessagesUpdated,
+    HistoryDeleted,
     MessagePinned,
     MessageUnpinned,
 
@@ -453,6 +543,7 @@ impl From<ChatEventType> for ChatEventCategory {
             | ChatEventType::Frozen
             | ChatEventType::Unfrozen
             | ChatEventType::DisappearingMessagesUpdated
+            | ChatEventType::HistoryDeleted
             | ChatEventType::GateUpdated
             | ChatEventType::MessagePinned
             | ChatEventType::MessageUnpinned => ChatEventCategory::Details,
@@ -477,8 +568,10 @@ pub enum CommunityEventType {
     BannerChanged,
     PermissionsChanged,
     VisibilityChanged,
+    InviteCodeChanged,
     Frozen,
     Unfrozen,
+    EventsTTLUpdated,
     GateUpdated,
     MessagePinned,
     MessageUnpinned,
@@ -511,8 +604,10 @@ impl CommunityEventType {
             CommunityEventType::BannerChanged,
             CommunityEventType::PermissionsChanged,
             CommunityEventType::VisibilityChanged,
+            CommunityEventType::InviteCodeChanged,
             CommunityEventType::Frozen,
             CommunityEventType::Unfrozen,
+            CommunityEventType::EventsTTLUpdated,
             CommunityEventType::GateUpdated,
             CommunityEventType::PrimaryLanguageChanged,
             CommunityEventType::GroupImported,
@@ -545,8 +640,10 @@ impl From<CommunityEventType> for CommunityEventCategory {
             | CommunityEventType::BannerChanged
             | CommunityEventType::PermissionsChanged
             | CommunityEventType::VisibilityChanged
+            | CommunityEventType::InviteCodeChanged
             | CommunityEventType::Frozen
             | CommunityEventType::Unfrozen
+            | CommunityEventType::EventsTTLUpdated
             | CommunityEventType::GateUpdated
             | CommunityEventType::PrimaryLanguageChanged
             | CommunityEventType::GroupImported

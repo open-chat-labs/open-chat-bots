@@ -1,7 +1,8 @@
 use super::{TimestampMillis, UserId};
-use crate::utils::{serialize_large_uint, serialize_principal_as_bytes};
+use crate::utils::{serialize_large_uint, serialize_principal_as_bytes, tolerant_enum};
 use ic_principal::Principal;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum MessageContentInitial {
@@ -21,7 +22,9 @@ impl MessageContentInitial {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+/// A kind of content this SDK doesn't know yet, eg. a crypto transfer or a prize, decodes as
+/// `Unsupported`, with its kind
+#[derive(Serialize, Clone, Debug)]
 pub enum MessageContent {
     Text(TextContent),
     Image(ImageContent),
@@ -34,6 +37,13 @@ pub enum MessageContent {
     Custom(CustomContent),
     Unsupported(UnsupportedContent),
 }
+
+tolerant_enum!(
+    MessageContent,
+    variants: [Text, Image, Video, Audio, File, Poll, Deleted, Giphy, Custom, Unsupported],
+    units: [],
+    unknown: |kind| MessageContent::Unsupported(UnsupportedContent { kind }),
+);
 
 impl MessageContent {
     pub fn text(&self) -> Option<&str> {
@@ -129,6 +139,42 @@ pub struct FileContent {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PollContent {
     pub config: PollConfig,
+    /// OpenChat ignores this on a poll a bot sends
+    #[serde(default)]
+    pub votes: PollVotes,
+    #[serde(default)]
+    pub ended: bool,
+}
+
+impl From<PollConfig> for PollContent {
+    fn from(config: PollConfig) -> Self {
+        PollContent {
+            config,
+            votes: PollVotes::default(),
+            ended: false,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct PollVotes {
+    pub total: TotalVotes,
+    /// The options the user the poll was read as has voted for
+    pub user: Vec<u32>,
+}
+
+/// The votes for each option, as much as the poll shows
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum TotalVotes {
+    Visible(HashMap<u32, Vec<UserId>>),
+    Anonymous(HashMap<u32, u32>),
+    Hidden(u32),
+}
+
+impl Default for TotalVotes {
+    fn default() -> Self {
+        TotalVotes::Hidden(0)
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

@@ -1,6 +1,7 @@
 mod action_context;
 mod basic;
 mod bot_context;
+mod bridge;
 mod chat;
 mod chat_context;
 mod community_or_group_context;
@@ -14,6 +15,7 @@ mod permissions;
 pub use action_context::*;
 pub use basic::*;
 pub use bot_context::*;
+pub use bridge::*;
 pub use chat::*;
 pub use chat_context::*;
 pub use community_or_group_context::*;
