@@ -1,6 +1,6 @@
 # Build from rs/, as the bridge is part of its workspace:
 #   docker build -f offchain/bridges/discord/Dockerfile -t oc-discord-bridge .
-FROM rust:1.99-bookworm AS build
+FROM rust:1.99.0-bookworm AS build
 WORKDIR /src
 COPY . .
 # The workspace's release profile is tuned for small canister wasms rather than speed

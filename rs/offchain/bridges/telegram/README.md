@@ -94,13 +94,8 @@ the Discord bridge, are in [`../core`](../core).
    - **Permissions:** the function needs `dynamodb:GetItem`, `PutItem` and `DeleteItem` on the table.
 
 5. **Build and deploy the Lambda function** from `rs/`, with
-   [cargo-lambda](https://www.cargo-lambda.info) 1.9.2 or later. Older versions can't link with
-   this Rust. Lambda runs on Linux, so the build needs Rust's Linux target, added once from `rs/`
-   for the toolchain it uses:
-
-   ```bash
-   rustup target add aarch64-unknown-linux-gnu
-   ```
+   [cargo-lambda](https://www.cargo-lambda.info) 1.9.2 or later, which adds Rust's Linux target
+   as needed. Older versions can't link with this Rust:
 
    ```bash
    cargo lambda build --release --arm64 -p oc_telegram_bridge
