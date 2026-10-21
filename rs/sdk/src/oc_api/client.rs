@@ -159,7 +159,7 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
     }
 }
 
-// Calls to the UserIndex, whose id is the client's context, eg. `mainnet::user_index_canister_id()`
+// Calls to the UserIndex, whose id is the client's context, eg. `mainnet::mainnet_user_index_canister_id()`
 impl<R: Runtime> Client<R, CanisterId> {
     pub fn installation_events(&self) -> InstallationEventsBuilder<'_, R> {
         InstallationEventsBuilder::new(self)

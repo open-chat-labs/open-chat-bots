@@ -14,8 +14,8 @@ jobs:
       - uses: ./.github/workflows/setup-rust
       - uses: actions-rs/cargo@v1
         with:
-          command: clippy
-          args: --tests --all-features --manifest-path rs/Cargo.toml -- -D warnings
+          command: fmt
+          args: --all --manifest-path rs/Cargo.toml -- --check
 
   clippy:
     name: run clippy
@@ -23,6 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/workflows/setup-rust
+      # Without features too, as most bots build the SDK that way
+      - uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --tests --manifest-path rs/Cargo.toml -- -D warnings
       - uses: actions-rs/cargo@v1
         with:
           command: clippy

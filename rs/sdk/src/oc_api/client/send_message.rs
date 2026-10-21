@@ -60,8 +60,8 @@ impl<'c, R: Runtime, C: ActionContext> SendMessageBuilder<'c, R, C> {
         self
     }
 
-    // If this is not set then OpenChat will generate a new message id. Setting it makes a retried
-    // send safe: OpenChat refuses a second message with the same id (`MessageIdAlreadyExists`).
+    // If this is not set then OpenChat will generate a new message id. Setting it means a retried
+    // send can't create a duplicate.
     pub fn with_message_id(mut self, message_id: MessageId) -> Self {
         if self.message_id.is_none() {
             self.message_id = Some(message_id);
@@ -100,16 +100,8 @@ impl<'c, R: Runtime, C: ActionContext> SendMessageBuilder<'c, R, C> {
         self
     }
 
-    // The message text we should look for links in, or None if there is nothing to look up
-    // either because previews were set explicitly or because this isn't a text message.
     fn og_preview_text(&self) -> Option<String> {
-        if self.og_previews.is_some() {
-            return None;
-        }
-        match &self.content {
-            MessageContentInitial::Text(text) if !text.text.is_empty() => Some(text.text.clone()),
-            _ => None,
-        }
+        og_preview_text(&self.content, &self.og_previews)
     }
 
     pub fn execute_then_return_message<
@@ -174,7 +166,7 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for SendMessageBuilder<'
         let mut args = self.into_args();
 
         runtime.spawn(async move {
-            add_og_previews(&*runtime_clone, &mut args, preview_text).await;
+            add_og_previews(&*runtime_clone, &mut args.og_previews, preview_text).await;
 
             let response =
                 call_action::<SendMessageAction, R>(&*runtime_clone, api_gateway, args.clone())
@@ -191,20 +183,39 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for SendMessageBuilder<'
         let mut args = self.into_args();
 
         async move {
-            add_og_previews(&*runtime, &mut args, preview_text).await;
+            add_og_previews(&*runtime, &mut args.og_previews, preview_text).await;
             call_action::<SendMessageAction, R>(&*runtime, api_gateway, args).await
         }
     }
 }
 
+// The message text we should look for links in, or None if there is nothing to look up
+// either because previews were set explicitly or because this isn't a text message.
+pub(super) fn og_preview_text(
+    content: &MessageContentInitial,
+    og_previews: &Option<Vec<OgPreview>>,
+) -> Option<String> {
+    if og_previews.is_some() {
+        return None;
+    }
+    match content {
+        MessageContentInitial::Text(text) if !text.text.is_empty() => Some(text.text.clone()),
+        _ => None,
+    }
+}
+
 // Note we leave `og_previews` as `None` if we found nothing, rather than setting it to an empty
 // list - on the wire they mean the same thing but `None` is the smaller payload.
-async fn add_og_previews<R: Runtime>(runtime: &R, args: &mut Args, preview_text: Option<String>) {
+pub(super) async fn add_og_previews<R: Runtime>(
+    runtime: &R,
+    og_previews: &mut Option<Vec<OgPreview>>,
+    preview_text: Option<String>,
+) {
     let Some(text) = preview_text else {
         return;
     };
     let previews = runtime.fetch_og_previews(text).await;
     if !previews.is_empty() {
-        args.og_previews = Some(previews);
+        *og_previews = Some(previews);
     }
 }

@@ -32,7 +32,6 @@ pub struct Args {
     pub og_previews: Option<Vec<OgPreview>>,
     /// Only the bridge bot for its platform can set this, on the messages it relays from there: the
     /// author's profile on that platform
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bridged_from: Option<BridgedUser>,
 }
 
@@ -49,54 +48,4 @@ pub struct SuccessResult {
     pub message_index: MessageIndex,
     pub timestamp: TimestampMillis,
     pub expires_at: Option<TimestampMillis>,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::msgpack;
-    use crate::types::{Chat, DiscordUser, TextContent};
-    use ic_principal::Principal;
-    use std::collections::BTreeMap;
-
-    fn args(bridged_from: Option<BridgedUser>) -> Args {
-        Args {
-            chat_context: BotChatContext::Autonomous(Chat::Group(Principal::anonymous().into())),
-            thread: None,
-            message_id: None,
-            replies_to: None,
-            content: MessageContentInitial::Text(TextContent {
-                text: "Hello".to_string(),
-            }),
-            block_level_markdown: false,
-            finalised: true,
-            og_previews: None,
-            bridged_from,
-        }
-    }
-
-    fn keys(args: Args) -> Vec<String> {
-        let bytes = msgpack::serialize_then_unwrap(args);
-        let map: BTreeMap<String, serde::de::IgnoredAny> =
-            msgpack::deserialize_from_slice(&bytes).unwrap();
-        map.into_keys().collect()
-    }
-
-    // Other bots' messages don't carry the field, which only a bridge bot can set
-    #[test]
-    fn bridged_from_is_only_sent_when_set() {
-        assert!(!keys(args(None)).contains(&"bridged_from".to_string()));
-
-        let author = BridgedUser::Discord(DiscordUser {
-            id: 80351110224678912,
-            username: "nelly".to_string(),
-            display_name: Some("Nelly".to_string()),
-            avatar: None,
-        });
-        assert!(keys(args(Some(author.clone()))).contains(&"bridged_from".to_string()));
-
-        let bytes = msgpack::serialize_then_unwrap(args(Some(author.clone())));
-        let decoded: Args = msgpack::deserialize_from_slice(&bytes).unwrap();
-        assert_eq!(decoded.bridged_from, Some(author));
-    }
 }

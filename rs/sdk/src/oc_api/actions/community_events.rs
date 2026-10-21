@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::utils::tolerant_enum;
 use crate::{
     api::command::Command,
     types::{
@@ -30,8 +31,8 @@ impl ActionDef for CommunityEventsAction {
         }
     }
 
-    fn is_query(is_canister_runtime: bool) -> bool {
-        !is_canister_runtime
+    fn is_query() -> bool {
+        true
     }
 }
 
@@ -72,7 +73,8 @@ pub struct EventsByIndexArgs {
     pub events: Vec<EventIndex>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+/// A kind of event this SDK doesn't know yet decodes as `Unsupported`, with its name
+#[derive(Serialize, Clone, Debug)]
 pub enum CommunityEvent {
     Created(Box<CommunityCreated>),
     NameChanged(Box<NameChanged>),
@@ -101,7 +103,43 @@ pub enum CommunityEvent {
     BotRemoved(Box<BotRemoved>),
     BotUpdated(Box<BotUpdated>),
     FailedToDeserialize,
+    Unsupported(String),
 }
+
+tolerant_enum!(
+    CommunityEvent,
+    variants: [
+        Created,
+        NameChanged,
+        DescriptionChanged,
+        RulesChanged,
+        AvatarChanged,
+        BannerChanged,
+        UsersInvited,
+        MemberJoined,
+        MemberLeft,
+        MembersRemoved,
+        RoleChanged,
+        UsersBlocked,
+        UsersUnblocked,
+        PermissionsChanged,
+        VisibilityChanged,
+        InviteCodeChanged,
+        Frozen,
+        Unfrozen,
+        GateUpdated,
+        ChannelCreated,
+        ChannelDeleted,
+        PrimaryLanguageChanged,
+        GroupImported,
+        BotAdded,
+        BotRemoved,
+        BotUpdated,
+        Unsupported,
+    ],
+    units: [FailedToDeserialize],
+    unknown: |tag| CommunityEvent::Unsupported(tag),
+);
 
 impl CommunityEvent {
     pub fn event_type(&self) -> Option<CommunityEventType> {
@@ -121,7 +159,7 @@ impl CommunityEvent {
             CommunityEvent::UsersUnblocked(_) => Some(CommunityEventType::UsersUnblocked),
             CommunityEvent::PermissionsChanged(_) => Some(CommunityEventType::PermissionsChanged),
             CommunityEvent::VisibilityChanged(_) => Some(CommunityEventType::VisibilityChanged),
-            CommunityEvent::InviteCodeChanged(_) => None,
+            CommunityEvent::InviteCodeChanged(_) => Some(CommunityEventType::InviteCodeChanged),
             CommunityEvent::Frozen(_) => Some(CommunityEventType::Frozen),
             CommunityEvent::Unfrozen(_) => Some(CommunityEventType::Unfrozen),
             CommunityEvent::GateUpdated(_) => Some(CommunityEventType::GateUpdated),
@@ -134,7 +172,7 @@ impl CommunityEvent {
             CommunityEvent::BotAdded(_) => Some(CommunityEventType::BotAdded),
             CommunityEvent::BotRemoved(_) => Some(CommunityEventType::BotRemoved),
             CommunityEvent::BotUpdated(_) => Some(CommunityEventType::BotUpdated),
-            CommunityEvent::FailedToDeserialize => None,
+            CommunityEvent::FailedToDeserialize | CommunityEvent::Unsupported(_) => None,
         }
     }
 
@@ -166,7 +204,7 @@ impl CommunityEvent {
             CommunityEvent::BotAdded(event) => Some(event.added_by),
             CommunityEvent::BotRemoved(event) => Some(event.removed_by),
             CommunityEvent::BotUpdated(event) => Some(event.updated_by),
-            CommunityEvent::FailedToDeserialize => None,
+            CommunityEvent::FailedToDeserialize | CommunityEvent::Unsupported(_) => None,
         }
     }
 }
