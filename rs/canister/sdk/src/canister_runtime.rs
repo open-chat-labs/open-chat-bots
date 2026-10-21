@@ -24,7 +24,8 @@ impl Runtime for CanisterRuntime {
         )
         .await
         {
-            Ok(bytes) => Ok(msgpack::deserialize_then_unwrap(&bytes)),
+            Ok(bytes) => msgpack::deserialize_from_slice(&bytes)
+                .map_err(|error| (0, format!("Failed to decode the response: {error}"))),
             Err((code, msg)) => Err((code as i32, msg)),
         }
     }

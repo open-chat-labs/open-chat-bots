@@ -1,7 +1,7 @@
 use crate::api::command::Message;
 use crate::oc_api::Runtime;
-use crate::oc_api::actions::ActionArgsBuilder;
 use crate::oc_api::actions::send_message::*;
+use crate::oc_api::actions::{ActionArgsBuilder, call_action};
 use crate::types::BotChatContext;
 use crate::types::EventIndex;
 use crate::types::MessageIndex;
@@ -58,8 +58,8 @@ impl<'c, R: Runtime, C: ActionContext> SendMessageBuilder<'c, R, C> {
         self
     }
 
-    // This is only needed when using an API Key
-    // If this is not set then OpenChat will generate a new message id
+    // If this is not set then OpenChat will generate a new message id. Setting it makes a retried
+    // send safe: OpenChat refuses a second message with the same id (`MessageIdAlreadyExists`).
     pub fn with_message_id(mut self, message_id: MessageId) -> Self {
         if self.message_id.is_none() {
             self.message_id = Some(message_id);
@@ -157,16 +157,15 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for SendMessageBuilder<'
         let runtime = self.runtime();
         let runtime_clone = runtime.clone();
         let api_gateway = self.api_gateway();
-        let method_name = self.method_name();
         let preview_text = self.og_preview_text();
         let mut args = self.into_args();
 
         runtime.spawn(async move {
             add_og_previews(&*runtime_clone, &mut args, preview_text).await;
 
-            let response = runtime_clone
-                .call_canister(api_gateway, &method_name, args.clone())
-                .await;
+            let response =
+                call_action::<SendMessageAction, R>(&*runtime_clone, api_gateway, args.clone())
+                    .await;
 
             on_response(args, response);
         });
@@ -175,13 +174,12 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for SendMessageBuilder<'
     fn execute_async(self) -> impl Future<Output = CallResult<Response>> + Send {
         let runtime = self.runtime();
         let api_gateway = self.api_gateway();
-        let method_name = self.method_name();
         let preview_text = self.og_preview_text();
         let mut args = self.into_args();
 
         async move {
             add_og_previews(&*runtime, &mut args, preview_text).await;
-            runtime.call_canister(api_gateway, &method_name, args).await
+            call_action::<SendMessageAction, R>(&*runtime, api_gateway, args).await
         }
     }
 }

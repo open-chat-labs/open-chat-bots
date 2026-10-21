@@ -22,6 +22,10 @@ impl ActionDef for ChatSummaryAction {
             "bot_chat_summary"
         }
     }
+
+    fn is_query(is_canister_runtime: bool) -> bool {
+        !is_canister_runtime
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -18,6 +18,10 @@ impl ActionDef for ChatEventsAction {
             "bot_chat_events"
         }
     }
+
+    fn is_query(is_canister_runtime: bool) -> bool {
+        !is_canister_runtime
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

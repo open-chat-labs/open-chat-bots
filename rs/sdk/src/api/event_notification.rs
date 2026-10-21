@@ -9,36 +9,39 @@ use crate::{
 use serde::Deserialize;
 use std::str;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct BotEventWrapper {
     #[serde(alias = "g")]
     pub api_gateway: CanisterId,
     #[serde(alias = "e")]
     pub event: BotEvent,
+    /// When the event happened, not when it was sent
     #[serde(default, alias = "t")]
     pub timestamp: TimestampMillis,
+    /// Increases with each notification the api_gateway sends, to this bot or any other.
+    /// OpenChat sends a notification again if the bot didn't answer it in time, so a bot which
+    /// shouldn't act on an event twice drops one whose `(api_gateway, notification_index)` it has
+    /// already had.
+    #[serde(default, alias = "i")]
+    pub notification_index: u64,
 }
 
 impl BotEventWrapper {
+    /// Checks the notification was signed by OpenChat, then decodes it. Answer an error with a 4xx
+    /// status, which OpenChat doesn't retry, as it would fail again.
+    ///
+    /// There's no check on its age: OpenChat retries delivery for a few minutes, and a notification
+    /// can wait behind others, so a valid one can arrive well after its event happened.
     pub fn parse(
         payload: &[u8],
         signature_str: &str,
         public_key: &str,
-        now: TimestampMillis,
     ) -> Result<Self, TokenError> {
         ecdsa::verify_payload(payload, signature_str, public_key)
             .map_err(|e| TokenError::Invalid(e.to_string()))?;
 
-        let result = msgpack::deserialize_from_slice::<Self>(payload)
-            .map_err(|e| TokenError::Invalid(e.to_string()))?;
-
-        if now > result.timestamp + 5 * 60 * 1000 {
-            return Err(TokenError::Invalid(
-                "Event timestamp is too old".to_string(),
-            ));
-        }
-
-        Ok(result)
+        msgpack::deserialize_from_slice::<Self>(payload)
+            .map_err(|e| TokenError::Invalid(e.to_string()))
     }
 }
 

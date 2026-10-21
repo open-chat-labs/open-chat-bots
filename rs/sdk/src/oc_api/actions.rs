@@ -25,6 +25,31 @@ pub trait ActionDef {
     type Response: DeserializeOwned;
 
     fn method_name(is_canister_runtime: bool) -> &'static str;
+
+    /// Whether to call the method as a query. OpenChat's read endpoints for bots are composite
+    /// queries, which can't be called in replicated mode, so canisters call update versions of
+    /// them instead (see `method_name`).
+    fn is_query(_is_canister_runtime: bool) -> bool {
+        false
+    }
+}
+
+/// Calls the action's method on the canister, as a query or an update as the action requires
+pub async fn call_action<A: ActionDef, R: Runtime>(
+    runtime: &R,
+    canister_id: CanisterId,
+    args: A::Args,
+) -> CallResult<A::Response> {
+    let is_canister = runtime.is_canister();
+    let method_name = format!("{}_msgpack", A::method_name(is_canister));
+
+    if A::is_query(is_canister) {
+        runtime
+            .query_canister(canister_id, &method_name, args)
+            .await
+    } else {
+        runtime.call_canister(canister_id, &method_name, args).await
+    }
 }
 
 pub trait ActionArgsBuilder<R: Runtime>: Sized {
@@ -50,13 +75,11 @@ pub trait ActionArgsBuilder<R: Runtime>: Sized {
         let runtime = self.runtime();
         let runtime_clone = runtime.clone();
         let api_gateway = self.api_gateway();
-        let method_name = self.method_name();
         let args = self.into_args();
 
         runtime.spawn(async move {
-            let response = runtime_clone
-                .call_canister(api_gateway, &method_name, args.clone())
-                .await;
+            let response =
+                call_action::<Self::Action, R>(&*runtime_clone, api_gateway, args.clone()).await;
 
             on_response(args, response);
         });
@@ -67,10 +90,9 @@ pub trait ActionArgsBuilder<R: Runtime>: Sized {
     ) -> impl Future<Output = CallResult<<Self::Action as ActionDef>::Response>> + Send {
         let runtime = self.runtime();
         let api_gateway = self.api_gateway();
-        let method_name = self.method_name();
         let args = self.into_args();
 
-        async move { runtime.call_canister(api_gateway, &method_name, args).await }
+        async move { call_action::<Self::Action, R>(&*runtime, api_gateway, args).await }
     }
 
     fn method_name(&self) -> String {

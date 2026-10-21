@@ -1,5 +1,5 @@
 use crate::link_previews::{DEFAULT_PREVIEW_PROXY_URL, OgPreviewFetcher};
-use ic_agent::Agent;
+use ic_agent::{Agent, AgentError};
 use oc_bots_sdk::msgpack;
 use oc_bots_sdk::oc_api::Runtime;
 use oc_bots_sdk::types::{CallResult, CanisterId, OgPreview, TimestampMillis};
@@ -60,16 +60,30 @@ impl Runtime for AgentRuntime {
         method_name: &str,
         args: A,
     ) -> CallResult<R> {
-        match self
+        let response = self
             .agent
             .update(&canister_id.into(), method_name)
             .with_arg(msgpack::serialize_then_unwrap(args))
             .call_and_wait()
-            .await
-        {
-            Ok(bytes) => Ok(msgpack::deserialize_then_unwrap(&bytes)),
-            Err(error) => Err((0, error.to_string())),
-        }
+            .await;
+
+        decode_response(response)
+    }
+
+    async fn query_canister<A: Serialize + Send, R: for<'a> Deserialize<'a>>(
+        &self,
+        canister_id: CanisterId,
+        method_name: &str,
+        args: A,
+    ) -> CallResult<R> {
+        let response = self
+            .agent
+            .query(&canister_id.into(), method_name)
+            .with_arg(msgpack::serialize_then_unwrap(args))
+            .call()
+            .await;
+
+        decode_response(response)
     }
 
     fn spawn<F: Future<Output = ()> + Send + 'static>(&self, f: F) {
@@ -92,5 +106,20 @@ impl Runtime for AgentRuntime {
             Some(fetcher) => fetcher.fetch_for_text(&text).await,
             None => Vec::new(),
         }
+    }
+}
+
+// A reject keeps its reject code. Any other failure, including a response this SDK can't decode,
+// has code 0.
+fn decode_response<R: for<'a> Deserialize<'a>>(
+    response: Result<Vec<u8>, AgentError>,
+) -> CallResult<R> {
+    match response {
+        Ok(bytes) => msgpack::deserialize_from_slice(&bytes)
+            .map_err(|error| (0, format!("Failed to decode the response: {error}"))),
+        Err(AgentError::CertifiedReject(reject) | AgentError::UncertifiedReject(reject)) => {
+            Err((reject.reject_code as i32, reject.reject_message))
+        }
+        Err(error) => Err((0, error.to_string())),
     }
 }
