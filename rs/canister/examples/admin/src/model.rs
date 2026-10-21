@@ -975,6 +975,10 @@ fn message_from_event(
             "Unknown event".to_string(),
             Some("Failed to deserialize event".to_string()),
         ),
+        CommunityEvent::Unsupported(kind) => (
+            "Unknown event".to_string(),
+            Some(format!("Event type not supported: {kind}")),
+        ),
     };
 
     let first_line = format!(

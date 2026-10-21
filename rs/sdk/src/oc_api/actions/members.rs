@@ -21,8 +21,8 @@ impl ActionDef for MembersAction {
         }
     }
 
-    fn is_query(is_canister_runtime: bool) -> bool {
-        !is_canister_runtime
+    fn is_query() -> bool {
+        true
     }
 }
 

@@ -89,6 +89,13 @@ macro_rules! tolerant_enum {
                 $crate::utils::deserialize_tolerant(deserializer)
             }
         }
+
+        // Fails to compile if a variant is missing from the lists above, which would otherwise
+        // decode as unknown
+        const _: fn(&$name) = |value| match value {
+            $($name::$variant(_) => {})*
+            $($name::$unit => {})*
+        };
     };
 }
 

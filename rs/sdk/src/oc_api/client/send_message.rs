@@ -58,8 +58,8 @@ impl<'c, R: Runtime, C: ActionContext> SendMessageBuilder<'c, R, C> {
         self
     }
 
-    // If this is not set then OpenChat will generate a new message id. Setting it makes a retried
-    // send safe: OpenChat refuses a second message with the same id (`MessageIdAlreadyExists`).
+    // If this is not set then OpenChat will generate a new message id. Setting it means a retried
+    // send can't create a duplicate.
     pub fn with_message_id(mut self, message_id: MessageId) -> Self {
         if self.message_id.is_none() {
             self.message_id = Some(message_id);

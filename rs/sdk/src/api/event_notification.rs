@@ -21,9 +21,9 @@ pub struct BotEventWrapper {
     /// Increases with each notification the api_gateway sends, to this bot or any other.
     /// OpenChat sends a notification again if the bot didn't answer it in time, so a bot which
     /// shouldn't act on an event twice drops one whose `(api_gateway, notification_index)` it has
-    /// already had.
+    /// already had. `None` from a LocalUserIndex too old to send it.
     #[serde(default, alias = "i")]
-    pub notification_index: u64,
+    pub notification_index: Option<u64>,
 }
 
 impl BotEventWrapper {

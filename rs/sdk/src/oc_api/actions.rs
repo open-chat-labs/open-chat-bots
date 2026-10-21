@@ -26,10 +26,10 @@ pub trait ActionDef {
 
     fn method_name(is_canister_runtime: bool) -> &'static str;
 
-    /// Whether to call the method as a query. OpenChat's read endpoints for bots are composite
-    /// queries, which can't be called in replicated mode, so canisters call update versions of
-    /// them instead (see `method_name`).
-    fn is_query(_is_canister_runtime: bool) -> bool {
+    /// Whether to call the method as a query. Canisters make every call as an update (see
+    /// `Runtime::query_canister`), so OpenChat's read endpoints for bots, which are composite
+    /// queries, have update versions for canisters to call instead (see `method_name`).
+    fn is_query() -> bool {
         false
     }
 }
@@ -43,7 +43,7 @@ pub async fn call_action<A: ActionDef, R: Runtime>(
     let is_canister = runtime.is_canister();
     let method_name = format!("{}_msgpack", A::method_name(is_canister));
 
-    if A::is_query(is_canister) {
+    if A::is_query() {
         runtime
             .query_canister(canister_id, &method_name, args)
             .await
@@ -93,12 +93,5 @@ pub trait ActionArgsBuilder<R: Runtime>: Sized {
         let args = self.into_args();
 
         async move { call_action::<Self::Action, R>(&*runtime, api_gateway, args).await }
-    }
-
-    fn method_name(&self) -> String {
-        format!(
-            "{}_msgpack",
-            Self::Action::method_name(self.runtime().is_canister())
-        )
     }
 }
