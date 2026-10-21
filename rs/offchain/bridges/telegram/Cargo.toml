@@ -3,8 +3,8 @@ name = "oc_telegram_bridge"
 version = "0.1.0"
 edition.workspace = true
 
-# Bridges Telegram groups and channels with OpenChat groups and channels, both ways. Runs on AWS
-# Lambda, as Telegram and OpenChat both deliver to it over HTTP. It can run as a server locally.
+# Bridges Telegram groups with OpenChat groups and public channels, both ways. Runs on AWS Lambda,
+# as Telegram and OpenChat both deliver to it over HTTP. It can run as a server locally.
 
 [dependencies]
 anyhow = "1"

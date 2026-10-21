@@ -25,7 +25,8 @@ the Discord bridge, are in [`../core`](../core).
      for.
   3. An admin runs `/bridge <code>` in the group or channel to bridge with.
 
-  `/unbridge` on either side stops the bridging.
+  `/unbridge` on either side stops the bridging. When Telegram upgrades a group to a supergroup,
+  which gives it a new id, eg. once it has 200 members, the pairing moves to the new id.
 - **Linking accounts:** an OpenChat user opens their profile and chooses *Link Telegram* under
   *Linked accounts*.
   1. OpenChat gives them a one-time code and opens `t.me/<bot>?start=<code>`.
@@ -37,7 +38,10 @@ the Discord bridge, are in [`../core`](../core).
   a table, as their keys don't overlap.
 - **Retries:** Telegram resends an update the bridge didn't answer with 200, and OpenChat resends a
   notification. Messages are relayed into OpenChat with ids derived from their Telegram ids, so a
-  resent update can't post a message twice.
+  resent update can't post a message twice. An OpenChat canister being upgraded, so briefly
+  stopped, is retried rather than losing the message.
+- **Throughput:** Telegram sends up to 10 updates at once, so one busy group doesn't hold up
+  everyone's. Messages sent within a moment of each other can arrive in OpenChat out of order.
 
 ## Not yet
 
@@ -45,8 +49,9 @@ the Discord bridge, are in [`../core`](../core).
 - **Telegram deletions.** Telegram doesn't tell bots when a message is deleted, so they aren't
   relayed into OpenChat.
 - **Media:**
-  - Telegram's media are relayed as labels, eg. "[Photo]", with their captions, as their files can
-    only be fetched with the bot's token. Copying them into OpenChat's storage needs SDK support.
+  - Telegram's media are relayed as labels, eg. "[Photo]" or "[Location]", with their captions, as
+    their files can only be fetched with the bot's token. Copying them into OpenChat's storage
+    needs SDK support.
   - OpenChat's media become links to OpenChat's copies.
 - **Avatars:** Telegram users' avatars aren't relayed, for the same reason.
 - **Not relayed:** reactions, threads, and OpenChat's private channels. OpenChat doesn't send bots
@@ -95,6 +100,8 @@ the Discord bridge, are in [`../core`](../core).
    cargo run --release -p oc_telegram_bridge -- setup
    ```
 
+   It warns if privacy mode is still on.
+
 7. **Point the website at it:** build the website with
    `OC_TELEGRAM_BRIDGE_LINK_URL=https://t.me/<bot username>?start={code}`, so the *Link Telegram*
    option appears.
@@ -105,6 +112,7 @@ the Discord bridge, are in [`../core`](../core).
 |---|---|
 | `TELEGRAM_TOKEN` | The Telegram bot's token |
 | `TELEGRAM_WEBHOOK_SECRET` | Any string of up to 256 of A-Z, a-z, 0-9, `_` and `-`. Telegram sends it with each update. |
+| `TELEGRAM_BOT_USERNAME` | Optional. Without it, the bot's username is looked up on each cold start. |
 | `OC_IDENTITY_PEM` or `OC_IDENTITY_PEM_FILE` | The OpenChat bot's identity, as PEM text or a file |
 | `PUBLIC_URL` | Where the function is served, for `setup` |
 | `DYNAMODB_TABLE` | Where state is kept. Without it, state is kept in memory and lost. |

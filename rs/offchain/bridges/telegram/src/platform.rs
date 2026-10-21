@@ -89,13 +89,19 @@ pub fn html(message: &OutboundMessage) -> String {
         name = format!("{name} ({})", platform_name(via));
     }
 
-    let budget = MAX_TEXT_LENGTH.saturating_sub(name.chars().count() + 1);
-    let text: String = if message.text.chars().count() > budget {
-        let mut text: String = message
-            .text
-            .chars()
-            .take(budget.saturating_sub(1))
-            .collect();
+    // Counted in UTF-16 code units, to be safe, as Telegram counts entities' offsets that way
+    let budget = MAX_TEXT_LENGTH.saturating_sub(name.encode_utf16().count() + 1);
+    let text = if message.text.encode_utf16().count() > budget {
+        let mut text = String::new();
+        let mut length = 0;
+        for c in message.text.chars() {
+            // Leaving room for the ellipsis
+            if length + c.len_utf16() > budget.saturating_sub(1) {
+                break;
+            }
+            length += c.len_utf16();
+            text.push(c);
+        }
         text.push('…');
         text
     } else {
@@ -104,7 +110,7 @@ pub fn html(message: &OutboundMessage) -> String {
     format!("<b>{}</b>\n{}", escape(&name), escape(&text))
 }
 
-fn escape(text: &str) -> String {
+pub(crate) fn escape(text: &str) -> String {
     text.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")

@@ -3,6 +3,7 @@ use oc_bridge_core::PermanentFailure;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use std::time::Duration;
 
 /// The few Bot API methods the bridge uses
 pub struct TelegramApi {
@@ -13,7 +14,11 @@ pub struct TelegramApi {
 impl TelegramApi {
     pub fn new(token: String) -> Self {
         TelegramApi {
-            http: reqwest::Client::new(),
+            // Well inside the 60 seconds OpenChat waits before sending a notification again
+            http: reqwest::Client::builder()
+                .timeout(Duration::from_secs(20))
+                .build()
+                .expect("Failed to build an HTTP client"),
             token,
         }
     }
@@ -71,13 +76,14 @@ impl TelegramApi {
         self.call("getMe", &json!({})).await
     }
 
-    /// Telegram sends updates to `url` with `secret` in a header, one at a time so a chat's
-    /// messages arrive in order
+    /// Telegram sends updates to `url` with `secret` in a header. It sends up to 10 at once, as
+    /// one at a time would let every group's messages wait on each relay, at the cost of
+    /// messages sent within a moment of each other sometimes arriving out of order.
     pub async fn set_webhook(&self, url: &str, secret: &str) -> Result<()> {
         let body = json!({
             "url": url,
             "secret_token": secret,
-            "max_connections": 1,
+            "max_connections": 10,
             "allowed_updates": ["message", "edited_message"],
         });
         self.call::<bool>("setWebhook", &body).await.map(|_| ())
@@ -189,6 +195,14 @@ pub struct Message {
     pub sticker: Option<Sticker>,
     pub animation: Option<Value>,
     pub poll: Option<Poll>,
+    pub video_note: Option<Value>,
+    pub location: Option<Value>,
+    pub venue: Option<Venue>,
+    pub contact: Option<Value>,
+    pub dice: Option<Dice>,
+    /// Set on the service message Telegram sends in a group when it's upgraded to a supergroup,
+    /// which has a new id
+    pub migrate_to_chat_id: Option<i64>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -205,6 +219,9 @@ pub struct User {
     pub first_name: String,
     pub last_name: Option<String>,
     pub username: Option<String>,
+    /// Only for the bot itself, from `getMe`: false if privacy mode is on, in which case it only
+    /// sees commands and replies to it
+    pub can_read_all_group_messages: Option<bool>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -220,6 +237,17 @@ pub struct Sticker {
 #[derive(Deserialize, Debug)]
 pub struct Poll {
     pub question: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Venue {
+    pub title: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Dice {
+    pub emoji: String,
+    pub value: u32,
 }
 
 #[cfg(test)]

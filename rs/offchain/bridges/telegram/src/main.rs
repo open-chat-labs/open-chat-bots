@@ -37,11 +37,14 @@ async fn main() -> Result<()> {
         return setup(&api, &config).await;
     }
 
-    let username = api
-        .get_me()
-        .await?
-        .username
-        .context("The bot has no username")?;
+    let username = match config.bot_username {
+        Some(username) => username,
+        None => api
+            .get_me()
+            .await?
+            .username
+            .context("The bot has no username")?,
+    };
     let store = BridgeStore::from_env(BridgePlatform::Telegram).await;
     let openchat = OpenChat::new(config.openchat).await?;
     info!(principal = %openchat.principal(), username, "OpenChat bot");
@@ -116,6 +119,13 @@ async fn setup(api: &TelegramApi, config: &Config) -> Result<()> {
         .public_url
         .as_deref()
         .context("Set PUBLIC_URL to the bridge's url")?;
+    let me = api.get_me().await?;
+    if me.can_read_all_group_messages != Some(true) {
+        warn!(
+            "Privacy mode is on, so the bot only sees commands and replies to it in groups. \
+            Turn it off with BotFather's /setprivacy."
+        );
+    }
     api.set_webhook(
         &format!("{public_url}/telegram/webhook"),
         &config.webhook_secret,

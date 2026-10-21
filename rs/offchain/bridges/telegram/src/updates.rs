@@ -1,5 +1,5 @@
 use crate::api::{Message, TelegramApi, Update};
-use crate::platform::Telegram;
+use crate::platform::{Telegram, escape};
 use anyhow::Result;
 use oc_bots_sdk::types::{BridgedUser, BridgedUserId, TelegramUser};
 use oc_bridge_core::util::without_mention_everyone;
@@ -22,6 +22,13 @@ pub struct UpdateHandler {
 impl UpdateHandler {
     pub async fn handle(&self, update: Update) -> Result<()> {
         if let Some(message) = update.message {
+            if let Some(new_chat_id) = message.migrate_to_chat_id {
+                // Upgraded to a supergroup, which has a new id
+                self.bridge
+                    .move_pairing(&message.chat.id.to_string(), &new_chat_id.to_string())
+                    .await?;
+                return Ok(());
+            }
             self.message(message).await
         } else if let Some(message) = update.edited_message {
             self.edit(message).await
@@ -32,7 +39,11 @@ impl UpdateHandler {
 
     async fn message(&self, message: Message) -> Result<()> {
         let is_private = message.chat.kind == "private";
-        if let Some((command, arg)) = self.command(&message) {
+        // Other commands in a group, eg. another bot's /start, are relayed like any message
+        if let Some((command, arg)) = self
+            .command(&message)
+            .filter(|(command, _)| is_private || matches!(command.as_str(), "bridge" | "unbridge"))
+        {
             let reply = if is_private {
                 self.private_command(&message, &command, arg).await
             } else {
@@ -86,9 +97,6 @@ impl UpdateHandler {
 
     async fn group_command(&self, message: &Message, command: &str) -> Option<String> {
         let chat = &message.chat;
-        if !matches!(command, "bridge" | "unbridge") {
-            return None;
-        }
         // Run as themself, as the bridge can't message an anonymous admin privately
         let Some(from) = message
             .from
@@ -262,6 +270,16 @@ pub fn inbound_text(message: &Message) -> String {
             "[File: {}]",
             document.file_name.as_deref().unwrap_or("file")
         ))
+    } else if message.video_note.is_some() {
+        Some("[Video message]".to_string())
+    } else if let Some(venue) = &message.venue {
+        Some(format!("[Venue: {}]", venue.title))
+    } else if message.location.is_some() {
+        Some("[Location]".to_string())
+    } else if message.contact.is_some() {
+        Some("[Contact]".to_string())
+    } else if let Some(dice) = &message.dice {
+        Some(format!("[{} {}]", dice.emoji, dice.value))
     } else if let Some(sticker) = &message.sticker {
         Some(match &sticker.emoji {
             Some(emoji) => format!("[Sticker {emoji}]"),
@@ -280,12 +298,6 @@ pub fn inbound_text(message: &Message) -> String {
         text.push_str(&label);
     }
     without_mention_everyone(text.trim())
-}
-
-fn escape(text: &str) -> String {
-    text.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
 }
 
 #[cfg(test)]
@@ -354,6 +366,14 @@ mod tests {
             "photo": [{ "file_id": "x", "width": 1, "height": 1 }],
         }));
         assert_eq!(inbound_text(&photo), "@\u{200B}everyone look\n[Photo]");
+
+        let venue = message(json!({
+            "message_id": 1,
+            "chat": { "id": -100, "type": "supergroup" },
+            "location": { "latitude": 0.0, "longitude": 0.0 },
+            "venue": { "title": "Café", "address": "1 Street", "location": { "latitude": 0.0, "longitude": 0.0 } },
+        }));
+        assert_eq!(inbound_text(&venue), "[Venue: Café]");
 
         let sticker = message(json!({
             "message_id": 1,

@@ -371,11 +371,12 @@ where
     loop {
         match call().await {
             Ok(response) => return Ok(response),
-            Err((code, message)) if code == 0 || code == 2 => match delays.next() {
+            Err((code, message)) if is_transient(code, &message) => match delays.next() {
                 Some(delay) => {
                     warn!(code, message, "Call to OpenChat failed, retrying");
                     tokio::time::sleep(*delay).await;
                 }
+                // Not a PermanentFailure, so it's retried later, eg. once an upgrade is done
                 None => bail!("Call to OpenChat failed: {code} {message}"),
             },
             Err((code, message)) => {
@@ -388,6 +389,14 @@ where
     }
 }
 
+// The call didn't reach OpenChat, the IC rejected it as transient, or a canister was stopped, as
+// they are briefly while they're upgraded
+fn is_transient(code: i32, message: &str) -> bool {
+    code == 0
+        || code == 2
+        || (code == 5 && (message.contains("is stopped") || message.contains("is stopping")))
+}
+
 fn unit_result(response: UnitResult) -> Result<()> {
     match response {
         UnitResult::Success => Ok(()),
@@ -395,7 +404,28 @@ fn unit_result(response: UnitResult) -> Result<()> {
     }
 }
 
-// Retrying won't change OpenChat's answer
+// Retrying won't change OpenChat's answer, unless its call to the chat failed, eg. as the chat was
+// stopped to be upgraded
 fn oc_error(error: OCError) -> anyhow::Error {
-    PermanentFailure::Rejected(format!("OpenChat returned an error: {error:?}")).into()
+    let message = format!("OpenChat returned an error: {error:?}");
+    if error.matches_code(OCErrorCode::C2CError) {
+        anyhow!(message)
+    } else {
+        PermanentFailure::Rejected(message).into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_stopped_canister_is_retried_but_a_trap_isnt() {
+        assert!(is_transient(0, "connection reset"));
+        assert!(is_transient(2, "queue full"));
+        assert!(is_transient(5, "Canister abc is stopped"));
+        assert!(is_transient(5, "Canister abc is stopping"));
+        assert!(!is_transient(5, "Canister abc trapped: unreachable"));
+        assert!(!is_transient(4, "rejected"));
+    }
 }

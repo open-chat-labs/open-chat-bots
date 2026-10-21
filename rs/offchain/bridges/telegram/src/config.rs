@@ -5,6 +5,9 @@ use std::env;
 /// From environment variables, as set on the Lambda function
 pub struct Config {
     pub telegram_token: String,
+    /// The bot's username. Without it, it's looked up, which adds a call to Telegram to each cold
+    /// start.
+    pub bot_username: Option<String>,
     /// Telegram sends it with each update, so the webhook only accepts Telegram's. 1 to 256 of
     /// A-Z, a-z, 0-9, _ and -.
     pub webhook_secret: String,
@@ -28,6 +31,8 @@ impl Config {
 
         Ok(Config {
             telegram_token: var("TELEGRAM_TOKEN").context("Set TELEGRAM_TOKEN")?,
+            bot_username: var("TELEGRAM_BOT_USERNAME")
+                .map(|u| u.trim_start_matches('@').to_string()),
             webhook_secret,
             public_url: var("PUBLIC_URL").map(|url| url.trim_end_matches('/').to_string()),
             openchat: OpenChatConfig::from_env()?,
