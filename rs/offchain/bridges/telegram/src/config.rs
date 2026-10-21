@@ -1,5 +1,6 @@
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 use oc_bridge_core::OpenChatConfig;
+use sha2::{Digest, Sha256};
 use std::env;
 
 /// From environment variables, as set on the Lambda function
@@ -8,8 +9,8 @@ pub struct Config {
     /// The bot's username. Without it, it's looked up, which adds a call to Telegram to each cold
     /// start.
     pub bot_username: Option<String>,
-    /// Telegram sends it with each update, so the webhook only accepts Telegram's. 1 to 256 of
-    /// A-Z, a-z, 0-9, _ and -.
+    /// Telegram sends it with each update, so the webhook only accepts Telegram's. It's derived from
+    /// the token, as anyone with the token could register their own webhook anyway.
     pub webhook_secret: String,
     /// Where the bridge is served, which `setup` registers as Telegram's webhook
     pub public_url: Option<String>,
@@ -19,21 +20,13 @@ pub struct Config {
 
 impl Config {
     pub fn from_env() -> Result<Self> {
-        let webhook_secret =
-            var("TELEGRAM_WEBHOOK_SECRET").context("Set TELEGRAM_WEBHOOK_SECRET")?;
-        if webhook_secret.len() > 256
-            || !webhook_secret
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
-        {
-            bail!("TELEGRAM_WEBHOOK_SECRET must be up to 256 of A-Z, a-z, 0-9, _ and -");
-        }
+        let telegram_token = var("TELEGRAM_TOKEN").context("Set TELEGRAM_TOKEN")?;
 
         Ok(Config {
-            telegram_token: var("TELEGRAM_TOKEN").context("Set TELEGRAM_TOKEN")?,
+            webhook_secret: webhook_secret(&telegram_token),
+            telegram_token,
             bot_username: var("TELEGRAM_BOT_USERNAME")
                 .map(|u| u.trim_start_matches('@').to_string()),
-            webhook_secret,
             public_url: var("PUBLIC_URL").map(|url| url.trim_end_matches('/').to_string()),
             openchat: OpenChatConfig::from_env()?,
             port: var("PORT")
@@ -45,4 +38,33 @@ impl Config {
 
 fn var(name: &str) -> Option<String> {
     env::var(name).ok().filter(|v| !v.trim().is_empty())
+}
+
+// In hex, as Telegram only accepts A-Z, a-z, 0-9, _ and -
+fn webhook_secret(token: &str) -> String {
+    Sha256::new()
+        .chain_update("oc_telegram_bridge webhook secret:")
+        .chain_update(token)
+        .finalize()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Pinned, as changing it would stop Telegram's updates until `setup` is run again
+    #[test]
+    fn the_webhook_secret_is_derived_from_the_token() {
+        assert_eq!(
+            webhook_secret("123456:ABC-DEF"),
+            "90829742eb9e5128a16189c5cd685f9df58d907fc816fa2c2193e227f3380c83"
+        );
+        assert_ne!(
+            webhook_secret("123456:ABC-DEF"),
+            webhook_secret("123456:ABC-DEG")
+        );
+    }
 }

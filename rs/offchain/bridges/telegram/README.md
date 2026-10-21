@@ -101,14 +101,14 @@ the Discord bridge, are in [`../core`](../core).
    cargo lambda build --release --arm64 -p oc_telegram_bridge
    ```
 
-   - **A function URL** with auth type NONE. OpenChat signs its requests and Telegram sends the
-     webhook secret, which the bridge checks.
+   - **A function URL** with auth type NONE. OpenChat signs its requests, and Telegram sends a
+     secret derived from the bot's token, which the bridge checks.
    - **A timeout of 60 seconds**, as OpenChat waits that long for an answer.
    - **The environment variables** below. The identity can go straight from dfx, without a PEM
      file, eg.:
 
      ```bash
-     cargo lambda deploy oc_telegram_bridge --enable-function-url --timeout 60 --env-var "OC_IDENTITY_PEM=$(dfx identity export telegram_bot)" --env-var TELEGRAM_TOKEN=<token> --env-var TELEGRAM_WEBHOOK_SECRET=<secret> --env-var DYNAMODB_TABLE=<table>
+     cargo lambda deploy oc_telegram_bridge --enable-function-url --timeout 60 --env-var "OC_IDENTITY_PEM=$(dfx identity export telegram_bot)" --env-var TELEGRAM_TOKEN=<token> --env-var DYNAMODB_TABLE=<table>
      ```
 
 6. **Register the webhook and the bot's commands** with Telegram, once. Run this with the same
@@ -128,8 +128,7 @@ the Discord bridge, are in [`../core`](../core).
 
 | Variable | |
 |---|---|
-| `TELEGRAM_TOKEN` | The Telegram bot's token |
-| `TELEGRAM_WEBHOOK_SECRET` | Any string of up to 256 of A-Z, a-z, 0-9, `_` and `-`. Telegram sends it with each update. |
+| `TELEGRAM_TOKEN` | The Telegram bot's token. The webhook's secret is derived from it, so after revoking it, run `setup` again with the new one. |
 | `TELEGRAM_BOT_USERNAME` | Optional. Without it, the bot's username is looked up on each cold start. |
 | `OC_IDENTITY_PEM` or `OC_IDENTITY_PEM_FILE` | The OpenChat bot's identity, as PEM text, eg. from `dfx identity export`, or a file |
 | `PUBLIC_URL` | Where the function is served, for `setup` |
