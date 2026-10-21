@@ -54,7 +54,8 @@ impl BridgedUser {
 pub struct DiscordUser {
     /// The user's Discord snowflake id
     pub id: u64,
-    /// The webhook's name, if a webhook posted the message. At most 80 characters.
+    /// The user's Discord username, or the webhook's name if a webhook posted the message. At most
+    /// 80 characters.
     pub username: String,
     /// The user's global display name, not their nickname in a server, since the profile is shown
     /// wherever they're bridged. At most 80 characters.

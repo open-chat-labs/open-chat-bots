@@ -1,11 +1,13 @@
 use super::Client;
+use super::send_message::{add_og_previews, og_preview_text};
 use crate::oc_api::Runtime;
-use crate::oc_api::actions::ActionArgsBuilder;
-use crate::oc_api::actions::edit_message::{Args, EditMessageAction};
+use crate::oc_api::actions::edit_message::{Args, EditMessageAction, Response};
+use crate::oc_api::actions::{ActionArgsBuilder, call_action};
 use crate::types::{
-    ActionContext, BotChatContext, CanisterId, ChannelId, MessageContentInitial, MessageId,
-    MessageIndex, OgPreview,
+    ActionContext, BotChatContext, CallResult, CanisterId, ChannelId, MessageContentInitial,
+    MessageId, MessageIndex, OgPreview,
 };
+use std::future::Future;
 use std::sync::Arc;
 
 pub struct EditMessageBuilder<'c, R, C> {
@@ -53,7 +55,9 @@ impl<'c, R: Runtime, C: ActionContext> EditMessageBuilder<'c, R, C> {
         self
     }
 
-    /// The edited message's link previews. Unlike sending, editing doesn't look them up.
+    /// The edited message's link previews, which replace its old ones. As when sending, leaving
+    /// this unset means off-chain runtimes look them up from the links in the text, and an empty
+    /// list removes them.
     pub fn with_og_previews(mut self, og_previews: Vec<OgPreview>) -> Self {
         self.og_previews = Some(og_previews);
         self
@@ -83,6 +87,40 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for EditMessageBuilder<'
             content: self.content,
             block_level_markdown: self.block_level_markdown,
             og_previews: self.og_previews,
+        }
+    }
+
+    // Overridden, as `SendMessageBuilder`'s are, to look up link previews on the way to the wire
+    fn execute<F: FnOnce(Args, CallResult<Response>) + Send + Sync + 'static>(
+        self,
+        on_response: F,
+    ) {
+        let runtime = self.runtime();
+        let runtime_clone = runtime.clone();
+        let api_gateway = self.api_gateway();
+        let preview_text = og_preview_text(&self.content, &self.og_previews);
+        let mut args = self.into_args();
+
+        runtime.spawn(async move {
+            add_og_previews(&*runtime_clone, &mut args.og_previews, preview_text).await;
+
+            let response =
+                call_action::<EditMessageAction, R>(&*runtime_clone, api_gateway, args.clone())
+                    .await;
+
+            on_response(args, response);
+        });
+    }
+
+    fn execute_async(self) -> impl Future<Output = CallResult<Response>> + Send {
+        let runtime = self.runtime();
+        let api_gateway = self.api_gateway();
+        let preview_text = og_preview_text(&self.content, &self.og_previews);
+        let mut args = self.into_args();
+
+        async move {
+            add_og_previews(&*runtime, &mut args.og_previews, preview_text).await;
+            call_action::<EditMessageAction, R>(&*runtime, api_gateway, args).await
         }
     }
 }
