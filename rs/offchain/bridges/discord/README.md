@@ -64,11 +64,23 @@ also used by the Telegram bridge, are in [`../core`](../core).
      https://discord.com/oauth2/authorize?client_id=<client id>&scope=bot+applications.commands&permissions=536939520
      ```
 
-2. **An identity for the OpenChat bot.** Keep it secret, as it's what lets the bridge act as the
-   bot:
+2. **An identity for the OpenChat bot,** made with dfx. Keep it secret, as it's what lets the
+   bridge act as the bot. dfx's default storage keeps it encrypted in your keychain.
 
    ```bash
-   openssl ecparam -genkey -name secp256k1 -out identity.pem
+   dfx identity new discord_bot
+   ```
+
+   Its principal, to register the bot with:
+
+   ```bash
+   dfx identity get-principal --identity discord_bot
+   ```
+
+   The bridge takes the identity as `OC_IDENTITY_PEM`, which dfx exports:
+
+   ```bash
+   dfx identity export discord_bot
    ```
 
 3. **Register the bot on OpenChat:**
@@ -98,7 +110,7 @@ also used by the Telegram bridge, are in [`../core`](../core).
 | Variable | |
 |---|---|
 | `DISCORD_TOKEN` | The Discord bot's token |
-| `OC_IDENTITY_PEM` or `OC_IDENTITY_PEM_FILE` | The OpenChat bot's identity, as PEM text or a file |
+| `OC_IDENTITY_PEM` or `OC_IDENTITY_PEM_FILE` | The OpenChat bot's identity, as PEM text, eg. from `dfx identity export`, or a file |
 | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `PUBLIC_URL` | For linking accounts. Without them, linking is off. |
 | `DYNAMODB_TABLE` | Where state is kept. AWS credentials and region come from the environment. |
 | `PORT` | Defaults to 8080 |
