@@ -50,8 +50,9 @@ async fn start(
         .append_pair("response_type", "code")
         .append_pair("scope", "identify")
         .append_pair("redirect_uri", &state.redirect_uri)
-        .append_pair("state", &params.code)
-        .append_pair("prompt", "none");
+        // Discord asks for consent every time, so a link someone else sent can't link an account
+        // without its owner seeing which app it's for
+        .append_pair("state", &params.code);
     Redirect::to(url.as_str()).into_response()
 }
 
@@ -119,7 +120,7 @@ struct DiscordApiUser {
 async fn discord_user(state: &OAuthState, code: &str) -> Result<DiscordUser> {
     let token: TokenResponse = state
         .http
-        .post("https://discord.com/api/oauth2/token")
+        .post("https://discord.com/api/v10/oauth2/token")
         .basic_auth(&state.config.client_id, Some(&state.config.client_secret))
         .form(&[
             ("grant_type", "authorization_code"),
@@ -134,7 +135,7 @@ async fn discord_user(state: &OAuthState, code: &str) -> Result<DiscordUser> {
 
     let user: DiscordApiUser = state
         .http
-        .get("https://discord.com/api/users/@me")
+        .get("https://discord.com/api/v10/users/@me")
         .bearer_auth(&token.access_token)
         .send()
         .await?

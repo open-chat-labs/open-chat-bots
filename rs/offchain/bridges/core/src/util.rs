@@ -112,6 +112,13 @@ pub fn message_text(content: &MessageContent) -> Option<String> {
     })
 }
 
+/// OpenChat notifies every member of a chat of `@everyone` in a bot's message, so text relayed from
+/// a platform has it broken up with a zero-width space, unless its author could mention everyone
+/// there
+pub fn without_mention_everyone(text: &str) -> String {
+    text.replace("@everyone", "@\u{200B}everyone")
+}
+
 /// The ids of the users mentioned in OpenChat text, written `@UserId(<id>)`
 pub fn mentioned_user_ids(text: &str) -> Vec<UserId> {
     let mut ids = Vec::new();

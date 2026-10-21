@@ -3,7 +3,7 @@
 use crate::config::Config;
 use crate::gateway::Handler;
 use crate::webhook::Discord;
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use oc_bots_sdk::types::BridgePlatform;
 use oc_bridge_core::{
     Bridge, BridgeStore, DynamoDbStore, InMemoryStore, KeyValueStore, OpenChat, http,
@@ -37,7 +37,7 @@ async fn main() -> Result<()> {
     };
     let store = BridgeStore::new(kv, BridgePlatform::Discord);
     let openchat = OpenChat::new(config.openchat).await?;
-    info!(bot_id = %openchat.bot_id(), "OpenChat bot");
+    info!(principal = %openchat.principal(), "OpenChat bot");
 
     let discord_http = Arc::new(Http::new(&config.discord_token));
     let bridge = Arc::new(Bridge::new(openchat, store, Discord { http: discord_http }));
@@ -61,19 +61,23 @@ async fn main() -> Result<()> {
         .event_handler(Handler::new(bridge))
         .await?;
 
+    // Either stopping is a failure, eg. Discord refusing the connection because the Message
+    // Content intent isn't enabled
     tokio::select! {
         result = axum::serve(listener, routes) => {
             error!(?result, "The HTTP server stopped");
+            Err(anyhow!("The HTTP server stopped"))
         }
         result = discord.start() => {
             error!(?result, "The Discord connection stopped");
+            Err(anyhow!("The Discord connection stopped"))
         }
         _ = shutdown_signal() => {
             info!("Shutting down");
             discord.shard_manager.shutdown_all().await;
+            Ok(())
         }
     }
-    Ok(())
 }
 
 async fn shutdown_signal() {

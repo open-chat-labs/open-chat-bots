@@ -1,15 +1,15 @@
 use crate::webhook::{Discord, DiscordPairing};
 use anyhow::{Context as _, Result};
 use oc_bots_sdk::types::{BridgedUser, BridgedUserId, DiscordUser};
+use oc_bridge_core::util::without_mention_everyone;
 use oc_bridge_core::{Bridge, InboundMessage, PendingPairing};
 use secrecy::ExposeSecret;
 use serenity::all::{
     Attachment, ChannelId, Command, CommandInteraction, Context, CreateCommand, CreateWebhook,
     EditInteractionResponse, EventHandler, GuildId, Interaction, Message, MessageId, MessageType,
-    MessageUpdateEvent, Permissions, Ready, StickerItem, User,
+    MessageUpdateEvent, Permissions, Ready, StickerItem, User, Webhook,
 };
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, OnceLock};
 use tracing::{info, warn};
 
 /// Relays what happens in Discord's paired channels into OpenChat, and handles the bridge's slash
@@ -18,9 +18,6 @@ pub struct Handler {
     pub bridge: Arc<Bridge<Discord>>,
     // Its webhooks' messages are the ones it relayed from OpenChat
     application_id: OnceLock<u64>,
-    // Discord's events are handled concurrently, so each channel's are handled in turn, keeping
-    // its messages in order
-    channel_locks: Mutex<HashMap<ChannelId, Arc<tokio::sync::Mutex<()>>>>,
 }
 
 impl Handler {
@@ -28,17 +25,7 @@ impl Handler {
         Handler {
             bridge,
             application_id: OnceLock::new(),
-            channel_locks: Mutex::default(),
         }
-    }
-
-    fn channel_lock(&self, channel_id: ChannelId) -> Arc<tokio::sync::Mutex<()>> {
-        self.channel_locks
-            .lock()
-            .unwrap()
-            .entry(channel_id)
-            .or_default()
-            .clone()
     }
 
     fn is_from_bridge(&self, ctx: &Context, author: &User, application_id: Option<u64>) -> bool {
@@ -57,8 +44,6 @@ impl Handler {
             return Ok(());
         }
 
-        let lock = self.channel_lock(message.channel_id);
-        let _guard = lock.lock().await;
         self.bridge
             .relay_inbound(InboundMessage {
                 platform_chat: message.channel_id.to_string(),
@@ -67,6 +52,7 @@ impl Handler {
                 text: inbound_text(
                     &message.content,
                     &message.mentions,
+                    message.mention_everyone,
                     &message.attachments,
                     &message.sticker_items,
                 ),
@@ -96,33 +82,48 @@ impl Handler {
         let text = inbound_text(
             &content,
             event.mentions.as_deref().unwrap_or_default(),
+            event.mention_everyone.unwrap_or_default(),
             event.attachments.as_deref().unwrap_or_default(),
             event.sticker_items.as_deref().unwrap_or_default(),
         );
-        let lock = self.channel_lock(event.channel_id);
-        let _guard = lock.lock().await;
         self.bridge
             .relay_inbound_edit(&event.channel_id.to_string(), &event.id.to_string(), text)
             .await
     }
 
     async fn relay_delete(&self, channel_id: ChannelId, message_id: MessageId) -> Result<()> {
-        let lock = self.channel_lock(channel_id);
-        let _guard = lock.lock().await;
         self.bridge
             .relay_inbound_delete(&channel_id.to_string(), &message_id.to_string())
             .await
+    }
+
+    // The webhook the bridge made in the channel before, eg. for a pairing code which expired, or a
+    // new one. Discord allows only 15 per channel.
+    async fn webhook(&self, ctx: &Context, channel_id: ChannelId) -> Result<Webhook> {
+        let existing = channel_id
+            .webhooks(&ctx.http)
+            .await
+            .context("Failed to read the channel's webhooks. Does the bot have Manage Webhooks?")?
+            .into_iter()
+            .find(|webhook| {
+                webhook.token.is_some()
+                    && webhook.application_id.map(|id| id.get())
+                        == self.application_id.get().copied()
+            });
+        match existing {
+            Some(webhook) => Ok(webhook),
+            None => channel_id
+                .create_webhook(&ctx.http, CreateWebhook::new("OpenChat"))
+                .await
+                .context("Failed to create a webhook. Does the bot have Manage Webhooks?"),
+        }
     }
 
     async fn command(&self, ctx: &Context, command: &CommandInteraction) -> Result<String> {
         Ok(match command.data.name.as_str() {
             "bridge" => {
                 let guild_id = command.guild_id.context("/bridge only works in a server")?;
-                let webhook = command
-                    .channel_id
-                    .create_webhook(&ctx.http, CreateWebhook::new("OpenChat"))
-                    .await
-                    .context("Failed to create a webhook. Does the bot have Manage Webhooks?")?;
+                let webhook = self.webhook(ctx, command.channel_id).await?;
                 let platform_data = DiscordPairing {
                     guild_id: guild_id.get(),
                     webhook_id: webhook.id.get(),
@@ -286,14 +287,20 @@ pub fn bridged_user(user: &User) -> BridgedUser {
 }
 
 /// A Discord message's text as it's relayed into OpenChat. Mentions are written as `@name`,
-/// custom emoji as `:name:`, and attachments and stickers are added.
+/// custom emoji as `:name:`, and attachments and stickers are added. `@everyone` only notifies
+/// OpenChat's members if its author could ping everyone on Discord.
 pub fn inbound_text(
     content: &str,
     mentions: &[User],
+    mention_everyone: bool,
     attachments: &[Attachment],
     stickers: &[StickerItem],
 ) -> String {
-    let mut text = content.to_string();
+    let mut text = if mention_everyone {
+        content.to_string()
+    } else {
+        without_mention_everyone(content)
+    };
     for user in mentions {
         let name = user.global_name.as_deref().unwrap_or(&user.name);
         for mention in [format!("<@{}>", user.id), format!("<@!{}>", user.id)] {
@@ -344,6 +351,18 @@ fn custom_emoji_as_names(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn everyone_is_only_mentioned_by_those_who_could_on_discord() {
+        assert_eq!(
+            inbound_text("@everyone hi", &[], true, &[], &[]),
+            "@everyone hi"
+        );
+        assert_eq!(
+            inbound_text("@everyone hi", &[], false, &[], &[]),
+            "@\u{200B}everyone hi"
+        );
+    }
 
     #[test]
     fn custom_emoji_become_their_names() {

@@ -1,10 +1,11 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
 use oc_bots_sdk::types::BridgePlatform;
+use oc_bridge_core::platform::PermanentFailure;
 use oc_bridge_core::{OutboundMessage, Pairing, Platform, PlatformMessageId, platform_name};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use serenity::http::Http;
+use serenity::http::{Http, HttpError};
 use serenity::model::id::{ChannelId, MessageId, WebhookId};
 use std::sync::Arc;
 
@@ -67,14 +68,19 @@ impl Platform for Discord {
                 Vec::new(),
                 &body,
             )
-            .await?
+            .await
+            .map_err(discord_error)?
             .context("Discord didn't return the posted message")?;
         Ok(posted.id.to_string())
     }
 
     async fn edit(&self, pairing: &Pairing, id: &str, message: &OutboundMessage) -> Result<()> {
         let webhook = DiscordPairing::from_pairing(pairing)?;
-        let body = json!({ "content": content(&webhook, pairing, message) });
+        let body = json!({
+            "content": content(&webhook, pairing, message),
+            // Without it, Discord would ping the mentions in the edited text
+            "allowed_mentions": { "parse": [] },
+        });
         let result = self
             .http
             .edit_webhook_message(
@@ -107,7 +113,8 @@ impl Platform for Discord {
     async fn paired(&self, pairing: &Pairing) -> Result<()> {
         ChannelId::new(pairing.platform_chat.parse()?)
             .say(&self.http, "This channel is now bridged with OpenChat.")
-            .await?;
+            .await
+            .map_err(discord_error)?;
         Ok(())
     }
 
@@ -119,7 +126,8 @@ impl Platform for Discord {
                 &webhook.webhook_token,
                 Some("No longer bridged with OpenChat"),
             )
-            .await?;
+            .await
+            .map_err(discord_error)?;
         Ok(())
     }
 }
@@ -134,7 +142,28 @@ fn ignore_not_found(result: serenity::Result<()>) -> Result<()> {
         {
             Ok(())
         }
-        result => Ok(result?),
+        result => result.map_err(discord_error),
+    }
+}
+
+// Discord's errors without their urls, which contain the webhook's token. A refusal which
+// retrying won't fix is a `PermanentFailure`, and a missing webhook or channel means the chat is
+// gone.
+fn discord_error(error: serenity::Error) -> anyhow::Error {
+    match error {
+        serenity::Error::Http(HttpError::UnsuccessfulRequest(response)) => {
+            let status = response.status_code.as_u16();
+            let message = format!("Discord returned {status}: {}", response.error.message);
+            match status {
+                404 => PermanentFailure::ChatGone.into(),
+                // Rate limited, so worth retrying
+                429 => anyhow!(message),
+                400..=499 => PermanentFailure::Rejected(message).into(),
+                _ => anyhow!(message),
+            }
+        }
+        serenity::Error::Http(HttpError::Request(error)) => anyhow!(error.without_url()),
+        error => anyhow!("{error}"),
     }
 }
 

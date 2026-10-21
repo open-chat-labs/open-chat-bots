@@ -44,6 +44,9 @@ pub struct PendingPairing {
 /// The OpenChat message a message on the other platform was relayed as, or was relayed from
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 pub struct InboundRef {
+    /// The chat it's in, which only matches the pairing's if the chat hasn't been paired with
+    /// another since
+    pub oc_chat: Chat,
     pub message_id: MessageId,
     /// Unknown if the send was retried after succeeding the first time
     pub event_index: Option<EventIndex>,
@@ -57,8 +60,16 @@ pub struct InboundRef {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct OutboundRef {
     pub platform_message_id: PlatformMessageId,
-    /// Of what was posted, to tell an edit from a reaction or tip, which aren't relayed
+    /// Of the message's text, so a notification which doesn't change it, eg. when only its link
+    /// previews were edited, isn't relayed as an edit
     pub content_hash: u64,
+}
+
+// The platform message an OpenChat event is, or was relayed as
+#[derive(Serialize, Deserialize)]
+struct EventRef {
+    platform_chat: PlatformChatId,
+    platform_message: PlatformMessageId,
 }
 
 /// The bridge's state for one platform, on top of a key-value store
@@ -86,7 +97,11 @@ impl BridgeStore {
             .get::<PlatformChatId>(&self.oc_pairing_key(chat))
             .await?
         {
-            Some(platform_chat) => self.pairing(&platform_chat).await,
+            // The two keys are written separately, so this one may be left from an old pairing
+            Some(platform_chat) => Ok(self
+                .pairing(&platform_chat)
+                .await?
+                .filter(|pairing| pairing.oc_chat == *chat)),
             None => Ok(None),
         }
     }
@@ -175,29 +190,34 @@ impl BridgeStore {
         self.kv.delete(&self.outbound_key(chat, message_id)).await
     }
 
-    /// The message on the other platform which is, or was relayed as, the OpenChat message at
+    /// The message in `platform_chat` which is, or was relayed as, the OpenChat message at
     /// `event_index`, so a reply in OpenChat can be relayed as a reply to it
     pub async fn platform_message_at(
         &self,
         chat: &Chat,
         event_index: EventIndex,
+        platform_chat: &str,
     ) -> Result<Option<PlatformMessageId>> {
-        self.get(&self.event_key(chat, event_index)).await
+        let event_ref: Option<EventRef> = self.get(&self.event_key(chat, event_index)).await?;
+        Ok(event_ref
+            .filter(|r| r.platform_chat == platform_chat)
+            .map(|r| r.platform_message))
     }
 
     pub async fn save_platform_message_at(
         &self,
         chat: &Chat,
         event_index: EventIndex,
+        platform_chat: &str,
         platform_message: &str,
     ) -> Result<()> {
         let expires = Some(env::now() + MESSAGE_REF_EXPIRY);
-        self.put(
-            &self.event_key(chat, event_index),
-            &platform_message.to_string(),
-            expires,
-        )
-        .await
+        let event_ref = EventRef {
+            platform_chat: platform_chat.to_string(),
+            platform_message: platform_message.to_string(),
+        };
+        self.put(&self.event_key(chat, event_index), &event_ref, expires)
+            .await
     }
 
     /// Whether a notification was handled already, so a repeat of it should be dropped
@@ -329,6 +349,50 @@ mod tests {
         store.remove_pairing(&pairing).await.unwrap();
         assert_eq!(store.pairing("123").await.unwrap(), None);
         assert_eq!(store.pairing_for_oc_chat(&chat).await.unwrap(), None);
+    }
+
+    // If removing a pairing fails between its two keys, the OpenChat chat's key is left pointing at
+    // a platform chat which may be paired with another OpenChat chat later
+    #[tokio::test]
+    async fn a_stale_reverse_key_isnt_followed() {
+        let store = store();
+        let old_chat = Chat::Group(Principal::from_slice(&[1]).into());
+        let new_chat = Chat::Group(Principal::from_slice(&[2]).into());
+        let pairing = |oc_chat| Pairing {
+            platform_chat: "123".to_string(),
+            oc_chat,
+            api_gateway: Principal::anonymous().into(),
+            platform_data: None,
+        };
+
+        store.save_pairing(&pairing(old_chat)).await.unwrap();
+        store.save_pairing(&pairing(new_chat)).await.unwrap();
+
+        assert_eq!(store.pairing_for_oc_chat(&old_chat).await.unwrap(), None);
+        assert_eq!(
+            store.pairing_for_oc_chat(&new_chat).await.unwrap(),
+            Some(pairing(new_chat))
+        );
+    }
+
+    #[tokio::test]
+    async fn an_event_ref_is_only_found_for_its_platform_chat() {
+        let store = store();
+        let chat = Chat::Group(Principal::from_slice(&[1]).into());
+
+        store
+            .save_platform_message_at(&chat, 5, "123", "99")
+            .await
+            .unwrap();
+
+        assert_eq!(
+            store.platform_message_at(&chat, 5, "123").await.unwrap(),
+            Some("99".to_string())
+        );
+        assert_eq!(
+            store.platform_message_at(&chat, 5, "456").await.unwrap(),
+            None
+        );
     }
 
     #[tokio::test]

@@ -65,7 +65,7 @@ pub struct LinkedUser {
 /// The bridge bot's side of OpenChat
 pub struct OpenChat {
     runtime: Arc<AgentRuntime>,
-    bot_id: UserId,
+    principal: CanisterId,
     public_key: String,
     user_index: CanisterId,
     authors: Mutex<HashMap<UserId, (Option<Author>, TimestampMillis)>>,
@@ -82,7 +82,7 @@ impl OpenChat {
         config: OpenChatConfig,
         identity: Box<dyn Identity>,
     ) -> Result<Self> {
-        let bot_id: UserId = identity.sender().map_err(|e| anyhow!(e))?.into();
+        let principal = identity.sender().map_err(|e| anyhow!(e))?.into();
         let is_mainnet = config.ic_url.contains("icp0.io") || config.ic_url.contains("ic0.app");
 
         let agent = Agent::builder()
@@ -106,24 +106,21 @@ impl OpenChat {
 
         Ok(OpenChat {
             runtime: Arc::new(runtime),
-            bot_id,
+            principal,
             public_key: config.public_key,
             user_index: config.user_index,
             authors: Mutex::default(),
         })
     }
 
-    /// The bridge bot's own user id. Its relayed messages come back to it as notifications.
-    pub fn bot_id(&self) -> UserId {
-        self.bot_id
+    /// The bridge bot's principal. OpenChat gives the bot a user id of its own when it's
+    /// registered.
+    pub fn principal(&self) -> CanisterId {
+        self.principal
     }
 
     pub fn public_key(&self) -> &str {
         &self.public_key
-    }
-
-    pub fn runtime(&self) -> Arc<AgentRuntime> {
-        self.runtime.clone()
     }
 
     fn client(&self, pairing: &Pairing) -> Client<AgentRuntime, AutonomousContext> {

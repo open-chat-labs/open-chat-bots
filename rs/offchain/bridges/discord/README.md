@@ -46,7 +46,11 @@ also used by the Telegram bridge, are in [`../core`](../core).
   the messages of private channels.
 - **Replies to OpenChat messages:** webhooks can't reply on Discord, so a reply relayed there starts
   with a link to the message it replies to.
-- **Mentions:** they're relayed as `@name` text, and never ping anyone.
+- **Mentions:** they're relayed as `@name` text, and never ping anyone on Discord.
+- **`@everyone` from Discord** only notifies the OpenChat chat's members if its author could ping
+  everyone on Discord.
+- **Order:** a quick burst of Discord messages can arrive in OpenChat slightly out of order, since
+  Discord's events are handled concurrently.
 
 ## Setting it up
 

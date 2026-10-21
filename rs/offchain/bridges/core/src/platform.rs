@@ -30,6 +30,26 @@ pub trait Platform: Send + Sync + 'static {
     }
 }
 
+/// A failure on the platform which retrying won't fix, eg. Discord refusing a message. OpenChat
+/// isn't asked to retry the notification, as its retries would hold up every other chat's.
+#[derive(Debug)]
+pub enum PermanentFailure {
+    /// The chat, or what the bridge posts into it with, is gone, so the pairing is removed
+    ChatGone,
+    Rejected(String),
+}
+
+impl std::fmt::Display for PermanentFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PermanentFailure::ChatGone => write!(f, "The chat is gone"),
+            PermanentFailure::Rejected(reason) => write!(f, "Rejected: {reason}"),
+        }
+    }
+}
+
+impl std::error::Error for PermanentFailure {}
+
 /// A message to relay from OpenChat
 #[derive(Clone, Debug)]
 pub struct OutboundMessage {
