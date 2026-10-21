@@ -7,7 +7,7 @@ use crate::types::EventIndex;
 use crate::types::MessageIndex;
 use crate::types::OgPreview;
 use crate::types::{ActionContext, CallResult};
-use crate::types::{CanisterId, ChannelId, MessageContentInitial, MessageId};
+use crate::types::{BridgedUser, CanisterId, ChannelId, MessageContentInitial, MessageId};
 use std::future::Future;
 use std::sync::Arc;
 
@@ -23,6 +23,7 @@ pub struct SendMessageBuilder<'c, R, C> {
     block_level_markdown: bool,
     finalised: bool,
     og_previews: Option<Vec<OgPreview>>,
+    bridged_from: Option<BridgedUser>,
 }
 
 impl<'c, R: Runtime, C: ActionContext> SendMessageBuilder<'c, R, C> {
@@ -39,6 +40,7 @@ impl<'c, R: Runtime, C: ActionContext> SendMessageBuilder<'c, R, C> {
             block_level_markdown: false,
             finalised: true,
             og_previews: None,
+            bridged_from: None,
         }
     }
 
@@ -85,6 +87,16 @@ impl<'c, R: Runtime, C: ActionContext> SendMessageBuilder<'c, R, C> {
     /// you explicitly suppress previews for a single message.
     pub fn with_og_previews(mut self, og_previews: Vec<OgPreview>) -> Self {
         self.og_previews = Some(og_previews);
+        self
+    }
+
+    /// Relays the message from another platform, eg. Discord, as written by `author`. Only the
+    /// bridge bot for the author's platform can do this, autonomously, and only into groups and
+    /// channels. OpenChat stores just the author's id on the message, and keeps their latest profile
+    /// in its UserIndex.
+    #[cfg(feature = "bridge")]
+    pub fn with_bridged_from(mut self, author: BridgedUser) -> Self {
+        self.bridged_from = Some(author);
         self
     }
 
@@ -144,6 +156,7 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for SendMessageBuilder<'
             block_level_markdown: self.block_level_markdown,
             finalised: self.finalised,
             og_previews: self.og_previews,
+            bridged_from: self.bridged_from,
         }
     }
 
