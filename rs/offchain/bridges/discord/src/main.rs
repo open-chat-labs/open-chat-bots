@@ -5,9 +5,7 @@ use crate::gateway::Handler;
 use crate::webhook::Discord;
 use anyhow::{Result, anyhow};
 use oc_bots_sdk::types::BridgePlatform;
-use oc_bridge_core::{
-    Bridge, BridgeStore, DynamoDbStore, InMemoryStore, KeyValueStore, OpenChat, http,
-};
+use oc_bridge_core::{Bridge, BridgeStore, OpenChat, http};
 use serenity::all::{GatewayIntents, Http};
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
@@ -28,14 +26,7 @@ async fn main() -> Result<()> {
 
     let config = Config::from_env()?;
 
-    let kv: Arc<dyn KeyValueStore> = match config.dynamodb_table {
-        Some(table) => Arc::new(DynamoDbStore::new(table).await),
-        None => {
-            warn!("DYNAMODB_TABLE isn't set, so state is kept in memory and lost on restart");
-            Arc::new(InMemoryStore::default())
-        }
-    };
-    let store = BridgeStore::new(kv, BridgePlatform::Discord);
+    let store = BridgeStore::from_env(BridgePlatform::Discord).await;
     let openchat = OpenChat::new(config.openchat).await?;
     info!(principal = %openchat.principal(), "OpenChat bot");
 

@@ -1,4 +1,5 @@
 use crate::model::Pairing;
+use crate::platform::PermanentFailure;
 use crate::util::{bridged_avatar_url, bridged_name, user_avatar_url};
 use anyhow::{Result, anyhow, bail};
 use ic_agent::identity::{BasicIdentity, Secp256k1Identity};
@@ -37,6 +38,30 @@ pub struct OpenChatConfig {
 }
 
 impl OpenChatConfig {
+    /// From `OC_IDENTITY_PEM` (the PEM's text) or `OC_IDENTITY_PEM_FILE`, and for an OpenChat other
+    /// than mainnet's, `OC_IC_URL`, `OC_PUBLIC_KEY` and `OC_USER_INDEX`
+    pub fn from_env() -> Result<Self> {
+        let var = |name: &str| std::env::var(name).ok().filter(|v| !v.trim().is_empty());
+        let identity_pem = match (var("OC_IDENTITY_PEM"), var("OC_IDENTITY_PEM_FILE")) {
+            (Some(pem), _) => pem,
+            (None, Some(file)) => std::fs::read_to_string(&file)
+                .map_err(|e| anyhow!("Failed to read OC_IDENTITY_PEM_FILE {file}: {e}"))?,
+            (None, None) => bail!("Set OC_IDENTITY_PEM or OC_IDENTITY_PEM_FILE"),
+        };
+
+        let mut config = Self::mainnet(identity_pem);
+        if let Some(ic_url) = var("OC_IC_URL") {
+            config.ic_url = ic_url;
+        }
+        if let Some(public_key) = var("OC_PUBLIC_KEY") {
+            config.public_key = public_key;
+        }
+        if let Some(user_index) = var("OC_USER_INDEX") {
+            config.user_index = crate::util::canister_id_from_text(&user_index)?;
+        }
+        Ok(config)
+    }
+
     /// Mainnet, with the bot's identity
     pub fn mainnet(identity_pem: String) -> Self {
         OpenChatConfig {
@@ -353,7 +378,12 @@ where
                 }
                 None => bail!("Call to OpenChat failed: {code} {message}"),
             },
-            Err((code, message)) => bail!("Call to OpenChat rejected: {code} {message}"),
+            Err((code, message)) => {
+                return Err(PermanentFailure::Rejected(format!(
+                    "Call to OpenChat rejected: {code} {message}"
+                ))
+                .into());
+            }
         }
     }
 }
@@ -365,6 +395,7 @@ fn unit_result(response: UnitResult) -> Result<()> {
     }
 }
 
+// Retrying won't change OpenChat's answer
 fn oc_error(error: OCError) -> anyhow::Error {
-    anyhow!("OpenChat returned an error: {error:?}")
+    PermanentFailure::Rejected(format!("OpenChat returned an error: {error:?}")).into()
 }

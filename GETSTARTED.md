@@ -80,10 +80,11 @@ The DiceBot and LlamaBot will each need to be run in a separate terminal.
 ```
 
 - [Discord bridge](./rs/offchain/bridges/discord/README.md)
+- [Telegram bridge](./rs/offchain/bridges/telegram/README.md)
 - [Typescript bots](./ts/README.md)
 
-Note: the Discord bridge isn't deployed locally, since it needs a Discord app and must be reachable
-by OpenChat.
+Note: the Discord and Telegram bridges aren't deployed locally, since they need a Discord app or a
+Telegram bot, and must be reachable by OpenChat.
 
 ## Step 3: Create Account and Test Group
 
