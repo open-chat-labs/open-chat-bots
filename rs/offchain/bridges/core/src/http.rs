@@ -375,6 +375,32 @@ mod tests {
         }
     }
 
+    // eg. Telegram upgrading a group to a supergroup, which has a new id
+    #[tokio::test]
+    async fn a_pairing_moves_to_a_chats_new_id() {
+        let bridge = bridge().await;
+        let oc_chat = oc_bots_sdk::types::Chat::Group(Principal::from_slice(&[3]).into());
+        let pairing = Pairing {
+            platform_chat: "-123".to_string(),
+            oc_chat,
+            api_gateway: Principal::anonymous().into(),
+            platform_data: None,
+        };
+        bridge.store.save_pairing(&pairing).await.unwrap();
+
+        assert!(bridge.move_pairing("-123", "-100456").await.unwrap());
+
+        assert_eq!(bridge.store.pairing("-123").await.unwrap(), None);
+        let moved = bridge
+            .store
+            .pairing_for_oc_chat(&oc_chat)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(moved.platform_chat, "-100456");
+        assert!(!bridge.move_pairing("-123", "-100456").await.unwrap());
+    }
+
     #[tokio::test]
     async fn a_command_without_an_access_token_is_refused() {
         let bridge = bridge().await;

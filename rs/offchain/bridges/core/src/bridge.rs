@@ -170,6 +170,26 @@ impl<P: Platform> Bridge<P> {
         Ok(true)
     }
 
+    /// For when the platform gives a chat a new id, eg. Telegram upgrading a group to a
+    /// supergroup. Returns whether the chat was paired.
+    pub async fn move_pairing(
+        &self,
+        old_platform_chat: &str,
+        new_platform_chat: &str,
+    ) -> Result<bool> {
+        let Some(pairing) = self.store.pairing(old_platform_chat).await? else {
+            return Ok(false);
+        };
+        self.store.remove_pairing(&pairing).await?;
+        let moved = Pairing {
+            platform_chat: new_platform_chat.to_string(),
+            ..pairing
+        };
+        self.store.save_pairing(&moved).await?;
+        info!(old_platform_chat, new_platform_chat, "Moved a pairing");
+        Ok(true)
+    }
+
     pub async fn unpair(&self, pairing: &Pairing) -> Result<()> {
         self.store.remove_pairing(pairing).await?;
         if let Err(error) = self.platform.unpaired(pairing).await {

@@ -1,4 +1,5 @@
 use crate::model::Pairing;
+use crate::platform::PermanentFailure;
 use crate::util::{bridged_avatar_url, bridged_name, user_avatar_url};
 use anyhow::{Result, anyhow, bail};
 use ic_agent::identity::{BasicIdentity, Secp256k1Identity};
@@ -37,6 +38,30 @@ pub struct OpenChatConfig {
 }
 
 impl OpenChatConfig {
+    /// From `OC_IDENTITY_PEM` (the PEM's text) or `OC_IDENTITY_PEM_FILE`, and for an OpenChat other
+    /// than mainnet's, `OC_IC_URL`, `OC_PUBLIC_KEY` and `OC_USER_INDEX`
+    pub fn from_env() -> Result<Self> {
+        let var = |name: &str| std::env::var(name).ok().filter(|v| !v.trim().is_empty());
+        let identity_pem = match (var("OC_IDENTITY_PEM"), var("OC_IDENTITY_PEM_FILE")) {
+            (Some(pem), _) => pem,
+            (None, Some(file)) => std::fs::read_to_string(&file)
+                .map_err(|e| anyhow!("Failed to read OC_IDENTITY_PEM_FILE {file}: {e}"))?,
+            (None, None) => bail!("Set OC_IDENTITY_PEM or OC_IDENTITY_PEM_FILE"),
+        };
+
+        let mut config = Self::mainnet(identity_pem);
+        if let Some(ic_url) = var("OC_IC_URL") {
+            config.ic_url = ic_url;
+        }
+        if let Some(public_key) = var("OC_PUBLIC_KEY") {
+            config.public_key = public_key;
+        }
+        if let Some(user_index) = var("OC_USER_INDEX") {
+            config.user_index = crate::util::canister_id_from_text(&user_index)?;
+        }
+        Ok(config)
+    }
+
     /// Mainnet, with the bot's identity
     pub fn mainnet(identity_pem: String) -> Self {
         OpenChatConfig {
@@ -346,16 +371,30 @@ where
     loop {
         match call().await {
             Ok(response) => return Ok(response),
-            Err((code, message)) if code == 0 || code == 2 => match delays.next() {
+            Err((code, message)) if is_transient(code, &message) => match delays.next() {
                 Some(delay) => {
                     warn!(code, message, "Call to OpenChat failed, retrying");
                     tokio::time::sleep(*delay).await;
                 }
+                // Not a PermanentFailure, so it's retried later, eg. once an upgrade is done
                 None => bail!("Call to OpenChat failed: {code} {message}"),
             },
-            Err((code, message)) => bail!("Call to OpenChat rejected: {code} {message}"),
+            Err((code, message)) => {
+                return Err(PermanentFailure::Rejected(format!(
+                    "Call to OpenChat rejected: {code} {message}"
+                ))
+                .into());
+            }
         }
     }
+}
+
+// The call didn't reach OpenChat, the IC rejected it as transient, or a canister was stopped, as
+// they are briefly while they're upgraded
+fn is_transient(code: i32, message: &str) -> bool {
+    code == 0
+        || code == 2
+        || (code == 5 && (message.contains("is stopped") || message.contains("is stopping")))
 }
 
 fn unit_result(response: UnitResult) -> Result<()> {
@@ -365,6 +404,28 @@ fn unit_result(response: UnitResult) -> Result<()> {
     }
 }
 
+// Retrying won't change OpenChat's answer, unless its call to the chat failed, eg. as the chat was
+// stopped to be upgraded
 fn oc_error(error: OCError) -> anyhow::Error {
-    anyhow!("OpenChat returned an error: {error:?}")
+    let message = format!("OpenChat returned an error: {error:?}");
+    if error.matches_code(OCErrorCode::C2CError) {
+        anyhow!(message)
+    } else {
+        PermanentFailure::Rejected(message).into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_stopped_canister_is_retried_but_a_trap_isnt() {
+        assert!(is_transient(0, "connection reset"));
+        assert!(is_transient(2, "queue full"));
+        assert!(is_transient(5, "Canister abc is stopped"));
+        assert!(is_transient(5, "Canister abc is stopping"));
+        assert!(!is_transient(5, "Canister abc trapped: unreachable"));
+        assert!(!is_transient(4, "rejected"));
+    }
 }

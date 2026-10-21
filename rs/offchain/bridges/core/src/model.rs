@@ -1,4 +1,4 @@
-use crate::store::KeyValueStore;
+use crate::store::{DynamoDbStore, InMemoryStore, KeyValueStore};
 use anyhow::Result;
 use oc_bots_sdk::types::{
     BridgePlatform, CanisterId, Chat, EventIndex, MessageId, Milliseconds, TimestampMillis,
@@ -80,6 +80,24 @@ pub struct BridgeStore {
 }
 
 impl BridgeStore {
+    /// In the DynamoDB table `DYNAMODB_TABLE`, with AWS's credentials and region from the
+    /// environment, or without one, in memory, which is lost on restart
+    pub async fn from_env(platform: BridgePlatform) -> Self {
+        let kv: Arc<dyn KeyValueStore> = match std::env::var("DYNAMODB_TABLE")
+            .ok()
+            .filter(|t| !t.trim().is_empty())
+        {
+            Some(table) => Arc::new(DynamoDbStore::new(table).await),
+            None => {
+                tracing::warn!(
+                    "DYNAMODB_TABLE isn't set, so state is kept in memory and lost on restart"
+                );
+                Arc::new(InMemoryStore::default())
+            }
+        };
+        Self::new(kv, platform)
+    }
+
     pub fn new(kv: Arc<dyn KeyValueStore>, platform: BridgePlatform) -> Self {
         let platform = match platform {
             BridgePlatform::Discord => "discord",
