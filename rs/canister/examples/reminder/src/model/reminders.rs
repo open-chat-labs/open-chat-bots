@@ -316,8 +316,8 @@ impl Reminders {
             .get(chat)
             .map(|chat_reminders| {
                 chat_reminders
-                    .iter()
-                    .filter_map(|(_, global_id)| self.reminders.get(global_id))
+                    .values()
+                    .filter_map(|global_id| self.reminders.get(global_id))
                     .cloned()
                     .collect()
             })
