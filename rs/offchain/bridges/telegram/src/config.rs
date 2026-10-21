@@ -55,12 +55,16 @@ fn webhook_secret(token: &str) -> String {
 mod tests {
     use super::*;
 
+    // Pinned, as changing it would stop Telegram's updates until `setup` is run again
     #[test]
     fn the_webhook_secret_is_derived_from_the_token() {
-        let secret = webhook_secret("123456:ABC-DEF");
-        assert_eq!(secret, webhook_secret("123456:ABC-DEF"));
-        assert_ne!(secret, webhook_secret("123456:ABC-DEG"));
-        assert_eq!(secret.len(), 64);
-        assert!(secret.chars().all(|c| c.is_ascii_hexdigit()));
+        assert_eq!(
+            webhook_secret("123456:ABC-DEF"),
+            "90829742eb9e5128a16189c5cd685f9df58d907fc816fa2c2193e227f3380c83"
+        );
+        assert_ne!(
+            webhook_secret("123456:ABC-DEF"),
+            webhook_secret("123456:ABC-DEG")
+        );
     }
 }
