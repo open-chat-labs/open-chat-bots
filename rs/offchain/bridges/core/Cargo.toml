@@ -1,0 +1,29 @@
+[package]
+name = "oc_bridge_core"
+version = "0.1.0"
+edition.workspace = true
+
+# What the Discord and Telegram bridges share: OpenChat's side of the bridge, pairing chats, and
+# where the bridge keeps its state
+
+[dependencies]
+anyhow = "1"
+async-trait = { workspace = true }
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-sdk-dynamodb = "1"
+axum = { workspace = true }
+ic-agent = { workspace = true }
+oc_bots_sdk = { path = "../../../sdk", features = ["bridge"] }
+oc_bots_sdk_offchain = { path = "../../sdk" }
+rand = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time"] }
+tower-http = { workspace = true, features = ["cors"] }
+tracing = { workspace = true }
+
+[dev-dependencies]
+base64 = { workspace = true }
+p256 = { workspace = true, features = ["ecdsa", "pem", "pkcs8"] }
+tower = { version = "0.5", features = ["util"] }
