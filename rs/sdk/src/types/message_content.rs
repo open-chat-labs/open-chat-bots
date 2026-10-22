@@ -1,6 +1,6 @@
 use super::{
     CanisterId, Chat, CompletedCryptoTransaction, CryptoTransaction, MessageId, MessageIndex,
-    NnsNeuronId, ProposalId, SnsNeuronId, TimestampMillis, UserId, VideoCallType,
+    Milliseconds, NnsNeuronId, ProposalId, SnsNeuronId, TimestampMillis, UserId, VideoCallType,
 };
 use crate::utils::{serialize_large_uint, serialize_principal_as_bytes, tolerant_enum};
 use ic_principal::Principal;
@@ -169,6 +169,11 @@ pub struct AudioContent {
     pub mime_type: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub blob_reference: Option<BlobReference>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration_ms: Option<Milliseconds>,
+    /// The waveform OpenChat draws for it, each sample's loudness from 0 to 255
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub samples: Option<Vec<u8>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

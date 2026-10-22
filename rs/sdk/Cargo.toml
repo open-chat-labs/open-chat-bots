@@ -13,7 +13,6 @@ ct-codecs = { workspace = true }
 dataurl = { workspace = true }
 enum-repr = { workspace = true }
 ic_principal = { workspace = true }
-ic-ledger-types = { workspace = true }
 icrc-ledger-types = { workspace = true }
 image = { workspace = true }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }

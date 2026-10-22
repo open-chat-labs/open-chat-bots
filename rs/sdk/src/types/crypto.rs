@@ -183,7 +183,26 @@ impl FailedCryptoTransaction {
 
 pub mod nns {
     use super::*;
-    pub use ic_ledger_types::{AccountIdentifier, Tokens};
+
+    /// An amount of ICP, encoded as `ic_ledger_types::Tokens` is
+    #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct Tokens {
+        e8s: u64,
+    }
+
+    impl Tokens {
+        pub const fn from_e8s(e8s: u64) -> Self {
+            Tokens { e8s }
+        }
+
+        pub const fn e8s(&self) -> u64 {
+            self.e8s
+        }
+    }
+
+    /// An account on the ICP ledger, encoded as `ic_ledger_types::AccountIdentifier` is
+    #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct AccountIdentifier(pub [u8; 32]);
 
     #[derive(Serialize, Deserialize, Clone, Debug)]
     pub enum CryptoAccount {
