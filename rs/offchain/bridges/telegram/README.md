@@ -116,8 +116,12 @@ the Discord bridge, are in [`../core`](../core).
    run by hand from `main`:
    - It builds the function and replaces its code, leaving its settings and environment variables
      as they are.
-   - It deploys with the IAM role `GitHubActions-DeployTelegramBridge`. GitHub can assume it only
-     from `main`, and it can only update this function's code.
+   - It deploys with the IAM role `GitHubActions-DeployTelegramBridge`, which GitHub can assume
+     only from `main`:
+     - **Trust:** the OIDC provider `token.actions.githubusercontent.com`, with `aud`
+       `sts.amazonaws.com` and `sub` `repo:open-chat-labs/open-chat-bots:ref:refs/heads/main`.
+     - **Permissions:** only `lambda:UpdateFunctionCode`, `GetFunction`, `GetFunctionConfiguration`
+       and `GetFunctionUrlConfig`, on this function.
 
 6. **Register the webhook and the bot's commands** with Telegram, once. Run this with the same
    environment variables, eg. locally:
