@@ -90,11 +90,11 @@ impl MessageContent {
             MessageContent::File(f) => f.caption.as_deref(),
             MessageContent::Poll(p) => p.config.text.as_deref(),
             MessageContent::Giphy(g) => g.caption.as_deref(),
+            MessageContent::GovernanceProposal(p) => Some(p.proposal.title()),
             MessageContent::Crypto(c) => c.caption.as_deref(),
             MessageContent::Prize(p) => p.caption.as_deref(),
             MessageContent::P2PSwap(s) => s.caption.as_deref(),
             MessageContent::Deleted(_)
-            | MessageContent::GovernanceProposal(_)
             | MessageContent::PrizeWinner(_)
             | MessageContent::MessageReminderCreated(_)
             | MessageContent::MessageReminder(_)
@@ -282,6 +282,15 @@ pub struct ProposalContent {
 pub enum Proposal {
     NNS(NnsProposal),
     SNS(SnsProposal),
+}
+
+impl Proposal {
+    pub fn title(&self) -> &str {
+        match self {
+            Proposal::NNS(p) => &p.title,
+            Proposal::SNS(p) => &p.title,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -655,4 +664,125 @@ pub struct OgPreviewImage {
     pub url: String,
     pub width: u32,
     pub height: u32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::msgpack;
+    use crate::types::{FailedCryptoTransaction, PendingCryptoTransaction, nns};
+
+    // One value of each kind, as OpenChat sends them to bots: encoded with the backend's own types
+    // and `msgpack::serialize_then_unwrap`, which writes large ints as strings (open-chat
+    // 03fd05e7795)
+    const BACKEND_CONTENTS: &[u8] = include_bytes!("test_data/backend_message_contents.msgpack");
+    const BIG: u128 = 1_000_000_000_000_000_000_000;
+    const NANOS: u64 = 1_760_000_000_123_456_789;
+
+    #[test]
+    fn decodes_every_kind_of_content_as_openchat_encodes_it() {
+        let contents: Vec<MessageContent> = msgpack::deserialize_then_unwrap(BACKEND_CONTENTS);
+        assert_eq!(contents.len(), 18);
+        assert!(!format!("{contents:?}").contains("Unsupported"));
+
+        let transfer = |i: usize| match &contents[i] {
+            MessageContent::Crypto(c) => &c.transfer,
+            other => panic!("Expected a transfer, got {other:?}"),
+        };
+        assert!(matches!(
+            transfer(0),
+            CryptoTransaction::Completed(CompletedCryptoTransaction::ICRC1(t))
+                if t.amount == BIG && t.created == NANOS && t.block_index == u64::MAX
+        ));
+        assert!(matches!(
+            transfer(1),
+            CryptoTransaction::Completed(CompletedCryptoTransaction::NNS(t))
+                if t.amount.e8s() == 123_456_789
+                    && matches!(t.from, nns::CryptoAccount::Account(_))
+                    && t.transaction_hash == [5; 32]
+                    && t.memo == u64::MAX
+        ));
+        assert!(matches!(
+            transfer(2),
+            CryptoTransaction::Pending(PendingCryptoTransaction::Certified(t))
+                if t.call.arg == [1, 2]
+                    && t.call.nonce.as_deref() == Some(&[3][..])
+                    && t.call.certificate == [4, 5]
+        ));
+        assert!(matches!(
+            transfer(3),
+            CryptoTransaction::Failed(FailedCryptoTransaction::ICRC2(t)) if t.error_message == "nope"
+        ));
+
+        assert!(matches!(
+            &contents[4],
+            MessageContent::GovernanceProposal(p) if matches!(
+                &p.proposal,
+                Proposal::SNS(p) if p.id == u64::MAX
+                    && p.proposer == [6; 32]
+                    && p.status == ProposalDecisionStatus::Executed
+            )
+        ));
+        assert!(matches!(
+            &contents[5],
+            MessageContent::GovernanceProposal(p) if matches!(&p.proposal, Proposal::NNS(p) if p.topic == -1)
+        ));
+        assert!(matches!(
+            &contents[6],
+            MessageContent::Prize(p) if p.prizes_remaining == 3 && p.streak_only == 7 && p.min_chit_earned == 1000
+        ));
+        assert!(matches!(
+            &contents[7],
+            MessageContent::PrizeWinner(w) if w.prize_message == 42 && w.transaction.units() == Some(BIG)
+        ));
+        assert!(matches!(
+            &contents[8],
+            MessageContent::MessageReminderCreated(r) if r.reminder_id == u64::MAX && r.hidden
+        ));
+        assert!(matches!(&contents[9], MessageContent::MessageReminder(r) if r.notes.is_none()));
+        assert!(matches!(
+            &contents[10],
+            MessageContent::ReportedMessage(r) if r.reports[0].reason_code == 2
+        ));
+
+        let MessageContent::ModerationReport(report) = &contents[11] else {
+            panic!("Expected a moderation report, got {:?}", contents[11]);
+        };
+        assert!(matches!(report.chat_id, Chat::Channel(_, 7)));
+        assert_eq!(report.blob_references[0].blob_id, BIG);
+        assert_eq!(report.media_matches[0].match_distance, -3);
+        assert!(matches!(
+            report.status,
+            ModerationReportStatus::UpheldAsCsam(_)
+        ));
+        assert!(matches!(
+            &report.authority_report,
+            Some(AuthorityReportState::ContingencyRequired(f)) if f.urgent
+        ));
+
+        assert!(matches!(
+            &contents[12],
+            MessageContent::P2PSwap(s) if s.token0_amount == BIG && matches!(s.status, P2PSwapStatus::Completed(_))
+        ));
+        assert!(matches!(
+            &contents[13],
+            MessageContent::P2PSwap(s) if matches!(s.status, P2PSwapStatus::Open)
+        ));
+        assert!(matches!(
+            &contents[14],
+            MessageContent::VideoCall(c) if c.audio_only && c.ended == Some(NANOS)
+        ));
+        assert!(matches!(
+            &contents[15],
+            MessageContent::Encrypted(e)
+                if matches!(&e.content_type, EncryptedMessageContentType::Custom(kind) if kind == "thing")
+                    && e.encrypted_message_key.0 == [1, 2]
+                    && e.encrypted_data == [4, 5, 6]
+        ));
+        assert!(matches!(
+            &contents[16],
+            MessageContent::Encrypted(e) if matches!(e.content_type, EncryptedMessageContentType::Giphy)
+        ));
+        assert!(matches!(&contents[17], MessageContent::Custom(c) if c.data == [1, 2]));
+    }
 }

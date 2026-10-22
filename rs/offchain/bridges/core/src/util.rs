@@ -1,7 +1,6 @@
 use ic_agent::export::Principal;
 use oc_bots_sdk::types::{
-    BlobReference, BridgedUser, CanisterId, CryptoTransaction, MessageContent, MessageId, Proposal,
-    UserId,
+    BlobReference, BridgedUser, CanisterId, CryptoTransaction, MessageContent, MessageId, UserId,
 };
 use sha2::{Digest, Sha256};
 
@@ -79,7 +78,6 @@ pub fn bridged_name(user: &BridgedUser) -> String {
 pub fn transfer_ledger(content: &MessageContent) -> Option<CanisterId> {
     match content {
         MessageContent::Crypto(c) => c.transfer.ledger_canister_id(),
-        MessageContent::PrizeWinner(w) => w.transaction.ledger_canister_id(),
         _ => None,
     }
 }
@@ -151,10 +149,6 @@ pub fn message_text(content: &MessageContent, token_decimals: Option<u8>) -> Opt
             );
             with_caption(text, &p.caption)
         }
-        MessageContent::PrizeWinner(w) => {
-            let tokens = tokens(w.transaction.units(), w.transaction.token_symbol());
-            format!("[Prize] @UserId({}) won {tokens}", w.winner)
-        }
         MessageContent::P2PSwap(s) => {
             let text = format!(
                 "[P2P swap] {} {} for {} {}",
@@ -165,16 +159,15 @@ pub fn message_text(content: &MessageContent, token_decimals: Option<u8>) -> Opt
             );
             with_caption(text, &s.caption)
         }
-        MessageContent::GovernanceProposal(p) => match &p.proposal {
-            Proposal::NNS(p) => format!("[Proposal] {}", p.title),
-            Proposal::SNS(p) => format!("[Proposal] {}", p.title),
-        },
+        MessageContent::GovernanceProposal(p) => format!("[Proposal] {}", p.proposal.title()),
         MessageContent::VideoCall(c) if c.audio_only => "[Audio call]".to_string(),
         MessageContent::VideoCall(_) => "[Video call]".to_string(),
         MessageContent::MessageReminderCreated(r) => {
             with_caption("[Reminder]".to_string(), &r.notes)
         }
         MessageContent::MessageReminder(r) => with_caption("[Reminder]".to_string(), &r.notes),
+        // Winners are announced in the prize's thread, which isn't relayed
+        MessageContent::PrizeWinner(_) => "[Prize winner]".to_string(),
         MessageContent::ReportedMessage(_) => "[Reported message]".to_string(),
         MessageContent::ModerationReport(_) => "[Moderation report]".to_string(),
         MessageContent::Encrypted(_) => "[Encrypted message]".to_string(),
@@ -187,12 +180,10 @@ pub fn message_text(content: &MessageContent, token_decimals: Option<u8>) -> Opt
 /// An amount of a token, given in its smallest units, to at least 2 decimal places, eg. 1.00 or
 /// 0.125
 pub fn format_tokens(units: u128, decimals: u8) -> String {
-    let Some(scale) = 10u128.checked_pow(decimals.into()) else {
-        return units.to_string();
-    };
-    let fraction = format!("{:0width$}", units % scale, width = decimals.into());
-    let fraction = fraction.trim_end_matches('0');
-    format!("{}.{fraction:0<2}", units / scale)
+    let decimals = usize::from(decimals);
+    let digits = format!("{units:0>width$}", width = decimals + 1);
+    let (whole, fraction) = digits.split_at(digits.len() - decimals);
+    format!("{whole}.{:0<2}", fraction.trim_end_matches('0'))
 }
 
 /// OpenChat notifies every member of a chat of `@everyone` in a bot's message, so text relayed from
@@ -394,5 +385,7 @@ mod tests {
         assert_eq!(format_tokens(150_000_000, 8), "1.50");
         assert_eq!(format_tokens(7, 0), "7.00");
         assert_eq!(format_tokens(1, 18), "0.000000000000000001");
+        assert_eq!(format_tokens(u128::MAX, 0), format!("{}.00", u128::MAX));
+        assert_eq!(format_tokens(5, 40), format!("0.{}5", "0".repeat(39)));
     }
 }
