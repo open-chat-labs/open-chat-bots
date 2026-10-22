@@ -1,4 +1,7 @@
-use super::{TimestampMillis, UserId};
+use super::{
+    CanisterId, Chat, CompletedCryptoTransaction, CryptoTransaction, MessageId, MessageIndex,
+    NnsNeuronId, ProposalId, SnsNeuronId, TimestampMillis, UserId, VideoCallType,
+};
 use crate::utils::{serialize_large_uint, serialize_principal_as_bytes, tolerant_enum};
 use ic_principal::Principal;
 use serde::{Deserialize, Serialize};
@@ -22,8 +25,7 @@ impl MessageContentInitial {
     }
 }
 
-/// A kind of content this SDK doesn't know yet, eg. a crypto transfer or a prize, decodes as
-/// `Unsupported`, with its kind
+/// A kind of content this SDK doesn't know yet decodes as `Unsupported`, with its kind
 #[derive(Serialize, Clone, Debug)]
 pub enum MessageContent {
     Text(TextContent),
@@ -32,15 +34,48 @@ pub enum MessageContent {
     Audio(AudioContent),
     File(FileContent),
     Poll(PollContent),
+    Crypto(CryptoContent),
     Deleted(DeletedBy),
     Giphy(GiphyContent),
+    GovernanceProposal(ProposalContent),
+    Prize(PrizeContent),
+    PrizeWinner(PrizeWinnerContent),
+    MessageReminderCreated(MessageReminderCreatedContent),
+    MessageReminder(MessageReminderContent),
+    ReportedMessage(ReportedMessage),
+    ModerationReport(ModerationReportContent),
+    P2PSwap(P2PSwapContent),
+    VideoCall(VideoCallContent),
+    Encrypted(EncryptedContent),
     Custom(CustomContent),
     Unsupported(UnsupportedContent),
 }
 
 tolerant_enum!(
     MessageContent,
-    variants: [Text, Image, Video, Audio, File, Poll, Deleted, Giphy, Custom, Unsupported],
+    variants: [
+        Text,
+        Image,
+        Video,
+        Audio,
+        File,
+        Poll,
+        Crypto,
+        Deleted,
+        Giphy,
+        GovernanceProposal,
+        Prize,
+        PrizeWinner,
+        MessageReminderCreated,
+        MessageReminder,
+        ReportedMessage,
+        ModerationReport,
+        P2PSwap,
+        VideoCall,
+        Encrypted,
+        Custom,
+        Unsupported,
+    ],
     units: [],
     unknown: |kind| MessageContent::Unsupported(UnsupportedContent { kind }),
 );
@@ -55,7 +90,18 @@ impl MessageContent {
             MessageContent::File(f) => f.caption.as_deref(),
             MessageContent::Poll(p) => p.config.text.as_deref(),
             MessageContent::Giphy(g) => g.caption.as_deref(),
+            MessageContent::Crypto(c) => c.caption.as_deref(),
+            MessageContent::Prize(p) => p.caption.as_deref(),
+            MessageContent::P2PSwap(s) => s.caption.as_deref(),
             MessageContent::Deleted(_)
+            | MessageContent::GovernanceProposal(_)
+            | MessageContent::PrizeWinner(_)
+            | MessageContent::MessageReminderCreated(_)
+            | MessageContent::MessageReminder(_)
+            | MessageContent::ReportedMessage(_)
+            | MessageContent::ModerationReport(_)
+            | MessageContent::VideoCall(_)
+            | MessageContent::Encrypted(_)
             | MessageContent::Unsupported(_)
             | MessageContent::Custom(_) => None,
         }
@@ -217,6 +263,380 @@ pub struct CustomContent {
 pub struct UnsupportedContent {
     pub kind: String,
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct CryptoContent {
+    pub recipient: UserId,
+    pub transfer: CryptoTransaction,
+    pub caption: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ProposalContent {
+    pub governance_canister_id: CanisterId,
+    pub proposal: Proposal,
+    pub my_vote: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum Proposal {
+    NNS(NnsProposal),
+    SNS(SnsProposal),
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct NnsProposal {
+    pub id: ProposalId,
+    pub topic: i32,
+    pub proposer: NnsNeuronId,
+    pub created: TimestampMillis,
+    pub title: String,
+    pub summary: String,
+    pub url: String,
+    pub status: ProposalDecisionStatus,
+    pub reward_status: ProposalRewardStatus,
+    pub tally: Tally,
+    pub deadline: TimestampMillis,
+    pub payload_text_rendering: Option<String>,
+    pub last_updated: TimestampMillis,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct SnsProposal {
+    pub id: ProposalId,
+    pub action: u64,
+    pub proposer: SnsNeuronId,
+    pub created: TimestampMillis,
+    pub title: String,
+    pub summary: String,
+    pub url: String,
+    pub status: ProposalDecisionStatus,
+    pub reward_status: ProposalRewardStatus,
+    pub tally: Tally,
+    pub deadline: TimestampMillis,
+    pub payload_text_rendering: Option<String>,
+    pub minimum_yes_proportion_of_total: u32,
+    pub minimum_yes_proportion_of_exercised: u32,
+    pub last_updated: TimestampMillis,
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProposalDecisionStatus {
+    Unspecified,
+    Open,
+    Rejected,
+    Adopted,
+    Executed,
+    Failed,
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProposalRewardStatus {
+    Unspecified,
+    AcceptVotes,
+    ReadyToSettle,
+    Settled,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Tally {
+    pub yes: u64,
+    pub no: u64,
+    pub total: u64,
+    pub timestamp: TimestampMillis,
+}
+
+/// Prizes for members to claim. Their amounts aren't shown until they're claimed.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PrizeContent {
+    pub prizes_remaining: u32,
+    pub prizes_pending: u32,
+    pub winner_count: u32,
+    pub user_is_winner: bool,
+    pub token_symbol: String,
+    pub ledger: CanisterId,
+    pub end_date: TimestampMillis,
+    pub caption: Option<String>,
+    pub diamond_only: bool,
+    pub lifetime_diamond_only: bool,
+    pub unique_person_only: bool,
+    pub streak_only: u16,
+    pub requires_captcha: bool,
+    pub min_chit_earned: u32,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PrizeWinnerContent {
+    pub winner: UserId,
+    pub transaction: CompletedCryptoTransaction,
+    pub prize_message: MessageIndex,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct MessageReminderCreatedContent {
+    pub reminder_id: u64,
+    pub remind_at: TimestampMillis,
+    pub notes: Option<String>,
+    pub hidden: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct MessageReminderContent {
+    pub reminder_id: u64,
+    pub notes: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ReportedMessage {
+    pub reports: Vec<MessageReport>,
+    pub count: u32,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct MessageReport {
+    pub reported_by: UserId,
+    pub timestamp: TimestampMillis,
+    pub reason_code: u32,
+    pub notes: Option<String>,
+}
+
+/// A moderation alert, which OpenChat posts in its internal moderation channel
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ModerationReportContent {
+    pub report_index: Option<u64>,
+    pub chat_id: Chat,
+    pub thread_root_message_index: Option<MessageIndex>,
+    pub message_index: MessageIndex,
+    pub message_id: MessageId,
+    pub sender: UserId,
+    /// Empty if the automated moderation raised it
+    pub reporters: Vec<UserId>,
+    pub flagged_categories: u32,
+    #[serde(default)]
+    pub classification_failed: bool,
+    pub auto_sanctioned: bool,
+    pub content_excerpt: Option<String>,
+    #[serde(default)]
+    pub blob_references: Vec<BlobReference>,
+    #[serde(default)]
+    pub media_matches: Vec<MediaScanMatch>,
+    #[serde(default)]
+    pub is_blocked_attempt: bool,
+    pub reported_at: TimestampMillis,
+    pub status: ModerationReportStatus,
+    #[serde(default)]
+    pub authority_report: Option<AuthorityReportState>,
+}
+
+/// A state this SDK doesn't know yet decodes as `Unsupported`, with its name
+#[derive(Serialize, Clone, Debug)]
+pub enum ModerationReportStatus {
+    Pending,
+    Contested,
+    Upheld(ModerationReportResolution),
+    UpheldAsCsam(ModerationReportResolution),
+    Dismissed(ModerationReportResolution),
+    Unsupported(String),
+}
+
+tolerant_enum!(
+    ModerationReportStatus,
+    variants: [Upheld, UpheldAsCsam, Dismissed, Unsupported],
+    units: [Pending, Contested],
+    unknown: |kind| ModerationReportStatus::Unsupported(kind),
+);
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
+pub struct ModerationReportResolution {
+    pub moderator: UserId,
+    pub timestamp: TimestampMillis,
+}
+
+/// A state this SDK doesn't know yet decodes as `Unsupported`, with its name
+#[derive(Serialize, Clone, Debug)]
+pub enum AuthorityReportState {
+    Due(AuthorityReportDue),
+    Filed(AuthorityReportFiled),
+    Attempting(AuthorityReportAttempting),
+    ContingencyRequired(AuthorityReportFailed),
+    ValidationFailed(AuthorityReportFailed),
+    Unsupported(String),
+}
+
+tolerant_enum!(
+    AuthorityReportState,
+    variants: [Due, Filed, Attempting, ContingencyRequired, ValidationFailed, Unsupported],
+    units: [],
+    unknown: |kind| AuthorityReportState::Unsupported(kind),
+);
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct AuthorityReportDue {
+    pub urgent: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct AuthorityReportFiled {
+    pub portal_reference: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct AuthorityReportAttempting {
+    pub started_at: TimestampMillis,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct AuthorityReportFailed {
+    pub error: String,
+    #[serde(default)]
+    pub urgent: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct MediaScanMatch {
+    pub provider: MediaScanProvider,
+    #[serde(serialize_with = "serialize_large_uint")]
+    pub blob_id: u128,
+    pub source: String,
+    pub violations: Vec<String>,
+    pub match_distance: i64,
+    pub match_id: Option<String>,
+    #[serde(default)]
+    pub hash: Option<String>,
+}
+
+/// A provider this SDK doesn't know yet decodes as `Unsupported`, with its name
+#[derive(Serialize, Clone, Debug)]
+pub enum MediaScanProvider {
+    PhotoDna,
+    Unsupported(String),
+}
+
+tolerant_enum!(
+    MediaScanProvider,
+    variants: [Unsupported],
+    units: [PhotoDna],
+    unknown: |kind| MediaScanProvider::Unsupported(kind),
+);
+
+/// An offer to swap `token0_amount` of `token0` for `token1_amount` of `token1`
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct P2PSwapContent {
+    pub swap_id: u32,
+    pub token0: TokenInfo,
+    #[serde(serialize_with = "serialize_large_uint")]
+    pub token0_amount: u128,
+    pub token1: TokenInfo,
+    #[serde(serialize_with = "serialize_large_uint")]
+    pub token1_amount: u128,
+    pub expires_at: TimestampMillis,
+    pub caption: Option<String>,
+    pub token0_txn_in: u64,
+    pub status: P2PSwapStatus,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct TokenInfo {
+    pub symbol: String,
+    pub ledger: CanisterId,
+    pub decimals: u8,
+    #[serde(serialize_with = "serialize_large_uint")]
+    pub fee: u128,
+}
+
+/// A state this SDK doesn't know yet decodes as `Unsupported`, with its name
+#[derive(Serialize, Clone, Debug)]
+pub enum P2PSwapStatus {
+    Open,
+    Cancelled(P2PSwapCancelled),
+    Expired(P2PSwapExpired),
+    Reserved(P2PSwapReserved),
+    Accepted(P2PSwapAccepted),
+    Completed(P2PSwapCompleted),
+    Unsupported(String),
+}
+
+tolerant_enum!(
+    P2PSwapStatus,
+    variants: [Cancelled, Expired, Reserved, Accepted, Completed, Unsupported],
+    units: [Open],
+    unknown: |kind| P2PSwapStatus::Unsupported(kind),
+);
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct P2PSwapCancelled {
+    pub token0_txn_out: Option<u64>,
+}
+
+pub type P2PSwapExpired = P2PSwapCancelled;
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct P2PSwapReserved {
+    pub reserved_by: UserId,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct P2PSwapAccepted {
+    pub accepted_by: UserId,
+    pub token1_txn_in: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct P2PSwapCompleted {
+    pub accepted_by: UserId,
+    pub token1_txn_in: u64,
+    pub token0_txn_out: u64,
+    pub token1_txn_out: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct VideoCallContent {
+    pub call_type: VideoCallType,
+    #[serde(default)]
+    pub audio_only: bool,
+    pub ended: Option<TimestampMillis>,
+    pub participants: Vec<CallParticipant>,
+    pub hidden_participants: u32,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct CallParticipant {
+    pub user_id: UserId,
+    pub joined: TimestampMillis,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct EncryptedContent {
+    pub content_type: EncryptedMessageContentType,
+    pub version: u32,
+    pub encrypted_message_key: EncryptionKey,
+    pub public_key: EncryptionKey,
+    pub encrypted_data: Vec<u8>,
+}
+
+/// A kind this SDK doesn't know yet decodes as `Unsupported`, with its name
+#[derive(Serialize, Clone, Debug)]
+pub enum EncryptedMessageContentType {
+    Text,
+    Image,
+    Video,
+    Audio,
+    File,
+    Crypto,
+    Giphy,
+    Custom(String),
+    Unsupported(String),
+}
+
+tolerant_enum!(
+    EncryptedMessageContentType,
+    variants: [Custom, Unsupported],
+    units: [Text, Image, Video, Audio, File, Crypto, Giphy],
+    unknown: |kind| EncryptedMessageContentType::Unsupported(kind),
+);
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct EncryptionKey(pub Vec<u8>);
 
 /// An OpenGraph link preview. OpenChat stores whatever it is given here, it does not scrape
 /// links itself, so it is up to the sender to populate these. The offchain SDK can do that
