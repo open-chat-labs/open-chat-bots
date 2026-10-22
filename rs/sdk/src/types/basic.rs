@@ -16,6 +16,9 @@ pub type Hash = [u8; 32];
 pub type MessageIndex = u32;
 pub type Milliseconds = u64;
 pub type Nanoseconds = u64;
+pub type NnsNeuronId = u64;
+pub type ProposalId = u64;
+pub type SnsNeuronId = [u8; 32];
 pub type TimestampMillis = u64;
 pub type TimestampNanos = u64;
 

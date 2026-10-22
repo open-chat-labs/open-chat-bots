@@ -3,7 +3,9 @@ use crate::model::{
 };
 use crate::openchat::{Author, LinkedUser, OpenChat};
 use crate::platform::{InboundMessage, OutboundMessage, PermanentFailure, Platform};
-use crate::util::{content_hash, inbound_message_id, mentioned_user_ids, message_text};
+use crate::util::{
+    content_hash, inbound_message_id, mentioned_user_ids, message_text, transfer_ledger,
+};
 use anyhow::Result;
 use oc_bots_sdk::api::event_notification::{BotChatEvent, BotEvent, BotEventWrapper};
 use oc_bots_sdk::types::{
@@ -303,7 +305,11 @@ impl<P: Platform> Bridge<P> {
 
         let chat = event.chat;
         let existing = self.store.outbound_ref(&chat, message.message_id).await?;
-        let text = message_text(&message.content);
+        let token_decimals = match transfer_ledger(&message.content) {
+            Some(ledger) => self.openchat.token_decimals(ledger).await,
+            None => None,
+        };
+        let text = message_text(&message.content, token_decimals);
         let hash = text.as_deref().map(content_hash);
         // A bot's message is posted once it's finished, by the edit which finalises it, which
         // isn't the chat's latest event if others were sent meanwhile

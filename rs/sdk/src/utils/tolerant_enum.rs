@@ -105,8 +105,8 @@ pub(crate) use tolerant_enum;
 mod tests {
     use crate::msgpack;
     use crate::types::{
-        AccessGate, BridgedUserId, ChatEvent, MessageContent, PollConfig, PollContent,
-        SenderContext, TextContent,
+        AccessGate, BridgedUserId, ChatEvent, CryptoTransaction, MessageContent, P2PSwapStatus,
+        PendingCryptoTransaction, PollConfig, PollContent, SenderContext, TextContent,
     };
     use crate::utils::tolerant_enum::tests::backend::*;
     use serde::Serialize;
@@ -119,13 +119,29 @@ mod tests {
         #[derive(Serialize)]
         pub enum MessageContent {
             Text(super::TextContent),
-            Crypto(CryptoContent),
+            SomethingNew(SomethingNewContent),
         }
 
         #[derive(Serialize)]
-        pub struct CryptoContent {
+        pub struct SomethingNewContent {
             pub recipient: String,
             pub amount: u128,
+        }
+
+        #[derive(Serialize)]
+        pub enum CryptoTransaction {
+            Pending(PendingCryptoTransaction),
+        }
+
+        #[derive(Serialize)]
+        pub enum PendingCryptoTransaction {
+            SomethingNew(SomethingNewContent),
+        }
+
+        #[derive(Serialize)]
+        pub enum P2PSwapStatus {
+            SomethingNew(SomethingNewContent),
+            SomethingNewWithoutData,
         }
 
         #[derive(Serialize)]
@@ -185,18 +201,19 @@ mod tests {
         }));
         assert!(matches!(text, MessageContent::Text(t) if t.text == "hello"));
 
-        let crypto: MessageContent = decode(backend::MessageContent::Crypto(CryptoContent {
-            recipient: "abc".to_string(),
-            amount: 1_000_000_000_000_000_000_000,
-        }));
-        assert!(matches!(crypto, MessageContent::Unsupported(u) if u.kind == "Crypto"));
+        let new: MessageContent =
+            decode(backend::MessageContent::SomethingNew(SomethingNewContent {
+                recipient: "abc".to_string(),
+                amount: 1_000_000_000_000_000_000_000,
+            }));
+        assert!(matches!(new, MessageContent::Unsupported(u) if u.kind == "SomethingNew"));
     }
 
     // So unknown content in a list doesn't stop the items after it decoding
     #[test]
     fn unknown_message_content_in_a_list() {
         let contents: Vec<MessageContent> = decode(vec![
-            backend::MessageContent::Crypto(CryptoContent {
+            backend::MessageContent::SomethingNew(SomethingNewContent {
                 recipient: "abc".to_string(),
                 amount: 1,
             }),
@@ -256,6 +273,35 @@ mod tests {
         );
     }
 
+    // So a transfer on a new kind of ledger, or a swap in a new state, doesn't stop the message
+    // it's in decoding
+    #[test]
+    fn unknown_kinds_within_message_content_decode_as_unsupported() {
+        let transaction: CryptoTransaction = decode(backend::CryptoTransaction::Pending(
+            backend::PendingCryptoTransaction::SomethingNew(SomethingNewContent {
+                recipient: "abc".to_string(),
+                amount: 1,
+            }),
+        ));
+        assert!(matches!(
+            &transaction,
+            CryptoTransaction::Pending(PendingCryptoTransaction::Unsupported(kind)) if kind == "SomethingNew"
+        ));
+        assert_eq!(transaction.ledger_canister_id(), None);
+
+        assert!(matches!(
+            decode::<P2PSwapStatus>(backend::P2PSwapStatus::SomethingNew(SomethingNewContent {
+                recipient: "abc".to_string(),
+                amount: 1,
+            })),
+            P2PSwapStatus::Unsupported(kind) if kind == "SomethingNew"
+        ));
+        assert!(matches!(
+            decode::<P2PSwapStatus>(backend::P2PSwapStatus::SomethingNewWithoutData),
+            P2PSwapStatus::Unsupported(kind) if kind == "SomethingNewWithoutData"
+        ));
+    }
+
     #[test]
     fn sender_context_with_a_bridged_author() {
         let context: SenderContext = decode(backend::SenderContext::Bot(BotMessageContext {
@@ -282,10 +328,10 @@ mod tests {
     fn sdk_values_round_trip() {
         let content: MessageContent = decode(MessageContent::Unsupported(
             crate::types::UnsupportedContent {
-                kind: "Crypto".to_string(),
+                kind: "SomethingNew".to_string(),
             },
         ));
-        assert!(matches!(content, MessageContent::Unsupported(u) if u.kind == "Crypto"));
+        assert!(matches!(content, MessageContent::Unsupported(u) if u.kind == "SomethingNew"));
 
         let event: ChatEvent = decode(ChatEvent::Unsupported("SomethingNew".to_string()));
         assert!(matches!(event, ChatEvent::Unsupported(tag) if tag == "SomethingNew"));
