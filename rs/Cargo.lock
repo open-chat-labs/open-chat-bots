@@ -2694,6 +2694,7 @@ dependencies = [
  "aws-sdk-dynamodb",
  "axum",
  "base64 0.22.1",
+ "candid",
  "ic-agent",
  "oc_bots_sdk",
  "oc_bots_sdk_offchain",

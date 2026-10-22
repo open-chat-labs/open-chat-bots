@@ -2,6 +2,7 @@ use crate::model::Pairing;
 use crate::platform::PermanentFailure;
 use crate::util::{bridged_avatar_url, bridged_name, user_avatar_url};
 use anyhow::{Result, anyhow, bail};
+use candid::{Decode, Encode};
 use ic_agent::identity::{BasicIdentity, Secp256k1Identity};
 use ic_agent::{Agent, Identity};
 use oc_bots_sdk::mainnet::{mainnet_oc_public_key, mainnet_user_index_canister_id};
@@ -94,6 +95,9 @@ pub struct OpenChat {
     public_key: String,
     user_index: CanisterId,
     authors: Mutex<HashMap<UserId, (Option<Author>, TimestampMillis)>>,
+    // For calls to ledgers, which take candid rather than msgpack
+    agent: Agent,
+    token_decimals: Mutex<HashMap<CanisterId, u8>>,
 }
 
 impl OpenChat {
@@ -121,7 +125,7 @@ impl OpenChat {
 
         // Messages are relayed with whatever the other platform showed, so nothing is looked up
         let runtime = AgentRuntime::new_with_og_preview_config(
-            agent,
+            agent.clone(),
             tokio::runtime::Runtime::new()?,
             OgPreviewConfig {
                 auto_fetch: false,
@@ -135,6 +139,8 @@ impl OpenChat {
             public_key: config.public_key,
             user_index: config.user_index,
             authors: Mutex::default(),
+            agent,
+            token_decimals: Mutex::default(),
         })
     }
 
@@ -283,6 +289,35 @@ impl OpenChat {
             .unwrap()
             .insert(user_id, (author.clone(), now));
         author
+    }
+
+    /// How many decimal places a token's amounts have, from its ledger, or None if it can't be
+    /// looked up
+    pub async fn token_decimals(&self, ledger: CanisterId) -> Option<u8> {
+        if let Some(decimals) = self.token_decimals.lock().unwrap().get(&ledger) {
+            return Some(*decimals);
+        }
+
+        let response = self
+            .agent
+            .query(&ledger.into(), "icrc1_decimals")
+            .with_arg(Encode!().unwrap())
+            .call()
+            .await;
+        match response
+            .map_err(anyhow::Error::from)
+            .and_then(|bytes| Ok(Decode!(&bytes, u8)?))
+        {
+            Ok(decimals) => {
+                self.token_decimals.lock().unwrap().insert(ledger, decimals);
+                Some(decimals)
+            }
+            Err(error) => {
+                // Not cached, so it's tried again next time
+                warn!(%ledger, ?error, "Failed to look up a token's decimals");
+                None
+            }
+        }
     }
 
     /// The profile of an account another bridge bot relays messages from, eg. Telegram's

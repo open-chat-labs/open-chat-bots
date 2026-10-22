@@ -12,6 +12,7 @@ async-trait = { workspace = true }
 aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-dynamodb = "1"
 axum = { workspace = true }
+candid = { workspace = true }
 ic-agent = { workspace = true }
 oc_bots_sdk = { path = "../../../sdk", features = ["bridge"] }
 oc_bots_sdk_offchain = { path = "../../sdk" }

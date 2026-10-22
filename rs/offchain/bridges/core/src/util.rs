@@ -1,6 +1,7 @@
 use ic_agent::export::Principal;
 use oc_bots_sdk::types::{
-    BlobReference, BridgedUser, CanisterId, MessageContent, MessageId, UserId,
+    BlobReference, BridgedUser, CanisterId, CryptoTransaction, MessageContent, MessageId, Proposal,
+    UserId,
 };
 use sha2::{Digest, Sha256};
 
@@ -73,9 +74,32 @@ pub fn bridged_name(user: &BridgedUser) -> String {
     }
 }
 
+/// The ledger of the tokens a message transfers, whose decimals `message_text` needs to show the
+/// amount
+pub fn transfer_ledger(content: &MessageContent) -> Option<CanisterId> {
+    match content {
+        MessageContent::Crypto(c) => c.transfer.ledger_canister_id(),
+        MessageContent::PrizeWinner(w) => w.transaction.ledger_canister_id(),
+        _ => None,
+    }
+}
+
 /// An OpenChat message's content as plain text to post on another platform, with a link to any
 /// media, or None if it was deleted. Mentions are left as OpenChat writes them, `@UserId(...)`.
-pub fn message_text(content: &MessageContent) -> Option<String> {
+/// `token_decimals` are those of the token at `transfer_ledger`, without which a transfer's amount
+/// isn't shown.
+pub fn message_text(content: &MessageContent, token_decimals: Option<u8>) -> Option<String> {
+    let with_caption = |text: String, caption: &Option<String>| match caption {
+        Some(caption) if !caption.is_empty() => format!("{text}\n\n{caption}"),
+        _ => text,
+    };
+    let tokens = |units: Option<u128>, symbol: Option<&str>| {
+        let symbol = symbol.unwrap_or("tokens");
+        match (units, token_decimals) {
+            (Some(units), Some(decimals)) => format!("{} {symbol}", format_tokens(units, decimals)),
+            _ => symbol.to_string(),
+        }
+    };
     let with_link = |caption: &Option<String>, label: &str, blob: Option<&BlobReference>| {
         let link = blob.map_or(format!("[{label}]"), |b| {
             format!("[{label}]({})", blob_url(b))
@@ -106,10 +130,69 @@ pub fn message_text(content: &MessageContent) -> Option<String> {
             }
             text
         }
+        MessageContent::Crypto(c) => {
+            let verb = match c.transfer {
+                CryptoTransaction::Pending(_) => "Sending",
+                CryptoTransaction::Completed(_) => "Sent",
+                CryptoTransaction::Failed(_) => "Failed to send",
+            };
+            let tokens = tokens(c.transfer.units(), c.transfer.token_symbol());
+            let text = format!("[Crypto] {verb} {tokens} to @UserId({})", c.recipient);
+            with_caption(text, &c.caption)
+        }
+        // The prizes' amounts aren't shown until they're claimed. Every prize is counted, claimed
+        // or not, so the text doesn't change as they're claimed.
+        MessageContent::Prize(p) => {
+            let count = p.prizes_remaining + p.prizes_pending + p.winner_count;
+            let plural = if count == 1 { "" } else { "s" };
+            let text = format!(
+                "[Prize] {count} {} prize{plural} to claim in OpenChat",
+                p.token_symbol
+            );
+            with_caption(text, &p.caption)
+        }
+        MessageContent::PrizeWinner(w) => {
+            let tokens = tokens(w.transaction.units(), w.transaction.token_symbol());
+            format!("[Prize] @UserId({}) won {tokens}", w.winner)
+        }
+        MessageContent::P2PSwap(s) => {
+            let text = format!(
+                "[P2P swap] {} {} for {} {}",
+                format_tokens(s.token0_amount, s.token0.decimals),
+                s.token0.symbol,
+                format_tokens(s.token1_amount, s.token1.decimals),
+                s.token1.symbol
+            );
+            with_caption(text, &s.caption)
+        }
+        MessageContent::GovernanceProposal(p) => match &p.proposal {
+            Proposal::NNS(p) => format!("[Proposal] {}", p.title),
+            Proposal::SNS(p) => format!("[Proposal] {}", p.title),
+        },
+        MessageContent::VideoCall(c) if c.audio_only => "[Audio call]".to_string(),
+        MessageContent::VideoCall(_) => "[Video call]".to_string(),
+        MessageContent::MessageReminderCreated(r) => {
+            with_caption("[Reminder]".to_string(), &r.notes)
+        }
+        MessageContent::MessageReminder(r) => with_caption("[Reminder]".to_string(), &r.notes),
+        MessageContent::ReportedMessage(_) => "[Reported message]".to_string(),
+        MessageContent::ModerationReport(_) => "[Moderation report]".to_string(),
+        MessageContent::Encrypted(_) => "[Encrypted message]".to_string(),
         MessageContent::Custom(c) => format!("[{}]", c.kind),
         MessageContent::Unsupported(u) => format!("[{}]", u.kind),
         MessageContent::Deleted(_) => return None,
     })
+}
+
+/// An amount of a token, given in its smallest units, to at least 2 decimal places, eg. 1.00 or
+/// 0.125
+pub fn format_tokens(units: u128, decimals: u8) -> String {
+    let Some(scale) = 10u128.checked_pow(decimals.into()) else {
+        return units.to_string();
+    };
+    let fraction = format!("{:0width$}", units % scale, width = decimals.into());
+    let fraction = fraction.trim_end_matches('0');
+    format!("{}.{fraction:0<2}", units / scale)
 }
 
 /// OpenChat notifies every member of a chat of `@everyone` in a bot's message, so text relayed from
@@ -141,7 +224,11 @@ pub fn mentioned_user_ids(text: &str) -> Vec<UserId> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use oc_bots_sdk::types::{DeletedBy, TextContent};
+    use oc_bots_sdk::types::icrc1::{Account, CryptoAccount};
+    use oc_bots_sdk::types::{
+        CompletedCryptoTransaction, CryptoContent, DeletedBy, P2PSwapContent, P2PSwapStatus,
+        PrizeContent, TextContent, TokenInfo, icrc1,
+    };
 
     #[test]
     fn inbound_message_ids_are_stable_and_distinct() {
@@ -182,17 +269,130 @@ mod tests {
     #[test]
     fn deleted_content_has_no_text() {
         assert_eq!(
-            message_text(&MessageContent::Text(TextContent {
-                text: "hello".to_string()
-            })),
+            message_text(
+                &MessageContent::Text(TextContent {
+                    text: "hello".to_string()
+                }),
+                None
+            ),
             Some("hello".to_string())
         );
         assert_eq!(
-            message_text(&MessageContent::Deleted(DeletedBy {
-                deleted_by: Principal::anonymous().into(),
-                timestamp: 1,
-            })),
+            message_text(
+                &MessageContent::Deleted(DeletedBy {
+                    deleted_by: Principal::anonymous().into(),
+                    timestamp: 1,
+                }),
+                None
+            ),
             None
         );
+    }
+
+    #[test]
+    fn a_transfer_shows_its_amount_and_recipient() {
+        let ledger: CanisterId = Principal::from_slice(&[1]).into();
+        let recipient: UserId = Principal::from_slice(&[2]).into();
+        let content = MessageContent::Crypto(CryptoContent {
+            recipient,
+            transfer: CryptoTransaction::Completed(CompletedCryptoTransaction::ICRC1(
+                icrc1::CompletedCryptoTransaction {
+                    ledger,
+                    token_symbol: "CHAT".to_string(),
+                    amount: 100_000_000,
+                    from: CryptoAccount::Account(Account {
+                        owner: Principal::from_slice(&[3]),
+                        subaccount: None,
+                    }),
+                    to: CryptoAccount::Account(Account {
+                        owner: recipient.into(),
+                        subaccount: None,
+                    }),
+                    fee: 100_000,
+                    memo: None,
+                    created: 1,
+                    block_index: 1,
+                },
+            )),
+            caption: Some("BlahBlah".to_string()),
+        });
+
+        assert_eq!(transfer_ledger(&content), Some(ledger));
+        assert_eq!(
+            message_text(&content, Some(8)).unwrap(),
+            format!("[Crypto] Sent 1.00 CHAT to @UserId({recipient})\n\nBlahBlah")
+        );
+        // The amount is left out if the token's decimals couldn't be looked up
+        assert_eq!(
+            message_text(&content, None).unwrap(),
+            format!("[Crypto] Sent CHAT to @UserId({recipient})\n\nBlahBlah")
+        );
+    }
+
+    #[test]
+    fn a_prize_counts_every_prize() {
+        let prize = |prizes_remaining, prizes_pending, winner_count| {
+            MessageContent::Prize(PrizeContent {
+                prizes_remaining,
+                prizes_pending,
+                winner_count,
+                user_is_winner: false,
+                token_symbol: "CHAT".to_string(),
+                ledger: Principal::from_slice(&[1]).into(),
+                end_date: 1,
+                caption: None,
+                diamond_only: false,
+                lifetime_diamond_only: false,
+                unique_person_only: false,
+                streak_only: 0,
+                requires_captcha: false,
+                min_chit_earned: 0,
+            })
+        };
+
+        assert_eq!(
+            message_text(&prize(3, 1, 1), None).unwrap(),
+            "[Prize] 5 CHAT prizes to claim in OpenChat"
+        );
+        assert_eq!(
+            message_text(&prize(1, 0, 0), None).unwrap(),
+            "[Prize] 1 CHAT prize to claim in OpenChat"
+        );
+    }
+
+    #[test]
+    fn a_swap_shows_both_tokens() {
+        let token = |symbol: &str, decimals| TokenInfo {
+            symbol: symbol.to_string(),
+            ledger: Principal::from_slice(&[1]).into(),
+            decimals,
+            fee: 0,
+        };
+        let content = MessageContent::P2PSwap(P2PSwapContent {
+            swap_id: 1,
+            token0: token("CHAT", 8),
+            token0_amount: 1_050_000_000,
+            token1: token("ckETH", 18),
+            token1_amount: 1_000_000_000_000_000,
+            expires_at: 1,
+            caption: Some("Anyone?".to_string()),
+            token0_txn_in: 1,
+            status: P2PSwapStatus::Open,
+        });
+
+        assert_eq!(transfer_ledger(&content), None);
+        assert_eq!(
+            message_text(&content, None).unwrap(),
+            "[P2P swap] 10.50 CHAT for 0.001 ckETH\n\nAnyone?"
+        );
+    }
+
+    #[test]
+    fn token_amounts_have_at_least_2_decimal_places() {
+        assert_eq!(format_tokens(100_000_000, 8), "1.00");
+        assert_eq!(format_tokens(12_345_678, 8), "0.12345678");
+        assert_eq!(format_tokens(150_000_000, 8), "1.50");
+        assert_eq!(format_tokens(7, 0), "7.00");
+        assert_eq!(format_tokens(1, 18), "0.000000000000000001");
     }
 }
