@@ -111,6 +111,18 @@ the Discord bridge, are in [`../core`](../core).
      cargo lambda deploy oc_telegram_bridge --enable-function-url --timeout 60 --env-var "OC_IDENTITY_PEM=$(dfx identity export telegram_bot)" --env-var TELEGRAM_TOKEN=<token> --env-var DYNAMODB_TABLE=<table>
      ```
 
+   **Later deploys** are done by the *Deploy Telegram bridge* GitHub Actions workflow
+   ([`deploy-telegram-bridge.yaml`](../../../../.github/workflows/deploy-telegram-bridge.yaml)),
+   run by hand from `main`:
+   - It builds the function and replaces its code, leaving its settings and environment variables
+     as they are.
+   - It deploys with the IAM role `GitHubActions-DeployTelegramBridge`, which GitHub can assume
+     only from `main`:
+     - **Trust:** the OIDC provider `token.actions.githubusercontent.com`, with `aud`
+       `sts.amazonaws.com` and `sub` `repo:open-chat-labs/open-chat-bots:ref:refs/heads/main`.
+     - **Permissions:** only `lambda:UpdateFunctionCode`, `GetFunction`, `GetFunctionConfiguration`
+       and `GetFunctionUrlConfig`, on this function.
+
 6. **Register the webhook and the bot's commands** with Telegram, once. Run this with the same
    environment variables, eg. locally:
 

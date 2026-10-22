@@ -1,0 +1,71 @@
+# Deploys the Telegram bridge's code to its Lambda function. Only the code: the function's settings,
+# including the bot's identity and token, stay as they are in Lambda.
+on:
+  workflow_dispatch:
+  # Builds it, without deploying, when this workflow, the toolchain or the dependencies change
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/deploy-telegram-bridge.yaml
+      - rs/rust-toolchain.toml
+      - rs/Cargo.lock
+
+name: Deploy Telegram bridge
+
+# Deploys queue behind each other, apart from a PR's builds, which a newer push to the PR cancels
+concurrency:
+  group: deploy-telegram-bridge-${{ github.event_name == 'workflow_dispatch' && 'deploy' || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FUNCTION_NAME: oc_telegram_bridge
+
+jobs:
+  deploy:
+    name: Deploy Telegram bridge
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      # The deploy role can only be assumed from main, so this fails early with a clearer error
+      - name: Ensure on main
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        run: |
+          echo "Deploy from main, not ${GITHUB_REF}"
+          exit 1
+      - uses: actions/checkout@v4
+      - uses: ./.github/workflows/setup-rust
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      # From PyPI, which brings zig, so the binary links against the glibc Lambda has. Zig is pinned
+      # too, as its releases can break cargo-lambda.
+      - name: Install cargo-lambda
+        run: pip install cargo-lambda==1.9.2 ziglang==0.17.0
+      # Without the RUSTFLAGS setup-rust sets, which would replace cargo-lambda's tuning for Lambda's
+      # CPUs and fail the deploy on any warning
+      - name: Build
+        working-directory: rs
+        run: env -u RUSTFLAGS cargo lambda build --release --arm64 --output-format zip --locked -p oc_telegram_bridge
+      - name: Configure AWS credentials
+        if: github.event_name == 'workflow_dispatch'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::253040722768:role/GitHubActions-DeployTelegramBridge
+          aws-region: us-east-1
+      - name: Deploy
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          aws lambda update-function-code --function-name "$FUNCTION_NAME" \
+            --zip-file fileb://rs/target/lambda/oc_telegram_bridge/bootstrap.zip \
+            --query '{lastModified: LastModified, sha256: CodeSha256}'
+          aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+      # A cold start of the new code which fails, eg. on its config, is an error here
+      - name: Check it's up
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          url=$(aws lambda get-function-url-config --function-name "$FUNCTION_NAME" --query FunctionUrl --output text)
+          curl -fsS --retry 3 --retry-all-errors "${url}bot_definition" > /dev/null
+          echo "Deployed ${GITHUB_SHA} and it's serving ${url}"
