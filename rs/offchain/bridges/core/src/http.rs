@@ -60,7 +60,9 @@ pub fn definition<P: Platform>() -> BotDefinition {
                     placeholder: Some("ABCD-1234".to_string()),
                     required: false,
                     param_type: BotCommandParamType::StringParam(StringParam {
-                        min_length: 8,
+                        // OpenChat's clients send an omitted string as "", which a minimum length
+                        // would refuse, so /bridge couldn't be run without a code
+                        min_length: 0,
                         max_length: 12,
                         choices: Vec::new(),
                         multi_line: false,
@@ -220,7 +222,12 @@ mod tests {
     use base64::engine::general_purpose::URL_SAFE_NO_PAD;
     use ic_agent::export::Principal;
     use ic_agent::identity::AnonymousIdentity;
-    use oc_bots_sdk::types::{BotRegisteredEvent, BridgePlatform, CanisterId};
+    use oc_bots_sdk::api::command::{Command, CommandArg, CommandArgValue};
+    use oc_bots_sdk::jwt::Claims;
+    use oc_bots_sdk::types::{
+        BotActionByCommandClaims, BotActionChatDetails, BotCommandScope, BotPermissions,
+        BotRegisteredEvent, BridgePlatform, CanisterId,
+    };
     use p256::ecdsa::signature::Signer;
     use p256::ecdsa::{Signature, SigningKey};
     use p256::pkcs8::{EncodePublicKey, LineEnding};
@@ -381,7 +388,12 @@ mod tests {
                 .collect();
             assert_eq!(commands, ["bridge", "unbridge"]);
             // So /bridge without a code can say how to get one
-            assert!(!definition.commands[0].params[0].required);
+            let code = &definition.commands[0].params[0];
+            assert!(!code.required);
+            let BotCommandParamType::StringParam(param) = &code.param_type else {
+                panic!("The code isn't a string");
+            };
+            assert_eq!(param.min_length, 0);
         }
     }
 
@@ -409,6 +421,66 @@ mod tests {
             .unwrap();
         assert_eq!(moved.platform_chat, "-100456");
         assert!(!bridge.move_pairing("-123", "-100456").await.unwrap());
+    }
+
+    // A command's token as OpenChat signs it
+    fn command_jwt(args: Vec<CommandArg>) -> String {
+        let claims = Claims::new(
+            u64::MAX / 2,
+            "BotActionByCommand".to_string(),
+            BotActionByCommandClaims {
+                bot_api_gateway: Principal::from_slice(&[5]).into(),
+                bot: Principal::from_slice(&[6]).into(),
+                scope: BotCommandScope::Chat(BotActionChatDetails {
+                    chat: oc_bots_sdk::types::Chat::Group(Principal::from_slice(&[3]).into()),
+                    thread: None,
+                    message_id: 1.into(),
+                    user_message_id: None,
+                }),
+                granted_permissions: BotPermissions::text_only(),
+                command: Command {
+                    name: "bridge".to_string(),
+                    args,
+                    initiator: Principal::from_slice(&[7]).into(),
+                    meta: None,
+                },
+            },
+        );
+        let header = URL_SAFE_NO_PAD.encode(r#"{"alg":"ES256","typ":"JWT"}"#);
+        let body = URL_SAFE_NO_PAD.encode(serde_json::to_vec(&claims).unwrap());
+        let signature: Signature = signing_key().sign(format!("{header}.{body}").as_bytes());
+        format!(
+            "{header}.{body}.{}",
+            URL_SAFE_NO_PAD.encode(signature.to_bytes())
+        )
+    }
+
+    // OpenChat's clients send an omitted code as ""
+    #[tokio::test]
+    async fn bridge_without_a_code_says_how_to_get_one() {
+        let bridge = bridge().await;
+        for args in [
+            Vec::new(),
+            vec![CommandArg {
+                name: "code".to_string(),
+                value: CommandArgValue::String(String::new()),
+            }],
+        ] {
+            let response = router(bridge.clone())
+                .oneshot(
+                    Request::post("/execute_command")
+                        .header("x-oc-jwt", command_jwt(args))
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::OK);
+            let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
+            assert!(String::from_utf8_lossy(&body).contains("Run /bridge in Discord"));
+        }
     }
 
     #[tokio::test]

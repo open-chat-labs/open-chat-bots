@@ -141,9 +141,9 @@ fn bridge_instructions(bot: &str) -> String {
     format!(
         "To bridge this chat with a Telegram group:\n\
         1. Add @{bot} to the group.\n\
-        2. Start a private chat with it, at t.me/{bot}, so it can send you a code.\n\
-        3. As one of the group's admins, run /bridge in the group. The bot sends you the code \
-        privately.\n\
+        2. Start a private chat with it, at https://t.me/{bot}, so it can send you a code.\n\
+        3. As one of the group's admins, and not anonymously, run /bridge in the group. The bot \
+        sends you the code privately.\n\
         4. Run `/bridge <code>` here within 15 minutes."
     )
 }
@@ -151,15 +151,15 @@ fn bridge_instructions(bot: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use oc_bridge_core::Author;
 
     #[test]
     fn the_instructions_name_the_bot() {
         let instructions = bridge_instructions("OpenChat_Bot");
         assert!(instructions.contains("Add @OpenChat_Bot to the group"));
-        assert!(instructions.contains("t.me/OpenChat_Bot"));
+        assert!(instructions.contains("https://t.me/OpenChat_Bot"));
         assert!(instructions.contains("`/bridge <code>`"));
     }
-    use oc_bridge_core::Author;
 
     fn message(name: &str, text: &str) -> OutboundMessage {
         OutboundMessage {

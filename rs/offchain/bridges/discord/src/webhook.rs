@@ -238,18 +238,16 @@ fn bot_permissions() -> Permissions {
 // Discord only lets someone give a bot the permissions they have, and /bridge there is limited to
 // those who can manage the channel and its webhooks
 fn bridge_instructions(client_id: Option<&str>) -> String {
-    let add =
-        "Add the bot to the Discord server. You'll need Manage Server and Manage Webhooks there";
     let add = match client_id {
         Some(client_id) => format!(
-            "{add}: https://discord.com/oauth2/authorize?client_id={client_id}&scope=bot+applications.commands&permissions={}",
+            "[Add the bot to the Discord server](https://discord.com/oauth2/authorize?client_id={client_id}&scope=bot+applications.commands&permissions={})",
             bot_permissions().bits()
         ),
-        None => format!("{add}."),
+        None => "Add the bot to the Discord server".to_string(),
     };
     format!(
         "To bridge this chat with a Discord channel:\n\
-        1. {add}\n\
+        1. {add}. You'll need Manage Server and Manage Webhooks there.\n\
         2. Run /bridge in the channel. You'll need Manage Channels and Manage Webhooks. The bot \
         replies with a code.\n\
         3. Run `/bridge <code>` here within 15 minutes."
@@ -270,7 +268,7 @@ mod tests {
             "https://discord.com/oauth2/authorize?client_id=123&scope=bot+applications.commands&permissions=536939520"
         ));
         assert!(instructions.contains("`/bridge <code>`"));
-        assert!(bridge_instructions(None).contains("Manage Webhooks there.\n2."));
+        assert!(bridge_instructions(None).contains("1. Add the bot to the Discord server. "));
     }
 
     fn message(name: &str) -> OutboundMessage {
