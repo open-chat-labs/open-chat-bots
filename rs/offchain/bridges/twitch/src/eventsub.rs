@@ -10,6 +10,7 @@ use futures_util::StreamExt;
 use serde::Deserialize;
 use serde_json::Value;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::sync::Semaphore;
@@ -24,9 +25,14 @@ const EVENTSUB_URL: &str = "wss://eventsub.wss.twitch.tv/ws?keepalive_timeout_se
 const WELCOME_TIMEOUT: Duration = Duration::from_secs(10);
 // Beyond the keepalive Twitch promises, before the connection's taken to be lost
 const KEEPALIVE_MARGIN: Duration = Duration::from_secs(5);
-// How many events are relayed at once. Relaying one into OpenChat takes a few seconds, and a busy
-// chat sends more than that.
-const MAX_CONCURRENT_EVENTS: usize = 32;
+// How many chat messages are relayed at once. Relaying one into OpenChat takes a few seconds, and a
+// busy chat sends more than that.
+const MAX_CONCURRENT_MESSAGES: usize = 32;
+// A chat message which waited longer than this to be relayed is dropped, as the chat has moved on.
+// Past this many waiting, chats are sending faster than the bridge can relay, so new ones are
+// dropped.
+const MAX_MESSAGE_DELAY: Duration = Duration::from_secs(60);
+const MAX_WAITING_MESSAGES: usize = 2_000;
 // A connection which lasted this long was healthy, so the next one is tried at once
 const HEALTHY_CONNECTION: Duration = Duration::from_secs(60);
 const MAX_RECONNECT_DELAY: Duration = Duration::from_secs(60);
@@ -62,7 +68,9 @@ pub async fn run(api: Arc<TwitchApi>, conduit_id: String, handler: Arc<ChatHandl
         api,
         conduit_id,
         handler,
-        semaphore: Arc::new(Semaphore::new(MAX_CONCURRENT_EVENTS)),
+        semaphore: Arc::new(Semaphore::new(MAX_CONCURRENT_MESSAGES)),
+        waiting: Arc::default(),
+        dropped: AtomicUsize::default(),
     };
     let mut delay = Duration::ZERO;
     loop {
@@ -84,6 +92,9 @@ struct Receiver {
     conduit_id: String,
     handler: Arc<ChatHandler>,
     semaphore: Arc<Semaphore>,
+    // Chat messages waiting their turn to be relayed
+    waiting: Arc<AtomicUsize>,
+    dropped: AtomicUsize,
 }
 
 struct Session {
@@ -164,17 +175,38 @@ impl Receiver {
     }
 
     // Relayed alongside others, so a busy chat doesn't hold up every other. Several messages sent
-    // within a moment of each other can arrive in OpenChat out of order.
+    // within a moment of each other can arrive in OpenChat out of order. Deletions and revocations
+    // don't wait behind messages.
     fn dispatch(&self, frame: Frame) {
         let Some(subscription) = frame.payload.subscription else {
             return;
         };
         let event = frame.payload.event;
         let revoked = frame.metadata.message_type == "revocation";
+        let is_message = !revoked && subscription.kind == "channel.chat.message";
+        if is_message && self.waiting.load(Ordering::Relaxed) >= MAX_WAITING_MESSAGES {
+            self.drop_message("too many are waiting to be relayed");
+            return;
+        }
+
         let handler = self.handler.clone();
-        let semaphore = self.semaphore.clone();
+        let permit = is_message.then(|| {
+            self.waiting.fetch_add(1, Ordering::Relaxed);
+            (self.semaphore.clone(), self.waiting.clone(), Instant::now())
+        });
         tokio::spawn(async move {
-            let _permit = semaphore.acquire_owned().await;
+            let _permit = match permit {
+                Some((semaphore, waiting, received)) => {
+                    let permit = semaphore.acquire_owned().await;
+                    waiting.fetch_sub(1, Ordering::Relaxed);
+                    if received.elapsed() > MAX_MESSAGE_DELAY {
+                        warn!("Dropped a Twitch message, as it waited too long to be relayed");
+                        return;
+                    }
+                    Some(permit)
+                }
+                None => None,
+            };
             let result = match (revoked, event) {
                 (true, _) => {
                     handler
@@ -196,6 +228,14 @@ impl Receiver {
                 );
             }
         });
+    }
+
+    // Logged now and then, as a flood of them would flood the logs too
+    fn drop_message(&self, reason: &str) {
+        let dropped = self.dropped.fetch_add(1, Ordering::Relaxed) + 1;
+        if dropped % 100 == 1 {
+            warn!(dropped, reason, "Dropped Twitch messages");
+        }
     }
 }
 

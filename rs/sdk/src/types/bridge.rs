@@ -1,5 +1,6 @@
 use super::{TimestampMillis, UserId};
-use serde::{Deserialize, Serialize};
+use crate::utils::tolerant_enum;
+use serde::{Deserialize, Deserializer, Serialize};
 
 /// An account on another platform, eg. Discord, whose messages a bridge bot relays into OpenChat.
 /// A relayed message holds only this, in its `BotMessageContext`. The account's profile, and the
@@ -24,6 +25,17 @@ pub enum BridgePlatform {
 }
 
 impl BridgedUserId {
+    /// Decodes a message's `bridged_from`, leaving out an account on a platform this SDK doesn't
+    /// know yet, which would otherwise stop the whole notification decoding
+    pub(crate) fn deserialize_known<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Option<BridgedUserId>, D::Error> {
+        Ok(
+            Option::<AnyBridgedUserId>::deserialize(deserializer)?
+                .and_then(AnyBridgedUserId::known),
+        )
+    }
+
     pub fn platform(&self) -> BridgePlatform {
         match self {
             BridgedUserId::Discord(_) => BridgePlatform::Discord,
@@ -32,6 +44,39 @@ impl BridgedUserId {
         }
     }
 }
+
+// A `BridgedUserId`, or one on a platform this SDK doesn't know
+enum AnyBridgedUserId {
+    Discord(u64),
+    Telegram(i64),
+    Twitch(u64),
+    Unknown,
+}
+
+tolerant_enum!(
+    AnyBridgedUserId,
+    variants: [Discord, Telegram, Twitch],
+    units: [Unknown],
+    unknown: |_tag| AnyBridgedUserId::Unknown,
+);
+
+impl AnyBridgedUserId {
+    fn known(self) -> Option<BridgedUserId> {
+        match self {
+            AnyBridgedUserId::Discord(id) => Some(BridgedUserId::Discord(id)),
+            AnyBridgedUserId::Telegram(id) => Some(BridgedUserId::Telegram(id)),
+            AnyBridgedUserId::Twitch(id) => Some(BridgedUserId::Twitch(id)),
+            AnyBridgedUserId::Unknown => None,
+        }
+    }
+}
+
+// Fails to compile if a platform is missing from `AnyBridgedUserId`, which would decode as unknown
+const _: fn(BridgedUserId) -> AnyBridgedUserId = |id| match id {
+    BridgedUserId::Discord(id) => AnyBridgedUserId::Discord(id),
+    BridgedUserId::Telegram(id) => AnyBridgedUserId::Telegram(id),
+    BridgedUserId::Twitch(id) => AnyBridgedUserId::Twitch(id),
+};
 
 /// The profile of an account on another platform. A bridge bot sends its author's with each message
 /// it relays, and OpenChat's UserIndex keeps the latest, which `bridged_users` returns.

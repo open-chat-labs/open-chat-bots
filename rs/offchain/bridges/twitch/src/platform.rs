@@ -1,4 +1,4 @@
-use crate::api::{TwitchApi, helix_status};
+use crate::api::{SentMessage, TwitchApi, helix_status};
 use crate::profiles::Profiles;
 use crate::rate_limit::RateLimiter;
 use anyhow::{Result, anyhow};
@@ -34,10 +34,17 @@ pub struct Twitch {
     pub public_url: String,
     /// The conduit the bridge's subscriptions send their events through
     pub conduit_id: String,
-    pub limiter: RateLimiter,
+    pub sender: Arc<Sender>,
     pub profiles: Profiles,
     // The channels whose subscriptions the bridge has made sure of since it started
     subscribed: Mutex<HashSet<String>>,
+}
+
+/// Posts in chats as the bot, paced to Twitch's rate limits
+pub struct Sender {
+    api: Arc<TwitchApi>,
+    bot_id: String,
+    pub limiter: RateLimiter,
 }
 
 #[async_trait]
@@ -72,12 +79,13 @@ impl Platform for Twitch {
         message: &OutboundMessage,
     ) -> Result<PlatformMessageId> {
         self.ensure_subscribed(&pairing.platform_chat).await;
-        self.say(
-            &pairing.platform_chat,
-            &chat_text(message),
-            message.reply_to.as_deref(),
-        )
-        .await
+        self.sender
+            .say(
+                &pairing.platform_chat,
+                &chat_text(message),
+                message.reply_to.as_deref(),
+            )
+            .await
     }
 
     // Twitch's messages can't be edited
@@ -104,23 +112,17 @@ impl Platform for Twitch {
             "This chat is now bridged with OpenChat, so messages sent in either appear in both: {}",
             oc_chat_url(&pairing.oc_chat)
         );
-        self.say(&pairing.platform_chat, &text, None).await?;
+        self.announce(&pairing.platform_chat, text);
         Ok(())
     }
 
+    // The bot can still post once it has left the chat. It may not be able to post there any more,
+    // eg. as the pairing's being removed for that reason, but it still leaves.
     async fn unpaired(&self, pairing: &Pairing) -> Result<()> {
-        // Said before the bot leaves the chat. It may not be able to post there any more, eg. as the
-        // pairing's being removed for that reason, but it still leaves.
-        if let Err(error) = self
-            .say(
-                &pairing.platform_chat,
-                "This chat is no longer bridged with OpenChat.",
-                None,
-            )
-            .await
-        {
-            warn!(%error, "Failed to say the chat is no longer bridged");
-        }
+        self.announce(
+            &pairing.platform_chat,
+            "This chat is no longer bridged with OpenChat.".to_string(),
+        );
         self.unsubscribe(&pairing.platform_chat).await
     }
 }
@@ -135,61 +137,30 @@ impl Twitch {
     ) -> Self {
         Twitch {
             profiles: Profiles::new(api.clone()),
+            sender: Arc::new(Sender {
+                api: api.clone(),
+                bot_id: bot_id.clone(),
+                limiter: RateLimiter::default(),
+            }),
             api,
             bot_id,
             bot_login,
             public_url,
             conduit_id,
-            limiter: RateLimiter::default(),
             subscribed: Mutex::default(),
         }
     }
 
-    /// Posts in the channel's chat as the bot, once Twitch's rate limits allow, returning the
-    /// message's id. Twitch refusing it is a `PermanentFailure`.
-    pub async fn say(
-        &self,
-        channel: &str,
-        text: &str,
-        reply_to: Option<&str>,
-    ) -> Result<PlatformMessageId> {
-        self.limiter.wait(channel).await?;
-        let sent = match self
-            .api
-            .send_chat_message(channel, &self.bot_id, text, reply_to)
-            .await
-        {
-            // The message replied to is gone, so it's sent on its own
-            Err(error) if reply_to.is_some() && helix_status(&error) == Some(400) => {
-                self.limiter.wait(channel).await?;
-                self.api
-                    .send_chat_message(channel, &self.bot_id, text, None)
-                    .await
+    // Posted in the background, as the rate limits may hold it a while, and the command which
+    // paired or unpaired the chat would otherwise wait for it
+    fn announce(&self, channel: &str, text: String) {
+        let sender = self.sender.clone();
+        let channel = channel.to_string();
+        tokio::spawn(async move {
+            if let Err(error) = sender.say(&channel, &text, None).await {
+                warn!(%error, channel, "Failed to tell a Twitch chat whether it's bridged");
             }
-            result => result,
-        };
-
-        match sent {
-            Ok(sent) if sent.is_sent => Ok(sent.message_id),
-            // eg. AutoMod held it, or the chat is in followers-only mode
-            Ok(sent) => Err(PermanentFailure::Rejected(format!(
-                "Twitch dropped the message: {}",
-                sent.drop_reason
-                    .map_or("no reason given".to_string(), |r| format!(
-                        "{} ({})",
-                        r.message, r.code
-                    ))
-            ))
-            .into()),
-            Err(error) => Err(match helix_status(&error) {
-                // The bot may no longer post there, eg. as it was banned, or the broadcaster
-                // revoked the app
-                Some(403) => PermanentFailure::ChatGone.into(),
-                Some(400 | 422) => PermanentFailure::Rejected(error.to_string()).into(),
-                // Worth retrying, eg. rate limited, or Twitch was unavailable
-                _ => anyhow!(error),
-            }),
-        }
+        });
     }
 
     /// Subscribes the bridge's conduit to the channel's chat. A subscription which exists already
@@ -218,6 +189,21 @@ impl Twitch {
         Ok(())
     }
 
+    /// Whether the bot's own authorization of the app still holds. Every subscription relies on
+    /// it, as well as on the broadcaster's. Subscribing to its own chat needs nothing else.
+    pub async fn bot_is_authorized(&self) -> Result<bool> {
+        let condition = json!({ "broadcaster_user_id": self.bot_id, "user_id": self.bot_id });
+        match self
+            .api
+            .subscribe("channel.chat.message", condition, &self.conduit_id)
+            .await
+        {
+            Ok(()) => Ok(true),
+            Err(error) if matches!(helix_status(&error), Some(401 | 403)) => Ok(false),
+            Err(error) => Err(error),
+        }
+    }
+
     // Once per channel since the bridge started, in case its subscriptions were lost, eg. as Twitch
     // deleted the conduit while the bridge was down for days
     async fn ensure_subscribed(&self, channel: &str) {
@@ -230,16 +216,66 @@ impl Twitch {
     }
 }
 
+impl Sender {
+    /// Posts in the channel's chat as the bot, once Twitch's rate limits allow, returning the
+    /// message's id. Twitch refusing it is a `PermanentFailure`.
+    pub async fn say(
+        &self,
+        channel: &str,
+        text: &str,
+        reply_to: Option<&str>,
+    ) -> Result<PlatformMessageId> {
+        let sent = match self.send(channel, text, reply_to).await {
+            // The message replied to is gone, so it's sent on its own
+            Err(error) if reply_to.is_some() && helix_status(&error) == Some(400) => {
+                self.send(channel, text, None).await
+            }
+            result => result,
+        };
+
+        match sent {
+            Ok(sent) if sent.is_sent => Ok(sent.message_id),
+            // eg. AutoMod held it, or the chat is in followers-only mode
+            Ok(sent) => Err(PermanentFailure::Rejected(format!(
+                "Twitch dropped the message: {}",
+                sent.drop_reason
+                    .map_or("no reason given".to_string(), |r| format!(
+                        "{} ({})",
+                        r.message, r.code
+                    ))
+            ))
+            .into()),
+            Err(error) => Err(match helix_status(&error) {
+                // 403 if the bot may not post there, which may not last, eg. as a moderator timed
+                // it out. If it does, eg. as the broadcaster revoked the app, or banned the bot,
+                // Twitch revokes the bridge's subscription to the chat, which unpairs it.
+                Some(400 | 403 | 422) => PermanentFailure::Rejected(error.to_string()).into(),
+                // Worth retrying, eg. rate limited, or Twitch was unavailable
+                _ => anyhow!(error),
+            }),
+        }
+    }
+
+    // The channel's turn is held until Twitch answers, as Twitch counts from when each message
+    // arrives
+    async fn send(&self, channel: &str, text: &str, reply_to: Option<&str>) -> Result<SentMessage> {
+        let _turn = self.limiter.turn(channel).await?;
+        self.api
+            .send_chat_message(channel, &self.bot_id, text, reply_to)
+            .await
+    }
+}
+
 /// The bot can't post as anyone else, so each message starts with its author's name, eg.
 /// "Nelly: hello". Twitch shows a message on one line, so its lines are joined.
 pub fn chat_text(message: &OutboundMessage) -> String {
-    // Without anything which could read as a chat command, eg. "/ban"
+    // Without anything which could read as a command, eg. "/ban", or "!so" to another bot, which
+    // would heed the bot where it's a moderator
     let mut name = message
         .author
         .name
-        .trim()
-        .trim_start_matches(['/', '.'])
-        .trim()
+        .trim_start_matches(|c: char| matches!(c, '/' | '.' | '!') || c.is_whitespace())
+        .trim_end()
         .to_string();
     if name.is_empty() {
         name = "OpenChat user".to_string();
@@ -316,9 +352,11 @@ mod tests {
     }
 
     #[test]
-    fn a_name_cant_make_the_message_a_chat_command() {
+    fn a_name_cant_make_the_message_a_command() {
         assert_eq!(chat_text(&message("/ban nelly", "hi")), "ban nelly: hi");
         assert_eq!(chat_text(&message("./", "hi")), "OpenChat user: hi");
+        assert_eq!(chat_text(&message(". /timeout x", "hi")), "timeout x: hi");
+        assert_eq!(chat_text(&message(" !addcom !x", "hi")), "addcom !x: hi");
     }
 
     #[test]

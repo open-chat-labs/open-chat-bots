@@ -8,6 +8,7 @@
 //!   set up.
 
 use crate::api::User;
+use crate::chat::twitch_user;
 use crate::platform::Twitch;
 use crate::profiles::profile_image_path;
 use anyhow::{Context, Result, anyhow, bail};
@@ -15,7 +16,7 @@ use axum::Router;
 use axum::extract::{Query, State};
 use axum::response::{Html, IntoResponse, Redirect, Response};
 use axum::routing::get;
-use oc_bots_sdk::types::{BridgedUser, TwitchUser};
+use oc_bots_sdk::types::BridgedUser;
 use oc_bridge_core::{Bridge, PendingPairing};
 use serde::Deserialize;
 use std::sync::Arc;
@@ -31,8 +32,6 @@ pub const BOT_SCOPES: [&str; 4] = [
     "user:write:chat",
     "moderator:manage:chat_messages",
 ];
-// What OpenChat accepts as a Twitch user's display name
-const MAX_DISPLAY_NAME_LENGTH: usize = 64;
 
 pub fn router(bridge: Arc<Bridge<Twitch>>) -> Router {
     let redirect_uri = format!("{}/oauth/callback", bridge.platform.public_url);
@@ -220,18 +219,12 @@ fn bot_authorized(platform: &Twitch, user: &User) -> Result<String> {
 }
 
 fn bridged_user(user: User) -> Result<BridgedUser> {
-    Ok(BridgedUser::Twitch(TwitchUser {
-        id: user
-            .id
-            .parse()
-            .context("Twitch's id for you isn't a number")?,
-        display_name: match user.display_name.trim() {
-            "" => user.login.clone(),
-            name => name.chars().take(MAX_DISPLAY_NAME_LENGTH).collect(),
-        },
-        login: user.login.to_lowercase(),
-        profile_image: profile_image_path(&user.profile_image_url),
-    }))
+    twitch_user(
+        &user.id,
+        &user.login,
+        &user.display_name,
+        profile_image_path(&user.profile_image_url),
+    )
 }
 
 fn page(message: &str) -> String {
@@ -257,7 +250,7 @@ mod tests {
     use axum::body::Body;
     use axum::http::{Request, StatusCode, header};
     use ic_agent::identity::AnonymousIdentity;
-    use oc_bots_sdk::types::BridgePlatform;
+    use oc_bots_sdk::types::{BridgePlatform, TwitchUser};
     use oc_bridge_core::{BridgeStore, InMemoryStore, OpenChat, OpenChatConfig};
     use tower::ServiceExt;
 

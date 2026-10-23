@@ -168,8 +168,12 @@ pub struct BotMessageContext {
     pub command: Option<Command>,
     pub finalised: bool,
     /// Set on the messages a bridge bot relays from another platform, eg. Discord: the author's
-    /// account there
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// account there. None for an account on a platform this SDK doesn't know yet.
+    #[serde(
+        default,
+        deserialize_with = "BridgedUserId::deserialize_known",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub bridged_from: Option<BridgedUserId>,
 }
 

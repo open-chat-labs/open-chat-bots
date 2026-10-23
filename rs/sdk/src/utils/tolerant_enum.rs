@@ -186,6 +186,7 @@ mod tests {
         #[derive(Serialize)]
         pub enum BridgedUserId {
             Discord(u64),
+            SomethingNew(u64),
         }
     }
 
@@ -316,6 +317,18 @@ mod tests {
             context.bridged_from,
             Some(BridgedUserId::Discord(80351110224678912))
         );
+
+        // From a platform bridged since this SDK, which leaves out only the author
+        let context: SenderContext = decode(backend::SenderContext::Bot(BotMessageContext {
+            command: None,
+            finalised: true,
+            bridged_from: Some(backend::BridgedUserId::SomethingNew(1)),
+        }));
+        let SenderContext::Bot(context) = context else {
+            panic!("Expected a bot context");
+        };
+        assert!(context.finalised);
+        assert_eq!(context.bridged_from, None);
 
         assert!(matches!(
             decode::<SenderContext>(backend::SenderContext::Webhook),

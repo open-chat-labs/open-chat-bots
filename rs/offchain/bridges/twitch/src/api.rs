@@ -116,9 +116,10 @@ struct Pagination {
 impl TwitchApi {
     pub fn new(client_id: String, client_secret: String) -> Self {
         TwitchApi {
-            // Well inside the 60 seconds OpenChat waits before sending a notification again
+            // With the rate limits' wait, well inside the 60 seconds OpenChat, or CloudFront before
+            // the bridge, waits for an answer
             http: reqwest::Client::builder()
-                .timeout(Duration::from_secs(20))
+                .timeout(Duration::from_secs(15))
                 .build()
                 .expect("Failed to build an HTTP client"),
             client_id,

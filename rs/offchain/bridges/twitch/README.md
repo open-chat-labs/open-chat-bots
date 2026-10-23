@@ -36,9 +36,12 @@ The shared parts of the bridge, also used by the Discord and Telegram bridges, a
   - uninstalling the bot from the OpenChat group or community, in which case only the Twitch chat
     can be told;
   - Twitch revoking the bridge's subscription to the chat, eg. as the broadcaster disconnected the
-    app or banned the bot.
+    app or banned the bot. If it's the bot's own authorization of the app that's gone, which every
+    chat relies on, nothing is unpaired. Sign in as the bot at `/authorize-bot` again, and each
+    chat is subscribed to again when OpenChat next relays to it.
 - **Chat commands:** `!bridge` and `!unbridge` are answered only for the broadcaster and the
-  channel's moderators. Anyone else's are relayed like any message.
+  channel's moderators. Anyone else's are relayed like any message. `!unbridge` in a chat which
+  isn't bridged takes the bot out of it, eg. if the broadcaster got a code but never used it.
 - **Linking accounts:** an OpenChat user opens their profile and chooses *Link Twitch* under *Linked
   accounts*.
   1. OpenChat gives them a one-time code and sends them to the bridge's `/link?code=...`.
@@ -58,15 +61,20 @@ The shared parts of the bridge, also used by the Discord and Telegram bridges, a
     next relays a message there from OpenChat.
 - **Posting:** Twitch limits what the bot sends across every channel, and ignores it for an hour
   if it sends more. The bridge paces its messages to suit:
-  - **20 messages per 30 seconds,** and 1 per second in each channel, where the bot isn't a
-    moderator or VIP;
+  - **20 messages per 30 seconds** where the bot isn't a moderator or VIP;
   - **100 per 30 seconds** where it is, which the bridge learns from the badges on the bot's own
-    messages.
+    messages;
+  - **1 per second in each channel.** Twitch only requires it where the bot isn't a moderator or
+    VIP. But the bridge only learns the bot has stopped being one from its next message there, by
+    when a faster burst would be over the limits.
 
-  Messages queue in order in each channel. One that would wait over a minute is dropped, as live
-  chat has moved on by then. A message Twitch drops, eg. one AutoMod holds, isn't retried.
-- **Make the bot a moderator** in busy chats, with `/mod <bot>`. It can then relay five times as
-  many messages, and delete what's deleted in OpenChat.
+  Messages are sent one at a time in each channel, in order, timed from when Twitch answers. One
+  that would wait over 30 seconds is dropped, as live chat has moved on by then, and OpenChat would
+  stop waiting for it. A message Twitch drops, eg. one AutoMod holds, isn't retried, nor is one it
+  refuses, eg. while the bot is timed out.
+- **Make the bot a moderator** in busy chats, with `/mod <bot>`. Its messages there then don't
+  wait on the bot's 20 per 30 seconds across every chat, and it can delete what's deleted in
+  OpenChat.
 - **Avatars:** a relayed message's author's profile image is looked up from Twitch, and kept for a
   day. Twitch serves the images publicly, so OpenChat shows Twitch's own copy, at the path the
   bridge sends.
@@ -78,8 +86,13 @@ The shared parts of the bridge, also used by the Discord and Telegram bridges, a
     already handled.
   - Messages are relayed into OpenChat with ids derived from their Twitch ids, so a repeated event
     can't post a message twice.
-- **Throughput:** up to 32 events are relayed into OpenChat at once, so a busy chat doesn't hold up
-  everyone else's. Messages sent within a moment of each other can arrive in OpenChat out of order.
+- **Throughput:** up to 32 messages are relayed into OpenChat at once, so a busy chat doesn't hold
+  up everyone else's.
+  - Messages sent within a moment of each other can arrive in OpenChat out of order.
+  - Deletions don't wait behind messages. A message deleted on Twitch while it's being relayed is
+    deleted in OpenChat once it arrives.
+  - A message that waited over a minute to be relayed is dropped, as are new ones while 2,000
+    wait, which only chats far busier than the bridge can keep up with would cause.
 
 ## Not yet
 
@@ -95,6 +108,9 @@ The shared parts of the bridge, also used by the Discord and Telegram bridges, a
   user of that name.
 - **Clearing a user's messages** after a ban or timeout only reaches those the bridge has seen
   since it started, up to its last 500 per channel.
+- **The bot losing moderator or VIP status** while it's sending fast in a chat could still put it
+  over Twitch's limits with its next message there, before it learns of it. Twitch would then
+  ignore it for an hour in chats where it isn't a moderator or VIP.
 
 ## Setting it up
 

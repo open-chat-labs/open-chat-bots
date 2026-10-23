@@ -5,15 +5,17 @@ use oc_bridge_core::util::{oc_chat_url, without_mention_everyone};
 use oc_bridge_core::{Bridge, InboundMessage};
 use serde::Deserialize;
 use serde_json::Value;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::{Arc, Mutex};
-use tracing::info;
+use tracing::{error, info};
 
 // What OpenChat accepts as a Twitch user's display name
 const MAX_DISPLAY_NAME_LENGTH: usize = 64;
 // The messages kept per channel, so those a ban or timeout clears can be deleted in OpenChat. A
 // busy chat sends more in a minute.
 const RECENT_MESSAGES_PER_CHANNEL: usize = 500;
+// The deleted messages kept, across every channel, in case they're still being relayed
+const DELETED_MESSAGES: usize = 10_000;
 
 /// `channel.chat.message`
 #[derive(Deserialize, Debug)]
@@ -89,6 +91,34 @@ pub struct ChatHandler {
     pub bridge: Arc<Bridge<Twitch>>,
     // Each channel's latest messages, by their authors
     recent: Mutex<HashMap<String, VecDeque<(String, String)>>>,
+    // Messages deleted on Twitch, as a moderator deleting spam often does so while it's still being
+    // relayed, before the bridge knows which OpenChat message it is
+    deleted: Mutex<Deleted>,
+}
+
+#[derive(Default)]
+struct Deleted {
+    messages: HashSet<(String, String)>,
+    order: VecDeque<(String, String)>,
+}
+
+impl Deleted {
+    fn insert(&mut self, channel: &str, message_id: &str) {
+        let key = (channel.to_string(), message_id.to_string());
+        if self.messages.insert(key.clone()) {
+            self.order.push_back(key);
+            if self.order.len() > DELETED_MESSAGES
+                && let Some(oldest) = self.order.pop_front()
+            {
+                self.messages.remove(&oldest);
+            }
+        }
+    }
+
+    fn contains(&self, channel: &str, message_id: &str) -> bool {
+        self.messages
+            .contains(&(channel.to_string(), message_id.to_string()))
+    }
 }
 
 impl ChatHandler {
@@ -96,6 +126,7 @@ impl ChatHandler {
         ChatHandler {
             bridge,
             recent: Mutex::default(),
+            deleted: Mutex::default(),
         }
     }
 
@@ -105,25 +136,27 @@ impl ChatHandler {
             "channel.chat.message" => self.message(serde_json::from_value(event)?).await,
             "channel.chat.message_delete" => {
                 let event: MessageDeleteEvent = serde_json::from_value(event)?;
-                self.bridge
-                    .relay_inbound_delete(&event.broadcaster_user_id, &event.message_id)
+                self.delete(&event.broadcaster_user_id, &event.message_id)
                     .await
             }
             "channel.chat.clear_user_messages" => {
                 let event: ClearUserMessagesEvent = serde_json::from_value(event)?;
+                let mut result = Ok(());
                 for message_id in self.forget(&event.broadcaster_user_id, &event.target_user_id) {
-                    self.bridge
-                        .relay_inbound_delete(&event.broadcaster_user_id, &message_id)
-                        .await?;
+                    if let Err(error) = self.delete(&event.broadcaster_user_id, &message_id).await {
+                        result = Err(error);
+                    }
                 }
-                Ok(())
+                result
             }
             _ => Ok(()),
         }
     }
 
     /// Twitch revoked a subscription, eg. as the broadcaster revoked the app's access, or banned the
-    /// bot. Without the chat's messages, the chat can't be bridged, so it's unpaired.
+    /// bot. Without the chat's messages, the chat can't be bridged, so it's unpaired, unless it's
+    /// the bot's own authorization which was revoked, which every chat relies on. Signing in as the
+    /// bot again restores them all.
     pub async fn revoked(&self, kind: &str, condition: &Value, status: &str) -> Result<()> {
         if kind != "channel.chat.message" {
             return Ok(());
@@ -131,6 +164,21 @@ impl ChatHandler {
         let channel = condition["broadcaster_user_id"]
             .as_str()
             .context("The subscription has no broadcaster")?;
+        // Twitch's doing, eg. a new version of the subscription type, which needs a new bridge
+        if matches!(status, "version_removed" | "beta_maintenance") {
+            error!(channel, status, "Twitch revoked a subscription to a chat");
+            return Ok(());
+        }
+        if !self.bridge.platform.bot_is_authorized().await? {
+            error!(
+                channel,
+                status,
+                "Twitch revoked a subscription to a chat, as the bot's authorization of the app is \
+                gone. Sign in as the bot at /authorize-bot, then each chat is subscribed to again \
+                when OpenChat next relays to it."
+            );
+            return Ok(());
+        }
         if self.bridge.unpair_platform_chat(channel).await? {
             info!(
                 channel,
@@ -140,12 +188,23 @@ impl ChatHandler {
         Ok(())
     }
 
+    // Deleted in OpenChat once it's relayed, if it's being relayed now
+    async fn delete(&self, channel: &str, message_id: &str) -> Result<()> {
+        self.deleted.lock().unwrap().insert(channel, message_id);
+        self.bridge.relay_inbound_delete(channel, message_id).await
+    }
+
+    fn is_deleted(&self, channel: &str, message_id: &str) -> bool {
+        self.deleted.lock().unwrap().contains(channel, message_id)
+    }
+
     async fn message(&self, event: ChatMessageEvent) -> Result<()> {
         let platform = &self.bridge.platform;
         let channel = &event.broadcaster_user_id;
         // Its own messages, which show whether it's a moderator or VIP there
         if event.chatter_user_id == platform.bot_id {
             platform
+                .sender
                 .limiter
                 .set_privileged(channel, is_privileged(&event.badges));
             return Ok(());
@@ -164,6 +223,10 @@ impl ChatHandler {
             return self.command(&event, command).await;
         }
 
+        // Deleted already, if the events arrived out of order
+        if self.is_deleted(channel, &event.message_id) {
+            return Ok(());
+        }
         self.remember(channel, &event.chatter_user_id, &event.message_id);
         self.bridge
             .relay_inbound(InboundMessage {
@@ -173,7 +236,14 @@ impl ChatHandler {
                 text: inbound_text(&event, &platform.bot_id),
                 reply_to: event.reply.as_ref().map(|r| r.parent_message_id.clone()),
             })
-            .await
+            .await?;
+        // Deleted while it was being relayed
+        if self.is_deleted(channel, &event.message_id) {
+            self.bridge
+                .relay_inbound_delete(channel, &event.message_id)
+                .await?;
+        }
+        Ok(())
     }
 
     async fn command(&self, event: &ChatMessageEvent, command: Command) -> Result<()> {
@@ -195,11 +265,19 @@ impl ChatHandler {
                 ))
             }
             // Unpairing says so in the chat itself
-            Command::Unbridge => (!self.bridge.unpair_platform_chat(channel).await?)
-                .then(|| "This chat isn't bridged with OpenChat.".to_string()),
+            Command::Unbridge => {
+                if self.bridge.unpair_platform_chat(channel).await? {
+                    None
+                } else {
+                    // The bot leaves anyway, eg. if the broadcaster got a code but never used it
+                    platform.unsubscribe(channel).await?;
+                    Some("This chat isn't bridged with OpenChat.".to_string())
+                }
+            }
         };
         if let Some(reply) = reply {
             platform
+                .sender
                 .say(channel, &reply, Some(&event.message_id))
                 .await?;
         }
@@ -266,19 +344,30 @@ fn is_privileged(badges: &[Badge]) -> bool {
 /// Who sent the message. Their profile image is filled in by `Twitch::complete_author`, for a
 /// message which is relayed.
 pub fn author(event: &ChatMessageEvent) -> Result<BridgedUser> {
-    let display_name = match event.chatter_user_name.trim() {
-        "" => event.chatter_user_login.clone(),
-        name => name.chars().take(MAX_DISPLAY_NAME_LENGTH).collect(),
-    };
+    twitch_user(
+        &event.chatter_user_id,
+        &event.chatter_user_login,
+        &event.chatter_user_name,
+        None,
+    )
+}
+
+/// A Twitch account's profile, as OpenChat accepts it
+pub fn twitch_user(
+    id: &str,
+    login: &str,
+    display_name: &str,
+    profile_image: Option<String>,
+) -> Result<BridgedUser> {
     Ok(BridgedUser::Twitch(TwitchUser {
-        id: event
-            .chatter_user_id
-            .parse()
-            .context("The chatter's Twitch id isn't a number")?,
+        id: id.parse().context("The Twitch id isn't a number")?,
         // As Twitch's logins are, and OpenChat requires
-        login: event.chatter_user_login.to_lowercase(),
-        display_name,
-        profile_image: None,
+        login: login.to_lowercase(),
+        display_name: match display_name.trim() {
+            "" => login.to_string(),
+            name => name.chars().take(MAX_DISPLAY_NAME_LENGTH).collect(),
+        },
+        profile_image,
     }))
 }
 
@@ -424,6 +513,21 @@ mod tests {
         );
         // Without the mention, eg. if Twitch stops adding it
         assert_eq!(inbound_text(&reply("999", "ocbridge", "hi"), "999"), "hi");
+    }
+
+    #[test]
+    fn deleted_messages_are_remembered_until_there_are_too_many() {
+        let mut deleted = Deleted::default();
+        deleted.insert("1", "a");
+        deleted.insert("1", "a");
+        assert!(deleted.contains("1", "a"));
+        assert!(!deleted.contains("2", "a"));
+        for i in 0..DELETED_MESSAGES {
+            deleted.insert("1", &i.to_string());
+        }
+        assert!(!deleted.contains("1", "a"));
+        assert!(deleted.contains("1", "0"));
+        assert_eq!(deleted.messages.len(), DELETED_MESSAGES);
     }
 
     #[test]
