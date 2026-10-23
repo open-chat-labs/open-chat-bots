@@ -245,6 +245,11 @@ impl<P: Platform> Bridge<P> {
         self.openchat.unlink(user).await
     }
 
+    /// The OpenChat user the platform account is linked to, if any
+    pub async fn linked_user(&self, user: BridgedUserId) -> Result<Option<LinkedUser>> {
+        self.openchat.linked_user(user).await
+    }
+
     // From OpenChat
 
     /// Handles a notification OpenChat sent to the bridge bot's `/notify` endpoint

@@ -31,6 +31,8 @@ also used by the Telegram bridge, are in [`../core`](../core).
   3. It redeems the code for that account.
 
   `/unlink` in Discord unlinks the user's account. They can also unlink from their OpenChat profile.
+- **`/status`** tells the user whether their account is linked, and to whom. In a channel, it also says
+  whether the channel is bridged, with a link to the OpenChat chat. Only they see the reply.
 - **State:** pairings, which messages were relayed as which, and which notifications were handled
   are kept in DynamoDB. Without a table, they're kept in memory and lost on restart.
 - **Reliability:** OpenChat retries a notification the bridge fails to relay, and the bridge drops

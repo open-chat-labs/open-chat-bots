@@ -1,7 +1,7 @@
 use crate::webhook::{Discord, DiscordPairing};
 use anyhow::{Context as _, Result};
 use oc_bots_sdk::types::{BridgedUser, BridgedUserId, DiscordUser};
-use oc_bridge_core::util::without_mention_everyone;
+use oc_bridge_core::util::{oc_chat_url, without_mention_everyone};
 use oc_bridge_core::{Bridge, InboundMessage, PendingPairing};
 use secrecy::ExposeSecret;
 use serenity::all::{
@@ -157,14 +157,44 @@ impl Handler {
                     "This channel isn't bridged with OpenChat.".to_string()
                 }
             }
-            "link" => "To link your Discord account, open your profile in OpenChat, then choose \
-                Link Discord under Linked accounts."
-                .to_string(),
+            "status" => {
+                let user = BridgedUserId::Discord(command.user.id.get());
+                let account = match self.bridge.linked_user(user).await? {
+                    Some(linked) => format!(
+                        "Your Discord account is linked to `@{}` on OpenChat.",
+                        linked.username
+                    ),
+                    None => "Your Discord account isn't linked to OpenChat. To link it, open your \
+                        profile in OpenChat, then choose Link Discord under Linked accounts."
+                        .to_string(),
+                };
+                // A direct message with the bot isn't a channel which can be bridged
+                if command.guild_id.is_none() {
+                    return Ok(account);
+                }
+                let channel = match self
+                    .bridge
+                    .store
+                    .pairing(&command.channel_id.to_string())
+                    .await?
+                {
+                    // In <>, so Discord doesn't show a preview of the page
+                    Some(pairing) => format!(
+                        "This channel is bridged with <{}>.",
+                        oc_chat_url(&pairing.oc_chat)
+                    ),
+                    None => "This channel isn't bridged with OpenChat.".to_string(),
+                };
+                format!("{channel}\n{account}")
+            }
             "unlink" => {
-                self.bridge
-                    .unlink(BridgedUserId::Discord(command.user.id.get()))
-                    .await?;
-                "Your Discord account is no longer linked to an OpenChat account.".to_string()
+                let user = BridgedUserId::Discord(command.user.id.get());
+                if self.bridge.linked_user(user).await?.is_none() {
+                    "Your Discord account isn't linked to OpenChat.".to_string()
+                } else {
+                    self.bridge.unlink(user).await?;
+                    "Your Discord account is no longer linked to an OpenChat account.".to_string()
+                }
             }
             _ => "Unknown command".to_string(),
         })
@@ -185,7 +215,8 @@ impl EventHandler for Handler {
                 .description("Stop bridging this channel with OpenChat")
                 .default_member_permissions(manage)
                 .dm_permission(false),
-            CreateCommand::new("link").description("Link your Discord account to OpenChat"),
+            CreateCommand::new("status")
+                .description("Show whether this channel is bridged, and whether you're linked"),
             CreateCommand::new("unlink")
                 .description("Unlink your Discord account from your OpenChat account"),
         ];

@@ -1,6 +1,7 @@
 use ic_agent::export::Principal;
 use oc_bots_sdk::types::{
-    BlobReference, BridgedUser, CanisterId, CryptoTransaction, MessageContent, MessageId, UserId,
+    BlobReference, BridgedUser, CanisterId, Chat, CryptoTransaction, MessageContent, MessageId,
+    UserId,
 };
 use sha2::{Digest, Sha256};
 
@@ -44,6 +45,17 @@ pub fn user_avatar_url(
         format!("https://{canister_id}.raw.icp0.io/user/{index}/avatar/{avatar_id}")
     } else {
         format!("https://{principal}.raw.icp0.io/avatar/{avatar_id}")
+    }
+}
+
+/// Where a chat is on OpenChat's website
+pub fn oc_chat_url(chat: &Chat) -> String {
+    match chat {
+        Chat::Direct(id) => format!("https://oc.app/user/{id}"),
+        Chat::Group(id) => format!("https://oc.app/group/{id}"),
+        Chat::Channel(community, channel) => {
+            format!("https://oc.app/community/{community}/channel/{channel}")
+        }
     }
 }
 
