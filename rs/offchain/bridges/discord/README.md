@@ -116,8 +116,9 @@ also used by the Telegram bridge, are in [`../core`](../core).
    run by hand from `main`:
    - It builds the image, pushes it to ECR tagged `latest` and with the commit, and restarts the
      service through SSM. The config in Parameter Store stays as it is.
-   - If the bridge doesn't stay up for 30 seconds, eg. as Discord refuses its connection, it's
-     stopped, since restarting it every 10 seconds would soon use up the bot's daily Discord logins.
+   - If the bridge doesn't start, or doesn't stay up for 30 seconds, eg. as Discord refuses its
+     connection, it's stopped, since restarting it every 10 seconds would soon use up the bot's daily
+     Discord logins.
    - It deploys with the IAM role `GitHubActions-DeployDiscordBridge`, which GitHub can assume only
      from `main`:
      - **Trust:** the OIDC provider `token.actions.githubusercontent.com`, with `aud`

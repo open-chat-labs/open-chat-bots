@@ -58,22 +58,30 @@ jobs:
           docker push "$IMAGE:${GITHUB_SHA::10}"
           docker push "$IMAGE:latest"
       # A bridge which can't connect to Discord exits, and systemd restarts it every 10s, which would
-      # soon use up the bot's daily Discord logins. So the bridge is stopped unless it stays up.
+      # soon use up the bot's daily Discord logins. So the bridge is stopped unless it starts and
+      # stays up, rather than left for systemd to retry with no one watching.
       - name: Restart the bridge
         if: github.event_name == 'workflow_dispatch'
         run: |
           script='set -eu
-          systemctl restart oc-discord-bridge
+          fail() {
+            systemctl stop oc-discord-bridge
+            echo "The bridge $1, so it has been stopped. Its logs are in CloudWatch, in /oc/discord-bridge."
+            exit 1
+          }
+          systemctl restart oc-discord-bridge || fail "did not start"
           pid=$(systemctl show -p MainPID --value oc-discord-bridge)
           sleep 30
           if ! systemctl is-active -q oc-discord-bridge || [ "$(systemctl show -p MainPID --value oc-discord-bridge)" != "$pid" ]; then
-            systemctl stop oc-discord-bridge
-            echo "The bridge did not stay up, so it has been stopped. Its logs are in CloudWatch, in /oc/discord-bridge."
-            exit 1
+            fail "did not stay up"
           fi
-          docker inspect --format "Running {{.Config.Image}} ({{.Image}})" oc-discord-bridge'
+          docker inspect --format "Running {{.Config.Image}} ({{.Image}})" oc-discord-bridge
+          # The previous image, which each deploy leaves untagged
+          docker image prune -f'
+          # A command the host doesn't pick up within 60s is dropped, rather than restarting the
+          # bridge later, after this run has given up on it
           id=$(aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name AWS-RunShellScript \
-            --comment "Deploy the Discord bridge at ${GITHUB_SHA::10}" \
+            --timeout-seconds 60 --comment "Deploy the Discord bridge at ${GITHUB_SHA::10}" \
             --parameters "$(jq -n --arg script "$script" '{commands: [$script]}')" \
             --query Command.CommandId --output text)
           # Up to 5 minutes, for the pull and the 30s check. The invocation may not exist at first.
