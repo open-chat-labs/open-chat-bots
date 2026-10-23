@@ -610,8 +610,9 @@ fn outbound_action(
     platform_chat: &str,
 ) -> OutboundAction {
     match (hash, existing) {
-        // Relayed to the chat this one was paired with before, or saved before refs said which, so
-        // editing or deleting it here would act on whichever message has its id in this chat
+        // Relayed to the chat this one was paired with before, or to the chat before the platform
+        // gave it a new id, or saved before refs said which, so editing or deleting it here would
+        // act on whichever message has its id in this chat. It was relayed, so it isn't new either.
         (_, Some(existing)) if existing.platform_chat != platform_chat => OutboundAction::Ignore,
         (None, Some(existing)) => OutboundAction::Delete(existing.platform_message_id.clone()),
         (None, None) => OutboundAction::Ignore,
