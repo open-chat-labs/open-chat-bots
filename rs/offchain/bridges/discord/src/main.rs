@@ -31,7 +31,22 @@ async fn main() -> Result<()> {
     info!(principal = %openchat.principal(), "OpenChat bot");
 
     let discord_http = Arc::new(Http::new(&config.discord_token));
-    let bridge = Arc::new(Bridge::new(openchat, store, Discord { http: discord_http }));
+    // The link to add the bot to a server is built from it
+    let client_id = match &config.oauth {
+        Some(oauth) => Some(oauth.client_id.clone()),
+        None => match discord_http.get_current_application_info().await {
+            Ok(application) => Some(application.id.to_string()),
+            Err(error) => {
+                warn!(?error, "Failed to look up the app's client id");
+                None
+            }
+        },
+    };
+    let platform = Discord {
+        http: discord_http,
+        client_id,
+    };
+    let bridge = Arc::new(Bridge::new(openchat, store, platform));
     // Kept alive until the process exits, as the OpenChat runtime can't be dropped from within
     // async code
     std::mem::forget(bridge.clone());

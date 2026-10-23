@@ -20,7 +20,8 @@ also used by the Telegram bridge, are in [`../core`](../core).
      creates a webhook in the channel and replies with a code, valid for 15 minutes.
   2. In OpenChat, the group or community installs the bridge bot, granting the permissions it asks
      for.
-  3. An admin runs `/bridge <code>` in the group or channel to bridge with.
+  3. An admin runs `/bridge <code>` in the group or channel to bridge with. Run there without a
+     code, `/bridge` says how to get one.
 
   Both chats are told once they're bridged, with a link to the OpenChat chat on the other side,
   and again if they stop being bridged. The bridge doesn't relay its own notices.

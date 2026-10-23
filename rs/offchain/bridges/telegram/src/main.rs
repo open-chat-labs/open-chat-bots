@@ -60,6 +60,7 @@ async fn main() -> Result<()> {
     };
     let platform = Telegram {
         api: api.clone(),
+        username: username.clone(),
         avatars,
     };
     let bridge = Arc::new(Bridge::new(openchat, store, platform));
@@ -194,6 +195,7 @@ mod tests {
         let store = BridgeStore::new(Arc::new(InMemoryStore::default()), BridgePlatform::Telegram);
         let platform = Telegram {
             api: api.clone(),
+            username: "OCBridgeBot".to_string(),
             avatars: None,
         };
         let bridge = Arc::new(Bridge::new(openchat, store, platform));
