@@ -269,7 +269,8 @@ mod tests {
     use oc_bots_sdk::jwt::Claims;
     use oc_bots_sdk::types::{
         BotActionByCommandClaims, BotActionChatDetails, BotCommandScope, BotPermissions,
-        BotRegisteredEvent, BridgePlatform, CanisterId,
+        BotRegisteredEvent, BotUninstalledEvent, BridgePlatform, CanisterId, CommunityId,
+        InstallationLocation,
     };
     use p256::ecdsa::signature::Signer;
     use p256::ecdsa::{Signature, SigningKey};
@@ -277,7 +278,11 @@ mod tests {
     use serde::Serialize;
     use tower::ServiceExt;
 
-    struct TestPlatform;
+    #[derive(Default)]
+    struct TestPlatform {
+        // The platform chats told they're no longer bridged
+        unpaired: std::sync::Mutex<Vec<String>>,
+    }
 
     #[async_trait]
     impl Platform for TestPlatform {
@@ -299,6 +304,14 @@ mod tests {
         fn bridge_instructions(&self) -> String {
             "Run /bridge in Discord".to_string()
         }
+
+        async fn unpaired(&self, pairing: &Pairing) -> anyhow::Result<()> {
+            self.unpaired
+                .lock()
+                .unwrap()
+                .push(pairing.platform_chat.clone());
+            Ok(())
+        }
     }
 
     // Stands in for OpenChat's key, which signs its notifications
@@ -316,7 +329,7 @@ mod tests {
             .await
             .unwrap();
         let store = BridgeStore::new(Arc::new(InMemoryStore::default()), BridgePlatform::Discord);
-        let bridge = Arc::new(Bridge::new(openchat, store, TestPlatform));
+        let bridge = Arc::new(Bridge::new(openchat, store, TestPlatform::default()));
         // Its OpenChat runtime can't be dropped within async code
         std::mem::forget(bridge.clone());
         bridge
@@ -324,6 +337,27 @@ mod tests {
 
     // A notification as OpenChat encodes and signs it
     fn notification(api_gateway: CanisterId, notification_index: u64) -> (Vec<u8>, String) {
+        lifecycle_notification(
+            api_gateway,
+            notification_index,
+            Lifecycle::Registered(BotRegisteredEvent {
+                bot_id: Principal::anonymous().into(),
+                bot_name: "bridge".to_string(),
+            }),
+        )
+    }
+
+    #[derive(Serialize)]
+    enum Lifecycle {
+        Registered(BotRegisteredEvent),
+        Uninstalled(BotUninstalledEvent),
+    }
+
+    fn lifecycle_notification(
+        api_gateway: CanisterId,
+        notification_index: u64,
+        lifecycle: Lifecycle,
+    ) -> (Vec<u8>, String) {
         #[derive(Serialize)]
         struct Wrapper {
             api_gateway: CanisterId,
@@ -335,18 +369,11 @@ mod tests {
         enum Event {
             Lifecycle(Lifecycle),
         }
-        #[derive(Serialize)]
-        enum Lifecycle {
-            Registered(BotRegisteredEvent),
-        }
 
         let payload = oc_bots_sdk::msgpack::serialize_then_unwrap(Wrapper {
             api_gateway,
-            event: Event::Lifecycle(Lifecycle::Registered(BotRegisteredEvent {
-                bot_id: Principal::anonymous().into(),
-                bot_name: "bridge".to_string(),
-            })),
-            timestamp: 1,
+            event: Event::Lifecycle(lifecycle),
+            timestamp: UNINSTALLED_AT,
             notification_index,
         });
         let signature: Signature = signing_key().sign(&payload);
@@ -410,6 +437,88 @@ mod tests {
         );
     }
 
+    // When the notifications in these tests happened
+    const UNINSTALLED_AT: u64 = 1_000;
+
+    #[tokio::test]
+    async fn uninstalling_the_bot_unpairs_its_chats_there() {
+        use oc_bots_sdk::types::Chat;
+
+        let bridge = bridge().await;
+        let community: CommunityId = Principal::from_slice(&[3]).into();
+        let group = Principal::from_slice(&[4]).into();
+        let pairing = |platform_chat: &str, oc_chat, paired_at| Pairing {
+            platform_chat: platform_chat.to_string(),
+            oc_chat,
+            api_gateway: Principal::anonymous().into(),
+            platform_data: None,
+            paired_at,
+        };
+        for paired in [
+            pairing("1", Chat::Channel(community, 7), 0),
+            pairing("2", Chat::Channel(community, 8), 0),
+            // Paired once the bot was installed again, which OpenChat told the bridge of late
+            pairing("3", Chat::Channel(community, 9), UNINSTALLED_AT + 1),
+            pairing("4", Chat::Group(group), 0),
+        ] {
+            bridge.store.save_pairing(&paired).await.unwrap();
+        }
+        let uninstall = |notification_index, location| {
+            lifecycle_notification(
+                Principal::from_slice(&[5]).into(),
+                notification_index,
+                Lifecycle::Uninstalled(BotUninstalledEvent {
+                    uninstalled_by: Principal::from_slice(&[6]).into(),
+                    location,
+                }),
+            )
+        };
+        let paired = |platform_chat: &'static str| {
+            let bridge = bridge.clone();
+            async move { bridge.store.pairing(platform_chat).await.unwrap().is_some() }
+        };
+
+        let (body, signature) = uninstall(1, InstallationLocation::Community(community));
+        assert_eq!(
+            post_notification(&bridge, body, Some(&signature)).await,
+            StatusCode::OK
+        );
+        assert!(!paired("1").await && !paired("2").await);
+        assert!(paired("3").await);
+        assert_eq!(bridge.store.paired_channels(community).await.unwrap(), [9]);
+        // Elsewhere
+        assert!(paired("4").await);
+
+        let (body, signature) = uninstall(2, InstallationLocation::Group(group));
+        assert_eq!(
+            post_notification(&bridge, body, Some(&signature)).await,
+            StatusCode::OK
+        );
+        assert!(!paired("4").await);
+
+        // Only the platform chats are told, as the bot can't post in OpenChat any more
+        assert_eq!(*bridge.platform.unpaired.lock().unwrap(), ["1", "2", "4"]);
+    }
+
+    // eg. Telegram upgrading a group to a supergroup
+    #[tokio::test]
+    async fn a_moved_channel_pairing_is_still_listed() {
+        let bridge = bridge().await;
+        let community: CommunityId = Principal::from_slice(&[3]).into();
+        let pairing = Pairing {
+            platform_chat: "-123".to_string(),
+            oc_chat: oc_bots_sdk::types::Chat::Channel(community, 7),
+            api_gateway: Principal::anonymous().into(),
+            platform_data: None,
+            paired_at: 0,
+        };
+        bridge.store.save_pairing(&pairing).await.unwrap();
+
+        assert!(bridge.move_pairing("-123", "-100456").await.unwrap());
+
+        assert_eq!(bridge.store.paired_channels(community).await.unwrap(), [7]);
+    }
+
     #[tokio::test]
     async fn the_definition_has_the_bridge_commands() {
         let bridge = bridge().await;
@@ -450,6 +559,7 @@ mod tests {
             oc_chat,
             api_gateway: Principal::anonymous().into(),
             platform_data: None,
+            paired_at: 0,
         };
         bridge.store.save_pairing(&pairing).await.unwrap();
 
