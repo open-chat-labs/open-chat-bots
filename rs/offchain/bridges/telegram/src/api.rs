@@ -72,6 +72,46 @@ impl TelegramApi {
         ))
     }
 
+    /// The user's current profile photo, in the smallest size at least `min_width` wide, or the
+    /// largest. None if they have none the bot can see, which their privacy settings decide.
+    pub async fn current_profile_photo(
+        &self,
+        user_id: i64,
+        min_width: u32,
+    ) -> Result<Option<PhotoSize>> {
+        let body = json!({ "user_id": user_id, "limit": 1 });
+        let photos: UserProfilePhotos = self.call("getUserProfilePhotos", &body).await?;
+        Ok(photos
+            .photos
+            .into_iter()
+            .next()
+            .and_then(|sizes| pick_size(sizes, min_width)))
+    }
+
+    /// Downloads a file the bot can see, eg. a profile photo
+    pub async fn download_file(&self, file_id: &str) -> Result<Vec<u8>> {
+        let file: File = self.call("getFile", &json!({ "file_id": file_id })).await?;
+        let path = file
+            .file_path
+            .ok_or_else(|| anyhow!("Telegram gave no path for the file"))?;
+        // The token is in the url, so it's left out of any error
+        let response = self
+            .http
+            .get(format!(
+                "https://api.telegram.org/file/bot{}/{path}",
+                self.token
+            ))
+            .send()
+            .await
+            .and_then(|response| response.error_for_status())
+            .map_err(|error| anyhow!("Downloading a file failed: {}", error.without_url()))?;
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(|error| anyhow!("Downloading a file failed: {}", error.without_url()))?;
+        Ok(bytes.to_vec())
+    }
+
     pub async fn get_me(&self) -> Result<User> {
         self.call("getMe", &json!({})).await
     }
@@ -134,6 +174,16 @@ impl TelegramApi {
     }
 }
 
+/// The smallest size at least `min_width` wide, or the largest
+fn pick_size(mut sizes: Vec<PhotoSize>, min_width: u32) -> Option<PhotoSize> {
+    sizes.sort_by_key(|size| size.width);
+    let index = sizes
+        .iter()
+        .position(|size| size.width >= min_width)
+        .unwrap_or(sizes.len().checked_sub(1)?);
+    sizes.into_iter().nth(index)
+}
+
 // A refusal retrying won't fix is a `PermanentFailure`, and one saying the bot can't reach the chat
 // any more, eg. as it was removed from it, means the chat is gone
 fn api_error(method: &str, code: u16, description: Option<String>) -> anyhow::Error {
@@ -163,6 +213,25 @@ struct ApiResponse<T> {
 #[derive(Deserialize)]
 struct ChatMember {
     status: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct UserProfilePhotos {
+    /// Each photo, newest first, in several sizes
+    photos: Vec<Vec<PhotoSize>>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct PhotoSize {
+    pub file_id: String,
+    /// The same for the file whichever bot sees it, and from one day to the next, unlike `file_id`
+    pub file_unique_id: String,
+    pub width: u32,
+}
+
+#[derive(Deserialize, Debug)]
+struct File {
+    file_path: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -311,5 +380,26 @@ mod tests {
         assert_eq!(message.chat.id, -100123);
         assert_eq!(message.text.as_deref(), Some("hello"));
         assert_eq!(message.reply_to_message.unwrap().message_id, 4);
+    }
+
+    #[test]
+    fn a_profile_photo_is_taken_in_the_smallest_size_wide_enough() {
+        let photos: UserProfilePhotos = serde_json::from_value(serde_json::json!({
+            "total_count": 2,
+            "photos": [[
+                { "file_id": "big", "file_unique_id": "u-big", "width": 640, "height": 640 },
+                { "file_id": "small", "file_unique_id": "u-small", "width": 160, "height": 160 },
+                { "file_id": "medium", "file_unique_id": "u-medium", "width": 320, "height": 320 }
+            ]]
+        }))
+        .unwrap();
+        let sizes = photos.photos.into_iter().next().unwrap();
+
+        let pick = |min_width| pick_size(sizes.clone(), min_width).map(|size| size.file_id);
+        assert_eq!(pick(320).as_deref(), Some("medium"));
+        assert_eq!(pick(100).as_deref(), Some("small"));
+        // None is wide enough, so the largest
+        assert_eq!(pick(1000).as_deref(), Some("big"));
+        assert_eq!(pick_size(Vec::new(), 320).map(|size| size.file_id), None);
     }
 }

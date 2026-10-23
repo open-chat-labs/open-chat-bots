@@ -306,9 +306,8 @@ pub fn author(message: &Message) -> BridgedUser {
         id,
         username: username.map(|u| u.chars().take(MAX_USERNAME_LENGTH).collect()),
         display_name: display_name.chars().take(MAX_DISPLAY_NAME_LENGTH).collect(),
-        // Telegram's copies can only be fetched with the bot's token, so they'd need copying into
-        // OpenChat's storage, which isn't done yet
-        avatar: None,
+        // Filled in by `Telegram::complete_author`, for a message it relays
+        photo_id: None,
     })
 }
 

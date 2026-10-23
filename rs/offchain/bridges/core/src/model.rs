@@ -72,6 +72,19 @@ struct EventRef {
     platform_message: PlatformMessageId,
 }
 
+/// Which of an account's photos the bridge has copied to its CDN, and when it last checked whether
+/// the account had changed it
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct StoredAvatar {
+    /// The platform's id for the photo, which changes when the account sets a new one. None if it
+    /// has none the bridge can see.
+    pub photo_id: Option<String>,
+    /// The photo it replaced, which is deleted at the next check, once OpenChat's clients have had
+    /// time to fetch the account's new profile
+    pub replaced: Option<String>,
+    pub checked: TimestampMillis,
+}
+
 /// The bridge's state for one platform, on top of a key-value store
 #[derive(Clone)]
 pub struct BridgeStore {
@@ -267,6 +280,15 @@ impl BridgeStore {
             .await
     }
 
+    pub async fn avatar(&self, platform_user: &str) -> Result<Option<StoredAvatar>> {
+        self.get(&self.avatar_key(platform_user)).await
+    }
+
+    pub async fn save_avatar(&self, platform_user: &str, avatar: &StoredAvatar) -> Result<()> {
+        self.put(&self.avatar_key(platform_user), avatar, None)
+            .await
+    }
+
     async fn get<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
         match self.kv.get(key).await? {
             Some(bytes) => Ok(Some(serde_json::from_slice(&bytes)?)),
@@ -288,6 +310,10 @@ impl BridgeStore {
             "notification/{}/{api_gateway}/{notification_index}",
             self.platform
         )
+    }
+
+    fn avatar_key(&self, platform_user: &str) -> String {
+        format!("avatar/{}/{platform_user}", self.platform)
     }
 
     fn pairing_key(&self, platform_chat: &str) -> String {

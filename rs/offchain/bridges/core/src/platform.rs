@@ -19,6 +19,10 @@ pub trait Platform: Send + Sync + 'static {
 
     async fn delete(&self, pairing: &Pairing, id: &str) -> Result<()>;
 
+    /// Fills in what's only worth looking up for a message which will be relayed, eg. the author's
+    /// avatar
+    async fn complete_author(&self, _author: &mut BridgedUser) {}
+
     /// Once the chat is paired, eg. to say so in it
     async fn paired(&self, _pairing: &Pairing) -> Result<()> {
         Ok(())

@@ -1,6 +1,7 @@
 //! Bridges Telegram groups with OpenChat groups and public channels, both ways. See the README.
 
 use crate::api::{TelegramApi, Update};
+use crate::avatars::Avatars;
 use crate::config::Config;
 use crate::platform::Telegram;
 use crate::updates::UpdateHandler;
@@ -16,6 +17,7 @@ use std::sync::Arc;
 use tracing::{info, warn};
 
 mod api;
+mod avatars;
 mod config;
 mod platform;
 mod updates;
@@ -49,7 +51,18 @@ async fn main() -> Result<()> {
     let openchat = OpenChat::new(config.openchat).await?;
     info!(principal = %openchat.principal(), username, "OpenChat bot");
 
-    let bridge = Arc::new(Bridge::new(openchat, store, Telegram { api: api.clone() }));
+    let avatars = match config.avatars_bucket {
+        Some(bucket) => Some(Avatars::new(store.clone(), api.clone(), bucket).await),
+        None => {
+            warn!("TELEGRAM_AVATARS_BUCKET isn't set, so users' photos aren't relayed");
+            None
+        }
+    };
+    let platform = Telegram {
+        api: api.clone(),
+        avatars,
+    };
+    let bridge = Arc::new(Bridge::new(openchat, store, platform));
     // Kept alive until the process exits, as the OpenChat runtime can't be dropped from within
     // async code
     std::mem::forget(bridge.clone());
@@ -179,7 +192,11 @@ mod tests {
         .unwrap();
         let api = Arc::new(TelegramApi::new("token".to_string()));
         let store = BridgeStore::new(Arc::new(InMemoryStore::default()), BridgePlatform::Telegram);
-        let bridge = Arc::new(Bridge::new(openchat, store, Telegram { api: api.clone() }));
+        let platform = Telegram {
+            api: api.clone(),
+            avatars: None,
+        };
+        let bridge = Arc::new(Bridge::new(openchat, store, platform));
         // Its OpenChat runtime can't be dropped within async code
         std::mem::forget(bridge.clone());
         let handler = UpdateHandler {

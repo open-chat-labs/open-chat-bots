@@ -11,7 +11,9 @@ pub mod store;
 pub mod util;
 
 pub use bridge::{Bridge, NotificationOutcome};
-pub use model::{BridgeStore, Pairing, PendingPairing, PlatformChatId, PlatformMessageId};
+pub use model::{
+    BridgeStore, Pairing, PendingPairing, PlatformChatId, PlatformMessageId, StoredAvatar,
+};
 pub use openchat::{Author, LinkedUser, OpenChat, OpenChatConfig};
 pub use platform::{InboundMessage, OutboundMessage, PermanentFailure, Platform, platform_name};
 pub use store::{DynamoDbStore, InMemoryStore, KeyValueStore};

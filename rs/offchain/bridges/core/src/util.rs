@@ -67,6 +67,10 @@ pub fn blob_url(blob: &BlobReference) -> String {
     )
 }
 
+/// Where the Telegram bridge copies users' profile photos, as the urls of Telegram's own copies
+/// contain the bot's token. The website has it as `OC_BRIDGE_AVATARS_URL`.
+pub const BRIDGE_AVATARS_URL: &str = "https://d31v79nf0k3ss4.cloudfront.net";
+
 /// The url of a bridged account's avatar, if it has one
 pub fn bridged_avatar_url(user: &BridgedUser) -> Option<String> {
     match user {
@@ -74,7 +78,10 @@ pub fn bridged_avatar_url(user: &BridgedUser) -> Option<String> {
             .avatar
             .as_ref()
             .map(|hash| format!("https://cdn.discordapp.com/avatars/{}/{hash}.png", u.id)),
-        BridgedUser::Telegram(u) => u.avatar.as_ref().map(blob_url),
+        BridgedUser::Telegram(u) => u
+            .photo_id
+            .as_ref()
+            .map(|photo_id| format!("{BRIDGE_AVATARS_URL}/telegram/{}/{photo_id}.jpg", u.id)),
     }
 }
 
@@ -230,7 +237,7 @@ mod tests {
     use oc_bots_sdk::types::icrc1::{Account, CryptoAccount};
     use oc_bots_sdk::types::{
         CompletedCryptoTransaction, CryptoContent, DeletedBy, P2PSwapContent, P2PSwapStatus,
-        PrizeContent, TextContent, TokenInfo, icrc1,
+        PrizeContent, TelegramUser, TextContent, TokenInfo, icrc1,
     };
 
     #[test]
@@ -238,6 +245,23 @@ mod tests {
         assert_eq!(inbound_message_id("1", "2"), inbound_message_id("1", "2"));
         assert_ne!(inbound_message_id("1", "2"), inbound_message_id("1", "3"));
         assert_ne!(inbound_message_id("1", "23"), inbound_message_id("12", "3"));
+    }
+
+    #[test]
+    fn a_telegram_users_photo_is_on_the_bridges_cdn() {
+        let user = |photo_id: Option<&str>| {
+            BridgedUser::Telegram(TelegramUser {
+                id: 123456789,
+                username: None,
+                display_name: "Ann".to_string(),
+                photo_id: photo_id.map(str::to_string),
+            })
+        };
+        assert_eq!(
+            bridged_avatar_url(&user(Some("AQADtLwxG5a_QEZ-"))).as_deref(),
+            Some("https://d31v79nf0k3ss4.cloudfront.net/telegram/123456789/AQADtLwxG5a_QEZ-.jpg")
+        );
+        assert_eq!(bridged_avatar_url(&user(None)), None);
     }
 
     #[test]

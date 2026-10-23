@@ -1,7 +1,8 @@
 use crate::api::TelegramApi;
+use crate::avatars::Avatars;
 use anyhow::Result;
 use async_trait::async_trait;
-use oc_bots_sdk::types::BridgePlatform;
+use oc_bots_sdk::types::{BridgePlatform, BridgedUser};
 use oc_bridge_core::{
     OutboundMessage, Pairing, PermanentFailure, Platform, PlatformMessageId, platform_name,
 };
@@ -12,12 +13,24 @@ const MAX_TEXT_LENGTH: usize = 4096;
 
 pub struct Telegram {
     pub api: Arc<TelegramApi>,
+    /// None if there's no bucket to copy users' photos to
+    pub avatars: Option<Avatars>,
 }
 
 #[async_trait]
 impl Platform for Telegram {
     const PLATFORM: BridgePlatform = BridgePlatform::Telegram;
     const NAME: &'static str = "Telegram";
+
+    async fn complete_author(&self, author: &mut BridgedUser) {
+        // A chat, eg. a channel or a group's anonymous admins, has a negative id, and Telegram's
+        // `getUserProfilePhotos` only takes users'
+        if let (BridgedUser::Telegram(user), Some(avatars)) = (author, &self.avatars)
+            && user.id > 0
+        {
+            user.photo_id = avatars.photo_id(user.id).await;
+        }
+    }
 
     async fn post(
         &self,

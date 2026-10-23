@@ -49,13 +49,14 @@ impl<P: Platform> Bridge<P> {
     // From the platform
 
     /// Relays a message from the platform into the OpenChat chat its chat is paired with, if any
-    pub async fn relay_inbound(&self, message: InboundMessage) -> Result<()> {
+    pub async fn relay_inbound(&self, mut message: InboundMessage) -> Result<()> {
         let Some(pairing) = self.store.pairing(&message.platform_chat).await? else {
             return Ok(());
         };
         if message.text.trim().is_empty() {
             return Ok(());
         }
+        self.platform.complete_author(&mut message.author).await;
 
         let replies_to = match &message.reply_to {
             Some(reply_to) => self

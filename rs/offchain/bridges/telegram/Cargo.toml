@@ -9,15 +9,18 @@ edition.workspace = true
 [dependencies]
 anyhow = "1"
 async-trait = { workspace = true }
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-sdk-s3 = "1"
 axum = { workspace = true }
 lambda_http = "1"
 oc_bots_sdk = { path = "../../../sdk", features = ["bridge"] }
+oc_bots_sdk_offchain = { path = "../../sdk" }
 oc_bridge_core = { path = "../core" }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 

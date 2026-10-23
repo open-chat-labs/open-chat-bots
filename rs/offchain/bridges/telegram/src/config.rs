@@ -14,6 +14,9 @@ pub struct Config {
     pub webhook_secret: String,
     /// Where the bridge is served, which `setup` registers as Telegram's webhook
     pub public_url: Option<String>,
+    /// The S3 bucket users' profile photos are copied to, behind the bridges' CDN. Without one,
+    /// they aren't relayed.
+    pub avatars_bucket: Option<String>,
     pub openchat: OpenChatConfig,
     pub port: u16,
 }
@@ -28,6 +31,7 @@ impl Config {
             bot_username: var("TELEGRAM_BOT_USERNAME")
                 .map(|u| u.trim_start_matches('@').to_string()),
             public_url: var("PUBLIC_URL").map(|url| url.trim_end_matches('/').to_string()),
+            avatars_bucket: var("TELEGRAM_AVATARS_BUCKET"),
             openchat: OpenChatConfig::from_env()?,
             port: var("PORT")
                 .map_or(Ok(8080), |p| p.parse())
