@@ -241,8 +241,13 @@ impl<P: Platform> Bridge<P> {
         self.openchat.link(user, code).await
     }
 
-    pub async fn unlink(&self, user: BridgedUserId) -> Result<()> {
-        self.openchat.unlink(user).await
+    /// Unlinks the platform account from whoever it's linked to. Returns whether it was linked.
+    pub async fn unlink(&self, user: BridgedUserId) -> Result<bool> {
+        if self.openchat.linked_user_id(user).await?.is_none() {
+            return Ok(false);
+        }
+        self.openchat.unlink(user).await?;
+        Ok(true)
     }
 
     /// The OpenChat user the platform account is linked to, if any

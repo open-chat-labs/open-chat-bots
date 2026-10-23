@@ -39,18 +39,24 @@ impl UpdateHandler {
 
     async fn message(&self, message: Message) -> Result<()> {
         let is_private = message.chat.kind == "private";
-        // Other commands in a group, eg. another bot's /start, are relayed like any message
-        if let Some((command, arg)) = self.command(&message).filter(|(command, _)| {
-            is_private || matches!(command.as_str(), "bridge" | "unbridge" | "status")
-        }) {
+        if let Some((command, arg)) = self
+            .command(&message)
+            .filter(|(command, arg)| is_private || is_group_command(command, arg.as_deref()))
+        {
             let reply = if is_private {
                 self.private_command(&message, &command, arg).await
             } else {
                 self.group_command(&message, &command).await
             };
             if let Some(reply) = reply {
+                // In a group, replying to the command shows whose it is
+                let reply_to = (!is_private).then_some(message.message_id);
                 // A failed reply isn't worth Telegram retrying the command for
-                if let Err(error) = self.api.send_message(message.chat.id, &reply, None).await {
+                if let Err(error) = self
+                    .api
+                    .send_message(message.chat.id, &reply, reply_to)
+                    .await
+                {
                     warn!(%error, command, "Failed to reply to a command");
                 }
             }
@@ -173,8 +179,9 @@ impl UpdateHandler {
         Some(match (command, arg) {
             // The link the user followed from their OpenChat profile, eg. t.me/bot?start=<code>
             ("start", Some(code)) => match self.bridge.link(author(message), code).await {
+                // In <code>, so Telegram doesn't take the username as a Telegram user's
                 Ok(linked) => format!(
-                    "Your Telegram account is now linked to @{} on OpenChat.",
+                    "Your Telegram account is now linked to <code>@{}</code> on OpenChat.",
                     escape(&linked.username)
                 ),
                 Err(error) => {
@@ -184,7 +191,7 @@ impl UpdateHandler {
                 }
             },
             ("status", _) => self.status(message, None).await,
-            ("unlink", _) => match self.unlink(BridgedUserId::Telegram(from.id)).await {
+            ("unlink", _) => match self.bridge.unlink(BridgedUserId::Telegram(from.id)).await {
                 Ok(true) => {
                     "Your Telegram account is no longer linked to an OpenChat account.".to_string()
                 }
@@ -231,7 +238,7 @@ impl UpdateHandler {
                     .await
                 {
                     Ok(Some(linked)) => format!(
-                        "Your Telegram account is linked to @{} on OpenChat.",
+                        "Your Telegram account is linked to <code>@{}</code> on OpenChat.",
                         escape(&linked.username)
                     ),
                     Ok(None) => "Your Telegram account isn't linked to OpenChat. To link it, open \
@@ -246,19 +253,17 @@ impl UpdateHandler {
         }
         lines.join("\n")
     }
-
-    /// Returns whether the account was linked
-    async fn unlink(&self, user: BridgedUserId) -> Result<bool> {
-        if self.bridge.linked_user(user).await?.is_none() {
-            return Ok(false);
-        }
-        self.bridge.unlink(user).await?;
-        Ok(true)
-    }
 }
 
 /// The command and its argument, if the text is one of this bot's commands. `/bridge@OtherBot` is
 /// another bot's.
+/// Whether the bridge answers a command in a group. The rest, eg. another bot's /start, are relayed
+/// like any message. /status is a common name, so it's only taken on its own, not, say, in
+/// "/status is green".
+fn is_group_command(command: &str, arg: Option<&str>) -> bool {
+    matches!(command, "bridge" | "unbridge") || (command == "status" && arg.is_none())
+}
+
 fn parse_command(text: &str, username: &str) -> Option<(String, Option<String>)> {
     let mut parts = text.trim().splitn(2, char::is_whitespace);
     let command = parts.next()?.strip_prefix('/')?;
@@ -369,6 +374,17 @@ mod tests {
 
     fn message(value: serde_json::Value) -> Message {
         serde_json::from_value(value).unwrap()
+    }
+
+    #[test]
+    fn only_the_bridge_commands_are_answered_in_groups() {
+        assert!(is_group_command("bridge", None));
+        assert!(is_group_command("bridge", Some("abc")));
+        assert!(is_group_command("unbridge", None));
+        assert!(is_group_command("status", None));
+        assert!(!is_group_command("status", Some("is green")));
+        assert!(!is_group_command("start", None));
+        assert!(!is_group_command("unlink", None));
     }
 
     #[test]

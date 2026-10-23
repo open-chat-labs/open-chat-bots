@@ -258,6 +258,20 @@ mod tests {
     }
 
     #[test]
+    fn chat_urls_match_the_website_routes() {
+        let community: CanisterId = Principal::from_slice(&[1]).into();
+        let group: CanisterId = Principal::from_slice(&[2]).into();
+        assert_eq!(
+            oc_chat_url(&Chat::Group(group)),
+            format!("https://oc.app/group/{group}")
+        );
+        assert_eq!(
+            oc_chat_url(&Chat::Channel(community, 2656124989)),
+            format!("https://oc.app/community/{community}/channel/2656124989")
+        );
+    }
+
+    #[test]
     fn mentions_are_found_once_each() {
         let alice = Principal::from_slice(&[1]);
         let bob = Principal::from_slice(&[2]);

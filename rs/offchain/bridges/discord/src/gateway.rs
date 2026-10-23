@@ -189,11 +189,10 @@ impl Handler {
             }
             "unlink" => {
                 let user = BridgedUserId::Discord(command.user.id.get());
-                if self.bridge.linked_user(user).await?.is_none() {
-                    "Your Discord account isn't linked to OpenChat.".to_string()
-                } else {
-                    self.bridge.unlink(user).await?;
+                if self.bridge.unlink(user).await? {
                     "Your Discord account is no longer linked to an OpenChat account.".to_string()
+                } else {
+                    "Your Discord account isn't linked to OpenChat.".to_string()
                 }
             }
             _ => "Unknown command".to_string(),
