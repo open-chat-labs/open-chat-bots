@@ -226,7 +226,8 @@ mod tests {
     use oc_bots_sdk::jwt::Claims;
     use oc_bots_sdk::types::{
         BotActionByCommandClaims, BotActionChatDetails, BotCommandScope, BotPermissions,
-        BotRegisteredEvent, BridgePlatform, CanisterId,
+        BotRegisteredEvent, BotUninstalledEvent, BridgePlatform, CanisterId, CommunityId,
+        InstallationLocation,
     };
     use p256::ecdsa::signature::Signer;
     use p256::ecdsa::{Signature, SigningKey};
@@ -281,6 +282,27 @@ mod tests {
 
     // A notification as OpenChat encodes and signs it
     fn notification(api_gateway: CanisterId, notification_index: u64) -> (Vec<u8>, String) {
+        lifecycle_notification(
+            api_gateway,
+            notification_index,
+            Lifecycle::Registered(BotRegisteredEvent {
+                bot_id: Principal::anonymous().into(),
+                bot_name: "bridge".to_string(),
+            }),
+        )
+    }
+
+    #[derive(Serialize)]
+    enum Lifecycle {
+        Registered(BotRegisteredEvent),
+        Uninstalled(BotUninstalledEvent),
+    }
+
+    fn lifecycle_notification(
+        api_gateway: CanisterId,
+        notification_index: u64,
+        lifecycle: Lifecycle,
+    ) -> (Vec<u8>, String) {
         #[derive(Serialize)]
         struct Wrapper {
             api_gateway: CanisterId,
@@ -292,17 +314,10 @@ mod tests {
         enum Event {
             Lifecycle(Lifecycle),
         }
-        #[derive(Serialize)]
-        enum Lifecycle {
-            Registered(BotRegisteredEvent),
-        }
 
         let payload = oc_bots_sdk::msgpack::serialize_then_unwrap(Wrapper {
             api_gateway,
-            event: Event::Lifecycle(Lifecycle::Registered(BotRegisteredEvent {
-                bot_id: Principal::anonymous().into(),
-                bot_name: "bridge".to_string(),
-            })),
+            event: Event::Lifecycle(lifecycle),
             timestamp: 1,
             notification_index,
         });
@@ -365,6 +380,52 @@ mod tests {
             post_notification(&bridge, body, Some(&signature)).await,
             StatusCode::OK
         );
+    }
+
+    #[tokio::test]
+    async fn uninstalling_the_bot_from_a_community_unpairs_its_channels() {
+        let bridge = bridge().await;
+        let community: CommunityId = Principal::from_slice(&[3]).into();
+        let pairing = |platform_chat: &str, oc_chat| Pairing {
+            platform_chat: platform_chat.to_string(),
+            oc_chat,
+            api_gateway: Principal::anonymous().into(),
+            platform_data: None,
+        };
+        let group = oc_bots_sdk::types::Chat::Group(Principal::from_slice(&[4]).into());
+        for paired in [
+            pairing("1", oc_bots_sdk::types::Chat::Channel(community, 7)),
+            pairing("2", oc_bots_sdk::types::Chat::Channel(community, 8)),
+            pairing("3", group),
+        ] {
+            bridge.store.save_pairing(&paired).await.unwrap();
+        }
+
+        let (body, signature) = lifecycle_notification(
+            Principal::from_slice(&[5]).into(),
+            1,
+            Lifecycle::Uninstalled(BotUninstalledEvent {
+                uninstalled_by: Principal::from_slice(&[6]).into(),
+                location: InstallationLocation::Community(community),
+            }),
+        );
+        assert_eq!(
+            post_notification(&bridge, body, Some(&signature)).await,
+            StatusCode::OK
+        );
+
+        assert_eq!(bridge.store.pairing("1").await.unwrap(), None);
+        assert_eq!(bridge.store.pairing("2").await.unwrap(), None);
+        assert!(
+            bridge
+                .store
+                .paired_channels(community)
+                .await
+                .unwrap()
+                .is_empty()
+        );
+        // Elsewhere, so still paired
+        assert!(bridge.store.pairing("3").await.unwrap().is_some());
     }
 
     #[tokio::test]

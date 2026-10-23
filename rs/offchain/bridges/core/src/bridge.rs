@@ -8,9 +8,12 @@ use crate::util::{
     without_mention_everyone,
 };
 use anyhow::Result;
-use oc_bots_sdk::api::event_notification::{BotChatEvent, BotEvent, BotEventWrapper};
+use oc_bots_sdk::api::event_notification::{
+    BotChatEvent, BotEvent, BotEventWrapper, BotLifecycleEvent,
+};
 use oc_bots_sdk::types::{
-    BridgePlatform, BridgedUser, BridgedUserId, CanisterId, Chat, ChatEvent, Message,
+    BridgePlatform, BridgedUser, BridgedUserId, CanisterId, Chat, ChatEvent, InstallationLocation,
+    Message,
 };
 use std::collections::HashSet;
 use std::sync::Mutex;
@@ -323,6 +326,9 @@ impl<P: Platform> Bridge<P> {
 
         let result = match wrapper.event {
             BotEvent::Chat(event) => self.relay_outbound(event).await,
+            BotEvent::Lifecycle(BotLifecycleEvent::Uninstalled(event)) => {
+                self.uninstalled(event.location).await
+            }
             BotEvent::Community(_) | BotEvent::Lifecycle(_) => Ok(()),
         };
         if let Err(error) = result {
@@ -338,6 +344,35 @@ impl<P: Platform> Bridge<P> {
             warn!(%error, "Failed to record a notification as handled");
         }
         NotificationOutcome::Handled
+    }
+
+    /// The bot was uninstalled from an OpenChat group or community, so its chats there which are
+    /// paired are unpaired, and the platform chats are told
+    async fn uninstalled(&self, location: InstallationLocation) -> Result<()> {
+        let chats = match location {
+            InstallationLocation::Group(id) => vec![Chat::Group(id)],
+            InstallationLocation::Community(id) => self
+                .store
+                .paired_channels(id)
+                .await?
+                .into_iter()
+                .map(|channel| Chat::Channel(id, channel))
+                .collect(),
+            InstallationLocation::User(_) => Vec::new(),
+        };
+        for chat in chats {
+            if let Some(pairing) = self.store.pairing_for_oc_chat(&chat).await? {
+                // The bot can't post in the OpenChat chat any more, so only the platform chat's told
+                self.store.remove_pairing(&pairing).await?;
+                self.platform_unpaired(&pairing).await;
+                info!(
+                    platform_chat = pairing.platform_chat,
+                    ?chat,
+                    "Unpaired, as the bot was uninstalled"
+                );
+            }
+        }
+        Ok(())
     }
 
     /// Relays a new message, an edit or a deletion from an OpenChat chat to the platform chat it's
