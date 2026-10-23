@@ -135,13 +135,20 @@ async fn setup(api: &TelegramApi, config: &Config) -> Result<()> {
         &[
             ("bridge", "Bridge this group with OpenChat"),
             ("unbridge", "Stop bridging this group with OpenChat"),
+            (
+                "status",
+                "Show whether this group is bridged, and whether you're linked",
+            ),
         ],
         "all_group_chats",
     )
     .await?;
     api.set_my_commands(
         &[
-            ("link", "Link your Telegram account to OpenChat"),
+            (
+                "status",
+                "Show whether your Telegram account is linked to OpenChat",
+            ),
             ("unlink", "Unlink your Telegram account from OpenChat"),
         ],
         "all_private_chats",

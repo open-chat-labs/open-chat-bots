@@ -251,6 +251,28 @@ impl OpenChat {
         }
     }
 
+    /// The id of the OpenChat user the account is linked to, if any
+    pub async fn linked_user_id(&self, id: BridgedUserId) -> Result<Option<UserId>> {
+        let response = with_retries(|| {
+            let client = self.user_index_client();
+            async move { client.bridged_users(vec![id]).execute_async().await }
+        })
+        .await?;
+        let BridgedUsersResponse::Success(users) = response;
+        Ok(users.into_iter().next().and_then(|u| u.linked_user_id))
+    }
+
+    /// The OpenChat user the account is linked to, if any
+    pub async fn linked_user(&self, id: BridgedUserId) -> Result<Option<LinkedUser>> {
+        let Some(user_id) = self.linked_user_id(id).await? else {
+            return Ok(None);
+        };
+        Ok(self.fetch_user(user_id).await?.map(|user| LinkedUser {
+            user_id,
+            username: user.username,
+        }))
+    }
+
     /// Unlinks the account from whoever it's linked to
     pub async fn unlink(&self, user: BridgedUserId) -> Result<()> {
         let response = with_retries(|| {

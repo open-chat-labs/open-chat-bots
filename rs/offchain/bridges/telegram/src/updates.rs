@@ -2,7 +2,7 @@ use crate::api::{Message, TelegramApi, Update};
 use crate::platform::{Telegram, escape};
 use anyhow::Result;
 use oc_bots_sdk::types::{BridgedUser, BridgedUserId, TelegramUser};
-use oc_bridge_core::util::without_mention_everyone;
+use oc_bridge_core::util::{oc_chat_url, without_mention_everyone};
 use oc_bridge_core::{Bridge, InboundMessage, PendingPairing};
 use std::sync::Arc;
 use tracing::warn;
@@ -39,10 +39,9 @@ impl UpdateHandler {
 
     async fn message(&self, message: Message) -> Result<()> {
         let is_private = message.chat.kind == "private";
-        // Other commands in a group, eg. another bot's /start, are relayed like any message
         if let Some((command, arg)) = self
             .command(&message)
-            .filter(|(command, _)| is_private || matches!(command.as_str(), "bridge" | "unbridge"))
+            .filter(|(command, arg)| is_private || is_group_command(command, arg.as_deref()))
         {
             let reply = if is_private {
                 self.private_command(&message, &command, arg).await
@@ -50,8 +49,14 @@ impl UpdateHandler {
                 self.group_command(&message, &command).await
             };
             if let Some(reply) = reply {
+                // In a group, replying to the command shows whose it is
+                let reply_to = (!is_private).then_some(message.message_id);
                 // A failed reply isn't worth Telegram retrying the command for
-                if let Err(error) = self.api.send_message(message.chat.id, &reply, None).await {
+                if let Err(error) = self
+                    .api
+                    .send_message(message.chat.id, &reply, reply_to)
+                    .await
+                {
                     warn!(%error, command, "Failed to reply to a command");
                 }
             }
@@ -97,6 +102,10 @@ impl UpdateHandler {
 
     async fn group_command(&self, message: &Message, command: &str) -> Option<String> {
         let chat = &message.chat;
+        // Anyone in the group can see whether it's bridged
+        if command == "status" {
+            return Some(self.status(message, Some(&chat.id.to_string())).await);
+        }
         // Run as themself, as the bridge can't message an anonymous admin privately
         let Some(from) = message
             .from
@@ -170,8 +179,9 @@ impl UpdateHandler {
         Some(match (command, arg) {
             // The link the user followed from their OpenChat profile, eg. t.me/bot?start=<code>
             ("start", Some(code)) => match self.bridge.link(author(message), code).await {
+                // In <code>, so Telegram doesn't take the username as a Telegram user's
                 Ok(linked) => format!(
-                    "Your Telegram account is now linked to @{} on OpenChat.",
+                    "Your Telegram account is now linked to <code>@{}</code> on OpenChat.",
                     escape(&linked.username)
                 ),
                 Err(error) => {
@@ -180,10 +190,12 @@ impl UpdateHandler {
                         .to_string()
                 }
             },
+            ("status", _) => self.status(message, None).await,
             ("unlink", _) => match self.bridge.unlink(BridgedUserId::Telegram(from.id)).await {
-                Ok(()) => {
+                Ok(true) => {
                     "Your Telegram account is no longer linked to an OpenChat account.".to_string()
                 }
+                Ok(false) => "Your Telegram account isn't linked to OpenChat.".to_string(),
                 Err(error) => {
                     warn!(%error, "Failed to unlink a Telegram account");
                     "Something went wrong. Please try again.".to_string()
@@ -196,10 +208,62 @@ impl UpdateHandler {
                 .to_string(),
         })
     }
+
+    /// Whether the group is bridged, when run in one, and whether the user's account is linked
+    async fn status(&self, message: &Message, group: Option<&str>) -> String {
+        let mut lines = Vec::new();
+        if let Some(group) = group {
+            lines.push(match self.bridge.store.pairing(group).await {
+                Ok(Some(pairing)) => format!(
+                    "This group is bridged with {}.",
+                    oc_chat_url(&pairing.oc_chat)
+                ),
+                Ok(None) => "This group isn't bridged with OpenChat.".to_string(),
+                Err(error) => {
+                    warn!(%error, "Failed to look up a group's pairing");
+                    return "Something went wrong. Please try again.".to_string();
+                }
+            });
+        }
+        // A group's anonymous admins, or a channel, have no account to link
+        if let Some(from) = message
+            .from
+            .as_ref()
+            .filter(|_| message.sender_chat.is_none())
+        {
+            lines.push(
+                match self
+                    .bridge
+                    .linked_user(BridgedUserId::Telegram(from.id))
+                    .await
+                {
+                    Ok(Some(linked)) => format!(
+                        "Your Telegram account is linked to <code>@{}</code> on OpenChat.",
+                        escape(&linked.username)
+                    ),
+                    Ok(None) => "Your Telegram account isn't linked to OpenChat. To link it, open \
+                        your profile in OpenChat, then choose Link Telegram under Linked accounts."
+                        .to_string(),
+                    Err(error) => {
+                        warn!(%error, "Failed to look up a linked account");
+                        return "Something went wrong. Please try again.".to_string();
+                    }
+                },
+            );
+        }
+        lines.join("\n")
+    }
 }
 
 /// The command and its argument, if the text is one of this bot's commands. `/bridge@OtherBot` is
 /// another bot's.
+/// Whether the bridge answers a command in a group. The rest, eg. another bot's /start, are relayed
+/// like any message. /status is a common name, so it's only taken on its own, not, say, in
+/// "/status is green".
+fn is_group_command(command: &str, arg: Option<&str>) -> bool {
+    matches!(command, "bridge" | "unbridge") || (command == "status" && arg.is_none())
+}
+
 fn parse_command(text: &str, username: &str) -> Option<(String, Option<String>)> {
     let mut parts = text.trim().splitn(2, char::is_whitespace);
     let command = parts.next()?.strip_prefix('/')?;
@@ -211,8 +275,11 @@ fn parse_command(text: &str, username: &str) -> Option<(String, Option<String>)>
         return None;
     }
     let arg = parts.next().map(str::trim).filter(|a| !a.is_empty());
-    matches!(command, "bridge" | "unbridge" | "start" | "link" | "unlink")
-        .then(|| (command.to_string(), arg.map(str::to_string)))
+    matches!(
+        command,
+        "bridge" | "unbridge" | "status" | "start" | "unlink"
+    )
+    .then(|| (command.to_string(), arg.map(str::to_string)))
 }
 
 /// Who sent the message: a user, or a chat, eg. a group's anonymous admins
@@ -310,6 +377,17 @@ mod tests {
     }
 
     #[test]
+    fn only_the_bridge_commands_are_answered_in_groups() {
+        assert!(is_group_command("bridge", None));
+        assert!(is_group_command("bridge", Some("abc")));
+        assert!(is_group_command("unbridge", None));
+        assert!(is_group_command("status", None));
+        assert!(!is_group_command("status", Some("is green")));
+        assert!(!is_group_command("start", None));
+        assert!(!is_group_command("unlink", None));
+    }
+
+    #[test]
     fn commands_addressed_to_other_bots_are_left() {
         assert_eq!(
             parse_command("/bridge", "OCBridgeBot"),
@@ -324,6 +402,12 @@ mod tests {
             parse_command("/start abc123", "OCBridgeBot"),
             Some(("start".to_string(), Some("abc123".to_string())))
         );
+        assert_eq!(
+            parse_command("/status@OCBridgeBot", "OCBridgeBot"),
+            Some(("status".to_string(), None))
+        );
+        // Linking is done from OpenChat, so /link is just a message
+        assert_eq!(parse_command("/link", "OCBridgeBot"), None);
         assert_eq!(parse_command("/help", "OCBridgeBot"), None);
         assert_eq!(parse_command("hello", "OCBridgeBot"), None);
     }

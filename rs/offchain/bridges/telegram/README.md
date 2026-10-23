@@ -34,6 +34,9 @@ the Discord bridge, are in [`../core`](../core).
   3. The bridge redeems the code for it.
 
   `/unlink` in a private chat with the bot unlinks their account.
+- **`/status`** tells the user whether their account is linked, and to whom. In a group, it also says
+  whether the group is bridged, with a link to the OpenChat chat. Anyone in the group can run it,
+  and the reply is posted in the group.
 - **State** is kept in DynamoDB, in the same kind of table as the Discord bridge's. The two can share
   a table, as their keys don't overlap.
 - **Retries:** Telegram resends an update the bridge didn't answer with 200, and OpenChat resends a

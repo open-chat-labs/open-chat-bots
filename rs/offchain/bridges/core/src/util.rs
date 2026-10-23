@@ -1,6 +1,7 @@
 use ic_agent::export::Principal;
 use oc_bots_sdk::types::{
-    BlobReference, BridgedUser, CanisterId, CryptoTransaction, MessageContent, MessageId, UserId,
+    BlobReference, BridgedUser, CanisterId, Chat, CryptoTransaction, MessageContent, MessageId,
+    UserId,
 };
 use sha2::{Digest, Sha256};
 
@@ -44,6 +45,17 @@ pub fn user_avatar_url(
         format!("https://{canister_id}.raw.icp0.io/user/{index}/avatar/{avatar_id}")
     } else {
         format!("https://{principal}.raw.icp0.io/avatar/{avatar_id}")
+    }
+}
+
+/// Where a chat is on OpenChat's website
+pub fn oc_chat_url(chat: &Chat) -> String {
+    match chat {
+        Chat::Direct(id) => format!("https://oc.app/user/{id}"),
+        Chat::Group(id) => format!("https://oc.app/group/{id}"),
+        Chat::Channel(community, channel) => {
+            format!("https://oc.app/community/{community}/channel/{channel}")
+        }
     }
 }
 
@@ -242,6 +254,20 @@ mod tests {
         assert_eq!(
             user_avatar_url(canister.into(), 99, false, user_index),
             format!("https://{canister}.raw.icp0.io/avatar/99")
+        );
+    }
+
+    #[test]
+    fn chat_urls_match_the_website_routes() {
+        let community: CanisterId = Principal::from_slice(&[1]).into();
+        let group: CanisterId = Principal::from_slice(&[2]).into();
+        assert_eq!(
+            oc_chat_url(&Chat::Group(group)),
+            format!("https://oc.app/group/{group}")
+        );
+        assert_eq!(
+            oc_chat_url(&Chat::Channel(community, 2656124989)),
+            format!("https://oc.app/community/{community}/channel/2656124989")
         );
     }
 
