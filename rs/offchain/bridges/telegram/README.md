@@ -45,14 +45,18 @@ the Discord bridge, are in [`../core`](../core).
   - It's at `telegram/<user id>/<file_unique_id>.jpg`. The bridge sends OpenChat the photo's
     `file_unique_id` with each message, and the website builds the url from it, as it does a
     Discord avatar's from its hash. A new photo has a new url, so a photo is cached forever.
-  - Telegram doesn't tell bots when a photo changes, so the bridge asks at most once a day, when
-    the user sends a message. It only copies a photo it hasn't copied already.
+  - Telegram doesn't tell bots when a photo changes, so the bridge asks about once a day, when the
+    user sends a message, and copies a photo it hasn't copied before. Messages sent together may
+    each ask.
   - A replaced photo is deleted at the next check, a day or more later, by when OpenChat's
-    clients have the new profile. The CDN may serve its copies a while longer.
+    clients have the new profile. If that fails, it's left. The CDN may serve its copies a while
+    longer.
   - A user with no photo the bot can see, which their privacy settings decide, has none in
     OpenChat. A linked account shows its OpenChat avatar.
   - If an update fails, the bridge keeps the photo it copied before and tries again an hour later.
-    It gives up after 10 seconds, so a message isn't held up for long.
+    It gives up after 10 seconds, so a message isn't held up for long. If what it copied before
+    can't be read either, the message goes without a photo, and OpenChat shows none until the
+    user's next message.
 - **Retries:** Telegram resends an update the bridge didn't answer with 200, and OpenChat resends a
   notification. Messages are relayed into OpenChat with ids derived from their Telegram ids, so a
   resent update can't post a message twice. An OpenChat canister being upgraded, so briefly

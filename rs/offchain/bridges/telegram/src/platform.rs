@@ -23,7 +23,8 @@ impl Platform for Telegram {
     const NAME: &'static str = "Telegram";
 
     async fn complete_author(&self, author: &mut BridgedUser) {
-        // A chat, eg. a channel or a group's anonymous admins, has a negative id and no profile photo
+        // A chat, eg. a channel or a group's anonymous admins, has a negative id, and Telegram's
+        // `getUserProfilePhotos` only takes users'
         if let (BridgedUser::Telegram(user), Some(avatars)) = (author, &self.avatars)
             && user.id > 0
         {

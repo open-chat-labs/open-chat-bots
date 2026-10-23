@@ -65,7 +65,7 @@ impl Avatars {
             }
         };
         if let Some(stored) = &stored
-            && now < stored.checked + CHECK_INTERVAL
+            && !is_due(stored, now)
         {
             return stored.photo_id.clone();
         }
@@ -74,14 +74,7 @@ impl Avatars {
             Ok(avatar) => avatar,
             Err(error) => {
                 warn!(%error, user_id, "Failed to update a Telegram user's photo");
-                StoredAvatar {
-                    checked: now + RETRY_AFTER_FAILURE - CHECK_INTERVAL,
-                    ..stored.unwrap_or(StoredAvatar {
-                        photo_id: None,
-                        replaced: None,
-                        checked: now,
-                    })
-                }
+                after_failure(stored, now)
             }
         };
         if let Err(error) = self.store.save_avatar(&key, &avatar).await {
@@ -119,33 +112,26 @@ impl Avatars {
                 }
                 valid
             });
-        let photo_id = photo.as_ref().map(|photo| photo.file_unique_id.clone());
-        let previous = stored.and_then(|stored| stored.photo_id.clone());
+        let plan = plan(
+            stored,
+            photo.as_ref().map(|photo| photo.file_unique_id.clone()),
+            now,
+        );
 
-        // Deleted a day after it was replaced, by when OpenChat's clients have the new profile,
-        // unless the user has gone back to it
-        if let Some(replaced) = stored.and_then(|stored| stored.replaced.as_ref())
-            && photo_id.as_ref() != Some(replaced)
-        {
-            self.s3
+        if let Some(replaced) = &plan.delete {
+            // Not worth holding up the user's new photo for, so it's left if this fails
+            if let Err(error) = self
+                .s3
                 .delete_object()
                 .bucket(&self.bucket)
                 .key(object_key(user_id, replaced))
                 .send()
                 .await
-                .map_err(|error| {
-                    anyhow!("Deleting a photo failed: {}", DisplayErrorContext(error))
-                })?;
+            {
+                warn!(error = %DisplayErrorContext(error), user_id, "Failed to delete a replaced photo");
+            }
         }
-        if photo_id == previous {
-            return Ok(StoredAvatar {
-                photo_id,
-                replaced: None,
-                checked: now,
-            });
-        }
-
-        if let Some(photo) = photo {
+        if let Some(photo) = photo.filter(|_| plan.upload) {
             let bytes = self.api.download_file(&photo.file_id).await?;
             self.s3
                 .put_object()
@@ -162,9 +148,49 @@ impl Avatars {
                     anyhow!("Uploading a photo failed: {}", DisplayErrorContext(error))
                 })?;
         }
-        Ok(StoredAvatar {
+        Ok(plan.record)
+    }
+}
+
+/// What a check does, given what the bridge recorded and the user's current photo
+#[derive(Debug, PartialEq)]
+struct Plan {
+    /// A photo replaced at the last check, deleted now that OpenChat's clients have the new profile
+    delete: Option<String>,
+    /// Whether the current photo is new, so needs copying
+    upload: bool,
+    record: StoredAvatar,
+}
+
+fn plan(stored: Option<&StoredAvatar>, photo_id: Option<String>, now: TimestampMillis) -> Plan {
+    let previous = stored.and_then(|stored| stored.photo_id.clone());
+    // Unless the user has gone back to it
+    let delete = stored
+        .and_then(|stored| stored.replaced.clone())
+        .filter(|replaced| photo_id.as_ref() != Some(replaced));
+    let changed = photo_id != previous;
+    Plan {
+        delete,
+        upload: changed && photo_id.is_some(),
+        record: StoredAvatar {
             photo_id,
-            replaced: previous,
+            replaced: if changed { previous } else { None },
+            checked: now,
+        },
+    }
+}
+
+fn is_due(stored: &StoredAvatar, now: TimestampMillis) -> bool {
+    now >= stored.checked + CHECK_INTERVAL
+}
+
+// What was recorded before is kept, but due again after `RETRY_AFTER_FAILURE`
+fn after_failure(stored: Option<StoredAvatar>, now: TimestampMillis) -> StoredAvatar {
+    StoredAvatar {
+        checked: now + RETRY_AFTER_FAILURE - CHECK_INTERVAL,
+        ..stored.unwrap_or(StoredAvatar {
+            photo_id: None,
+            replaced: None,
             checked: now,
         })
     }
@@ -186,6 +212,138 @@ fn is_valid_photo_id(photo_id: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const NOW: TimestampMillis = 1_000_000_000_000;
+
+    fn record(photo_id: Option<&str>, replaced: Option<&str>) -> StoredAvatar {
+        StoredAvatar {
+            photo_id: photo_id.map(str::to_string),
+            replaced: replaced.map(str::to_string),
+            checked: NOW,
+        }
+    }
+
+    fn check(stored: Option<StoredAvatar>, photo_id: Option<&str>) -> Plan {
+        plan(stored.as_ref(), photo_id.map(str::to_string), NOW)
+    }
+
+    #[test]
+    fn a_first_photo_is_copied() {
+        assert_eq!(
+            check(None, Some("x")),
+            Plan {
+                delete: None,
+                upload: true,
+                record: record(Some("x"), None),
+            }
+        );
+        assert_eq!(
+            check(None, None),
+            Plan {
+                delete: None,
+                upload: false,
+                record: record(None, None),
+            }
+        );
+    }
+
+    #[test]
+    fn an_unchanged_photo_is_left() {
+        assert_eq!(
+            check(Some(record(Some("x"), None)), Some("x")),
+            Plan {
+                delete: None,
+                upload: false,
+                record: record(Some("x"), None),
+            }
+        );
+    }
+
+    #[test]
+    fn a_replaced_photo_is_deleted_at_the_next_check() {
+        let changed = check(Some(record(Some("x"), None)), Some("y"));
+        assert_eq!(
+            changed,
+            Plan {
+                delete: None,
+                upload: true,
+                record: record(Some("y"), Some("x")),
+            }
+        );
+        assert_eq!(
+            check(Some(changed.record), Some("y")),
+            Plan {
+                delete: Some("x".to_string()),
+                upload: false,
+                record: record(Some("y"), None),
+            }
+        );
+    }
+
+    #[test]
+    fn a_photo_replaced_again_before_the_next_check() {
+        assert_eq!(
+            check(Some(record(Some("y"), Some("x"))), Some("z")),
+            Plan {
+                delete: Some("x".to_string()),
+                upload: true,
+                record: record(Some("z"), Some("y")),
+            }
+        );
+    }
+
+    #[test]
+    fn going_back_to_a_replaced_photo_keeps_it() {
+        assert_eq!(
+            check(Some(record(Some("y"), Some("x"))), Some("x")),
+            Plan {
+                delete: None,
+                upload: true,
+                record: record(Some("x"), Some("y")),
+            }
+        );
+    }
+
+    #[test]
+    fn a_removed_photo_is_deleted_at_the_next_check() {
+        let removed = check(Some(record(Some("x"), None)), None);
+        assert_eq!(
+            removed,
+            Plan {
+                delete: None,
+                upload: false,
+                record: record(None, Some("x")),
+            }
+        );
+        assert_eq!(
+            check(Some(removed.record), None),
+            Plan {
+                delete: Some("x".to_string()),
+                upload: false,
+                record: record(None, None),
+            }
+        );
+    }
+
+    #[test]
+    fn a_photo_is_checked_daily() {
+        let stored = record(Some("x"), None);
+        assert!(!is_due(&stored, NOW + CHECK_INTERVAL - 1));
+        assert!(is_due(&stored, NOW + CHECK_INTERVAL));
+    }
+
+    #[test]
+    fn after_a_failure_the_record_is_kept_and_checked_an_hour_later() {
+        let failed = after_failure(Some(record(Some("y"), Some("x"))), NOW);
+        assert_eq!(failed.photo_id.as_deref(), Some("y"));
+        assert_eq!(failed.replaced.as_deref(), Some("x"));
+        assert!(!is_due(&failed, NOW + RETRY_AFTER_FAILURE - 1));
+        assert!(is_due(&failed, NOW + RETRY_AFTER_FAILURE));
+
+        let first = after_failure(None, NOW);
+        assert_eq!(first.photo_id, None);
+        assert!(is_due(&first, NOW + RETRY_AFTER_FAILURE));
+    }
 
     #[test]
     fn photo_ids_are_checked_as_openchat_does() {
