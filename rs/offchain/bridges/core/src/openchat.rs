@@ -5,6 +5,7 @@ use anyhow::{Result, anyhow, bail};
 use candid::{Decode, Encode};
 use ic_agent::identity::{BasicIdentity, Secp256k1Identity};
 use ic_agent::{Agent, Identity};
+use oc_bots_sdk::api::command::Message;
 use oc_bots_sdk::mainnet::{mainnet_oc_public_key, mainnet_user_index_canister_id};
 use oc_bots_sdk::oc_api::Runtime;
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
@@ -14,9 +15,9 @@ use oc_bots_sdk::oc_api::actions::link_bridged_user::Response as LinkResponse;
 use oc_bots_sdk::oc_api::actions::send_message::Response as SendResponse;
 use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::{
-    ActionScope, AutonomousContext, BridgedUser, BridgedUserId, BridgedUserSummary, CallError,
-    CanisterId, EventIndex, MessageContentInitial, MessageId, OCError, OCErrorCode,
-    TimestampMillis, UnitResult, UserId,
+    ActionScope, AutonomousContext, BotCommandContext, BridgedUser, BridgedUserId,
+    BridgedUserSummary, CallError, CanisterId, EventIndex, MessageContentInitial, MessageId,
+    OCError, OCErrorCode, TimestampMillis, UnitResult, UserId,
 };
 use oc_bots_sdk_offchain::{AgentRuntime, OgPreviewConfig, env};
 use serde::{Deserialize, Serialize};
@@ -233,6 +234,36 @@ impl OpenChat {
             }
             SendResponse::Error(error) => Err(oc_error(error)),
         }
+    }
+
+    /// Posts `text` as the bot's reply to a command, returning it to answer the command with. So
+    /// OpenChat shows it at once, in place of the command's placeholder, until its own copy arrives.
+    pub async fn reply_to_command(
+        &self,
+        context: &BotCommandContext,
+        text: String,
+    ) -> Result<Message> {
+        // Safe to retry, as the message's id is the command's, so it can't be posted twice
+        let (message, response) = with_retries(|| {
+            let client = Client::new(self.runtime.clone(), context.clone());
+            let text = text.clone();
+            async move {
+                let (message, response) = client
+                    .send_message(MessageContentInitial::from_text(text))
+                    .execute_async_then_return_message()
+                    .await;
+                response.map(|response| (message, response))
+            }
+        })
+        .await?;
+        match response {
+            SendResponse::Success(_) => {}
+            // A retry of a call which landed
+            SendResponse::Error(error)
+                if error.matches_code(OCErrorCode::MessageIdAlreadyExists) => {}
+            SendResponse::Error(error) => return Err(oc_error(error)),
+        }
+        message.ok_or_else(|| anyhow!("The command has no message to reply with"))
     }
 
     /// The bot's own user id, which OpenChat gave it when it was registered, eg. to tell its own

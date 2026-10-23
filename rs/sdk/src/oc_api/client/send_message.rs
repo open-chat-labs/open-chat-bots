@@ -110,16 +110,29 @@ impl<'c, R: Runtime, C: ActionContext> SendMessageBuilder<'c, R, C> {
         self,
         on_response: F,
     ) -> Option<Message> {
-        let message = self.client.context.message_id().map(|message_id| Message {
+        let message = self.message();
+        self.execute(on_response);
+        message
+    }
+
+    /// As [`Self::execute_then_return_message`], but waits for the call rather than spawning it,
+    /// eg. where the process may be stopped once the command's answered, as on AWS Lambda
+    pub async fn execute_async_then_return_message(
+        self,
+    ) -> (Option<Message>, CallResult<Response>) {
+        let message = self.message();
+        (message, self.execute_async().await)
+    }
+
+    // The message to answer the command with, which OpenChat shows until its own copy arrives
+    fn message(&self) -> Option<Message> {
+        self.client.context.message_id().map(|message_id| Message {
             id: message_id,
             content: self.content.clone(),
             finalised: self.finalised,
             block_level_markdown: self.block_level_markdown,
             ephemeral: false,
-        });
-
-        self.execute(on_response);
-        message
+        })
     }
 }
 

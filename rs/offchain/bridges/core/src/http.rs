@@ -1,19 +1,22 @@
 use crate::bridge::{Bridge, NotificationOutcome};
+use crate::model::Pairing;
 use crate::platform::Platform;
+use anyhow::Context;
 use axum::Router;
 use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Json, Response};
 use axum::routing::{get, post};
-use oc_bots_sdk::api::command::{BadRequest, EphemeralMessageBuilder, SuccessResult};
+use oc_bots_sdk::api::command::{BadRequest, EphemeralMessageBuilder, Message, SuccessResult};
 use oc_bots_sdk::api::definition::{
     AutonomousConfig, BotCommandDefinition, BotCommandParam, BotCommandParamType, BotDefinition,
     BotSubscriptions, StringParam,
 };
 use oc_bots_sdk::types::{
     BotCommandContext, BotCommandScope, BotPermissions, Chat, ChatEventType, ChatPermission,
-    ChatRole, InstallationLocationType, MessageContentInitial, MessagePermission, TokenError,
+    ChatRole, InstallationLocationType, MessageContentInitial, MessageId, MessagePermission,
+    TokenError,
 };
 use oc_bots_sdk_offchain::env;
 use std::collections::HashSet;
@@ -134,24 +137,69 @@ async fn execute_command<P: Platform>(
             .filter(|code| !code.trim().is_empty())
         {
             Some(code) => bridge_command(&bridge, &context, chat, &code).await,
-            None => Ok(bridge.platform.bridge_instructions()),
+            None => Ok(Reply::Private(bridge.platform.bridge_instructions())),
         },
-        "unbridge" => unbridge_command(&bridge, chat).await,
+        "unbridge" => unbridge_command(&bridge, &context, chat).await,
         _ => return bad_request(BadRequest::CommandNotFound),
     };
 
-    let text = match reply {
-        Ok(text) => text,
+    let message = match reply {
+        Ok(Reply::Posted(message)) => message,
+        Ok(Reply::Private(text)) => private(text, message_id),
         Err(error) => {
             warn!(?error, command = context.command.name, "Command failed");
-            "Something went wrong. Please try again.".to_string()
+            private(
+                "Something went wrong. Please try again.".to_string(),
+                message_id,
+            )
         }
     };
-    let result: SuccessResult =
-        EphemeralMessageBuilder::new(MessageContentInitial::from_text(text), message_id)
-            .build()
-            .into();
+    let result = SuccessResult {
+        message: Some(message),
+    };
     (StatusCode::OK, Json(result)).into_response()
+}
+
+enum Reply {
+    /// Only whoever ran the command sees it
+    Private(String),
+    /// Posted in the chat, eg. to say it's now bridged, and also the command's answer, so it shows
+    /// at once
+    Posted(Message),
+}
+
+fn private(text: String, message_id: MessageId) -> Message {
+    EphemeralMessageBuilder::new(MessageContentInitial::from_text(text), message_id).build()
+}
+
+// Posts what the chat's told as the command's reply, so it shows at once. A command run in a thread
+// would reply in the thread, where the chat's members may not see it, so then the chat's told in
+// its own right, and whoever ran it privately. If posting fails, whoever ran it is still told.
+async fn tell_chat<P: Platform>(
+    bridge: &Bridge<P>,
+    context: &BotCommandContext,
+    pairing: &Pairing,
+    text: String,
+) -> Reply {
+    let in_thread =
+        matches!(&context.scope, BotCommandScope::Chat(details) if details.thread.is_some());
+    if in_thread {
+        if let Err(error) = bridge.openchat.send_notice(pairing, text.clone()).await {
+            warn!(%error, "Failed to tell the chat");
+        }
+        return Reply::Private(text);
+    }
+    match bridge
+        .openchat
+        .reply_to_command(context, text.clone())
+        .await
+    {
+        Ok(message) => Reply::Posted(message),
+        Err(error) => {
+            warn!(%error, "Failed to tell the chat");
+            Reply::Private(text)
+        }
+    }
 }
 
 async fn bridge_command<P: Platform>(
@@ -159,32 +207,52 @@ async fn bridge_command<P: Platform>(
     context: &BotCommandContext,
     chat: Chat,
     code: &str,
-) -> anyhow::Result<String> {
+) -> anyhow::Result<Reply> {
     let name = P::NAME;
     if matches!(chat, Chat::Direct(_)) {
-        return Ok("Only groups and channels can be bridged.".to_string());
+        return Ok(Reply::Private(
+            "Only groups and channels can be bridged.".to_string(),
+        ));
     }
     Ok(
         match bridge
             .complete_pairing(code, chat, context.api_gateway)
             .await?
         {
-            Some(chat_name) => format!("This chat is now bridged with {chat_name} on {name}."),
-            None => format!(
+            Some(chat_name) => {
+                let pairing = bridge
+                    .store
+                    .pairing_for_oc_chat(&chat)
+                    .await?
+                    .context("The pairing was just saved")?;
+                let text = Bridge::<P>::now_bridged_text(&chat_name);
+                tell_chat(bridge, context, &pairing, text).await
+            }
+            None => Reply::Private(format!(
                 "That code is unknown or has expired. Run /bridge in {name} to get a new one."
-            ),
+            )),
         },
     )
 }
 
-async fn unbridge_command<P: Platform>(bridge: &Bridge<P>, chat: Chat) -> anyhow::Result<String> {
+async fn unbridge_command<P: Platform>(
+    bridge: &Bridge<P>,
+    context: &BotCommandContext,
+    chat: Chat,
+) -> anyhow::Result<Reply> {
     let name = P::NAME;
     Ok(match bridge.store.pairing_for_oc_chat(&chat).await? {
         Some(pairing) => {
-            bridge.unpair(&pairing).await?;
-            format!("This chat is no longer bridged with {name}.")
+            bridge.unpair(&pairing, false).await?;
+            tell_chat(
+                bridge,
+                context,
+                &pairing,
+                Bridge::<P>::no_longer_bridged_text(),
+            )
+            .await
         }
-        None => format!("This chat isn't bridged with {name}."),
+        None => Reply::Private(format!("This chat isn't bridged with {name}.")),
     })
 }
 

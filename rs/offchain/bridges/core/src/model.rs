@@ -64,6 +64,12 @@ pub struct InboundRef {
 /// The message on the other platform an OpenChat message was relayed as
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct OutboundRef {
+    /// The chat it was relayed to, which only matches the pairing's if the OpenChat chat hasn't
+    /// been paired with another since, nor the platform given the chat a new id, eg. a Telegram
+    /// group upgraded to a supergroup, whose old messages can't be edited there. Empty for those
+    /// saved before this was kept.
+    #[serde(default)]
+    pub platform_chat: PlatformChatId,
     pub platform_message_id: PlatformMessageId,
     /// Of the message's text, so a notification which doesn't change it, eg. when only its link
     /// previews were edited, isn't relayed as an edit
@@ -423,6 +429,15 @@ mod tests {
 
     fn store() -> BridgeStore {
         BridgeStore::new(Arc::new(InMemoryStore::default()), BridgePlatform::Discord)
+    }
+
+    // Those saved before it recorded its platform chat
+    #[test]
+    fn an_old_outbound_ref_is_read() {
+        let old: OutboundRef =
+            serde_json::from_str(r#"{"platform_message_id":"99","content_hash":5}"#).unwrap();
+        assert_eq!(old.platform_chat, "");
+        assert_eq!(old.platform_message_id, "99");
     }
 
     #[tokio::test]

@@ -174,7 +174,7 @@ impl<P: Platform> Bridge<P> {
         let Some(pairing) = self.store.pairing(platform_chat).await? else {
             return Ok(false);
         };
-        self.unpair(&pairing).await?;
+        self.unpair(&pairing, true).await?;
         Ok(true)
     }
 
@@ -198,11 +198,14 @@ impl<P: Platform> Bridge<P> {
         Ok(true)
     }
 
-    /// Unpairs the chats, and says so in both
-    pub async fn unpair(&self, pairing: &Pairing) -> Result<()> {
+    /// Unpairs the chats, and says so in the platform chat, and in OpenChat unless the caller does,
+    /// eg. /unbridge's reply
+    pub async fn unpair(&self, pairing: &Pairing, tell_openchat: bool) -> Result<()> {
         self.store.remove_pairing(pairing).await?;
         self.platform_unpaired(pairing).await;
-        self.say_no_longer_bridged(pairing).await;
+        if tell_openchat {
+            self.say_no_longer_bridged(pairing).await;
+        }
         info!(platform_chat = pairing.platform_chat, "Unpaired");
         Ok(())
     }
@@ -215,15 +218,18 @@ impl<P: Platform> Bridge<P> {
     }
 
     async fn say_no_longer_bridged(&self, pairing: &Pairing) {
-        let text = format!("This chat is no longer bridged with {}.", P::NAME);
-        if let Err(error) = self.openchat.send_notice(pairing, text).await {
+        if let Err(error) = self
+            .openchat
+            .send_notice(pairing, Self::no_longer_bridged_text())
+            .await
+        {
             warn!(%error, "Failed to say in OpenChat that the chat is no longer bridged");
         }
     }
 
     /// Pairs the OpenChat chat with the platform chat `code` was given for. A chat paired already,
     /// on either side, is unpaired first. Returns the platform chat's name, or None if the code is
-    /// unknown or has expired.
+    /// unknown or has expired. The OpenChat chat isn't told, as /bridge's reply does that.
     pub async fn complete_pairing(
         &self,
         code: &str,
@@ -268,17 +274,23 @@ impl<P: Platform> Bridge<P> {
         if let Err(error) = self.platform.paired(&pairing).await {
             warn!(%error, "Failed to announce the pairing");
         }
-        // Otherwise only whoever ran /bridge would know. The name is the platform chat's, which
-        // its admins choose, so it can't mention everyone.
-        let text = format!(
-            "This chat is now bridged with {} on {}, so messages sent in either appear in both.",
-            without_mention_everyone(&pending.name),
-            P::NAME
-        );
-        if let Err(error) = self.openchat.send_notice(&pairing, text).await {
-            warn!(%error, "Failed to announce the pairing in OpenChat");
-        }
+        // The OpenChat chat's told by /bridge's reply
         Ok(Some(pending.name))
+    }
+
+    /// What the OpenChat chat's told once it's bridged. The name is the platform chat's, which its
+    /// admins choose, so it can't mention everyone.
+    pub fn now_bridged_text(platform_chat_name: &str) -> String {
+        format!(
+            "This chat is now bridged with {} on {}, so messages sent in either appear in both.",
+            without_mention_everyone(platform_chat_name),
+            P::NAME
+        )
+    }
+
+    /// What the OpenChat chat's told once it's no longer bridged
+    pub fn no_longer_bridged_text() -> String {
+        format!("This chat is no longer bridged with {}.", P::NAME)
     }
 
     /// Links the platform account to the OpenChat user who was given `code` from their profile
@@ -420,7 +432,7 @@ impl<P: Platform> Bridge<P> {
         let may_post =
             event.event_index == event.latest_event_index || message.bot_context().is_some();
 
-        match outbound_action(hash, may_post, existing.as_ref()) {
+        match outbound_action(hash, may_post, existing.as_ref(), &pairing.platform_chat) {
             OutboundAction::Ignore => {}
             OutboundAction::Post => {
                 let outbound = self
@@ -434,12 +446,13 @@ impl<P: Platform> Bridge<P> {
                             Some(PermanentFailure::ChatGone)
                         ) {
                             warn!(platform_chat = pairing.platform_chat, "The chat is gone");
-                            self.unpair(&pairing).await?;
+                            self.unpair(&pairing, true).await?;
                         }
                         return Err(error);
                     }
                 };
                 let outbound_ref = OutboundRef {
+                    platform_chat: pairing.platform_chat.clone(),
                     platform_message_id: platform_message.clone(),
                     content_hash: hash.unwrap_or_default(),
                 };
@@ -474,6 +487,7 @@ impl<P: Platform> Bridge<P> {
                     .edit(&pairing, &platform_message, &outbound)
                     .await?;
                 let outbound_ref = OutboundRef {
+                    platform_chat: pairing.platform_chat.clone(),
                     platform_message_id: platform_message,
                     content_hash: hash.unwrap_or_default(),
                 };
@@ -605,8 +619,13 @@ fn outbound_action(
     hash: Option<u64>,
     may_post: bool,
     existing: Option<&OutboundRef>,
+    platform_chat: &str,
 ) -> OutboundAction {
     match (hash, existing) {
+        // Relayed to the chat this one was paired with before, or to the chat before the platform
+        // gave it a new id, or saved before refs said which, so editing or deleting it here would
+        // act on whichever message has its id in this chat. It was relayed, so it isn't new either.
+        (_, Some(existing)) if existing.platform_chat != platform_chat => OutboundAction::Ignore,
         (None, Some(existing)) => OutboundAction::Delete(existing.platform_message_id.clone()),
         (None, None) => OutboundAction::Ignore,
         (Some(_), None) if may_post => OutboundAction::Post,
@@ -680,30 +699,49 @@ mod tests {
     #[test]
     fn notifications_post_edit_or_delete_the_copy() {
         let copy = OutboundRef {
+            platform_chat: "123".to_string(),
             platform_message_id: "99".to_string(),
             content_hash: 5,
         };
+        fn action(
+            hash: Option<u64>,
+            may_post: bool,
+            existing: Option<&OutboundRef>,
+        ) -> OutboundAction {
+            outbound_action(hash, may_post, existing, "123")
+        }
 
-        assert_eq!(outbound_action(Some(5), true, None), OutboundAction::Post);
+        assert_eq!(action(Some(5), true, None), OutboundAction::Post);
         // Edited, but sent before the chat was paired
-        assert_eq!(
-            outbound_action(Some(5), false, None),
-            OutboundAction::Ignore
-        );
+        assert_eq!(action(Some(5), false, None), OutboundAction::Ignore);
         // Only its link previews changed
+        assert_eq!(action(Some(5), false, Some(&copy)), OutboundAction::Ignore);
         assert_eq!(
-            outbound_action(Some(5), false, Some(&copy)),
-            OutboundAction::Ignore
-        );
-        assert_eq!(
-            outbound_action(Some(6), false, Some(&copy)),
+            action(Some(6), false, Some(&copy)),
             OutboundAction::Edit("99".to_string())
         );
         assert_eq!(
-            outbound_action(None, false, Some(&copy)),
+            action(None, false, Some(&copy)),
             OutboundAction::Delete("99".to_string())
         );
-        assert_eq!(outbound_action(None, false, None), OutboundAction::Ignore);
+        assert_eq!(action(None, false, None), OutboundAction::Ignore);
+
+        // Relayed to the chat it was paired with before, whose message ids mean nothing in this
+        // one, or saved before refs said which
+        for platform_chat in ["456", ""] {
+            let elsewhere = OutboundRef {
+                platform_chat: platform_chat.to_string(),
+                ..copy.clone()
+            };
+            assert_eq!(
+                action(Some(6), true, Some(&elsewhere)),
+                OutboundAction::Ignore
+            );
+            assert_eq!(
+                action(None, false, Some(&elsewhere)),
+                OutboundAction::Ignore
+            );
+        }
     }
 
     #[test]
