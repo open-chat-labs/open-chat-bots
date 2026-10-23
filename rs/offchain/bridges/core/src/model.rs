@@ -64,6 +64,10 @@ pub struct InboundRef {
 /// The message on the other platform an OpenChat message was relayed as
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct OutboundRef {
+    /// The chat it was relayed to, which only matches the pairing's if the OpenChat chat hasn't
+    /// been paired with another since. Empty for those saved before this was kept.
+    #[serde(default)]
+    pub platform_chat: PlatformChatId,
     pub platform_message_id: PlatformMessageId,
     /// Of the message's text, so a notification which doesn't change it, eg. when only its link
     /// previews were edited, isn't relayed as an edit
