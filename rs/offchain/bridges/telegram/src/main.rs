@@ -1,6 +1,7 @@
 //! Bridges Telegram groups with OpenChat groups and public channels, both ways. See the README.
 
 use crate::api::{TelegramApi, Update};
+use crate::avatars::Avatars;
 use crate::config::Config;
 use crate::platform::Telegram;
 use crate::updates::UpdateHandler;
@@ -16,6 +17,7 @@ use std::sync::Arc;
 use tracing::{info, warn};
 
 mod api;
+mod avatars;
 mod config;
 mod platform;
 mod updates;
@@ -56,6 +58,10 @@ async fn main() -> Result<()> {
 
     let handler = UpdateHandler {
         bridge: bridge.clone(),
+        avatars: Avatars {
+            bridge: bridge.clone(),
+            api: api.clone(),
+        },
         api,
         username,
     };
@@ -183,7 +189,11 @@ mod tests {
         // Its OpenChat runtime can't be dropped within async code
         std::mem::forget(bridge.clone());
         let handler = UpdateHandler {
-            bridge,
+            bridge: bridge.clone(),
+            avatars: Avatars {
+                bridge,
+                api: api.clone(),
+            },
             api,
             username: "OCBridgeBot".to_string(),
         };

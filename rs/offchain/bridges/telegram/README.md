@@ -39,6 +39,14 @@ the Discord bridge, are in [`../core`](../core).
   and the reply is posted in the group.
 - **State** is kept in DynamoDB, in the same kind of table as the Discord bridge's. The two can share
   a table, as their keys don't overlap.
+- **Avatars:** a Telegram user's profile photo is copied into OpenChat's storage, as Telegram's
+  copies can only be fetched with the bot's token, and shown with their relayed messages.
+  - Telegram doesn't tell bots when a photo changes, so the bridge asks at most once a day, when
+    they send a message. It compares the photo's `file_unique_id` with the one it last copied, and
+    only copies a new one.
+  - A user with no photo the bot can see, which their privacy settings decide, has none in
+    OpenChat. A linked account shows its OpenChat avatar.
+  - If an update fails, the bridge keeps the photo it copied before and tries again an hour later.
 - **Retries:** Telegram resends an update the bridge didn't answer with 200, and OpenChat resends a
   notification. Messages are relayed into OpenChat with ids derived from their Telegram ids, so a
   resent update can't post a message twice. An OpenChat canister being upgraded, so briefly
@@ -56,7 +64,6 @@ the Discord bridge, are in [`../core`](../core).
     their files can only be fetched with the bot's token. Copying them into OpenChat's storage
     needs SDK support.
   - OpenChat's media become links to OpenChat's copies.
-- **Avatars:** Telegram users' avatars aren't relayed, for the same reason.
 - **Not relayed:** reactions, threads, and OpenChat's private channels. OpenChat doesn't send bots
   the messages of private channels.
 
