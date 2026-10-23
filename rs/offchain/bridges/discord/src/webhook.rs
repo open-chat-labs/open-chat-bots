@@ -2,6 +2,7 @@ use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
 use oc_bots_sdk::types::BridgePlatform;
 use oc_bridge_core::platform::PermanentFailure;
+use oc_bridge_core::util::oc_chat_url;
 use oc_bridge_core::{OutboundMessage, Pairing, Platform, PlatformMessageId, platform_name};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -118,14 +119,31 @@ impl Platform for Discord {
     }
 
     async fn paired(&self, pairing: &Pairing) -> Result<()> {
+        // In <>, so Discord doesn't add a preview of the link
+        let text = format!(
+            "This channel is now bridged with OpenChat, so messages sent in either appear in \
+            both: <{}>",
+            oc_chat_url(&pairing.oc_chat)
+        );
         ChannelId::new(pairing.platform_chat.parse()?)
-            .say(&self.http, "This channel is now bridged with OpenChat.")
+            .say(&self.http, text)
             .await
             .map_err(discord_error)?;
         Ok(())
     }
 
     async fn unpaired(&self, pairing: &Pairing) -> Result<()> {
+        // Said as the bot, so before its webhook is deleted. The channel may be gone, eg. as the
+        // pairing's being removed for that reason, but the webhook is still deleted.
+        if let Err(error) = ChannelId::new(pairing.platform_chat.parse()?)
+            .say(
+                &self.http,
+                "This channel is no longer bridged with OpenChat.",
+            )
+            .await
+        {
+            tracing::warn!(%error, "Failed to say the channel is no longer bridged");
+        }
         let webhook = DiscordPairing::from_pairing(pairing)?;
         self.http
             .delete_webhook_with_token(

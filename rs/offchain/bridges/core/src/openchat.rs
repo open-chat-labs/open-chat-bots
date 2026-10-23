@@ -9,6 +9,7 @@ use oc_bots_sdk::mainnet::{mainnet_oc_public_key, mainnet_user_index_canister_id
 use oc_bots_sdk::oc_api::Runtime;
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
 use oc_bots_sdk::oc_api::actions::bridged_users::Response as BridgedUsersResponse;
+use oc_bots_sdk::oc_api::actions::installation_events::Response as InstallationEventsResponse;
 use oc_bots_sdk::oc_api::actions::link_bridged_user::Response as LinkResponse;
 use oc_bots_sdk::oc_api::actions::send_message::Response as SendResponse;
 use oc_bots_sdk::oc_api::client::Client;
@@ -98,6 +99,7 @@ pub struct OpenChat {
     // For calls to ledgers, which take candid rather than msgpack
     agent: Agent,
     token_decimals: Mutex<HashMap<CanisterId, u8>>,
+    bot_id: tokio::sync::OnceCell<UserId>,
 }
 
 impl OpenChat {
@@ -141,6 +143,7 @@ impl OpenChat {
             authors: Mutex::default(),
             agent,
             token_decimals: Mutex::default(),
+            bot_id: tokio::sync::OnceCell::new(),
         })
     }
 
@@ -202,6 +205,53 @@ impl OpenChat {
             }
             SendResponse::Error(error) => Err(oc_error(error)),
         }
+    }
+
+    /// Posts a message as the bot itself rather than relaying one, eg. to say the chat is now
+    /// bridged
+    pub async fn send_notice(&self, pairing: &Pairing, text: String) -> Result<()> {
+        // One id for every attempt, so a call which landed but is retried isn't posted twice
+        let message_id: MessageId = rand::random::<u64>().into();
+        let response = with_retries(|| {
+            let client = self.client(pairing);
+            let text = text.clone();
+            async move {
+                client
+                    .send_message(MessageContentInitial::from_text(text))
+                    .with_message_id(message_id)
+                    .execute_async()
+                    .await
+            }
+        })
+        .await?;
+        match response {
+            SendResponse::Success(_) => Ok(()),
+            SendResponse::Error(error)
+                if error.matches_code(OCErrorCode::MessageIdAlreadyExists) =>
+            {
+                Ok(())
+            }
+            SendResponse::Error(error) => Err(oc_error(error)),
+        }
+    }
+
+    /// The bot's own user id, which OpenChat gave it when it was registered, eg. to tell its own
+    /// messages from others'
+    pub async fn bot_id(&self) -> Result<UserId> {
+        self.bot_id
+            .get_or_try_init(|| async {
+                let response = with_retries(|| {
+                    let client = self.user_index_client();
+                    async move { client.installation_events().size(0).execute_async().await }
+                })
+                .await?;
+                match response {
+                    InstallationEventsResponse::Success(result) => Ok(result.bot_id),
+                    InstallationEventsResponse::Error(error) => Err(oc_error(error)),
+                }
+            })
+            .await
+            .copied()
     }
 
     pub async fn edit(&self, pairing: &Pairing, message_id: MessageId, text: String) -> Result<()> {

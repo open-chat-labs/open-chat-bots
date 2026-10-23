@@ -3,6 +3,7 @@ use crate::avatars::Avatars;
 use anyhow::Result;
 use async_trait::async_trait;
 use oc_bots_sdk::types::{BridgePlatform, BridgedUser};
+use oc_bridge_core::util::oc_chat_url;
 use oc_bridge_core::{
     OutboundMessage, Pairing, PermanentFailure, Platform, PlatformMessageId, platform_name,
 };
@@ -72,10 +73,22 @@ impl Platform for Telegram {
     }
 
     async fn paired(&self, pairing: &Pairing) -> Result<()> {
+        let text = format!(
+            "This chat is now bridged with OpenChat, so messages sent in either appear in both: {}",
+            escape(&oc_chat_url(&pairing.oc_chat))
+        );
+        self.api
+            .send_message(pairing.platform_chat.parse()?, &text, None)
+            .await?;
+        Ok(())
+    }
+
+    // The chat may be gone, eg. as the pairing's being removed for that reason
+    async fn unpaired(&self, pairing: &Pairing) -> Result<()> {
         self.api
             .send_message(
                 pairing.platform_chat.parse()?,
-                "This chat is now bridged with OpenChat.",
+                "This chat is no longer bridged with OpenChat.",
                 None,
             )
             .await?;

@@ -26,6 +26,9 @@ the Discord bridge, are in [`../core`](../core).
   3. An admin runs `/bridge <code>` in the group or channel to bridge with. Run there without a
      code, `/bridge` says how to get one.
 
+  Both chats are told once they're bridged, with a link to the OpenChat chat on the other side,
+  and again if they stop being bridged. The bridge doesn't relay its own notices.
+
   `/unbridge` on either side stops the bridging. When Telegram upgrades a group to a supergroup,
   which gives it a new id, eg. once it has 200 members, the pairing moves to the new id.
 - **Linking accounts:** an OpenChat user opens their profile and chooses *Link Telegram* under
