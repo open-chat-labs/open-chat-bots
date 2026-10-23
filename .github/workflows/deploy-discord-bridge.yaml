@@ -1,0 +1,93 @@
+# Deploys the Discord bridge to its EC2 host: pushes its image to ECR as `latest`, then restarts the
+# host's service, which pulls `latest` as it starts. Only the image: the host's config, including the
+# bot's identity and Discord token, stays as it is in SSM Parameter Store.
+on:
+  workflow_dispatch:
+  # Builds it, without deploying, when this workflow, its Dockerfile, the toolchain or the
+  # dependencies change
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/deploy-discord-bridge.yaml
+      - rs/offchain/bridges/discord/Dockerfile
+      - rs/rust-toolchain.toml
+      - rs/Cargo.lock
+
+name: Deploy Discord bridge
+
+# Deploys queue behind each other, apart from a PR's builds, which a newer push to the PR cancels
+concurrency:
+  group: deploy-discord-bridge-${{ github.event_name == 'workflow_dispatch' && 'deploy' || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  IMAGE: 253040722768.dkr.ecr.us-east-1.amazonaws.com/oc-discord-bridge
+  INSTANCE_ID: i-0198f9d466e519454
+  PUBLIC_URL: https://d2l0wgzap76484.cloudfront.net
+
+jobs:
+  deploy:
+    name: Deploy Discord bridge
+    # The host is arm64, so this builds its image natively rather than under emulation
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      # The deploy role can only be assumed from main, so this fails early with a clearer error
+      - name: Ensure on main
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        run: |
+          echo "Deploy from main, not ${GITHUB_REF}"
+          exit 1
+      - uses: actions/checkout@v4
+      # The Dockerfile pins the Rust version and builds with --locked
+      - name: Build
+        run: docker build --platform linux/arm64 -f rs/offchain/bridges/discord/Dockerfile -t "$IMAGE:${GITHUB_SHA::10}" -t "$IMAGE:latest" rs
+      - name: Configure AWS credentials
+        if: github.event_name == 'workflow_dispatch'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::253040722768:role/GitHubActions-DeployDiscordBridge
+          aws-region: us-east-1
+      - name: Push
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          aws ecr get-login-password | docker login --username AWS --password-stdin "${IMAGE%%/*}"
+          docker push "$IMAGE:${GITHUB_SHA::10}"
+          docker push "$IMAGE:latest"
+      # A bridge which can't connect to Discord exits, and systemd restarts it every 10s, which would
+      # soon use up the bot's daily Discord logins. So the bridge is stopped unless it stays up.
+      - name: Restart the bridge
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          script='set -eu
+          systemctl restart oc-discord-bridge
+          pid=$(systemctl show -p MainPID --value oc-discord-bridge)
+          sleep 30
+          if ! systemctl is-active -q oc-discord-bridge || [ "$(systemctl show -p MainPID --value oc-discord-bridge)" != "$pid" ]; then
+            systemctl stop oc-discord-bridge
+            echo "The bridge did not stay up, so it has been stopped. Its logs are in CloudWatch, in /oc/discord-bridge."
+            exit 1
+          fi
+          docker inspect --format "Running {{.Config.Image}} ({{.Image}})" oc-discord-bridge'
+          id=$(aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name AWS-RunShellScript \
+            --comment "Deploy the Discord bridge at ${GITHUB_SHA::10}" \
+            --parameters "$(jq -n --arg script "$script" '{commands: [$script]}')" \
+            --query Command.CommandId --output text)
+          # Up to 5 minutes, for the pull and the 30s check. The invocation may not exist at first.
+          for _ in $(seq 60); do
+            sleep 5
+            status=$(aws ssm get-command-invocation --command-id "$id" --instance-id "$INSTANCE_ID" --query Status --output text 2>/dev/null) || status=Pending
+            case "$status" in Pending|InProgress|Delayed) ;; *) break ;; esac
+          done
+          aws ssm get-command-invocation --command-id "$id" --instance-id "$INSTANCE_ID" \
+            --query '[StandardOutputContent, StandardErrorContent]' --output text
+          echo "Restart: $status"
+          [ "$status" = Success ]
+      - name: Check it's up
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          curl -fsS --retry 5 --retry-delay 5 --retry-all-errors "$PUBLIC_URL/bot_definition" > /dev/null
+          echo "Deployed ${GITHUB_SHA} and it's serving ${PUBLIC_URL}"

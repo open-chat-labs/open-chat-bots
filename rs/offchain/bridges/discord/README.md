@@ -100,7 +100,31 @@ also used by the Telegram bridge, are in [`../core`](../core).
    docker build -f offchain/bridges/discord/Dockerfile -t oc-discord-bridge .
    ```
 
-   It serves OpenChat's requests on `PORT`, which must be reachable at `PUBLIC_URL` over HTTPS.
+   It serves OpenChat's requests on `PORT`, which must be reachable at `PUBLIC_URL` over HTTPS. It
+   holds a connection to Discord's gateway, so it runs on a host that stays up rather than on Lambda:
+   - **Host:** the EC2 instance `i-0198f9d466e519454`, an arm64 t4g.small running Amazon Linux 2023
+     in us-east-1. It has no SSH key, so it's managed through SSM.
+   - **Public URL:** the CloudFront distribution `https://d2l0wgzap76484.cloudfront.net` is in front
+     of it, and the instance admits only CloudFront.
+   - **Service:** the systemd unit `oc-discord-bridge`. As it starts, it pulls the image
+     `oc-discord-bridge:latest` from ECR, and writes the config from SSM Parameter Store's
+     `/oc-discord-bridge/*` to `/run`.
+   - **Logs:** CloudWatch, in `/oc/discord-bridge`.
+
+   **Deploys** are done by the *Deploy Discord bridge* GitHub Actions workflow
+   ([`deploy-discord-bridge.yaml`](../../../../.github/workflows/deploy-discord-bridge.yaml)),
+   run by hand from `main`:
+   - It builds the image, pushes it to ECR tagged `latest` and with the commit, and restarts the
+     service through SSM. The config in Parameter Store stays as it is.
+   - If the bridge doesn't stay up for 30 seconds, eg. as Discord refuses its connection, it's
+     stopped, since restarting it every 10 seconds would soon use up the bot's daily Discord logins.
+   - It deploys with the IAM role `GitHubActions-DeployDiscordBridge`, which GitHub can assume only
+     from `main`:
+     - **Trust:** the OIDC provider `token.actions.githubusercontent.com`, with `aud`
+       `sts.amazonaws.com` and `sub` `repo:open-chat-labs/open-chat-bots:ref:refs/heads/main`.
+     - **Permissions:** only pushing to the `oc-discord-bridge` ECR repository, plus
+       `ecr:GetAuthorizationToken`, `ssm:SendCommand` on this instance with the `AWS-RunShellScript`
+       document, and `ssm:GetCommandInvocation`.
 
 6. **Point the website at it:** build the website with
    `OC_DISCORD_BRIDGE_LINK_URL={PUBLIC_URL}/link?code={code}`, so the *Link Discord* option appears.

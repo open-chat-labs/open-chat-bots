@@ -7,7 +7,7 @@ COPY . .
 ENV CARGO_PROFILE_RELEASE_OPT_LEVEL=3 \
     CARGO_PROFILE_RELEASE_LTO=thin \
     CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
-RUN cargo build --release -p oc_discord_bridge
+RUN cargo build --release --locked -p oc_discord_bridge
 
 FROM debian:bookworm-slim
 RUN apt-get update \
