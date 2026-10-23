@@ -126,6 +126,7 @@ impl BridgeStore {
         let platform = match platform {
             BridgePlatform::Discord => "discord",
             BridgePlatform::Telegram => "telegram",
+            BridgePlatform::Twitch => "twitch",
         };
         BridgeStore { kv, platform }
     }

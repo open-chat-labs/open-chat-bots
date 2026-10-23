@@ -46,9 +46,10 @@ pub fn definition<P: Platform>() -> BotDefinition {
     BotDefinition {
         description: format!(
             "Bridges groups and public channels with {name}, so messages, edits and deletions in \
-            either appear in both. In {name}, run /bridge in the chat to bridge to get a code, then \
-            run /bridge with the code here. OpenChat users can link their {name} account from \
-            their profile, so their messages from {name} show as theirs."
+            either appear in both. {}, then run /bridge with the code here. OpenChat users can \
+            link their {name} account from their profile, so their messages from {name} show as \
+            theirs.",
+            P::how_to_get_a_code()
         ),
         commands: vec![
             BotCommandDefinition {
@@ -58,7 +59,7 @@ pub fn definition<P: Platform>() -> BotDefinition {
                 params: vec![BotCommandParam {
                     name: "code".to_string(),
                     description: Some(format!(
-                        "The code /bridge gave you in {name}. Leave it out to see how to get one."
+                        "The code you got in {name}. Leave it out to see how to get one."
                     )),
                     placeholder: Some("ABCD-1234".to_string()),
                     required: false,
@@ -208,7 +209,6 @@ async fn bridge_command<P: Platform>(
     chat: Chat,
     code: &str,
 ) -> anyhow::Result<Reply> {
-    let name = P::NAME;
     if matches!(chat, Chat::Direct(_)) {
         return Ok(Reply::Private(
             "Only groups and channels can be bridged.".to_string(),
@@ -229,7 +229,8 @@ async fn bridge_command<P: Platform>(
                 tell_chat(bridge, context, &pairing, text).await
             }
             None => Reply::Private(format!(
-                "That code is unknown or has expired. Run /bridge in {name} to get a new one."
+                "That code is unknown or has expired. {}",
+                P::how_to_get_a_new_code()
             )),
         },
     )
@@ -572,6 +573,16 @@ mod tests {
             };
             assert_eq!(param.min_length, 0);
         }
+    }
+
+    // A platform which doesn't say otherwise gets its codes from /bridge there
+    #[test]
+    fn the_definition_says_how_to_get_a_code() {
+        let description = definition::<TestPlatform>().description;
+        assert!(description.contains(
+            "In Discord, run /bridge in the chat to bridge to get a code, then run /bridge with the \
+            code here."
+        ));
     }
 
     // eg. Telegram upgrading a group to a supergroup, which has a new id
