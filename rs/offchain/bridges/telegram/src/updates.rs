@@ -1,5 +1,4 @@
 use crate::api::{Message, TelegramApi, Update};
-use crate::avatars::Avatars;
 use crate::platform::{Telegram, escape};
 use anyhow::Result;
 use oc_bots_sdk::types::{BridgedUser, BridgedUserId, TelegramUser};
@@ -15,7 +14,6 @@ const MAX_DISPLAY_NAME_LENGTH: usize = 129;
 /// Handles what Telegram sends the bridge's webhook
 pub struct UpdateHandler {
     pub bridge: Arc<Bridge<Telegram>>,
-    pub avatars: Avatars,
     pub api: Arc<TelegramApi>,
     /// The bot's username, so commands addressed to other bots, eg. `/bridge@OtherBot`, are left
     pub username: String,
@@ -71,19 +69,11 @@ impl UpdateHandler {
             return Ok(());
         }
 
-        let mut author = author(&message);
-        // A chat, eg. a group's anonymous admins, has no user's profile photo
-        if let BridgedUser::Telegram(user) = &mut author
-            && message.sender_chat.is_none()
-            && user.id > 0
-        {
-            user.avatar = self.avatars.avatar(user.id).await;
-        }
         self.bridge
             .relay_inbound(InboundMessage {
                 platform_chat: message.chat.id.to_string(),
                 platform_message: message.message_id.to_string(),
-                author,
+                author: author(&message),
                 text: inbound_text(&message),
                 reply_to: message
                     .reply_to_message
@@ -316,9 +306,8 @@ pub fn author(message: &Message) -> BridgedUser {
         id,
         username: username.map(|u| u.chars().take(MAX_USERNAME_LENGTH).collect()),
         display_name: display_name.chars().take(MAX_DISPLAY_NAME_LENGTH).collect(),
-        // A user's is copied into OpenChat's storage by `Avatars`, as Telegram's copies can only be
-        // fetched with the bot's token
-        avatar: None,
+        // Filled in by `Telegram::complete_author`, for a message it relays
+        photo_id: None,
     })
 }
 

@@ -387,9 +387,9 @@ mod tests {
         let photos: UserProfilePhotos = serde_json::from_value(serde_json::json!({
             "total_count": 2,
             "photos": [[
-                { "file_id": "big", "file_unique_id": "u1", "width": 640, "height": 640 },
-                { "file_id": "small", "file_unique_id": "u1", "width": 160, "height": 160 },
-                { "file_id": "medium", "file_unique_id": "u1", "width": 320, "height": 320 }
+                { "file_id": "big", "file_unique_id": "u-big", "width": 640, "height": 640 },
+                { "file_id": "small", "file_unique_id": "u-small", "width": 160, "height": 160 },
+                { "file_id": "medium", "file_unique_id": "u-medium", "width": 320, "height": 320 }
             ]]
         }))
         .unwrap();

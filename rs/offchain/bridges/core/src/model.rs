@@ -1,8 +1,7 @@
 use crate::store::{DynamoDbStore, InMemoryStore, KeyValueStore};
 use anyhow::Result;
 use oc_bots_sdk::types::{
-    BlobReference, BridgePlatform, CanisterId, Chat, EventIndex, MessageId, Milliseconds,
-    TimestampMillis,
+    BridgePlatform, CanisterId, Chat, EventIndex, MessageId, Milliseconds, TimestampMillis,
 };
 use oc_bots_sdk_offchain::env;
 use rand::Rng;
@@ -73,18 +72,20 @@ struct EventRef {
     platform_message: PlatformMessageId,
 }
 
-/// The bridge's state for one platform, on top of a key-value store
-/// An account's avatar on the platform, as copied into OpenChat's storage, and when the bridge last
-/// checked whether it had changed
+/// Which of an account's photos the bridge has copied to its CDN, and when it last checked whether
+/// the account had changed it
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct StoredAvatar {
     /// The platform's id for the photo, which changes when the account sets a new one. None if it
     /// has none the bridge can see.
     pub photo_id: Option<String>,
-    pub blob: Option<BlobReference>,
+    /// The photo it replaced, which is deleted at the next check, once OpenChat's clients have had
+    /// time to fetch the account's new profile
+    pub replaced: Option<String>,
     pub checked: TimestampMillis,
 }
 
+/// The bridge's state for one platform, on top of a key-value store
 #[derive(Clone)]
 pub struct BridgeStore {
     kv: Arc<dyn KeyValueStore>,

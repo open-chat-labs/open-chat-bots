@@ -39,14 +39,20 @@ the Discord bridge, are in [`../core`](../core).
   and the reply is posted in the group.
 - **State** is kept in DynamoDB, in the same kind of table as the Discord bridge's. The two can share
   a table, as their keys don't overlap.
-- **Avatars:** a Telegram user's profile photo is copied into OpenChat's storage, as Telegram's
-  copies can only be fetched with the bot's token, and shown with their relayed messages.
+- **Avatars:** a Telegram user's profile photo is copied to an S3 bucket behind a CDN, as
+  Telegram's copies can only be fetched with the bot's token, and shown with their relayed
+  messages.
+  - It's at `telegram/<user id>/<file_unique_id>.jpg`. The bridge sends OpenChat the photo's
+    `file_unique_id` with each message, and the website builds the url from it, as it does a
+    Discord avatar's from its hash. A new photo has a new url, so a photo is cached forever.
   - Telegram doesn't tell bots when a photo changes, so the bridge asks at most once a day, when
-    they send a message. It compares the photo's `file_unique_id` with the one it last copied, and
-    only copies a new one.
+    the user sends a message. It only copies a photo it hasn't copied already.
+  - A replaced photo is deleted at the next check, a day or more later, by when OpenChat's
+    clients have the new profile. The CDN may serve its copies a while longer.
   - A user with no photo the bot can see, which their privacy settings decide, has none in
     OpenChat. A linked account shows its OpenChat avatar.
   - If an update fails, the bridge keeps the photo it copied before and tries again an hour later.
+    It gives up after 10 seconds, so a message isn't held up for long.
 - **Retries:** Telegram resends an update the bridge didn't answer with 200, and OpenChat resends a
   notification. Messages are relayed into OpenChat with ids derived from their Telegram ids, so a
   resent update can't post a message twice. An OpenChat canister being upgraded, so briefly
@@ -103,7 +109,11 @@ the Discord bridge, are in [`../core`](../core).
    - **TTL:** enabled on the attribute `ttl`.
    - **Permissions:** the function needs `dynamodb:GetItem`, `PutItem` and `DeleteItem` on the table.
 
-5. **Build and deploy the Lambda function** from `rs/`, with
+5. **An S3 bucket for users' photos,** behind a CDN, eg. CloudFront, which serves it publicly:
+   - **Permissions:** the function needs `s3:PutObject` and `DeleteObject` on `telegram/*`.
+   - Without one, users' photos aren't relayed.
+
+6. **Build and deploy the Lambda function** from `rs/`, with
    [cargo-lambda](https://www.cargo-lambda.info) 1.9.2 or later, which adds Rust's Linux target
    as needed. Older versions can't link with this Rust:
 
@@ -133,7 +143,7 @@ the Discord bridge, are in [`../core`](../core).
      - **Permissions:** only `lambda:UpdateFunctionCode`, `GetFunction`, `GetFunctionConfiguration`
        and `GetFunctionUrlConfig`, on this function.
 
-6. **Register the webhook and the bot's commands** with Telegram, once. Run this with the same
+7. **Register the webhook and the bot's commands** with Telegram, once. Run this with the same
    environment variables, eg. locally:
 
    ```bash
@@ -142,9 +152,10 @@ the Discord bridge, are in [`../core`](../core).
 
    It warns if privacy mode is still on.
 
-7. **Point the website at it:** build the website with
+8. **Point the website at it:** build the website with
    `OC_TELEGRAM_BRIDGE_LINK_URL=https://t.me/<bot username>?start={code}`, so the *Link Telegram*
-   option appears.
+   option appears, and `OC_BRIDGE_AVATARS_URL=<the CDN's url>`, so users' photos are shown. The
+   bridge core has the CDN's url too, as `BRIDGE_AVATARS_URL`, for the Discord bridge.
 
 ## Configuration
 
@@ -155,6 +166,7 @@ the Discord bridge, are in [`../core`](../core).
 | `OC_IDENTITY_PEM` or `OC_IDENTITY_PEM_FILE` | The OpenChat bot's identity, as PEM text, eg. from `dfx identity export`, or a file |
 | `PUBLIC_URL` | Where the function is served, for `setup` |
 | `DYNAMODB_TABLE` | Where state is kept. Without it, state is kept in memory and lost. |
+| `TELEGRAM_AVATARS_BUCKET` | The S3 bucket users' photos are copied to. Without it, they aren't relayed. |
 | `PORT` | When run as a server rather than on Lambda. Defaults to 8080. |
 | `OC_IC_URL`, `OC_PUBLIC_KEY`, `OC_USER_INDEX` | Only to use an OpenChat other than mainnet's |
 | `RUST_LOG` | Log level, eg. `info` (the default) |

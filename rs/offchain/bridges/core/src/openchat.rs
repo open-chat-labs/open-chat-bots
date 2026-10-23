@@ -5,19 +5,16 @@ use anyhow::{Result, anyhow, bail};
 use candid::{Decode, Encode};
 use ic_agent::identity::{BasicIdentity, Secp256k1Identity};
 use ic_agent::{Agent, Identity};
-use oc_bots_sdk::mainnet::{
-    mainnet_oc_public_key, mainnet_storage_index_canister_id, mainnet_user_index_canister_id,
-};
+use oc_bots_sdk::mainnet::{mainnet_oc_public_key, mainnet_user_index_canister_id};
 use oc_bots_sdk::oc_api::Runtime;
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
 use oc_bots_sdk::oc_api::actions::bridged_users::Response as BridgedUsersResponse;
 use oc_bots_sdk::oc_api::actions::link_bridged_user::Response as LinkResponse;
 use oc_bots_sdk::oc_api::actions::send_message::Response as SendResponse;
 use oc_bots_sdk::oc_api::client::Client;
-use oc_bots_sdk::oc_api::storage::upload_file;
 use oc_bots_sdk::types::{
-    ActionScope, AutonomousContext, BlobReference, BridgedUser, BridgedUserId, BridgedUserSummary,
-    CallError, CanisterId, EventIndex, MessageContentInitial, MessageId, OCError, OCErrorCode,
+    ActionScope, AutonomousContext, BridgedUser, BridgedUserId, BridgedUserSummary, CallError,
+    CanisterId, EventIndex, MessageContentInitial, MessageId, OCError, OCErrorCode,
     TimestampMillis, UnitResult, UserId,
 };
 use oc_bots_sdk_offchain::{AgentRuntime, OgPreviewConfig, env};
@@ -39,13 +36,11 @@ pub struct OpenChatConfig {
     /// OpenChat's key, which signs its commands and notifications
     pub public_key: String,
     pub user_index: CanisterId,
-    /// Where the bridge uploads files, eg. avatars
-    pub storage_index: CanisterId,
 }
 
 impl OpenChatConfig {
     /// From `OC_IDENTITY_PEM` (the PEM's text) or `OC_IDENTITY_PEM_FILE`, and for an OpenChat other
-    /// than mainnet's, `OC_IC_URL`, `OC_PUBLIC_KEY`, `OC_USER_INDEX` and `OC_STORAGE_INDEX`
+    /// than mainnet's, `OC_IC_URL`, `OC_PUBLIC_KEY` and `OC_USER_INDEX`
     pub fn from_env() -> Result<Self> {
         let var = |name: &str| std::env::var(name).ok().filter(|v| !v.trim().is_empty());
         let identity_pem = match (var("OC_IDENTITY_PEM"), var("OC_IDENTITY_PEM_FILE")) {
@@ -65,9 +60,6 @@ impl OpenChatConfig {
         if let Some(user_index) = var("OC_USER_INDEX") {
             config.user_index = crate::util::canister_id_from_text(&user_index)?;
         }
-        if let Some(storage_index) = var("OC_STORAGE_INDEX") {
-            config.storage_index = crate::util::canister_id_from_text(&storage_index)?;
-        }
         Ok(config)
     }
 
@@ -78,7 +70,6 @@ impl OpenChatConfig {
             identity_pem,
             public_key: mainnet_oc_public_key(),
             user_index: mainnet_user_index_canister_id(),
-            storage_index: mainnet_storage_index_canister_id(),
         }
     }
 }
@@ -103,7 +94,6 @@ pub struct OpenChat {
     principal: CanisterId,
     public_key: String,
     user_index: CanisterId,
-    storage_index: CanisterId,
     authors: Mutex<HashMap<UserId, (Option<Author>, TimestampMillis)>>,
     // For calls to ledgers, which take candid rather than msgpack
     agent: Agent,
@@ -148,7 +138,6 @@ impl OpenChat {
             principal,
             public_key: config.public_key,
             user_index: config.user_index,
-            storage_index: config.storage_index,
             authors: Mutex::default(),
             agent,
             token_decimals: Mutex::default(),
@@ -292,11 +281,6 @@ impl OpenChat {
         })
         .await?;
         unit_result(response)
-    }
-
-    /// Uploads a file to OpenChat's storage as the bot, eg. an avatar, returning where it is
-    pub async fn upload_file(&self, bytes: &[u8], mime_type: &str) -> Result<BlobReference> {
-        Ok(upload_file(&*self.runtime, self.storage_index, bytes, mime_type).await?)
     }
 
     /// How an OpenChat user is shown, or None if they can't be found

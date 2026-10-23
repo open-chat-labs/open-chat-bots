@@ -5,7 +5,6 @@ pub const IC_URL: &str = "https://icp0.io";
 pub const OC_PUBLIC_KEY: &str = "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEquEHzJr9605Oy796e4z7LKow46DV\nNUnDOQWavi86vEhRAAfdbVh/Lgmxfi44LPb6S0wnCRm9kI/XdK1DYw2Eaw==\n-----END PUBLIC KEY-----\n";
 
 pub const USER_INDEX_CANISTER_ID: &str = "4bkt6-4aaaa-aaaaf-aaaiq-cai";
-pub const STORAGE_INDEX_CANISTER_ID: &str = "rturd-qaaaa-aaaaf-aabaq-cai";
 
 pub fn mainnet_ic_url() -> String {
     IC_URL.to_string()
@@ -17,10 +16,4 @@ pub fn mainnet_oc_public_key() -> String {
 
 pub fn mainnet_user_index_canister_id() -> CanisterId {
     Principal::from_text(USER_INDEX_CANISTER_ID).unwrap().into()
-}
-
-pub fn mainnet_storage_index_canister_id() -> CanisterId {
-    Principal::from_text(STORAGE_INDEX_CANISTER_ID)
-        .unwrap()
-        .into()
 }

@@ -1,4 +1,4 @@
-use super::{BlobReference, TimestampMillis, UserId};
+use super::{TimestampMillis, UserId};
 use serde::{Deserialize, Serialize};
 
 /// An account on another platform, eg. Discord, whose messages a bridge bot relays into OpenChat.
@@ -75,8 +75,10 @@ pub struct TelegramUser {
     /// The user's first and last names, or the title of the chat which sent the message. At most
     /// 129 characters.
     pub display_name: String,
-    /// A copy in OpenChat's storage, since the urls of Telegram's own copies contain the bot's token
-    pub avatar: Option<BlobReference>,
+    /// Telegram's `file_unique_id` for the user's profile photo, which the Telegram bridge copies to
+    /// its own CDN, since the urls of Telegram's copies contain the bot's token. OpenChat builds the
+    /// photo's url from it and the user's id. Up to 64 characters: letters, digits, `_` and `-`.
+    pub photo_id: Option<String>,
 }
 
 /// A bridged account's latest profile, from OpenChat's UserIndex

@@ -51,17 +51,24 @@ async fn main() -> Result<()> {
     let openchat = OpenChat::new(config.openchat).await?;
     info!(principal = %openchat.principal(), username, "OpenChat bot");
 
-    let bridge = Arc::new(Bridge::new(openchat, store, Telegram { api: api.clone() }));
+    let avatars = match config.avatars_bucket {
+        Some(bucket) => Some(Avatars::new(store.clone(), api.clone(), bucket).await),
+        None => {
+            warn!("TELEGRAM_AVATARS_BUCKET isn't set, so users' photos aren't relayed");
+            None
+        }
+    };
+    let platform = Telegram {
+        api: api.clone(),
+        avatars,
+    };
+    let bridge = Arc::new(Bridge::new(openchat, store, platform));
     // Kept alive until the process exits, as the OpenChat runtime can't be dropped from within
     // async code
     std::mem::forget(bridge.clone());
 
     let handler = UpdateHandler {
         bridge: bridge.clone(),
-        avatars: Avatars {
-            bridge: bridge.clone(),
-            api: api.clone(),
-        },
         api,
         username,
     };
@@ -185,15 +192,15 @@ mod tests {
         .unwrap();
         let api = Arc::new(TelegramApi::new("token".to_string()));
         let store = BridgeStore::new(Arc::new(InMemoryStore::default()), BridgePlatform::Telegram);
-        let bridge = Arc::new(Bridge::new(openchat, store, Telegram { api: api.clone() }));
+        let platform = Telegram {
+            api: api.clone(),
+            avatars: None,
+        };
+        let bridge = Arc::new(Bridge::new(openchat, store, platform));
         // Its OpenChat runtime can't be dropped within async code
         std::mem::forget(bridge.clone());
         let handler = UpdateHandler {
-            bridge: bridge.clone(),
-            avatars: Avatars {
-                bridge,
-                api: api.clone(),
-            },
+            bridge,
             api,
             username: "OCBridgeBot".to_string(),
         };
