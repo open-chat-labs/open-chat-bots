@@ -22,6 +22,9 @@ also used by the Telegram bridge, are in [`../core`](../core).
      for.
   3. An admin runs `/bridge <code>` in the group or channel to bridge with.
 
+  Both chats are told once they're bridged, with a link to the OpenChat chat on the other side,
+  and again if they stop being bridged. The bridge doesn't relay its own notices.
+
   `/unbridge` on either side stops the bridging. A chat can be bridged with one chat on the other
   side at a time. Pairing again replaces the old pairing.
 - **Linking accounts:** an OpenChat user opens their profile and chooses *Link Discord* under

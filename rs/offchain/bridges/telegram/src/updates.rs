@@ -126,16 +126,15 @@ impl UpdateHandler {
         }
 
         if command == "unbridge" {
-            return Some(
-                match self.bridge.unpair_platform_chat(&chat.id.to_string()).await {
-                    Ok(true) => "This group is no longer bridged with OpenChat.".to_string(),
-                    Ok(false) => "This group isn't bridged with OpenChat.".to_string(),
-                    Err(error) => {
-                        warn!(%error, "Failed to unbridge");
-                        "Something went wrong. Please try again.".to_string()
-                    }
-                },
-            );
+            return match self.bridge.unpair_platform_chat(&chat.id.to_string()).await {
+                // Unpairing says so in the group itself
+                Ok(true) => None,
+                Ok(false) => Some("This group isn't bridged with OpenChat.".to_string()),
+                Err(error) => {
+                    warn!(%error, "Failed to unbridge");
+                    Some("Something went wrong. Please try again.".to_string())
+                }
+            };
         }
 
         let pending = PendingPairing {
