@@ -173,8 +173,9 @@ The shared parts of the bridge, also used by the Discord and Telegram bridges, a
    than on Lambda. It's meant to run beside the Discord bridge, on its EC2 instance
    `i-0198f9d466e519454`:
    - **Service:** a systemd unit `oc-twitch-bridge`, set up like `oc-discord-bridge`. As it starts,
-     it pulls the image `oc-twitch-bridge:latest` from ECR, and writes the config from SSM
-     Parameter Store's `/oc-twitch-bridge/*` to `/run`.
+     it pulls the image `oc-twitch-bridge:latest` from ECR, writes the config from SSM Parameter
+     Store's `/oc-twitch-bridge/*` to `/run`, and runs the image as the container
+     `oc-twitch-bridge`.
    - **Port:** 8081 on the host, admitted only from CloudFront, as 8080 is for the Discord bridge.
    - **Public URL:** a CloudFront distribution of its own in front of that port, uncached, with a
      60s origin timeout. OpenChat reads a bot's definition from its endpoint's root, so the two
@@ -185,6 +186,27 @@ The shared parts of the bridge, also used by the Discord and Telegram bridges, a
 
    If the bridge stops, systemd can restart it at once. Unlike Discord, Twitch doesn't limit how
    often it connects.
+
+   **Deploys** are done by the *Deploy Twitch bridge* GitHub Actions workflow
+   ([`deploy-twitch-bridge.yaml`](../../../../.github/workflows/deploy-twitch-bridge.yaml)),
+   run by hand from `main`:
+   - It builds the image, pushes it to ECR tagged `latest` and with the commit, and restarts the
+     service through SSM. The config in Parameter Store stays as it is.
+   - If the bridge doesn't start, or doesn't stay up for 30 seconds, the deploy fails, and systemd
+     keeps restarting it.
+   - It then checks the bridge answers at the `PUBLIC_URL` in Parameter Store, which can be a String
+     or a SecureString. A SecureString encrypted with a key of your own needs `kms:Decrypt` on the
+     key too.
+   - It deploys with the IAM role `GitHubActions-DeployTwitchBridge`, which GitHub can assume only
+     from `main`:
+     - **Trust:** the OIDC provider `token.actions.githubusercontent.com`, with `aud`
+       `sts.amazonaws.com` and `sub` `repo:open-chat-labs/open-chat-bots:ref:refs/heads/main`.
+     - **Permissions:** pushing to the `oc-twitch-bridge` ECR repository, plus
+       `ecr:GetAuthorizationToken`, `ssm:SendCommand` on this instance with the `AWS-RunShellScript`
+       document, `ssm:GetCommandInvocation`, and `ssm:GetParameter` on `/oc-twitch-bridge/PUBLIC_URL`.
+     - `AWS-RunShellScript` runs any command on the host as root, so the role can do anything there,
+       including to the Discord bridge's service and config, as the Discord bridge's role can to
+       this one's.
 
 7. **Point the website at it:** build the website with
    `OC_TWITCH_BRIDGE_LINK_URL={PUBLIC_URL}/link?code={code}`, so the *Link Twitch* option can be
