@@ -2957,6 +2957,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "oc_twitch_bridge"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "futures-util",
+ "ic-agent",
+ "oc_bots_sdk",
+ "oc_bots_sdk_offchain",
+ "oc_bridge_core",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-tungstenite",
+ "tower",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

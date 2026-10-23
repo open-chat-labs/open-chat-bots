@@ -13,6 +13,7 @@ members = [
     "offchain/bridges/core",
     "offchain/bridges/discord",
     "offchain/bridges/telegram",
+    "offchain/bridges/twitch",
     "offchain/examples/dice",
     "offchain/examples/llama",
     "offchain/sdk",

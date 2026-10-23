@@ -23,6 +23,20 @@ pub trait Platform: Send + Sync + 'static {
     /// OpenChat without a code: how to add the bot there, and how to get a code from it
     fn bridge_instructions(&self) -> String;
 
+    /// How a code to bridge a chat is got on the platform, which the bot's description follows with
+    /// ", then run /bridge with the code here."
+    fn how_to_get_a_code() -> String {
+        format!(
+            "In {}, run /bridge in the chat to bridge to get a code",
+            Self::NAME
+        )
+    }
+
+    /// What OpenChat's /bridge says to do once a code is unknown or has expired
+    fn how_to_get_a_new_code() -> String {
+        format!("Run /bridge in {} to get a new one.", Self::NAME)
+    }
+
     /// Fills in what's only worth looking up for a message which will be relayed, eg. the author's
     /// avatar
     async fn complete_author(&self, _author: &mut BridgedUser) {}
@@ -85,5 +99,6 @@ pub fn platform_name(platform: BridgePlatform) -> &'static str {
     match platform {
         BridgePlatform::Discord => "Discord",
         BridgePlatform::Telegram => "Telegram",
+        BridgePlatform::Twitch => "Twitch",
     }
 }

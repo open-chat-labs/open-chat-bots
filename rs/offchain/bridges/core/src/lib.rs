@@ -1,6 +1,6 @@
-//! What the Discord and Telegram bridges share: OpenChat's side of the bridge, pairing chats, and
-//! where the bridge keeps its state. Each bridge implements `Platform` for its platform, serves
-//! `http::router` to OpenChat, and passes the messages, edits and deletions it sees to `Bridge`.
+//! What the bridges share: OpenChat's side of the bridge, pairing chats, and where the bridge keeps
+//! its state. Each bridge implements `Platform` for its platform, serves `http::router` to OpenChat,
+//! and passes the messages, edits and deletions it sees to `Bridge`.
 
 pub mod bridge;
 pub mod http;

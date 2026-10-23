@@ -71,6 +71,9 @@ pub fn blob_url(blob: &BlobReference) -> String {
 /// contain the bot's token. The website has it as `OC_BRIDGE_AVATARS_URL`.
 pub const BRIDGE_AVATARS_URL: &str = "https://d31v79nf0k3ss4.cloudfront.net";
 
+/// Where Twitch serves profile images. A Twitch profile has its image's path on it.
+pub const TWITCH_CDN_URL: &str = "https://static-cdn.jtvnw.net";
+
 /// The url of a bridged account's avatar, if it has one
 pub fn bridged_avatar_url(user: &BridgedUser) -> Option<String> {
     match user {
@@ -82,6 +85,10 @@ pub fn bridged_avatar_url(user: &BridgedUser) -> Option<String> {
             .photo_id
             .as_ref()
             .map(|photo_id| format!("{BRIDGE_AVATARS_URL}/telegram/{}/{photo_id}.jpg", u.id)),
+        BridgedUser::Twitch(u) => u
+            .profile_image
+            .as_ref()
+            .map(|path| format!("{TWITCH_CDN_URL}/{path}")),
     }
 }
 
@@ -89,6 +96,7 @@ pub fn bridged_name(user: &BridgedUser) -> String {
     match user {
         BridgedUser::Discord(u) => u.display_name.clone().unwrap_or_else(|| u.username.clone()),
         BridgedUser::Telegram(u) => u.display_name.clone(),
+        BridgedUser::Twitch(u) => u.display_name.clone(),
     }
 }
 
@@ -237,7 +245,7 @@ mod tests {
     use oc_bots_sdk::types::icrc1::{Account, CryptoAccount};
     use oc_bots_sdk::types::{
         CompletedCryptoTransaction, CryptoContent, DeletedBy, P2PSwapContent, P2PSwapStatus,
-        PrizeContent, TelegramUser, TextContent, TokenInfo, icrc1,
+        PrizeContent, TelegramUser, TextContent, TokenInfo, TwitchUser, icrc1,
     };
 
     #[test]
@@ -262,6 +270,27 @@ mod tests {
             Some("https://d31v79nf0k3ss4.cloudfront.net/telegram/123456789/AQADtLwxG5a_QEZ-.jpg")
         );
         assert_eq!(bridged_avatar_url(&user(None)), None);
+    }
+
+    #[test]
+    fn a_twitch_users_image_is_on_twitchs_cdn() {
+        let user = |profile_image: Option<&str>| {
+            BridgedUser::Twitch(TwitchUser {
+                id: 141981764,
+                login: "nelly".to_string(),
+                display_name: "Nelly".to_string(),
+                profile_image: profile_image.map(str::to_string),
+            })
+        };
+        assert_eq!(
+            bridged_avatar_url(&user(Some(
+                "jtv_user_pictures/abc-profile_image-300x300.png"
+            )))
+            .as_deref(),
+            Some("https://static-cdn.jtvnw.net/jtv_user_pictures/abc-profile_image-300x300.png")
+        );
+        assert_eq!(bridged_avatar_url(&user(None)), None);
+        assert_eq!(bridged_name(&user(None)), "Nelly");
     }
 
     #[test]

@@ -14,11 +14,12 @@ In the root of the repo there are scripts to deploy the Rust offchain example bo
   ./scripts/deploy_llama_bot.sh
 ```
 
-Note: the Discord and Telegram bridges aren't deployed locally, since they need a Discord app or a
-Telegram bot, and must be reachable by OpenChat.
+Note: the bridges aren't deployed locally, since they need a Discord app, a Telegram bot or a Twitch
+app, and must be reachable by OpenChat.
 
 - [Discord bridge](./bridges/discord/README.md)
 - [Telegram bridge](./bridges/telegram/README.md)
+- [Twitch bridge](./bridges/twitch/README.md)
 
 ## SDK
 
