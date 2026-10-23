@@ -432,7 +432,7 @@ impl<P: Platform> Bridge<P> {
         let may_post =
             event.event_index == event.latest_event_index || message.bot_context().is_some();
 
-        match outbound_action(hash, may_post, existing.as_ref()) {
+        match outbound_action(hash, may_post, existing.as_ref(), &pairing.platform_chat) {
             OutboundAction::Ignore => {}
             OutboundAction::Post => {
                 let outbound = self
@@ -452,6 +452,7 @@ impl<P: Platform> Bridge<P> {
                     }
                 };
                 let outbound_ref = OutboundRef {
+                    platform_chat: pairing.platform_chat.clone(),
                     platform_message_id: platform_message.clone(),
                     content_hash: hash.unwrap_or_default(),
                 };
@@ -486,6 +487,7 @@ impl<P: Platform> Bridge<P> {
                     .edit(&pairing, &platform_message, &outbound)
                     .await?;
                 let outbound_ref = OutboundRef {
+                    platform_chat: pairing.platform_chat.clone(),
                     platform_message_id: platform_message,
                     content_hash: hash.unwrap_or_default(),
                 };
@@ -617,8 +619,13 @@ fn outbound_action(
     hash: Option<u64>,
     may_post: bool,
     existing: Option<&OutboundRef>,
+    platform_chat: &str,
 ) -> OutboundAction {
     match (hash, existing) {
+        // Relayed to the chat this one was paired with before, or to the chat before the platform
+        // gave it a new id, or saved before refs said which, so editing or deleting it here would
+        // act on whichever message has its id in this chat. It was relayed, so it isn't new either.
+        (_, Some(existing)) if existing.platform_chat != platform_chat => OutboundAction::Ignore,
         (None, Some(existing)) => OutboundAction::Delete(existing.platform_message_id.clone()),
         (None, None) => OutboundAction::Ignore,
         (Some(_), None) if may_post => OutboundAction::Post,
@@ -692,30 +699,49 @@ mod tests {
     #[test]
     fn notifications_post_edit_or_delete_the_copy() {
         let copy = OutboundRef {
+            platform_chat: "123".to_string(),
             platform_message_id: "99".to_string(),
             content_hash: 5,
         };
+        fn action(
+            hash: Option<u64>,
+            may_post: bool,
+            existing: Option<&OutboundRef>,
+        ) -> OutboundAction {
+            outbound_action(hash, may_post, existing, "123")
+        }
 
-        assert_eq!(outbound_action(Some(5), true, None), OutboundAction::Post);
+        assert_eq!(action(Some(5), true, None), OutboundAction::Post);
         // Edited, but sent before the chat was paired
-        assert_eq!(
-            outbound_action(Some(5), false, None),
-            OutboundAction::Ignore
-        );
+        assert_eq!(action(Some(5), false, None), OutboundAction::Ignore);
         // Only its link previews changed
+        assert_eq!(action(Some(5), false, Some(&copy)), OutboundAction::Ignore);
         assert_eq!(
-            outbound_action(Some(5), false, Some(&copy)),
-            OutboundAction::Ignore
-        );
-        assert_eq!(
-            outbound_action(Some(6), false, Some(&copy)),
+            action(Some(6), false, Some(&copy)),
             OutboundAction::Edit("99".to_string())
         );
         assert_eq!(
-            outbound_action(None, false, Some(&copy)),
+            action(None, false, Some(&copy)),
             OutboundAction::Delete("99".to_string())
         );
-        assert_eq!(outbound_action(None, false, None), OutboundAction::Ignore);
+        assert_eq!(action(None, false, None), OutboundAction::Ignore);
+
+        // Relayed to the chat it was paired with before, whose message ids mean nothing in this
+        // one, or saved before refs said which
+        for platform_chat in ["456", ""] {
+            let elsewhere = OutboundRef {
+                platform_chat: platform_chat.to_string(),
+                ..copy.clone()
+            };
+            assert_eq!(
+                action(Some(6), true, Some(&elsewhere)),
+                OutboundAction::Ignore
+            );
+            assert_eq!(
+                action(None, false, Some(&elsewhere)),
+                OutboundAction::Ignore
+            );
+        }
     }
 
     #[test]
