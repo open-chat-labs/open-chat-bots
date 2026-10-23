@@ -210,12 +210,15 @@ impl OpenChat {
     /// Posts a message as the bot itself rather than relaying one, eg. to say the chat is now
     /// bridged
     pub async fn send_notice(&self, pairing: &Pairing, text: String) -> Result<()> {
+        // One id for every attempt, so a call which landed but is retried isn't posted twice
+        let message_id: MessageId = rand::random::<u64>().into();
         let response = with_retries(|| {
             let client = self.client(pairing);
             let text = text.clone();
             async move {
                 client
                     .send_message(MessageContentInitial::from_text(text))
+                    .with_message_id(message_id)
                     .execute_async()
                     .await
             }
@@ -223,6 +226,11 @@ impl OpenChat {
         .await?;
         match response {
             SendResponse::Success(_) => Ok(()),
+            SendResponse::Error(error)
+                if error.matches_code(OCErrorCode::MessageIdAlreadyExists) =>
+            {
+                Ok(())
+            }
             SendResponse::Error(error) => Err(oc_error(error)),
         }
     }
