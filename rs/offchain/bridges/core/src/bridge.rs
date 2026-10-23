@@ -174,7 +174,7 @@ impl<P: Platform> Bridge<P> {
         let Some(pairing) = self.store.pairing(platform_chat).await? else {
             return Ok(false);
         };
-        self.unpair(&pairing).await?;
+        self.unpair(&pairing, true).await?;
         Ok(true)
     }
 
@@ -198,11 +198,14 @@ impl<P: Platform> Bridge<P> {
         Ok(true)
     }
 
-    /// Unpairs the chats, and says so in both
-    pub async fn unpair(&self, pairing: &Pairing) -> Result<()> {
+    /// Unpairs the chats, and says so in the platform chat, and in OpenChat unless the caller does,
+    /// eg. /unbridge's reply
+    pub async fn unpair(&self, pairing: &Pairing, tell_openchat: bool) -> Result<()> {
         self.store.remove_pairing(pairing).await?;
         self.platform_unpaired(pairing).await;
-        self.say_no_longer_bridged(pairing).await;
+        if tell_openchat {
+            self.say_no_longer_bridged(pairing).await;
+        }
         info!(platform_chat = pairing.platform_chat, "Unpaired");
         Ok(())
     }
@@ -215,15 +218,18 @@ impl<P: Platform> Bridge<P> {
     }
 
     async fn say_no_longer_bridged(&self, pairing: &Pairing) {
-        let text = format!("This chat is no longer bridged with {}.", P::NAME);
-        if let Err(error) = self.openchat.send_notice(pairing, text).await {
+        if let Err(error) = self
+            .openchat
+            .send_notice(pairing, Self::no_longer_bridged_text())
+            .await
+        {
             warn!(%error, "Failed to say in OpenChat that the chat is no longer bridged");
         }
     }
 
     /// Pairs the OpenChat chat with the platform chat `code` was given for. A chat paired already,
     /// on either side, is unpaired first. Returns the platform chat's name, or None if the code is
-    /// unknown or has expired.
+    /// unknown or has expired. The OpenChat chat isn't told, as /bridge's reply does that.
     pub async fn complete_pairing(
         &self,
         code: &str,
@@ -268,17 +274,23 @@ impl<P: Platform> Bridge<P> {
         if let Err(error) = self.platform.paired(&pairing).await {
             warn!(%error, "Failed to announce the pairing");
         }
-        // Otherwise only whoever ran /bridge would know. The name is the platform chat's, which
-        // its admins choose, so it can't mention everyone.
-        let text = format!(
-            "This chat is now bridged with {} on {}, so messages sent in either appear in both.",
-            without_mention_everyone(&pending.name),
-            P::NAME
-        );
-        if let Err(error) = self.openchat.send_notice(&pairing, text).await {
-            warn!(%error, "Failed to announce the pairing in OpenChat");
-        }
+        // The OpenChat chat's told by /bridge's reply
         Ok(Some(pending.name))
+    }
+
+    /// What the OpenChat chat's told once it's bridged. The name is the platform chat's, which its
+    /// admins choose, so it can't mention everyone.
+    pub fn now_bridged_text(platform_chat_name: &str) -> String {
+        format!(
+            "This chat is now bridged with {} on {}, so messages sent in either appear in both.",
+            without_mention_everyone(platform_chat_name),
+            P::NAME
+        )
+    }
+
+    /// What the OpenChat chat's told once it's no longer bridged
+    pub fn no_longer_bridged_text() -> String {
+        format!("This chat is no longer bridged with {}.", P::NAME)
     }
 
     /// Links the platform account to the OpenChat user who was given `code` from their profile
@@ -434,7 +446,7 @@ impl<P: Platform> Bridge<P> {
                             Some(PermanentFailure::ChatGone)
                         ) {
                             warn!(platform_chat = pairing.platform_chat, "The chat is gone");
-                            self.unpair(&pairing).await?;
+                            self.unpair(&pairing, true).await?;
                         }
                         return Err(error);
                     }
