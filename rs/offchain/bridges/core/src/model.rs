@@ -30,6 +30,10 @@ pub struct Pairing {
     pub api_gateway: CanisterId,
     /// What the platform needs to post into the chat, eg. a Discord webhook
     pub platform_data: Option<String>,
+    /// When it was made, so OpenChat telling the bridge late that the bot was uninstalled can't
+    /// remove a pairing made once it was installed again. 0 for those made before this was kept.
+    #[serde(default)]
+    pub paired_at: TimestampMillis,
 }
 
 /// A chat on the other platform waiting to be paired, by its code being given to the bridge bot's
@@ -139,14 +143,7 @@ impl BridgeStore {
     }
 
     pub async fn save_pairing(&self, pairing: &Pairing) -> Result<()> {
-        self.put(&self.pairing_key(&pairing.platform_chat), pairing, None)
-            .await?;
-        self.put(
-            &self.oc_pairing_key(&pairing.oc_chat),
-            &pairing.platform_chat,
-            None,
-        )
-        .await?;
+        // Listed first, so the list holds every paired channel, even if a write below fails
         if let Chat::Channel(community, channel) = pairing.oc_chat {
             let mut channels = self.paired_channels(community).await?;
             if !channels.contains(&channel) {
@@ -155,7 +152,14 @@ impl BridgeStore {
                     .await?;
             }
         }
-        Ok(())
+        self.put(&self.pairing_key(&pairing.platform_chat), pairing, None)
+            .await?;
+        self.put(
+            &self.oc_pairing_key(&pairing.oc_chat),
+            &pairing.platform_chat,
+            None,
+        )
+        .await
     }
 
     pub async fn remove_pairing(&self, pairing: &Pairing) -> Result<()> {
@@ -165,16 +169,27 @@ impl BridgeStore {
         self.kv
             .delete(&self.oc_pairing_key(&pairing.oc_chat))
             .await?;
-        if let Chat::Channel(community, channel) = pairing.oc_chat {
-            let mut channels = self.paired_channels(community).await?;
-            if channels.contains(&channel) {
-                channels.retain(|c| *c != channel);
-                if channels.is_empty() {
-                    self.kv.delete(&self.community_key(community)).await?;
-                } else {
-                    self.put(&self.community_key(community), &channels, None)
-                        .await?;
-                }
+        // A channel left in the list is harmless, as its pairing isn't found, so a failure here
+        // doesn't fail the removal, eg. stopping the platform chat being told
+        if let Chat::Channel(community, channel) = pairing.oc_chat
+            && let Err(error) = self.unlist_channel(community, channel).await
+        {
+            tracing::warn!(%error, "Failed to remove a channel from its community's list");
+        }
+        Ok(())
+    }
+
+    // Changes to one community's list at the same moment could lose one, as each reads, then
+    // writes, the whole list. Pairings change rarely enough that it isn't guarded against.
+    async fn unlist_channel(&self, community: CommunityId, channel: ChannelId) -> Result<()> {
+        let mut channels = self.paired_channels(community).await?;
+        if channels.contains(&channel) {
+            channels.retain(|c| *c != channel);
+            if channels.is_empty() {
+                self.kv.delete(&self.community_key(community)).await?;
+            } else {
+                self.put(&self.community_key(community), &channels, None)
+                    .await?;
             }
         }
         Ok(())
@@ -419,6 +434,7 @@ mod tests {
             oc_chat: chat,
             api_gateway: Principal::anonymous().into(),
             platform_data: Some("webhook".to_string()),
+            paired_at: 0,
         };
 
         store.save_pairing(&pairing).await.unwrap();
@@ -443,6 +459,7 @@ mod tests {
             oc_chat: Chat::Channel(community, channel),
             api_gateway: Principal::anonymous().into(),
             platform_data: None,
+            paired_at: 0,
         };
 
         store.save_pairing(&pairing("1", 7)).await.unwrap();
@@ -469,6 +486,7 @@ mod tests {
             oc_chat,
             api_gateway: Principal::anonymous().into(),
             platform_data: None,
+            paired_at: 0,
         };
 
         store.save_pairing(&pairing(old_chat)).await.unwrap();

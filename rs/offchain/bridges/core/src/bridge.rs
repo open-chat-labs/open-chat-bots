@@ -13,8 +13,9 @@ use oc_bots_sdk::api::event_notification::{
 };
 use oc_bots_sdk::types::{
     BridgePlatform, BridgedUser, BridgedUserId, CanisterId, Chat, ChatEvent, InstallationLocation,
-    Message,
+    Message, TimestampMillis,
 };
+use oc_bots_sdk_offchain::env;
 use std::collections::HashSet;
 use std::sync::Mutex;
 use tracing::{info, warn};
@@ -249,6 +250,7 @@ impl<P: Platform> Bridge<P> {
             oc_chat,
             api_gateway,
             platform_data: pending.platform_data,
+            paired_at: env::now(),
         };
         self.store.save_pairing(&pairing).await?;
         info!(platform_chat = pairing.platform_chat, ?oc_chat, "Paired");
@@ -324,10 +326,11 @@ impl<P: Platform> Bridge<P> {
             }
         }
 
+        let timestamp = wrapper.timestamp;
         let result = match wrapper.event {
             BotEvent::Chat(event) => self.relay_outbound(event).await,
             BotEvent::Lifecycle(BotLifecycleEvent::Uninstalled(event)) => {
-                self.uninstalled(event.location).await
+                self.uninstalled(event.location, timestamp).await
             }
             BotEvent::Community(_) | BotEvent::Lifecycle(_) => Ok(()),
         };
@@ -348,7 +351,11 @@ impl<P: Platform> Bridge<P> {
 
     /// The bot was uninstalled from an OpenChat group or community, so its chats there which are
     /// paired are unpaired, and the platform chats are told
-    async fn uninstalled(&self, location: InstallationLocation) -> Result<()> {
+    async fn uninstalled(
+        &self,
+        location: InstallationLocation,
+        uninstalled_at: TimestampMillis,
+    ) -> Result<()> {
         let chats = match location {
             InstallationLocation::Group(id) => vec![Chat::Group(id)],
             InstallationLocation::Community(id) => self
@@ -361,7 +368,14 @@ impl<P: Platform> Bridge<P> {
             InstallationLocation::User(_) => Vec::new(),
         };
         for chat in chats {
-            if let Some(pairing) = self.store.pairing_for_oc_chat(&chat).await? {
+            if let Some(pairing) = self
+                .store
+                .pairing_for_oc_chat(&chat)
+                .await?
+                // Made once the bot was installed again, which OpenChat told the bridge of late.
+                // An event without a timestamp is from an OpenChat which doesn't send one.
+                .filter(|pairing| uninstalled_at == 0 || pairing.paired_at <= uninstalled_at)
+            {
                 // The bot can't post in the OpenChat chat any more, so only the platform chat's told
                 self.store.remove_pairing(&pairing).await?;
                 self.platform_unpaired(&pairing).await;
