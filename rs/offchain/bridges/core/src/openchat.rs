@@ -243,17 +243,27 @@ impl OpenChat {
         context: &BotCommandContext,
         text: String,
     ) -> Result<Message> {
-        let client = Client::new(self.runtime.clone(), context.clone());
-        let (message, response) = client
-            .send_message(MessageContentInitial::from_text(text))
-            .execute_async_then_return_message()
-            .await;
-        match response.map_err(|error| anyhow!("Call failed: {error:?}"))? {
-            SendResponse::Success(_) => {
-                message.ok_or_else(|| anyhow!("The command has no message to reply with"))
+        // Safe to retry, as the message's id is the command's, so it can't be posted twice
+        let (message, response) = with_retries(|| {
+            let client = Client::new(self.runtime.clone(), context.clone());
+            let text = text.clone();
+            async move {
+                let (message, response) = client
+                    .send_message(MessageContentInitial::from_text(text))
+                    .execute_async_then_return_message()
+                    .await;
+                response.map(|response| (message, response))
             }
-            SendResponse::Error(error) => Err(oc_error(error)),
+        })
+        .await?;
+        match response {
+            SendResponse::Success(_) => {}
+            // A retry of a call which landed
+            SendResponse::Error(error)
+                if error.matches_code(OCErrorCode::MessageIdAlreadyExists) => {}
+            SendResponse::Error(error) => return Err(oc_error(error)),
         }
+        message.ok_or_else(|| anyhow!("The command has no message to reply with"))
     }
 
     /// The bot's own user id, which OpenChat gave it when it was registered, eg. to tell its own
