@@ -13,6 +13,8 @@ const MAX_TEXT_LENGTH: usize = 4096;
 
 pub struct Telegram {
     pub api: Arc<TelegramApi>,
+    /// The bot's username, for the instructions on bridging a chat
+    pub username: String,
     /// None if there's no bucket to copy users' photos to
     pub avatars: Option<Avatars>,
 }
@@ -21,6 +23,10 @@ pub struct Telegram {
 impl Platform for Telegram {
     const PLATFORM: BridgePlatform = BridgePlatform::Telegram;
     const NAME: &'static str = "Telegram";
+
+    fn bridge_instructions(&self) -> String {
+        bridge_instructions(&self.username)
+    }
 
     async fn complete_author(&self, author: &mut BridgedUser) {
         // A chat, eg. a channel or a group's anonymous admins, has a negative id, and Telegram's
@@ -129,9 +135,30 @@ pub(crate) fn escape(text: &str) -> String {
         .replace('>', "&gt;")
 }
 
+// Only a group's admins can run /bridge there, and the code is sent to them privately, as anyone
+// who saw it could pair the group with an OpenChat chat of their own
+fn bridge_instructions(bot: &str) -> String {
+    format!(
+        "To bridge this chat with a Telegram group:\n\
+        1. Add @{bot} to the group.\n\
+        2. Start a private chat with it, at t.me/{bot}, so it can send you a code.\n\
+        3. As one of the group's admins, run /bridge in the group. The bot sends you the code \
+        privately.\n\
+        4. Run `/bridge <code>` here within 15 minutes."
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_instructions_name_the_bot() {
+        let instructions = bridge_instructions("OpenChat_Bot");
+        assert!(instructions.contains("Add @OpenChat_Bot to the group"));
+        assert!(instructions.contains("t.me/OpenChat_Bot"));
+        assert!(instructions.contains("`/bridge <code>`"));
+    }
     use oc_bridge_core::Author;
 
     fn message(name: &str, text: &str) -> OutboundMessage {

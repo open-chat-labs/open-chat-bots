@@ -19,6 +19,10 @@ pub trait Platform: Send + Sync + 'static {
 
     async fn delete(&self, pairing: &Pairing, id: &str) -> Result<()>;
 
+    /// How to bridge an OpenChat chat with one on the platform, shown when /bridge is run in
+    /// OpenChat without a code: how to add the bot there, and how to get a code from it
+    fn bridge_instructions(&self) -> String;
+
     /// Fills in what's only worth looking up for a message which will be relayed, eg. the author's
     /// avatar
     async fn complete_author(&self, _author: &mut BridgedUser) {}

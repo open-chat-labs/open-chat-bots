@@ -31,7 +31,11 @@ async fn main() -> Result<()> {
     info!(principal = %openchat.principal(), "OpenChat bot");
 
     let discord_http = Arc::new(Http::new(&config.discord_token));
-    let bridge = Arc::new(Bridge::new(openchat, store, Discord { http: discord_http }));
+    let platform = Discord {
+        http: discord_http,
+        client_id: config.oauth.as_ref().map(|oauth| oauth.client_id.clone()),
+    };
+    let bridge = Arc::new(Bridge::new(openchat, store, platform));
     // Kept alive until the process exits, as the OpenChat runtime can't be dropped from within
     // async code
     std::mem::forget(bridge.clone());

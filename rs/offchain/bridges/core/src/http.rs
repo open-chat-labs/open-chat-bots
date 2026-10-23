@@ -54,9 +54,11 @@ pub fn definition<P: Platform>() -> BotDefinition {
                 placeholder: Some("Bridging...".to_string()),
                 params: vec![BotCommandParam {
                     name: "code".to_string(),
-                    description: Some(format!("The code /bridge gave you in {name}")),
+                    description: Some(format!(
+                        "The code /bridge gave you in {name}. Leave it out to see how to get one."
+                    )),
                     placeholder: Some("ABCD-1234".to_string()),
-                    required: true,
+                    required: false,
                     param_type: BotCommandParamType::StringParam(StringParam {
                         min_length: 8,
                         max_length: 12,
@@ -124,12 +126,14 @@ async fn execute_command<P: Platform>(
     let message_id = details.message_id;
 
     let reply = match context.command.name.as_str() {
-        "bridge" => {
-            let Some(code) = context.command.maybe_arg::<String>("code") else {
-                return bad_request(BadRequest::ArgsInvalid);
-            };
-            bridge_command(&bridge, &context, chat, &code).await
-        }
+        "bridge" => match context
+            .command
+            .maybe_arg::<String>("code")
+            .filter(|code| !code.trim().is_empty())
+        {
+            Some(code) => bridge_command(&bridge, &context, chat, &code).await,
+            None => Ok(bridge.platform.bridge_instructions()),
+        },
         "unbridge" => unbridge_command(&bridge, chat).await,
         _ => return bad_request(BadRequest::CommandNotFound),
     };
@@ -240,6 +244,10 @@ mod tests {
 
         async fn delete(&self, _: &Pairing, _: &str) -> anyhow::Result<()> {
             Ok(())
+        }
+
+        fn bridge_instructions(&self) -> String {
+            "Run /bridge in Discord".to_string()
         }
     }
 
@@ -372,6 +380,8 @@ mod tests {
                 .map(|c| c.name.as_str())
                 .collect();
             assert_eq!(commands, ["bridge", "unbridge"]);
+            // So /bridge without a code can say how to get one
+            assert!(!definition.commands[0].params[0].required);
         }
     }
 

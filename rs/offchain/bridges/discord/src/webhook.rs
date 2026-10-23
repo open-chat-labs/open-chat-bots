@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serenity::http::{Http, HttpError};
 use serenity::model::id::{ChannelId, MessageId, WebhookId};
+use serenity::model::permissions::Permissions;
 use std::sync::Arc;
 
 // Discord's limits
@@ -34,12 +35,18 @@ impl DiscordPairing {
 
 pub struct Discord {
     pub http: Arc<Http>,
+    /// The app's client id, from which the link to add the bot to a server is built
+    pub client_id: Option<String>,
 }
 
 #[async_trait]
 impl Platform for Discord {
     const PLATFORM: BridgePlatform = BridgePlatform::Discord;
     const NAME: &'static str = "Discord";
+
+    fn bridge_instructions(&self) -> String {
+        bridge_instructions(self.client_id.as_deref())
+    }
 
     async fn post(
         &self,
@@ -219,10 +226,52 @@ fn truncate(text: String, max_chars: usize) -> String {
     truncated
 }
 
+// What the bot needs in a bridged channel: to see and post messages, and its webhook, which posts
+// OpenChat's messages as their authors
+fn bot_permissions() -> Permissions {
+    Permissions::VIEW_CHANNEL
+        | Permissions::SEND_MESSAGES
+        | Permissions::READ_MESSAGE_HISTORY
+        | Permissions::MANAGE_WEBHOOKS
+}
+
+// Discord only lets someone give a bot the permissions they have, and /bridge there is limited to
+// those who can manage the channel and its webhooks
+fn bridge_instructions(client_id: Option<&str>) -> String {
+    let add =
+        "Add the bot to the Discord server. You'll need Manage Server and Manage Webhooks there";
+    let add = match client_id {
+        Some(client_id) => format!(
+            "{add}: https://discord.com/oauth2/authorize?client_id={client_id}&scope=bot+applications.commands&permissions={}",
+            bot_permissions().bits()
+        ),
+        None => format!("{add}."),
+    };
+    format!(
+        "To bridge this chat with a Discord channel:\n\
+        1. {add}\n\
+        2. Run /bridge in the channel. You'll need Manage Channels and Manage Webhooks. The bot \
+        replies with a code.\n\
+        3. Run `/bridge <code>` here within 15 minutes."
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use oc_bridge_core::Author;
+
+    #[test]
+    fn the_instructions_link_to_adding_the_bot() {
+        // As the README's link has it
+        assert_eq!(bot_permissions().bits(), 536939520);
+        let instructions = bridge_instructions(Some("123"));
+        assert!(instructions.contains(
+            "https://discord.com/oauth2/authorize?client_id=123&scope=bot+applications.commands&permissions=536939520"
+        ));
+        assert!(instructions.contains("`/bridge <code>`"));
+        assert!(bridge_instructions(None).contains("Manage Webhooks there.\n2."));
+    }
 
     fn message(name: &str) -> OutboundMessage {
         OutboundMessage {

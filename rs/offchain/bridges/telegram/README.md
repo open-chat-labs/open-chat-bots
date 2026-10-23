@@ -23,7 +23,8 @@ the Discord bridge, are in [`../core`](../core).
      chat with the bot first, and to run it as themselves rather than anonymously.
   2. In OpenChat, the group or community installs the bridge bot, granting the permissions it asks
      for.
-  3. An admin runs `/bridge <code>` in the group or channel to bridge with.
+  3. An admin runs `/bridge <code>` in the group or channel to bridge with. Run there without a
+     code, `/bridge` says how to get one.
 
   `/unbridge` on either side stops the bridging. When Telegram upgrades a group to a supergroup,
   which gives it a new id, eg. once it has 200 members, the pairing moves to the new id.
