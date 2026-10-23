@@ -155,8 +155,7 @@ fn bridge_instructions(bot: &str) -> String {
         "To bridge this chat with a Telegram group:\n\
         1. Add @{bot} to the group.\n\
         2. Start a private chat with it, at https://t.me/{bot}, so it can send you a code.\n\
-        3. As one of the group's admins, and not anonymously, run /bridge in the group. The bot \
-        sends you the code privately.\n\
+        3. Run /bridge in the group (you'll need to be an admin). The bot sends you the code privately.\n\
         4. Run `/bridge <code>` here within 15 minutes."
     )
 }
