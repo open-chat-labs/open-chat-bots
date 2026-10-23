@@ -29,7 +29,8 @@ the Discord bridge, are in [`../core`](../core).
   Both chats are told once they're bridged, with a link to the OpenChat chat on the other side,
   and again if they stop being bridged. The bridge doesn't relay its own notices.
 
-  `/unbridge` on either side stops the bridging. When Telegram upgrades a group to a supergroup,
+  `/unbridge` on either side stops the bridging, as does uninstalling the bot from the OpenChat
+  group or community, in which case only the platform chat can be told. When Telegram upgrades a group to a supergroup,
   which gives it a new id, eg. once it has 200 members, the pairing moves to the new id.
 - **Linking accounts:** an OpenChat user opens their profile and chooses *Link Telegram* under
   *Linked accounts*.
