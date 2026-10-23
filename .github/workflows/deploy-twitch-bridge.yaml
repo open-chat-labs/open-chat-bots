@@ -1,0 +1,102 @@
+# Deploys the Twitch bridge to its EC2 host, which it shares with the Discord bridge: pushes its image
+# to ECR as `latest`, then restarts the host's service, which pulls `latest` as it starts. Only the
+# image: the host's config, including the bot's identity and the Twitch app's secret, stays as it is
+# in SSM Parameter Store.
+on:
+  workflow_dispatch:
+  # Builds it, without deploying, when this workflow, its Dockerfile, the toolchain or the
+  # dependencies change
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/deploy-twitch-bridge.yaml
+      - rs/offchain/bridges/twitch/Dockerfile
+      - rs/rust-toolchain.toml
+      - rs/Cargo.lock
+
+name: Deploy Twitch bridge
+
+# Deploys queue behind each other, apart from a PR's builds, which a newer push to the PR cancels
+concurrency:
+  group: deploy-twitch-bridge-${{ github.event_name == 'workflow_dispatch' && 'deploy' || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  IMAGE: 253040722768.dkr.ecr.us-east-1.amazonaws.com/oc-twitch-bridge
+  INSTANCE_ID: i-0198f9d466e519454
+
+jobs:
+  deploy:
+    name: Deploy Twitch bridge
+    # The host is arm64, so this builds its image natively rather than under emulation
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      # The deploy role can only be assumed from main, so this fails early with a clearer error
+      - name: Ensure on main
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        run: |
+          echo "Deploy from main, not ${GITHUB_REF}"
+          exit 1
+      - uses: actions/checkout@v4
+      # The Dockerfile pins the Rust version and builds with --locked
+      - name: Build
+        run: docker build --platform linux/arm64 -f rs/offchain/bridges/twitch/Dockerfile -t "$IMAGE:${GITHUB_SHA::10}" -t "$IMAGE:latest" rs
+      - name: Configure AWS credentials
+        if: github.event_name == 'workflow_dispatch'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::253040722768:role/GitHubActions-DeployTwitchBridge
+          aws-region: us-east-1
+      - name: Push
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          aws ecr get-login-password | docker login --username AWS --password-stdin "${IMAGE%%/*}"
+          docker push "$IMAGE:${GITHUB_SHA::10}"
+          docker push "$IMAGE:latest"
+      # Twitch doesn't limit how often the bot connects, unlike Discord, so a bridge which fails is
+      # left for systemd to restart, eg. in case Twitch was briefly unavailable as it started. The
+      # deploy only fails if it doesn't start and stay up.
+      - name: Restart the bridge
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          script='set -eu
+          fail() {
+            echo "The bridge $1. systemd keeps restarting it. Its logs are in CloudWatch, in /oc/twitch-bridge."
+            exit 1
+          }
+          systemctl restart oc-twitch-bridge || fail "did not start"
+          pid=$(systemctl show -p MainPID --value oc-twitch-bridge)
+          sleep 30
+          if ! systemctl is-active -q oc-twitch-bridge || [ "$(systemctl show -p MainPID --value oc-twitch-bridge)" != "$pid" ]; then
+            fail "did not stay up"
+          fi
+          docker inspect --format "Running {{.Config.Image}} ({{.Image}})" oc-twitch-bridge
+          # The previous image, which each deploy leaves untagged
+          docker image prune -f'
+          # A command the host doesn't pick up within 60s is dropped, rather than restarting the
+          # bridge later, after this run has given up on it
+          id=$(aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name AWS-RunShellScript \
+            --timeout-seconds 60 --comment "Deploy the Twitch bridge at ${GITHUB_SHA::10}" \
+            --parameters "$(jq -n --arg script "$script" '{commands: [$script]}')" \
+            --query Command.CommandId --output text)
+          # Up to 5 minutes, for the pull and the 30s check. The invocation may not exist at first.
+          for _ in $(seq 60); do
+            sleep 5
+            status=$(aws ssm get-command-invocation --command-id "$id" --instance-id "$INSTANCE_ID" --query Status --output text 2>/dev/null) || status=Pending
+            case "$status" in Pending|InProgress|Delayed) ;; *) break ;; esac
+          done
+          aws ssm get-command-invocation --command-id "$id" --instance-id "$INSTANCE_ID" \
+            --query '[StandardOutputContent, StandardErrorContent]' --output text
+          echo "Restart: $status"
+          [ "$status" = Success ]
+      # The bridge's public url is in its own config, so it's kept in one place
+      - name: Check it's up
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          public_url=$(aws ssm get-parameter --name /oc-twitch-bridge/PUBLIC_URL --query Parameter.Value --output text)
+          curl -fsS --retry 5 --retry-delay 5 --retry-all-errors "${public_url%/}/bot_definition" > /dev/null
+          echo "Deployed ${GITHUB_SHA} and it's serving ${public_url}"
