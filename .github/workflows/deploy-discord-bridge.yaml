@@ -76,8 +76,9 @@ jobs:
             fail "did not stay up"
           fi
           docker inspect --format "Running {{.Config.Image}} ({{.Image}})" oc-discord-bridge
-          # The previous image, which each deploy leaves untagged
-          docker image prune -f'
+          # The previous image, which each deploy leaves untagged. Pruning fails while the Twitch
+          # bridge deploy prunes the same host, which is no reason to fail this one.
+          docker image prune -f || true'
           # A command the host doesn't pick up within 60s is dropped, rather than restarting the
           # bridge later, after this run has given up on it
           id=$(aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name AWS-RunShellScript \

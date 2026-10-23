@@ -194,14 +194,19 @@ The shared parts of the bridge, also used by the Discord and Telegram bridges, a
      service through SSM. The config in Parameter Store stays as it is.
    - If the bridge doesn't start, or doesn't stay up for 30 seconds, the deploy fails, and systemd
      keeps restarting it.
-   - It then checks the bridge answers at the `PUBLIC_URL` in Parameter Store.
+   - It then checks the bridge answers at the `PUBLIC_URL` in Parameter Store, which can be a String
+     or a SecureString. A SecureString encrypted with a key of your own needs `kms:Decrypt` on the
+     key too.
    - It deploys with the IAM role `GitHubActions-DeployTwitchBridge`, which GitHub can assume only
      from `main`:
      - **Trust:** the OIDC provider `token.actions.githubusercontent.com`, with `aud`
        `sts.amazonaws.com` and `sub` `repo:open-chat-labs/open-chat-bots:ref:refs/heads/main`.
-     - **Permissions:** only pushing to the `oc-twitch-bridge` ECR repository, plus
+     - **Permissions:** pushing to the `oc-twitch-bridge` ECR repository, plus
        `ecr:GetAuthorizationToken`, `ssm:SendCommand` on this instance with the `AWS-RunShellScript`
        document, `ssm:GetCommandInvocation`, and `ssm:GetParameter` on `/oc-twitch-bridge/PUBLIC_URL`.
+     - `AWS-RunShellScript` runs any command on the host as root, so the role can do anything there,
+       including to the Discord bridge's service and config, as the Discord bridge's role can to
+       this one's.
 
 7. **Point the website at it:** build the website with
    `OC_TWITCH_BRIDGE_LINK_URL={PUBLIC_URL}/link?code={code}`, so the *Link Twitch* option can be

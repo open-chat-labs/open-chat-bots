@@ -51,6 +51,13 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::253040722768:role/GitHubActions-DeployTwitchBridge
           aws-region: us-east-1
+      # The bridge's public url is in its own config, so it's kept in one place. It's read before
+      # anything's pushed, so a missing parameter or permission stops the deploy there.
+      - name: Read the public url
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          public_url=$(aws ssm get-parameter --name /oc-twitch-bridge/PUBLIC_URL --with-decryption --query Parameter.Value --output text)
+          echo "PUBLIC_URL=${public_url%/}" >> "$GITHUB_ENV"
       - name: Push
         if: github.event_name == 'workflow_dispatch'
         run: |
@@ -75,8 +82,9 @@ jobs:
             fail "did not stay up"
           fi
           docker inspect --format "Running {{.Config.Image}} ({{.Image}})" oc-twitch-bridge
-          # The previous image, which each deploy leaves untagged
-          docker image prune -f'
+          # The previous image, which each deploy leaves untagged. Pruning fails while the Discord
+          # bridge deploy prunes the same host, which is no reason to fail this one.
+          docker image prune -f || true'
           # A command the host doesn't pick up within 60s is dropped, rather than restarting the
           # bridge later, after this run has given up on it
           id=$(aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name AWS-RunShellScript \
@@ -93,10 +101,8 @@ jobs:
             --query '[StandardOutputContent, StandardErrorContent]' --output text
           echo "Restart: $status"
           [ "$status" = Success ]
-      # The bridge's public url is in its own config, so it's kept in one place
       - name: Check it's up
         if: github.event_name == 'workflow_dispatch'
         run: |
-          public_url=$(aws ssm get-parameter --name /oc-twitch-bridge/PUBLIC_URL --query Parameter.Value --output text)
-          curl -fsS --retry 5 --retry-delay 5 --retry-all-errors "${public_url%/}/bot_definition" > /dev/null
-          echo "Deployed ${GITHUB_SHA} and it's serving ${public_url}"
+          curl -fsS --retry 5 --retry-delay 5 --retry-all-errors "$PUBLIC_URL/bot_definition" > /dev/null
+          echo "Deployed ${GITHUB_SHA} and it's serving ${PUBLIC_URL}"
