@@ -38,11 +38,11 @@ prices for it, only whoever ran the command is told.
     largest coins daily, so most symbols are found without asking CoinGecko.
   - Without an API key, CoinGecko allows only a few calls a minute from an address. The bot stays
     under 10 a minute, or 30 with a key, and says so if it's asked for more.
-  - ICPSwap's charts are slow, often 3-20 seconds, so it makes at most 4 requests to ICPSwap at
-    once, and tries again once if it's refused for too many.
+  - ICPSwap's charts are slow, often 3-20 seconds, so the bot makes at most 4 requests to ICPSwap
+    at once, and tries again once if it's refused for too many.
 - **Drawing:** the chart is drawn with [plotters](https://crates.io/crates/plotters) as an SVG, then
   rasterized to a PNG with [resvg](https://crates.io/crates/resvg), with the DejaVu Sans font built
-  in, so it needs nothing installed on the host.
+  in, so it needs nothing installed on the host. Its times are in UTC.
 - **Uploading:** the PNG is uploaded to OpenChat's storage, as the bot, with the SDK's
   `Client::upload_image`, then sent as an image message. OpenChat gives a bot an upload allowance
   of 1 GB when it's registered. A chart is about 40-90 KB, so that's roughly 15,000 charts, after
