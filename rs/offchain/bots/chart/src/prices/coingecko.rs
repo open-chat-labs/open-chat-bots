@@ -65,7 +65,7 @@ impl CoinGecko {
 
     // The 250 coins with the largest market caps, largest first
     async fn top_coins(&self) -> Result<Vec<Coin>, PriceError> {
-        if let Some(coins) = self.top_coins.get(&(), DAY) {
+        if let Some(coins) = self.top_coins.get(&()) {
             return Ok(coins);
         }
         let coins: Vec<Coin> = self

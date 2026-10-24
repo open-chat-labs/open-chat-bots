@@ -16,6 +16,9 @@ pub const HEIGHT: u32 = 675;
 const PADDING: i32 = 48;
 const HEADER_HEIGHT: u32 = 150;
 const FOOTER_HEIGHT: u32 = 56;
+// When the legend wraps, each row after the first adds this to the header
+const LEGEND_ROW_HEIGHT: u32 = 44;
+const LEGEND_LABEL_SIZE: u32 = 28;
 
 const FONT: &str = "sans-serif";
 
@@ -52,16 +55,19 @@ pub fn render(lines: &[Line], period: Period, sources: &[&str]) -> Result<Vec<u8
     }
     register_fonts();
 
+    let as_change = lines.len() > 1;
+    let legend = if as_change { legend(lines) } else { Vec::new() };
+    let header_height = HEADER_HEIGHT + legend.len().saturating_sub(1) as u32 * LEGEND_ROW_HEIGHT;
+
     let mut svg = String::new();
     {
         let root = SVGBackend::with_string(&mut svg, (WIDTH, HEIGHT)).into_drawing_area();
         root.fill(&SURFACE).map_err(error)?;
-        let (header, rest) = root.split_vertically(HEADER_HEIGHT);
-        let (plot, footer) = rest.split_vertically(HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT);
+        let (header, rest) = root.split_vertically(header_height);
+        let (plot, footer) = rest.split_vertically(HEIGHT - header_height - FOOTER_HEIGHT);
 
-        let as_change = lines.len() > 1;
         if as_change {
-            draw_legend(&header, lines, period)?;
+            draw_legend(&header, &legend, period)?;
         } else {
             draw_title(&header, &lines[0], period)?;
         }
@@ -127,9 +133,42 @@ fn draw_title(area: &DrawingArea<SVGBackend, Shift>, line: &Line, period: Period
     .map_err(error)
 }
 
+/// A line's key in the legend: a stroke of its colour, then its symbol and change
+struct LegendItem {
+    label: String,
+    color: RGBColor,
+    x: i32,
+    width: i32,
+}
+
+// The legend's rows, wrapped to fit the width
+fn legend(lines: &[Line]) -> Vec<Vec<LegendItem>> {
+    let mut rows: Vec<Vec<LegendItem>> = vec![Vec::new()];
+    let mut x = PADDING;
+    for (line, color) in lines.iter().zip(SERIES) {
+        let label = match change(line.points) {
+            Some(change) => format!("{} {}", line.symbol, format::change(change)),
+            None => line.symbol.to_string(),
+        };
+        let width = 40 + text_width(&label, LEGEND_LABEL_SIZE, FontStyle::Normal);
+        if x + width > WIDTH as i32 - PADDING && !rows.last().unwrap().is_empty() {
+            rows.push(Vec::new());
+            x = PADDING;
+        }
+        rows.last_mut().unwrap().push(LegendItem {
+            label,
+            color,
+            x,
+            width,
+        });
+        x += width + 36;
+    }
+    rows
+}
+
 fn draw_legend(
     area: &DrawingArea<SVGBackend, Shift>,
-    lines: &[Line],
+    legend: &[Vec<LegendItem>],
     period: Period,
 ) -> Result<()> {
     area.draw_text(
@@ -139,24 +178,18 @@ fn draw_legend(
     )
     .map_err(error)?;
 
-    let label_style = font(28, FontStyle::Normal).color(&SECONDARY_INK);
-    let mut x = PADDING;
-    let y = 104;
-    for (line, color) in lines.iter().zip(SERIES) {
-        area.draw(&PathElement::new(
-            vec![(x, y), (x + 28, y)],
-            color.stroke_width(6),
-        ))
-        .map_err(error)?;
-        x += 40;
-
-        let label = match change(line.points) {
-            Some(change) => format!("{} {}", line.symbol, format::change(change)),
-            None => line.symbol.to_string(),
-        };
-        area.draw_text(&label, &label_style, (x, y - 15))
+    let label_style = font(LEGEND_LABEL_SIZE, FontStyle::Normal).color(&SECONDARY_INK);
+    for (row, items) in legend.iter().enumerate() {
+        let y = 104 + (row as u32 * LEGEND_ROW_HEIGHT) as i32;
+        for item in items {
+            area.draw(&PathElement::new(
+                vec![(item.x, y), (item.x + 28, y)],
+                item.color.stroke_width(6),
+            ))
             .map_err(error)?;
-        x += text_width(&label, 28, FontStyle::Normal) + 36;
+            area.draw_text(&item.label, &label_style, (item.x + 40, y - 15))
+                .map_err(error)?;
+        }
     }
     Ok(())
 }
@@ -217,9 +250,9 @@ fn draw_plot(area: &DrawingArea<SVGBackend, Shift>, lines: &[Line], as_change: b
         min = min.min(0.0);
         max = max.max(0.0);
     }
-    let margin = ((max - min) * 0.08)
-        .max(max.abs() * 0.001)
-        .max(f64::MIN_POSITIVE);
+    // At least a sliver either side, so a flat line isn't drawn along an edge
+    let min_margin = if as_change { 0.5 } else { max.abs() * 0.001 };
+    let margin = ((max - min) * 0.08).max(min_margin).max(f64::MIN_POSITIVE);
     let (y_min, y_max) = (min - margin, max + margin);
     let y_min = if as_change { y_min } else { y_min.max(0.0) };
     let step = tick_step(y_max - y_min);
@@ -289,10 +322,11 @@ fn draw_plot(area: &DrawingArea<SVGBackend, Shift>, lines: &[Line], as_change: b
 }
 
 fn draw_footer(area: &DrawingArea<SVGBackend, Shift>, sources: &[&str]) -> Result<()> {
-    if sources.is_empty() {
-        return Ok(());
-    }
-    let text = format!("Prices from {}", sources.join(", "));
+    let text = if sources.is_empty() {
+        "Times in UTC".to_string()
+    } else {
+        format!("Times in UTC · Prices from {}", sources.join(", "))
+    };
     let style = font(24, FontStyle::Normal).color(&MUTED_INK);
     let width = text_width(&text, 24, FontStyle::Normal);
     area.draw_text(&text, &style, (WIDTH as i32 - PADDING - width, 8))
@@ -466,6 +500,65 @@ mod tests {
         .unwrap();
         assert_is_png(&png);
         save("flat", &png);
+    }
+
+    #[test]
+    fn the_legend_wraps_to_fit() {
+        let prices = points(&wave(24, 1.0, 0.1), 3_600_000);
+        let symbols = ["ckUSDC", "ckUSDT", "ckETH", "ckBTC", "ABCDEFGHIJKLMNOPQRST"];
+        let lines: Vec<Line> = symbols
+            .iter()
+            .map(|symbol| Line {
+                symbol,
+                name: symbol,
+                points: &prices,
+            })
+            .collect();
+
+        let rows = legend(&lines);
+        assert!(rows.len() > 1);
+        for item in rows.iter().flatten() {
+            assert!(item.x >= PADDING);
+            assert!(
+                item.x + item.width <= WIDTH as i32 - PADDING,
+                "{}",
+                item.label
+            );
+        }
+
+        let png = render(&lines, Period::Day, &["ICPSwap"]).unwrap();
+        assert_is_png(&png);
+        save("wrapped", &png);
+    }
+
+    #[test]
+    fn a_short_legend_is_one_row() {
+        let prices = points(&wave(24, 1.0, 0.1), 3_600_000);
+        let lines: Vec<Line> = ["CHAT", "ICP", "ckBTC"]
+            .iter()
+            .map(|symbol| Line {
+                symbol,
+                name: symbol,
+                points: &prices,
+            })
+            .collect();
+        assert_eq!(legend(&lines).len(), 1);
+    }
+
+    #[test]
+    fn renders_several_flat_lines() {
+        let prices = points(&[1.0; 24], 3_600_000);
+        let lines: Vec<Line> = ["ckUSDC", "ckUSDT"]
+            .iter()
+            .map(|symbol| Line {
+                symbol,
+                name: symbol,
+                points: &prices,
+            })
+            .collect();
+        let png = render(&lines, Period::Day, &["ICPSwap"]).unwrap();
+        assert_is_png(&png);
+        save("flat_several", &png);
     }
 
     #[test]

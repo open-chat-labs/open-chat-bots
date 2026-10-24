@@ -7,6 +7,13 @@ pub fn create_thumbnail(
     format: image::ImageFormat,
 ) -> Result<ThumbnailData, Box<dyn std::error::Error>> {
     let img = image::load_from_memory(image)?;
+    thumbnail_of(&img, format)
+}
+
+pub(crate) fn thumbnail_of(
+    img: &image::DynamicImage,
+    format: image::ImageFormat,
+) -> Result<ThumbnailData, Box<dyn std::error::Error>> {
     let thumbnail = img.thumbnail(30, 30);
     let mut bytes: Vec<u8> = Vec::new();
     thumbnail.write_to(&mut Cursor::new(&mut bytes), format)?;

@@ -64,13 +64,14 @@ impl IcpSwap {
         ledger: CanisterId,
         period: Period,
     ) -> Result<Vec<PricePoint>, PriceError> {
-        // Hours without trades are left out, so these allow for gaps
+        // Hours without trades are left out, so these allow for gaps, and reach back before the
+        // period's start
         let (level, limit, pages) = match period {
             Period::Day => ("h1", 48, 1),
             Period::Week => ("h1", MAX_PAGE_SIZE, 1),
             Period::Month => ("h1", MAX_PAGE_SIZE, 2),
             Period::Quarter => ("d1", 100, 1),
-            Period::Year => ("d1", MAX_PAGE_SIZE, 1),
+            Period::Year => ("d1", MAX_PAGE_SIZE, 2),
         };
         let pages =
             try_join_all((1..=pages).map(|page| self.chart(ledger, level, page, limit))).await?;
@@ -224,10 +225,9 @@ mod tests {
         let icpswap = IcpSwap::new(crate::prices::http_client().unwrap());
         for period in [Period::Day, Period::Month, Period::Year] {
             let points = icpswap.history(chat.into(), period).await.unwrap();
-            // A page of daily candles is a day short of a year
             let span = points.last().unwrap().time - points[0].time;
             assert!(
-                span >= period.millis() * 9 / 10,
+                span >= period.millis(),
                 "{period:?}: {} points",
                 points.len()
             );

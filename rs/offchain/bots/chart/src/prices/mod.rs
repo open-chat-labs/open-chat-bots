@@ -90,7 +90,7 @@ impl Prices {
     /// market cap on CoinGecko
     pub async fn find(&self, symbol: &str) -> Result<Option<Token>, PriceError> {
         let key = symbol.to_lowercase();
-        if let Some(token) = self.found.get(&key, HOUR) {
+        if let Some(token) = self.found.get(&key) {
             return Ok(token);
         }
 
@@ -114,8 +114,7 @@ impl Prices {
         period: Period,
     ) -> Result<Vec<PricePoint>, PriceError> {
         let key = (token.source.clone(), period);
-        let max_age = cache_duration(period);
-        if let Some(points) = self.histories.get(&key, max_age) {
+        if let Some(points) = self.histories.get(&key) {
             return Ok(points);
         }
 
@@ -125,12 +124,13 @@ impl Prices {
         };
         let points = within_period(points, period, now());
 
-        self.histories.insert(key, points.clone(), max_age);
+        self.histories
+            .insert(key, points.clone(), cache_duration(period));
         Ok(points)
     }
 
     async fn listed_tokens(&self) -> Result<Vec<ListedToken>, PriceError> {
-        if let Some(tokens) = self.listed.get(&(), HOUR) {
+        if let Some(tokens) = self.listed.get(&()) {
             return Ok(tokens);
         }
         let tokens = registry::listed_tokens(&self.mainnet).await?;

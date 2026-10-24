@@ -45,7 +45,7 @@ prices for it, only whoever ran the command is told.
   in, so it needs nothing installed on the host.
 - **Uploading:** the PNG is uploaded to OpenChat's storage, as the bot, with the SDK's
   `Client::upload_image`, then sent as an image message. OpenChat gives a bot an upload allowance
-  of 1 GB when it's registered. A chart is about 40-60 KB, so that's around 20,000 charts, after
+  of 1 GB when it's registered. A chart is about 40-90 KB, so that's roughly 15,000 charts, after
   which uploads fail. A group's or community's files are only deleted with it.
 
 ## Running it

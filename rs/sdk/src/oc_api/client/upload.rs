@@ -6,7 +6,7 @@ use crate::oc_api::actions::upload_chunk::{self, UploadChunkAction};
 use crate::types::{
     ActionContext, ActionScope, BlobReference, CallError, CanisterId, ImageContent,
 };
-use crate::utils::create_thumbnail;
+use crate::utils::thumbnail_of;
 use sha3::{Digest, Sha3_256};
 use std::fmt::{Display, Formatter};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -27,6 +27,9 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
         mime_type: String,
         data: Vec<u8>,
     ) -> Result<BlobReference, UploadError> {
+        if data.is_empty() {
+            return Err(UploadError::Empty);
+        }
         let hash: [u8; 32] = Sha3_256::digest(&data).into();
         let total_size = data.len() as u64;
         // OpenChat mixes the time into the file's id, so this only has to differ between uploads
@@ -46,7 +49,7 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
         .await
         .map_err(UploadError::Call)?
         {
-            allocated_bucket::Response::Success(result) => result,
+            allocated_bucket::Response::Success(result) if result.chunk_size > 0 => result,
             response => return Err(UploadError::AllocateBucket(response)),
         };
 
@@ -87,7 +90,7 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
     ) -> Result<ImageContent, UploadError> {
         let image = image::load_from_memory_with_format(&data, format)
             .map_err(|error| UploadError::InvalidImage(error.to_string()))?;
-        let thumbnail_data = create_thumbnail(&data, format)
+        let thumbnail_data = thumbnail_of(&image, format)
             .map_err(|error| UploadError::InvalidImage(error.to_string()))?;
         let mime_type = format.to_mime_type().to_string();
 
@@ -134,6 +137,8 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
 
 #[derive(Debug)]
 pub enum UploadError {
+    /// There was nothing to upload
+    Empty,
     /// The StorageIndex didn't allocate a bucket, eg. as the bot's allowance is used up
     AllocateBucket(allocated_bucket::Response),
     /// The StorageBucket refused a chunk
@@ -147,6 +152,7 @@ impl std::error::Error for UploadError {}
 impl Display for UploadError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            UploadError::Empty => write!(f, "There's nothing to upload"),
             UploadError::AllocateBucket(response) => {
                 write!(f, "Failed to allocate a bucket: {response:?}")
             }
@@ -163,7 +169,7 @@ impl Display for UploadError {
 mod tests {
     use super::*;
     use crate::msgpack;
-    use crate::oc_api::actions::allocated_bucket::{ProjectedAllowance, SuccessResult};
+    use crate::oc_api::actions::allocated_bucket::ProjectedAllowance;
     use crate::types::{AutonomousContext, CallResult, Chat, TimestampMillis};
     use ic_principal::Principal;
     use serde::{Deserialize, Serialize};
@@ -252,6 +258,72 @@ mod tests {
 
         assert!(blob.is_ok());
         assert_eq!(runtime.calls.lock().unwrap().len(), 3);
+    }
+
+    #[test]
+    fn a_chunk_is_tried_three_times() {
+        let runtime = FakeRuntime::new(vec![
+            Ok(msgpack::serialize_then_unwrap(allocated(512))),
+            Err((0, "timed out".to_string())),
+            Err((0, "timed out".to_string())),
+            Err((2, "rejected".to_string())),
+        ]);
+        let client = client(&runtime);
+
+        let blob = block_on(client.upload_blob(
+            canister_id(STORAGE_INDEX),
+            "image/png".to_string(),
+            vec![1, 2, 3],
+        ));
+
+        assert!(matches!(blob, Err(UploadError::Call((2, _)))));
+        assert_eq!(runtime.calls.lock().unwrap().len(), 4);
+    }
+
+    // Only a retry can find a chunk or file it uploaded already
+    #[test]
+    fn an_existing_file_fails_the_first_attempt() {
+        let runtime = FakeRuntime::new(vec![
+            Ok(msgpack::serialize_then_unwrap(allocated(512))),
+            Ok(msgpack::serialize_then_unwrap(
+                upload_chunk::Response::FileAlreadyExists,
+            )),
+        ]);
+        let client = client(&runtime);
+
+        let blob = block_on(client.upload_blob(
+            canister_id(STORAGE_INDEX),
+            "image/png".to_string(),
+            vec![1, 2, 3],
+        ));
+
+        assert!(matches!(
+            blob,
+            Err(UploadError::UploadChunk(
+                upload_chunk::Response::FileAlreadyExists
+            ))
+        ));
+    }
+
+    #[test]
+    fn nothing_is_uploaded_for_no_data_or_a_chunk_size_of_0() {
+        let runtime = FakeRuntime::new(vec![Ok(msgpack::serialize_then_unwrap(allocated(0)))]);
+        let client = client(&runtime);
+
+        let empty = block_on(client.upload_blob(
+            canister_id(STORAGE_INDEX),
+            "image/png".to_string(),
+            Vec::new(),
+        ));
+        assert!(matches!(empty, Err(UploadError::Empty)));
+
+        let no_chunk_size = block_on(client.upload_blob(
+            canister_id(STORAGE_INDEX),
+            "image/png".to_string(),
+            vec![1, 2, 3],
+        ));
+        assert!(matches!(no_chunk_size, Err(UploadError::AllocateBucket(_))));
+        assert_eq!(runtime.calls.lock().unwrap().len(), 1);
     }
 
     #[test]
@@ -354,11 +426,31 @@ mod tests {
         assert_eq!(deserialized.accessors, args.accessors);
     }
 
-    fn allocated(chunk_size: u32) -> allocated_bucket::Response {
-        allocated_bucket::Response::Success(SuccessResult {
+    // As the StorageIndex sends it, with more fields than are read
+    #[derive(Serialize)]
+    enum BackendAllocatedBucketResponse {
+        Success(BackendAllocatedBucketResult),
+    }
+
+    #[derive(Serialize)]
+    struct BackendAllocatedBucketResult {
+        canister_id: CanisterId,
+        file_id: u128,
+        chunk_size: u32,
+        byte_limit: u64,
+        bytes_used: u64,
+        bytes_used_after_upload: u64,
+        projected_allowance: ProjectedAllowance,
+    }
+
+    fn allocated(chunk_size: u32) -> BackendAllocatedBucketResponse {
+        BackendAllocatedBucketResponse::Success(BackendAllocatedBucketResult {
             canister_id: canister_id(BUCKET),
             file_id: 7,
             chunk_size,
+            byte_limit: 1 << 30,
+            bytes_used: 0,
+            bytes_used_after_upload: 10,
             projected_allowance: ProjectedAllowance {
                 byte_limit: 1 << 30,
                 bytes_used: 0,
