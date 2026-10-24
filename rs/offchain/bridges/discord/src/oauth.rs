@@ -148,6 +148,7 @@ async fn discord_user(state: &OAuthState, code: &str) -> Result<DiscordUser> {
         username: user.username,
         display_name: user.global_name,
         avatar: user.avatar,
+        bot: false,
     })
 }
 
