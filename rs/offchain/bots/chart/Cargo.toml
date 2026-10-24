@@ -1,0 +1,29 @@
+[package]
+name = "oc_chart_bot"
+version = "0.1.0"
+edition.workspace = true
+
+# Replies to /chart with a price chart of one or more crypto tokens, as an image uploaded to OpenChat's
+# storage. Runs as a long-lived server, so the price data it caches is shared between commands.
+
+[dependencies]
+ab_glyph = "0.2"
+anyhow = "1"
+async-trait = { workspace = true }
+axum = { workspace = true }
+chrono = { workspace = true }
+dejavu = "2.37"
+futures = "0.3"
+ic-agent = { workspace = true }
+image = { workspace = true }
+oc_bots_sdk = { path = "../../../sdk" }
+oc_bots_sdk_offchain = { path = "../../sdk", features = ["tower"] }
+plotters = { version = "0.3", default-features = false, features = ["ab_glyph", "datetime", "line_series", "svg_backend"] }
+resvg = { version = "0.49", default-features = false, features = ["text"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time"] }
+tower-http = { workspace = true, features = ["cors"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }

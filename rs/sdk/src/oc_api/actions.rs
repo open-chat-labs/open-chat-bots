@@ -6,6 +6,7 @@ use std::future::Future;
 use std::sync::Arc;
 
 pub mod add_reaction;
+pub mod allocated_bucket;
 pub mod bridged_users;
 pub mod change_role;
 pub mod chat_events;
@@ -26,6 +27,7 @@ pub mod remove_user;
 pub mod send_message;
 #[cfg(feature = "bridge")]
 pub mod unlink_bridged_user;
+pub mod upload_chunk;
 
 pub trait ActionDef {
     type Args: Serialize + Clone + Send + 'static;

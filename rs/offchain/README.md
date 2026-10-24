@@ -14,6 +14,12 @@ In the root of the repo there are scripts to deploy the Rust offchain example bo
   ./scripts/deploy_llama_bot.sh
 ```
 
+- [ChartBot](./bots/chart/README.md), which replies to `/chart` with a price chart of crypto tokens
+
+```bash
+  ./scripts/deploy_chart_bot.sh
+```
+
 Note: the bridges aren't deployed locally, since they need a Discord app, a Telegram bot or a Twitch
 app, and must be reachable by OpenChat.
 

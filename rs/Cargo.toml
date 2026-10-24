@@ -10,6 +10,7 @@ members = [
     "canister/examples/reminder",
     "canister/examples/welcome",
     "canister/sdk",
+    "offchain/bots/chart",
     "offchain/bridges/core",
     "offchain/bridges/discord",
     "offchain/bridges/telegram",
@@ -56,8 +57,10 @@ rand = "0.8.5"
 regex = "1.11.1"
 rmp-serde = "1.3.0"
 serde = "1.0.217"
+serde_bytes = "0.11"
 serde_json = "1.0.138"
 sha2 = "0.10.8"
+sha3 = "0.10"
 strum = "0.27"
 strum_macros = "0.27"
 thiserror = "2.0.11"
