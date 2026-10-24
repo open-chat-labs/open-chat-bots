@@ -48,7 +48,7 @@ impl Handler {
             .relay_inbound(InboundMessage {
                 platform_chat: message.channel_id.to_string(),
                 platform_message: message.id.to_string(),
-                author: bridged_user(&message.author),
+                author: bridged_user(&message.author, message.webhook_id.is_some()),
                 text: inbound_text(
                     &message.content,
                     &message.mentions,
@@ -307,12 +307,15 @@ async fn channel_name(ctx: &Context, channel_id: ChannelId, guild_id: GuildId) -
     }
 }
 
-pub fn bridged_user(user: &User) -> BridgedUser {
+/// A message's author. One a webhook posted is flagged as a bot, as Discord flags bot accounts, as
+/// no one can link either.
+pub fn bridged_user(user: &User, from_webhook: bool) -> BridgedUser {
     BridgedUser::Discord(DiscordUser {
         id: user.id.get(),
         username: user.name.clone(),
         display_name: user.global_name.clone(),
         avatar: user.avatar.map(|hash| hash.to_string()),
+        bot: user.bot || from_webhook,
     })
 }
 
@@ -381,6 +384,24 @@ fn custom_emoji_as_names(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // No one can link a bot or a webhook, so OpenChat doesn't let anyone tip their messages
+    #[test]
+    fn bots_and_webhooks_are_flagged_as_bots() {
+        let is_flagged = |user: &User, from_webhook| {
+            matches!(
+                bridged_user(user, from_webhook),
+                BridgedUser::Discord(DiscordUser { bot: true, .. })
+            )
+        };
+        let person = User::default();
+        let mut bot = User::default();
+        bot.bot = true;
+
+        assert!(!is_flagged(&person, false));
+        assert!(is_flagged(&bot, false));
+        assert!(is_flagged(&person, true));
+    }
 
     #[test]
     fn everyone_is_only_mentioned_by_those_who_could_on_discord() {
