@@ -385,6 +385,24 @@ fn custom_emoji_as_names(text: &str) -> String {
 mod tests {
     use super::*;
 
+    // No one can link a bot or a webhook, so OpenChat doesn't let anyone tip their messages
+    #[test]
+    fn bots_and_webhooks_are_flagged_as_bots() {
+        let is_flagged = |user: &User, from_webhook| {
+            matches!(
+                bridged_user(user, from_webhook),
+                BridgedUser::Discord(DiscordUser { bot: true, .. })
+            )
+        };
+        let person = User::default();
+        let mut bot = User::default();
+        bot.bot = true;
+
+        assert!(!is_flagged(&person, false));
+        assert!(is_flagged(&bot, false));
+        assert!(is_flagged(&person, true));
+    }
+
     #[test]
     fn everyone_is_only_mentioned_by_those_who_could_on_discord() {
         assert_eq!(
