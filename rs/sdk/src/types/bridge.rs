@@ -114,6 +114,10 @@ pub struct DiscordUser {
     /// The hash of the user's global avatar, from which Discord's CDN url is built. 32 hex
     /// characters, after "a_" if it's animated.
     pub avatar: Option<String>,
+    /// A bot or a webhook, which no one can link to an OpenChat account, so whose relayed messages
+    /// OpenChat doesn't let anyone tip
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub bot: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
