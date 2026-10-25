@@ -11,6 +11,11 @@ pub fn usd(price: f64) -> String {
     }
 }
 
+/// A token's price at the start of a period and at its end, eg. $0.03113 → $0.03141
+pub fn usd_range(start: f64, end: f64) -> String {
+    format!("{} → {}", usd(start), usd(end))
+}
+
 /// A price on the chart's axis, with enough decimals to tell ticks `step` apart
 pub fn usd_tick(price: f64, step: f64) -> String {
     if step >= 1.0 && price.abs() >= 1000.0 {
@@ -95,6 +100,12 @@ mod tests {
         assert_eq!(usd(0.002345), "$0.002345");
         assert_eq!(usd(0.00000123456), "$0.000001235");
         assert_eq!(usd(0.0), "$0");
+    }
+
+    #[test]
+    fn price_ranges() {
+        assert_eq!(usd_range(0.03113, 0.031414), "$0.03113 → $0.03141");
+        assert_eq!(usd_range(67000.0, 5.5), "$67,000 → $5.50");
     }
 
     #[test]

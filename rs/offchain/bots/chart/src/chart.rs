@@ -10,13 +10,14 @@ use plotters::style::{FontStyle, register_font};
 use resvg::{tiny_skia, usvg};
 use std::sync::{Arc, LazyLock, Once};
 
-// Drawn at twice the size OpenChat shows it, so it's sharp on high density screens
+// Drawn at twice the size OpenChat shows it, so it's sharp on high density screens. A legend which
+// wraps makes it taller.
 pub const WIDTH: u32 = 1200;
 pub const HEIGHT: u32 = 675;
 const PADDING: i32 = 48;
 const HEADER_HEIGHT: u32 = 150;
 const FOOTER_HEIGHT: u32 = 56;
-// When the legend wraps, each row after the first adds this to the header
+// When the legend wraps, each row after the first adds this to the header, and to the height
 const LEGEND_ROW_HEIGHT: u32 = 44;
 const LEGEND_LABEL_SIZE: u32 = 28;
 
@@ -57,14 +58,15 @@ pub fn render(lines: &[Line], period: Period, sources: &[&str]) -> Result<Vec<u8
 
     let as_change = lines.len() > 1;
     let legend = if as_change { legend(lines) } else { Vec::new() };
-    let header_height = HEADER_HEIGHT + legend.len().saturating_sub(1) as u32 * LEGEND_ROW_HEIGHT;
+    let extra_height = legend.len().saturating_sub(1) as u32 * LEGEND_ROW_HEIGHT;
+    let (header_height, height) = (HEADER_HEIGHT + extra_height, HEIGHT + extra_height);
 
     let mut svg = String::new();
     {
-        let root = SVGBackend::with_string(&mut svg, (WIDTH, HEIGHT)).into_drawing_area();
+        let root = SVGBackend::with_string(&mut svg, (WIDTH, height)).into_drawing_area();
         root.fill(&SURFACE).map_err(error)?;
         let (header, rest) = root.split_vertically(header_height);
-        let (plot, footer) = rest.split_vertically(HEIGHT - header_height - FOOTER_HEIGHT);
+        let (plot, footer) = rest.split_vertically(height - header_height - FOOTER_HEIGHT);
 
         if as_change {
             draw_legend(&header, &legend, period)?;
@@ -76,19 +78,19 @@ pub fn render(lines: &[Line], period: Period, sources: &[&str]) -> Result<Vec<u8
         root.present().map_err(error)?;
     }
 
-    rasterize(&svg)
+    rasterize(&svg, height)
 }
 
 // plotters draws text on bitmaps without each glyph's side bearing, which spaces letters unevenly,
 // so it draws an SVG which resvg draws instead
-fn rasterize(svg: &str) -> Result<Vec<u8>> {
+fn rasterize(svg: &str, height: u32) -> Result<Vec<u8>> {
     let options = usvg::Options {
         fontdb: FONTS.clone(),
         ..usvg::Options::default()
     };
     let tree = usvg::Tree::from_str(svg, &options)?;
     let mut pixmap =
-        tiny_skia::Pixmap::new(WIDTH, HEIGHT).ok_or_else(|| anyhow!("Invalid chart size"))?;
+        tiny_skia::Pixmap::new(WIDTH, height).ok_or_else(|| anyhow!("Invalid chart size"))?;
     resvg::render(&tree, tiny_skia::Transform::default(), &mut pixmap.as_mut());
     Ok(pixmap.encode_png()?)
 }
@@ -120,10 +122,12 @@ fn draw_title(area: &DrawingArea<SVGBackend, Shift>, line: &Line, period: Period
         draw_change(area, change, (PADDING + width + 24, 48), 36)?;
     }
 
+    let first = line.points[0].price;
+    let range = format::usd_range(first, last);
     let subtitle = if line.name.eq_ignore_ascii_case(line.symbol) {
-        format!("USD · past {period}")
+        format!("{range} over the past {period}")
     } else {
-        format!("{} · USD · past {period}", line.name)
+        format!("{} · {range} over the past {period}", line.name)
     };
     area.draw_text(
         &subtitle,
@@ -146,10 +150,7 @@ fn legend(lines: &[Line]) -> Vec<Vec<LegendItem>> {
     let mut rows: Vec<Vec<LegendItem>> = vec![Vec::new()];
     let mut x = PADDING;
     for (line, color) in lines.iter().zip(SERIES) {
-        let label = match change(line.points) {
-            Some(change) => format!("{} {}", line.symbol, format::change(change)),
-            None => line.symbol.to_string(),
-        };
+        let label = legend_label(line);
         let width = 40 + text_width(&label, LEGEND_LABEL_SIZE, FontStyle::Normal);
         if x + width > WIDTH as i32 - PADDING && !rows.last().unwrap().is_empty() {
             rows.push(Vec::new());
@@ -164,6 +165,16 @@ fn legend(lines: &[Line]) -> Vec<Vec<LegendItem>> {
         x += width + 36;
     }
     rows
+}
+
+// eg. "CHAT $0.03113 → $0.03141 (+0.9%)", as the axis only shows the change
+fn legend_label(line: &Line) -> String {
+    let (first, last) = (line.points[0].price, line.points.last().unwrap().price);
+    let range = format::usd_range(first, last);
+    match change(line.points) {
+        Some(change) => format!("{} {range} ({})", line.symbol, format::change(change)),
+        None => format!("{} {range}", line.symbol),
+    }
 }
 
 fn draw_legend(
@@ -425,9 +436,9 @@ mod tests {
             .collect()
     }
 
-    fn assert_is_png(png: &[u8]) {
+    fn assert_is_png(png: &[u8], height: u32) {
         let image = image::load_from_memory_with_format(png, image::ImageFormat::Png).unwrap();
-        assert_eq!((image.width(), image.height()), (WIDTH, HEIGHT));
+        assert_eq!((image.width(), image.height()), (WIDTH, height));
     }
 
     // Set CHART_OUTPUT_DIR to look at them
@@ -450,7 +461,7 @@ mod tests {
             &["ICPSwap"],
         )
         .unwrap();
-        assert_is_png(&png);
+        assert_is_png(&png, HEIGHT);
         save("one", &png);
     }
 
@@ -481,7 +492,8 @@ mod tests {
             &["ICPSwap", "CoinGecko"],
         )
         .unwrap();
-        assert_is_png(&png);
+        // Its legend takes two rows, which makes it taller
+        assert_is_png(&png, HEIGHT + LEGEND_ROW_HEIGHT);
         save("several", &png);
     }
 
@@ -498,7 +510,7 @@ mod tests {
             &[],
         )
         .unwrap();
-        assert_is_png(&png);
+        assert_is_png(&png, HEIGHT);
         save("flat", &png);
     }
 
@@ -516,7 +528,7 @@ mod tests {
             .collect();
 
         let rows = legend(&lines);
-        assert!(rows.len() > 1);
+        assert_eq!(rows.len(), 3);
         for item in rows.iter().flatten() {
             assert!(item.x >= PADDING);
             assert!(
@@ -527,14 +539,14 @@ mod tests {
         }
 
         let png = render(&lines, Period::Day, &["ICPSwap"]).unwrap();
-        assert_is_png(&png);
+        assert_is_png(&png, HEIGHT + 2 * LEGEND_ROW_HEIGHT);
         save("wrapped", &png);
     }
 
     #[test]
     fn a_short_legend_is_one_row() {
         let prices = points(&wave(24, 1.0, 0.1), 3_600_000);
-        let lines: Vec<Line> = ["CHAT", "ICP", "ckBTC"]
+        let lines: Vec<Line> = ["CHAT", "ICP"]
             .iter()
             .map(|symbol| Line {
                 symbol,
@@ -557,8 +569,19 @@ mod tests {
             })
             .collect();
         let png = render(&lines, Period::Day, &["ICPSwap"]).unwrap();
-        assert_is_png(&png);
+        assert_is_png(&png, HEIGHT);
         save("flat_several", &png);
+    }
+
+    #[test]
+    fn the_legend_has_each_tokens_start_and_end_prices() {
+        let prices = points(&[0.2, 0.3, 0.25], 3_600_000);
+        let line = Line {
+            symbol: "CHAT",
+            name: "OpenChat",
+            points: &prices,
+        };
+        assert_eq!(legend_label(&line), "CHAT $0.2000 → $0.2500 (+25.0%)");
     }
 
     #[test]

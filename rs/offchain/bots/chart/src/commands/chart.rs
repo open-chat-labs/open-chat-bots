@@ -177,19 +177,20 @@ impl Chart {
     }
 }
 
-// Each token's latest price and its change over the period, eg. "CHAT $0.2345 (+5.2% 7d)"
+// Each token's price at the start of the period and now, and its change, eg.
+// "CHAT $0.2229 → $0.2345 (+5.2% 7d)"
 fn caption(charted: &[(Token, Vec<PricePoint>)], period: &str) -> String {
     charted
         .iter()
         .map(|(token, points)| {
-            let price = format::usd(points.last().unwrap().price);
+            let range = format::usd_range(points[0].price, points.last().unwrap().price);
             match chart::change(points) {
                 Some(change) => format!(
-                    "{} {price} ({} {period})",
+                    "{} {range} ({} {period})",
                     token.symbol,
                     format::change(change)
                 ),
-                None => format!("{} {price}", token.symbol),
+                None => format!("{} {range}", token.symbol),
             }
         })
         .collect::<Vec<_>>()
@@ -267,14 +268,14 @@ mod tests {
     }
 
     #[test]
-    fn the_caption_has_each_tokens_price_and_change() {
+    fn the_caption_has_each_tokens_start_and_end_prices_and_change() {
         let charted = vec![
-            (token("CHAT"), points(&[0.2, 0.25])),
+            (token("CHAT"), points(&[0.2, 0.3, 0.25])),
             (token("ICP"), points(&[5.0, 4.5])),
         ];
         assert_eq!(
             caption(&charted, "7d"),
-            "CHAT $0.2500 (+25.0% 7d)\nICP $4.50 (-10.0% 7d)"
+            "CHAT $0.2000 → $0.2500 (+25.0% 7d)\nICP $5.00 → $4.50 (-10.0% 7d)"
         );
     }
 

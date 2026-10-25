@@ -35,7 +35,10 @@ impl Config {
         Ok(Config {
             identity_pem,
             ic_url: var("OC_IC_URL").unwrap_or_else(mainnet_ic_url),
-            oc_public_key: var("OC_PUBLIC_KEY").unwrap_or_else(mainnet_oc_public_key),
+            // Locally it's read from Candid's text, which writes its line breaks as \n
+            oc_public_key: var("OC_PUBLIC_KEY")
+                .map(|key| key.replace("\\n", "\n"))
+                .unwrap_or_else(mainnet_oc_public_key),
             storage_index,
             coingecko_api_key: var("COINGECKO_API_KEY"),
             port: var("PORT")
