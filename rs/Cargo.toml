@@ -10,7 +10,6 @@ members = [
     "canister/examples/reminder",
     "canister/examples/welcome",
     "canister/sdk",
-    "offchain/bots/chart",
     "offchain/bridges/core",
     "offchain/bridges/discord",
     "offchain/bridges/telegram",

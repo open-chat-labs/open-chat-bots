@@ -65,7 +65,7 @@ In each case the scripts will output the following which are needed in step 4 to
 
 ### Off-chain bots
 
-The DiceBot, LlamaBot and ChartBot will each need to be run in a separate terminal.
+The DiceBot and LlamaBot will each need to be run in a separate terminal.
 
 - [DiceBot](./rs/scripts/deploy_dice_bot.sh)
 
@@ -77,12 +77,6 @@ The DiceBot, LlamaBot and ChartBot will each need to be run in a separate termin
 
 ```bash
   ./rs/scripts/deploy_llama_bot.sh
-```
-
-- [ChartBot](./rs/scripts/deploy_chart_bot.sh), which replies to `/chart` with a price chart of crypto tokens ([README](./rs/offchain/bots/chart/README.md))
-
-```bash
-  ./rs/scripts/deploy_chart_bot.sh
 ```
 
 - [Discord bridge](./rs/offchain/bridges/discord/README.md)
