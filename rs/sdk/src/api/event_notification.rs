@@ -79,9 +79,9 @@ pub struct BotMessageTip {
     pub tipped_by: UserId,
     pub ledger: CanisterId,
     pub token_symbol: String,
-    /// In the token's smallest units
+    /// In the token's smallest units. The token's symbol and decimals are best looked up from its
+    /// ledger, as `token_symbol` is whatever the tipper's client said.
     pub amount: u128,
-    pub decimals: u8,
     /// The account the message was relayed from, if no one had linked it, so OpenChat holds the
     /// tip for whoever links it, and refunds it if no one does within 30 days. None for an account
     /// on a platform this SDK doesn't know yet.
@@ -124,7 +124,6 @@ mod tests {
         ledger: CanisterId,
         token_symbol: String,
         amount: u128,
-        decimals: u8,
         held_for: Option<P>,
     }
 
@@ -134,7 +133,6 @@ mod tests {
             ledger: Principal::from_slice(&[2]).into(),
             token_symbol: "CHAT".to_string(),
             amount: 5_0000_0000,
-            decimals: 8,
             held_for,
         })
     }

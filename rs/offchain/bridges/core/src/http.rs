@@ -468,7 +468,6 @@ mod tests {
             ledger: CanisterId,
             token_symbol: String,
             amount: u128,
-            decimals: u8,
             held_for: Option<BridgedUserId>,
         }
 
@@ -506,10 +505,9 @@ mod tests {
                 tip: Tip {
                     tipped_by: Principal::from_slice(&[7]).into(),
                     ledger: Principal::from_slice(&TIP_LEDGER).into(),
-                    // The client's, which the ledger's are used in place of
+                    // The client's, which the ledger's is used in place of
                     token_symbol: "ICP".to_string(),
                     amount: 5_0000_0000,
-                    decimals: 0,
                     held_for,
                 },
             }),
