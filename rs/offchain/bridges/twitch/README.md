@@ -44,13 +44,16 @@ The shared parts of the bridge, also used by the Discord and Telegram bridges, a
 
   ```
   Nelly is live on Twitch: Speedrunning Celeste
-  https://www.twitch.tv/nelly
+  <https://www.twitch.tv/nelly>
   ```
 
   - The title is looked up from Twitch, and left out if that fails.
+  - The link is in angle brackets, so OpenChat links all of a login which ends in `_`.
   - Twitch can send the event twice, but the notice's OpenChat id is derived from the stream's, and
-    OpenChat doesn't post a message whose id the chat has already. So each stream is announced
-    once.
+    OpenChat doesn't post a message whose id the chat has already. So a stream isn't announced
+    twice.
+  - Nor is it retried: a stream which starts while the bridge is restarting isn't announced, nor is
+    one whose notice OpenChat doesn't take within a few seconds.
   - Going offline isn't announced, to keep the chat quiet.
 - **Chat commands:** `!bridge` and `!unbridge` are answered only for the broadcaster and the
   channel's moderators. Anyone else's are relayed like any message. `!unbridge` in a chat which

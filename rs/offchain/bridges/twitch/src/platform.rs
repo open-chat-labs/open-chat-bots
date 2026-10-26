@@ -176,10 +176,17 @@ impl Twitch {
                 .subscribe(kind, condition.clone(), &self.conduit_id)
                 .await?;
         }
+        // The chat can be bridged without it, so failing doesn't fail the rest. It's tried again
+        // when OpenChat next relays to the chat.
         let condition = json!({ "broadcaster_user_id": channel });
-        self.api
+        if let Err(error) = self
+            .api
             .subscribe(STREAM_ONLINE, condition, &self.conduit_id)
-            .await?;
+            .await
+        {
+            warn!(%error, channel, "Failed to subscribe to a channel going live");
+            return Ok(());
+        }
         self.subscribed.lock().unwrap().insert(channel.to_string());
         Ok(())
     }

@@ -18,7 +18,7 @@ pub struct StreamOnlineEvent {
     pub broadcaster_user_login: String,
     /// The broadcaster's display name
     pub broadcaster_user_name: String,
-    /// "live", or one of the kinds Twitch no longer makes, eg. "rerun"
+    /// "live", or eg. "rerun"
     #[serde(rename = "type", default)]
     pub kind: Option<String>,
 }
@@ -58,7 +58,7 @@ pub async fn online(bridge: &Bridge<Twitch>, event: StreamOnlineEvent) -> Result
 }
 
 /// Derived from the stream, as Twitch can send the event twice, and OpenChat doesn't post a message
-/// whose id the chat has already. So each stream is announced once.
+/// whose id the chat has already. So a stream isn't announced more than once.
 pub fn notice_id(event: &StreamOnlineEvent) -> MessageId {
     inbound_message_id(
         &event.broadcaster_user_id,
@@ -66,14 +66,17 @@ pub fn notice_id(event: &StreamOnlineEvent) -> MessageId {
     )
 }
 
-/// eg. "Nelly is live on Twitch: Speedrunning Celeste", then the channel's link on its own line
+/// eg. "Nelly is live on Twitch: Speedrunning Celeste", then the channel's link on its own line, which
+/// OpenChat can play the stream from
 pub fn live_text(event: &StreamOnlineEvent, title: Option<&str>) -> String {
     let login = event.broadcaster_user_login.to_lowercase();
     let name = match event.broadcaster_user_name.trim() {
         "" => login.as_str(),
         name => name,
     };
-    let url = format!("https://www.twitch.tv/{login}");
+    // In angle brackets, as OpenChat's markdown would otherwise leave a login's trailing "_" out of
+    // the link
+    let url = format!("<https://www.twitch.tv/{login}>");
     let text = match title.map(str::trim).filter(|title| !title.is_empty()) {
         Some(title) => format!("{name} is live on Twitch: {title}\n{url}"),
         None => format!("{name} is live on Twitch\n{url}"),
@@ -112,7 +115,7 @@ mod tests {
         assert!(online.is_live());
         assert!(!event(json!({ "type": "rerun" })).is_live());
 
-        // In case Twitch stops sending it, as "live" is the only kind it still makes
+        // In case Twitch stops sending it
         let mut value = json!({
             "id": "9001",
             "broadcaster_user_id": "1337",
@@ -137,13 +140,13 @@ mod tests {
         let online = event(json!({}));
         assert_eq!(
             live_text(&online, Some(" Speedrunning Celeste ")),
-            "Nelly is live on Twitch: Speedrunning Celeste\nhttps://www.twitch.tv/nelly"
+            "Nelly is live on Twitch: Speedrunning Celeste\n<https://www.twitch.tv/nelly>"
         );
         // The title couldn't be looked up, or there isn't one
         for title in [None, Some(""), Some("  ")] {
             assert_eq!(
                 live_text(&online, title),
-                "Nelly is live on Twitch\nhttps://www.twitch.tv/nelly"
+                "Nelly is live on Twitch\n<https://www.twitch.tv/nelly>"
             );
         }
     }
@@ -154,24 +157,31 @@ mod tests {
         let localized = event(json!({ "broadcaster_user_name": "ネリー" }));
         assert_eq!(
             live_text(&localized, None),
-            "ネリー is live on Twitch\nhttps://www.twitch.tv/nelly"
+            "ネリー is live on Twitch\n<https://www.twitch.tv/nelly>"
+        );
+
+        // A login can end in "_", which the link keeps
+        let underscored = event(json!({ "broadcaster_user_login": "nelly_" }));
+        assert_eq!(
+            live_text(&underscored, None),
+            "Nelly is live on Twitch\n<https://www.twitch.tv/nelly_>"
         );
 
         let unnamed =
             event(json!({ "broadcaster_user_name": " ", "broadcaster_user_login": "Nelly" }));
         assert_eq!(
             live_text(&unnamed, None),
-            "nelly is live on Twitch\nhttps://www.twitch.tv/nelly"
+            "nelly is live on Twitch\n<https://www.twitch.tv/nelly>"
         );
 
         assert_eq!(
             live_text(&event(json!({})), Some("@everyone come in")),
-            "Nelly is live on Twitch: @\u{200B}everyone come in\nhttps://www.twitch.tv/nelly"
+            "Nelly is live on Twitch: @\u{200B}everyone come in\n<https://www.twitch.tv/nelly>"
         );
     }
 
     #[test]
-    fn each_stream_is_announced_once() {
+    fn a_stream_isnt_announced_twice() {
         let first = notice_id(&event(json!({})));
         // Twitch sending the event again
         assert_eq!(notice_id(&event(json!({}))), first);
