@@ -27,6 +27,7 @@ use invite_users::InviteUsersBuilder;
 use send_message::SendMessageBuilder;
 use std::collections::HashSet;
 use std::sync::Arc;
+pub use upload::UploadError;
 
 mod add_reaction;
 #[cfg(feature = "bridge")]
@@ -47,6 +48,7 @@ mod invite_users;
 mod members;
 mod remove_user;
 mod send_message;
+mod upload;
 
 pub struct ClientFactory<R> {
     runtime: Arc<R>,
