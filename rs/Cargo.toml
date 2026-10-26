@@ -38,6 +38,7 @@ dataurl = "0.1.2"
 dotenv = "0.15.0"
 english-to-cron = "0.1.2" 
 enum-repr = "0.2.6"
+futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
 getrandom = { version = "0.2.15", features = ["custom"] }
 http = "1.1.0"
 ic-agent = "0.39.3"

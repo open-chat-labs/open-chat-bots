@@ -12,6 +12,7 @@ candid = { workspace = true }
 ct-codecs = { workspace = true }
 dataurl = { workspace = true }
 enum-repr = { workspace = true }
+futures-util = { workspace = true }
 ic_principal = { workspace = true }
 icrc-ledger-types = { workspace = true }
 image = { workspace = true }

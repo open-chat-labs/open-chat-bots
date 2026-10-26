@@ -298,6 +298,8 @@ client
 
 - Only PNGs can be read, for now.
 - `Client::upload_blob` uploads any other file and returns its `BlobReference`.
+- A file is uploaded in chunks of the size OpenChat's storage gives, up to 5 at once. Each chunk is
+  tried up to 3 times, and the first to fail stops the upload.
 - The chat the client acts in is recorded as the file's accessor, and OpenChat deletes a group's
   or community's files along with it, so upload with the client you'll send the message with.
 - Uploads count against the bot's allowance of 1 GB, which OpenChat gives it when it's registered.

@@ -2852,6 +2852,7 @@ dependencies = [
  "ct-codecs",
  "dataurl",
  "enum-repr",
+ "futures-util",
  "ic_principal",
  "icrc-ledger-types",
  "image",

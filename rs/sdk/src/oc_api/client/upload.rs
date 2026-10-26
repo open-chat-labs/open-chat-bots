@@ -7,12 +7,17 @@ use crate::types::{
     ActionContext, ActionScope, BlobReference, CallError, CanisterId, ImageContent,
 };
 use crate::utils::thumbnail_of;
+use futures_util::{StreamExt, TryStreamExt, stream};
 use sha3::{Digest, Sha3_256};
 use std::fmt::{Display, Formatter};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 // Each chunk is tried this many times, as a failed call may have landed anyway
 const UPLOAD_CHUNK_ATTEMPTS: usize = 3;
+// Chunks are uploaded this many at once, in any order, as the bucket takes them. A few at once is
+// most of the speed of all at once, while keeping the bytes in flight, and the calls a canister has
+// outstanding, to a few chunks' worth.
+const MAX_CONCURRENT_CHUNKS: usize = 5;
 
 static UPLOADS: AtomicU64 = AtomicU64::new(0);
 
@@ -58,21 +63,24 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
             ActionScope::Community(community_id) => community_id,
         };
 
-        let chunks = data.chunks(bucket.chunk_size as usize);
-        for (chunk_index, bytes) in chunks.enumerate() {
-            let args = upload_chunk::Args {
-                file_id: bucket.file_id,
-                hash,
-                mime_type: mime_type.clone(),
-                accessors: vec![accessor],
-                chunk_index: chunk_index as u32,
-                chunk_size: bucket.chunk_size,
-                total_size,
-                bytes: bytes.to_vec(),
-                expiry: None,
-            };
-            self.upload_chunk(bucket.canister_id, args).await?;
-        }
+        // The first chunk which fails stops the rest
+        stream::iter(data.chunks(bucket.chunk_size as usize).enumerate())
+            .map(Ok)
+            .try_for_each_concurrent(MAX_CONCURRENT_CHUNKS, |(chunk_index, bytes)| {
+                let args = upload_chunk::Args {
+                    file_id: bucket.file_id,
+                    hash,
+                    mime_type: mime_type.clone(),
+                    accessors: vec![accessor],
+                    chunk_index: chunk_index as u32,
+                    chunk_size: bucket.chunk_size,
+                    total_size,
+                    bytes: bytes.to_vec(),
+                    expiry: None,
+                };
+                self.upload_chunk(bucket.canister_id, args)
+            })
+            .await?;
 
         Ok(BlobReference {
             canister_id: bucket.canister_id.into(),
@@ -173,9 +181,10 @@ mod tests {
     use crate::types::{AutonomousContext, CallResult, Chat, TimestampMillis};
     use ic_principal::Principal;
     use serde::{Deserialize, Serialize};
+    use std::cell::Cell;
     use std::collections::VecDeque;
     use std::future::Future;
-    use std::pin::pin;
+    use std::pin::{Pin, pin};
     use std::sync::{Arc, Mutex};
     use std::task::{Context, Poll, Waker};
 
@@ -218,7 +227,7 @@ mod tests {
         assert_eq!(args.file_hash, hash);
         assert_eq!(args.file_size, 10);
 
-        let chunks: Vec<upload_chunk::Args> = calls[1..]
+        let mut chunks: Vec<upload_chunk::Args> = calls[1..]
             .iter()
             .map(|(canister, method, args)| {
                 assert_eq!(*canister, canister_id(BUCKET));
@@ -226,6 +235,7 @@ mod tests {
                 msgpack::deserialize_then_unwrap(args)
             })
             .collect();
+        chunks.sort_by_key(|c| c.chunk_index);
         let bytes: Vec<Vec<u8>> = chunks.iter().map(|c| c.bytes.clone()).collect();
         assert_eq!(bytes, vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7], vec![8, 9]]);
         for (index, chunk) in chunks.iter().enumerate() {
@@ -237,6 +247,72 @@ mod tests {
             assert_eq!(chunk.mime_type, "image/png");
             assert_eq!(chunk.accessors, vec![canister_id(GROUP)]);
         }
+    }
+
+    #[test]
+    fn uploads_at_most_5_chunks_at_once() {
+        let runtime = FakeRuntime::new(
+            [Ok(msgpack::serialize_then_unwrap(allocated(1)))]
+                .into_iter()
+                .chain((0..12).map(|_| {
+                    Ok(msgpack::serialize_then_unwrap(
+                        upload_chunk::Response::Success,
+                    ))
+                }))
+                .collect(),
+        );
+        let client = client(&runtime);
+
+        let blob = block_on(client.upload_blob(
+            canister_id(STORAGE_INDEX),
+            "image/png".to_string(),
+            (0..12).collect(),
+        ));
+
+        assert!(blob.is_ok());
+        assert_eq!(runtime.in_flight.lock().unwrap().max, 5);
+        let mut indexes: Vec<u32> = runtime.calls.lock().unwrap()[1..]
+            .iter()
+            .map(|(_, _, args)| msgpack::deserialize_then_unwrap::<upload_chunk::Args>(args))
+            .map(|args| args.chunk_index)
+            .collect();
+        indexes.sort();
+        assert_eq!(indexes, (0..12).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn a_refused_chunk_stops_the_rest() {
+        let runtime = FakeRuntime::new(
+            [
+                Ok(msgpack::serialize_then_unwrap(allocated(1))),
+                Ok(msgpack::serialize_then_unwrap(
+                    upload_chunk::Response::AllowanceExceeded,
+                )),
+            ]
+            .into_iter()
+            .chain((0..11).map(|_| {
+                Ok(msgpack::serialize_then_unwrap(
+                    upload_chunk::Response::Success,
+                ))
+            }))
+            .collect(),
+        );
+        let client = client(&runtime);
+
+        let blob = block_on(client.upload_blob(
+            canister_id(STORAGE_INDEX),
+            "image/png".to_string(),
+            (0..12).collect(),
+        ));
+
+        assert!(matches!(
+            blob,
+            Err(UploadError::UploadChunk(
+                upload_chunk::Response::AllowanceExceeded
+            ))
+        ));
+        // The bucket call, and the first 5 chunks, one of which was refused
+        assert_eq!(runtime.calls.lock().unwrap().len(), 6);
     }
 
     #[test]
@@ -474,7 +550,12 @@ mod tests {
         Principal::from_text(text).unwrap().into()
     }
 
-    // The fake's calls complete at once
+    thread_local! {
+        // How many times `block_on` has polled, which the fake's calls wait on
+        static POLLS: Cell<u64> = const { Cell::new(0) };
+    }
+
+    // Polls until the future completes, as the fake's calls only wait for the next poll
     fn block_on<F: Future>(future: F) -> F::Output {
         let mut future = pin!(future);
         let mut context = Context::from_waker(Waker::noop());
@@ -482,17 +563,27 @@ mod tests {
             if let Poll::Ready(output) = future.as_mut().poll(&mut context) {
                 return output;
             }
+            POLLS.set(POLLS.get() + 1);
         }
     }
 
     // The canister, the method and the args, in msgpack
     type Call = (CanisterId, String, Vec<u8>);
 
-    // Answers calls with the given responses, in turn, and records them
+    // Answers calls with the given responses, in the order they complete, and records them. Each
+    // call completes at `block_on`'s next poll, so that calls overlap as they would over the
+    // network.
     #[derive(Clone)]
     struct FakeRuntime {
         calls: Arc<Mutex<Vec<Call>>>,
         responses: Arc<Mutex<VecDeque<CallResult<Vec<u8>>>>>,
+        in_flight: Arc<Mutex<InFlight>>,
+    }
+
+    #[derive(Default)]
+    struct InFlight {
+        now: usize,
+        max: usize,
     }
 
     impl FakeRuntime {
@@ -500,6 +591,23 @@ mod tests {
             FakeRuntime {
                 calls: Arc::default(),
                 responses: Arc::new(Mutex::new(responses.into())),
+                in_flight: Arc::default(),
+            }
+        }
+    }
+
+    // Pending until `block_on` polls after the poll it started in
+    struct Latency(u64);
+
+    impl Future for Latency {
+        type Output = ();
+
+        fn poll(self: Pin<&mut Self>, context: &mut Context<'_>) -> Poll<()> {
+            if POLLS.get() > self.0 {
+                Poll::Ready(())
+            } else {
+                context.waker().wake_by_ref();
+                Poll::Pending
             }
         }
     }
@@ -516,6 +624,13 @@ mod tests {
                 method_name.to_string(),
                 msgpack::serialize_then_unwrap(args),
             ));
+            {
+                let mut in_flight = self.in_flight.lock().unwrap();
+                in_flight.now += 1;
+                in_flight.max = in_flight.max.max(in_flight.now);
+            }
+            Latency(POLLS.get()).await;
+            self.in_flight.lock().unwrap().now -= 1;
             let response = self.responses.lock().unwrap().pop_front().unwrap();
             response.map(|bytes| msgpack::deserialize_then_unwrap(&bytes))
         }
