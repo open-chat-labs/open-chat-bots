@@ -39,8 +39,8 @@ also used by the Telegram bridge, are in [`../core`](../core).
 - **`/status`** tells the user whether their account is linked, and to whom. In a channel, it also says
   whether the channel is bridged, with a link to the OpenChat chat. Only they see the reply.
 - **Tips:** OpenChat holds a tip on a relayed message whose author no one has linked for 30 days,
-  for whoever links the account. The bridge tells the author in a direct message, with a link to the
-  message and how to link their account. Discord refuses it if they don't take direct messages from
+  for whoever links the account. The bridge tells the author in a direct message, with the amount, as its
+  ledger gives it, a link to the message, and how to link their account. Discord refuses it if they don't take direct messages from
   members of the servers they share with the bot, or have blocked it. That's only logged.
 - **State:** pairings, which messages were relayed as which, and which notifications were handled
   are kept in DynamoDB. Without a table, they're kept in memory and lost on restart.

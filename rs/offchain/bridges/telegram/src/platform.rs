@@ -75,8 +75,9 @@ impl Platform for Telegram {
     // A bot can only message a user who has started a chat with it, so this fails with a 403 for
     // anyone who hasn't, as well as for anyone who has blocked it
     async fn send_direct_message(&self, account: BridgedUserId, text: &str) -> Result<()> {
-        let BridgedUserId::Telegram(user_id) = account else {
-            bail!("{account:?} isn't a Telegram account");
+        // A negative id is a chat's, eg. a group's anonymous admins, which would post it there
+        let BridgedUserId::Telegram(user_id @ 1..) = account else {
+            bail!("{account:?} isn't a Telegram user");
         };
         self.api.send_message(user_id, &escape(text), None).await?;
         Ok(())

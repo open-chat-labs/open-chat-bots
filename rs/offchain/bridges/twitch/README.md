@@ -50,10 +50,11 @@ The shared parts of the bridge, also used by the Discord and Telegram bridges, a
 
   They can unlink from their OpenChat profile.
 - **Tips:** OpenChat holds a tip on a relayed message whose author no one has linked for 30 days,
-  for whoever links the account. The bridge tells the author in a whisper, with a link to the
-  message and how to link their account. Twitch only takes whispers with the sending account's own
+  for whoever links the account. The bridge tells the author in a whisper, with the amount, as its
+  ledger gives it, a link to the message, and how to link their account. Twitch only takes whispers with the sending account's own
   token, so the bridge keeps the one the bot's account grants at `/authorize-bot` in its store, and
-  refreshes it. A whisper that fails is only logged. Twitch refuses them:
+  refreshes it. As Twitch requires of an app which keeps a user's token, the bridge checks it's
+  still valid when it starts, then hourly. A whisper that fails is only logged. Twitch refuses them:
   - from an account without a verified phone number;
   - to more than 40 accounts a day which haven't whispered to the bot;
   - to anyone who only takes whispers from those they follow, or has blocked the bot.

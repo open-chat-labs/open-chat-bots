@@ -354,6 +354,21 @@ impl TwitchApi {
         body(response).await.map(|_| ())
     }
 
+    /// Whether Twitch still takes a user's token
+    pub async fn validate_token(&self, access_token: &str) -> Result<bool> {
+        let response = self
+            .http
+            .get(format!("{OAUTH_URL}/validate"))
+            .header("Authorization", format!("OAuth {access_token}"))
+            .send()
+            .await
+            .map_err(|e| anyhow!("Twitch's /validate failed: {e}"))?;
+        if response.status() == StatusCode::UNAUTHORIZED {
+            return Ok(false);
+        }
+        body(response).await.map(|_| true)
+    }
+
     /// Who signed in, with the token they granted
     pub async fn user_from_token(&self, access_token: &str) -> Result<User> {
         let response = self

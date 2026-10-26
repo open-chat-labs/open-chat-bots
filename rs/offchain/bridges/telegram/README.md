@@ -43,8 +43,8 @@ the Discord bridge, are in [`../core`](../core).
   whether the group is bridged, with a link to the OpenChat chat. Anyone in the group can run it,
   and the reply is posted in the group.
 - **Tips:** OpenChat holds a tip on a relayed message whose author no one has linked for 30 days,
-  for whoever links the account. The bridge tells the author in a private message, with a link to
-  the message and how to link their account. A bot can only message a user who has started a chat
+  for whoever links the account. The bridge tells the author in a private message, with the amount,
+  as its ledger gives it, a link to the message, and how to link their account. A bot can only message a user who has started a chat
   with it, so Telegram refuses it for anyone who hasn't, or who has blocked the bot. That's only
   logged.
 - **State** is kept in DynamoDB, in the same kind of table as the Discord bridge's. The two can share

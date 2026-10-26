@@ -421,12 +421,19 @@ impl<P: Platform> Bridge<P> {
         else {
             return;
         };
+        // From the ledger, as the tip's are whatever the tipper's client said
+        let (Some(symbol), Some(decimals)) = (
+            self.openchat.token_symbol(tip.ledger).await,
+            self.openchat.token_decimals(tip.ledger).await,
+        ) else {
+            warn!(?account, ledger = %tip.ledger, "Not telling of a tip whose token couldn't be looked up");
+            return;
+        };
         let url = oc_message_url(&event.chat, event.thread, message.message_index);
-        let Some(text) = held_tip_text(P::NAME, tip, &url) else {
+        let Some(text) = held_tip_text(P::NAME, tip.amount, &symbol, decimals, &url) else {
             warn!(
                 ?account,
-                symbol = tip.token_symbol,
-                "Not telling of a tip in an unlikely token"
+                symbol, "Not telling of a tip in an unlikely token"
             );
             return;
         };

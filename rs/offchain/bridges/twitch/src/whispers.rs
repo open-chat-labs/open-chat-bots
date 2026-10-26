@@ -56,6 +56,26 @@ impl BotToken {
         Ok(())
     }
 
+    /// Checks Twitch still takes the token, as it requires of an app which keeps a user's token when
+    /// it starts, then hourly, and replaces it if not. There's nothing to check until the bot's
+    /// account has granted one.
+    pub async fn validate(&self, api: &TwitchApi) -> Result<()> {
+        let access_token = {
+            let mut cached = self.cached.lock().await;
+            if cached.is_none() {
+                *cached = self.store.bot_token().await?;
+            }
+            match cached.as_ref() {
+                Some(token) => token.access_token.clone(),
+                None => return Ok(()),
+            }
+        };
+        if !api.validate_token(&access_token).await? {
+            self.access_token(api, true).await?;
+        }
+        Ok(())
+    }
+
     /// The token, replaced first if it's about to expire, or if `refresh` is set, eg. once Twitch
     /// has refused it
     pub async fn access_token(&self, api: &TwitchApi, refresh: bool) -> Result<String> {
@@ -83,6 +103,30 @@ impl BotToken {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use oc_bots_sdk::types::BridgePlatform;
+    use oc_bridge_core::InMemoryStore;
+    use std::sync::Arc;
+
+    #[tokio::test]
+    async fn the_stored_token_is_used_until_its_due_to_be_replaced() {
+        let store = BridgeStore::new(Arc::new(InMemoryStore::default()), BridgePlatform::Twitch);
+        let api = TwitchApi::new("abc".to_string(), "secret".to_string());
+        let bot_token = BotToken::new(store.clone());
+
+        // Until the bot's account has granted one, there's none to use, nor to check
+        let error = bot_token.access_token(&api, false).await.unwrap_err();
+        assert!(error.to_string().contains("/authorize-bot"), "{error}");
+        bot_token.validate(&api).await.unwrap();
+
+        // eg. granted before a restart
+        let stored = StoredToken {
+            access_token: "x".to_string(),
+            refresh_token: "y".to_string(),
+            refresh_at: TimestampMillis::MAX,
+        };
+        store.save_bot_token(&stored).await.unwrap();
+        assert_eq!(bot_token.access_token(&api, false).await.unwrap(), "x");
+    }
 
     #[test]
     fn a_token_is_replaced_before_it_expires() {

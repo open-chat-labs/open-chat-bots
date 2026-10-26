@@ -1,5 +1,4 @@
 use ic_agent::export::Principal;
-use oc_bots_sdk::api::event_notification::BotMessageTip;
 use oc_bots_sdk::types::{
     BlobReference, BridgedUser, CanisterId, Chat, CryptoTransaction, MessageContent, MessageId,
     MessageIndex, UserId,
@@ -73,11 +72,16 @@ pub fn oc_message_url(
 }
 
 /// What the author of a message relayed from `platform`, whose account no one has linked, is sent
-/// when it's tipped, as plain text. OpenChat holds the tip for whoever links the account, for 30
-/// days. None if the token's symbol doesn't look like one, as it's whatever the tipper's client
-/// said, so the bot can't be made to send other text.
-pub fn held_tip_text(platform: &str, tip: &BotMessageTip, message_url: &str) -> Option<String> {
-    let symbol = &tip.token_symbol;
+/// when it's tipped `amount` of the token, as plain text. OpenChat holds the tip for whoever links
+/// the account, for 30 days. None if the token's symbol doesn't look like one, as anyone can make a
+/// ledger, so the bot can't be made to send other text.
+pub fn held_tip_text(
+    platform: &str,
+    amount: u128,
+    symbol: &str,
+    decimals: u8,
+    message_url: &str,
+) -> Option<String> {
     let looks_like_a_symbol = (1..=20).contains(&symbol.chars().count())
         && symbol
             .chars()
@@ -90,7 +94,7 @@ pub fn held_tip_text(platform: &str, tip: &BotMessageTip, message_url: &str) -> 
         To claim it, link your {platform} account to OpenChat within 30 days: open your profile \
         in OpenChat (sign up at https://oc.app if you haven't), then choose Link {platform} under \
         Linked accounts. If it isn't claimed by then, it goes back to whoever sent it.",
-        format_tokens(tip.amount, tip.decimals)
+        format_tokens(amount, decimals)
     ))
 }
 
@@ -372,22 +376,13 @@ mod tests {
         );
     }
 
-    fn tip(token_symbol: &str, amount: u128, decimals: u8) -> BotMessageTip {
-        BotMessageTip {
-            tipped_by: Principal::from_slice(&[1]).into(),
-            ledger: Principal::from_slice(&[2]).into(),
-            token_symbol: token_symbol.to_string(),
-            amount,
-            decimals,
-            held_for: Some(oc_bots_sdk::types::BridgedUserId::Discord(1)),
-        }
-    }
-
     #[test]
     fn a_held_tip_says_how_much_where_and_how_to_claim_it() {
         let text = held_tip_text(
             "Discord",
-            &tip("CHAT", 5_0000_0000, 8),
+            5_0000_0000,
+            "CHAT",
+            8,
             "https://oc.app/group/abc/12",
         )
         .unwrap();
@@ -399,14 +394,14 @@ mod tests {
             Linked accounts. If it isn't claimed by then, it goes back to whoever sent it."
         );
         assert!(
-            held_tip_text("Telegram", &tip("ckUSDC", 1_500_000, 6), "url")
+            held_tip_text("Telegram", 1_500_000, "ckUSDC", 6, "url")
                 .unwrap()
                 .starts_with("You were tipped 1.50 ckUSDC on OpenChat")
         );
-        assert!(held_tip_text("Twitch", &tip("ODINDOG•ID•YTTL", 1, 0), "url").is_some());
+        assert!(held_tip_text("Twitch", 1, "ODINDOG•ID•YTTL", 0, "url").is_some());
     }
 
-    // A tipper's client names the token, so it can't be used to have the bot send other text
+    // Anyone can make a ledger, so its symbol can't be used to have the bot send other text
     #[test]
     fn a_tip_whose_symbol_isnt_one_isnt_described() {
         for symbol in [
@@ -417,7 +412,7 @@ mod tests {
             &"A".repeat(21),
         ] {
             assert!(
-                held_tip_text("Discord", &tip(symbol, 1, 0), "url").is_none(),
+                held_tip_text("Discord", 1, symbol, 0, "url").is_none(),
                 "{symbol}"
             );
         }
