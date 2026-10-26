@@ -96,10 +96,13 @@ pub fn definition<P: Platform>() -> BotDefinition {
         }),
         default_subscriptions: Some(BotSubscriptions {
             community: HashSet::new(),
+            // Tips, so the author of a relayed message whose account no one has linked can be
+            // told of one held for them
             chat: HashSet::from([
                 ChatEventType::Message,
                 ChatEventType::MessageEdited,
                 ChatEventType::MessageDeleted,
+                ChatEventType::MessageTipped,
             ]),
         }),
         restricted_locations: Some(HashSet::from([
@@ -295,8 +298,8 @@ mod tests {
     use oc_bots_sdk::jwt::Claims;
     use oc_bots_sdk::types::{
         BotActionByCommandClaims, BotActionChatDetails, BotCommandScope, BotPermissions,
-        BotRegisteredEvent, BotUninstalledEvent, BridgePlatform, CanisterId, CommunityId,
-        InstallationLocation,
+        BotRegisteredEvent, BotUninstalledEvent, BridgePlatform, BridgedUserId, CanisterId,
+        CommunityId, InstallationLocation,
     };
     use p256::ecdsa::signature::Signer;
     use p256::ecdsa::{Signature, SigningKey};
@@ -308,6 +311,7 @@ mod tests {
     struct TestPlatform {
         // The platform chats told they're no longer bridged
         unpaired: std::sync::Mutex<Vec<String>>,
+        direct_messages: std::sync::Mutex<Vec<(BridgedUserId, String)>>,
     }
 
     #[async_trait]
@@ -324,6 +328,18 @@ mod tests {
         }
 
         async fn delete(&self, _: &Pairing, _: &str) -> anyhow::Result<()> {
+            Ok(())
+        }
+
+        async fn send_direct_message(
+            &self,
+            account: BridgedUserId,
+            text: &str,
+        ) -> anyhow::Result<()> {
+            self.direct_messages
+                .lock()
+                .unwrap()
+                .push((account, text.to_string()));
             Ok(())
         }
 
@@ -404,6 +420,125 @@ mod tests {
         });
         let signature: Signature = signing_key().sign(&payload);
         (payload, URL_SAFE_NO_PAD.encode(signature.to_bytes()))
+    }
+
+    // A notification of a tip on a message relayed from Discord, as OpenChat encodes and signs it
+    fn tip_notification(
+        notification_index: u64,
+        chat: oc_bots_sdk::types::Chat,
+        held_for: Option<BridgedUserId>,
+    ) -> (Vec<u8>, String) {
+        use oc_bots_sdk::types::{
+            BotMessageContext, ChatEvent, Message, MessageContent, SenderContext, TextContent,
+            UserId,
+        };
+
+        #[derive(Serialize)]
+        struct Wrapper {
+            api_gateway: CanisterId,
+            event: Event,
+            timestamp: u64,
+            notification_index: u64,
+        }
+        #[derive(Serialize)]
+        enum Event {
+            Chat(ChatNotification),
+        }
+        #[derive(Serialize)]
+        struct ChatNotification {
+            event: ChatEvent,
+            chat: oc_bots_sdk::types::Chat,
+            thread: Option<u32>,
+            event_index: u32,
+            latest_event_index: u32,
+            tip: Tip,
+        }
+        #[derive(Serialize)]
+        struct Tip {
+            tipped_by: UserId,
+            ledger: CanisterId,
+            token_symbol: String,
+            amount: u128,
+            decimals: u8,
+            held_for: Option<BridgedUserId>,
+        }
+
+        let message = Message {
+            message_index: 12,
+            message_id: 7.into(),
+            sender: Principal::from_slice(&[6]).into(),
+            content: MessageContent::Text(TextContent {
+                text: "hello".to_string(),
+            }),
+            sender_context: Some(SenderContext::Bot(BotMessageContext {
+                command: None,
+                finalised: true,
+                bridged_from: Some(BridgedUserId::Discord(42)),
+            })),
+            replies_to: None,
+            reactions: Vec::new(),
+            tips: Vec::new(),
+            thread_summary: None,
+            edited: false,
+            forwarded: false,
+            block_level_markdown: false,
+            og_previews: Vec::new(),
+        };
+        let payload = oc_bots_sdk::msgpack::serialize_then_unwrap(Wrapper {
+            api_gateway: Principal::from_slice(&[5]).into(),
+            event: Event::Chat(ChatNotification {
+                event: ChatEvent::Message(Box::new(message)),
+                chat,
+                thread: None,
+                event_index: 30,
+                latest_event_index: 31,
+                tip: Tip {
+                    tipped_by: Principal::from_slice(&[7]).into(),
+                    ledger: Principal::from_slice(&[8]).into(),
+                    token_symbol: "CHAT".to_string(),
+                    amount: 5_0000_0000,
+                    decimals: 8,
+                    held_for,
+                },
+            }),
+            timestamp: UNINSTALLED_AT,
+            notification_index,
+        });
+        let signature: Signature = signing_key().sign(&payload);
+        (payload, URL_SAFE_NO_PAD.encode(signature.to_bytes()))
+    }
+
+    // Only once for each tip, though OpenChat may send its notification again, and only by the
+    // bridge which relayed the message, and only if the tip's held as no one has linked the account
+    #[tokio::test]
+    async fn the_author_of_a_relayed_message_is_told_of_a_tip_held_for_them() {
+        let bridge = bridge().await;
+        let group: CanisterId = Principal::from_slice(&[4]).into();
+        let chat = oc_bots_sdk::types::Chat::Group(group);
+        for (notification_index, held_for) in [
+            (1, Some(BridgedUserId::Discord(42))),
+            (1, Some(BridgedUserId::Discord(42))),
+            (2, None),
+            (3, Some(BridgedUserId::Telegram(42))),
+        ] {
+            let (body, signature) = tip_notification(notification_index, chat, held_for);
+            assert_eq!(
+                post_notification(&bridge, body, Some(&signature)).await,
+                StatusCode::OK
+            );
+        }
+
+        let sent = bridge.platform.direct_messages.lock().unwrap().clone();
+        assert_eq!(sent.len(), 1, "{sent:?}");
+        let (account, text) = &sent[0];
+        assert_eq!(*account, BridgedUserId::Discord(42));
+        assert!(
+            text.starts_with(&format!(
+                "You were tipped 5.00 CHAT on OpenChat for your message: \
+                https://oc.app/group/{group}/12\n"
+            )),
+            "{text}"
+        );
     }
 
     async fn post_notification(
@@ -559,6 +694,9 @@ mod tests {
                 .await
                 .unwrap();
             let definition: BotDefinition = serde_json::from_slice(&body).unwrap();
+            // Tips too, so their authors can be told of them
+            let subscriptions = definition.default_subscriptions.as_ref().unwrap();
+            assert!(subscriptions.chat.contains(&ChatEventType::MessageTipped));
             let commands: Vec<_> = definition
                 .commands
                 .iter()

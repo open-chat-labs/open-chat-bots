@@ -20,6 +20,7 @@ mod oauth;
 mod platform;
 mod profiles;
 mod rate_limit;
+mod whispers;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -48,6 +49,7 @@ async fn main() -> Result<()> {
         bot.login,
         config.public_url,
         conduit_id.clone(),
+        store.clone(),
     );
     let bridge = Arc::new(Bridge::new(openchat, store, platform));
     // Kept alive until the process exits, as the OpenChat runtime can't be dropped from within

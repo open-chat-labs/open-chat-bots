@@ -7,7 +7,7 @@
 //! - **`/authorize-bot`:** the bot's account letting the app chat as it, once, when the bridge is
 //!   set up.
 
-use crate::api::User;
+use crate::api::{User, UserToken};
 use crate::chat::twitch_user;
 use crate::platform::Twitch;
 use crate::profiles::profile_image_path;
@@ -24,13 +24,14 @@ use tracing::warn;
 
 /// What the broadcaster grants, so the bot can read and post in their chat, with the Chat Bot badge
 pub const BROADCASTER_SCOPES: [&str; 1] = ["channel:bot"];
-/// What the bot's account grants, so the app can read and post in chats as it, and delete messages
-/// where it's a moderator
-pub const BOT_SCOPES: [&str; 4] = [
+/// What the bot's account grants, so the app can read and post in chats as it, delete messages
+/// where it's a moderator, and whisper, eg. to tell an author of a tip OpenChat holds for them
+pub const BOT_SCOPES: [&str; 5] = [
     "user:bot",
     "user:read:chat",
     "user:write:chat",
     "moderator:manage:chat_messages",
+    "user:manage:whispers",
 ];
 
 pub fn router(bridge: Arc<Bridge<Twitch>>) -> Router {
@@ -146,7 +147,7 @@ async fn callback(
         match purpose {
             Purpose::Link(code) => link_account(&state.bridge, user, code.clone()).await,
             Purpose::Bridge => start_bridging(&state.bridge, user).await,
-            Purpose::AuthorizeBot => bot_authorized(&state.bridge.platform, &user),
+            Purpose::AuthorizeBot => bot_authorized(&state.bridge.platform, &user, token).await,
         }
     }
     .await;
@@ -204,7 +205,8 @@ async fn start_bridging(bridge: &Bridge<Twitch>, user: User) -> Result<String> {
     ))
 }
 
-fn bot_authorized(platform: &Twitch, user: &User) -> Result<String> {
+// The bot's token is kept, as whispers need it
+async fn bot_authorized(platform: &Twitch, user: &User, token: UserToken) -> Result<String> {
     if user.id != platform.bot_id {
         bail!(
             "sign in as {}, the bot's account, not {}",
@@ -212,6 +214,7 @@ fn bot_authorized(platform: &Twitch, user: &User) -> Result<String> {
             user.login
         );
     }
+    platform.bot_token.save(token).await?;
     Ok(format!(
         "The bridge can now chat as <b>{}</b>. You can close this tab.",
         escape(&user.login)
@@ -262,14 +265,15 @@ mod tests {
         .await
         .unwrap();
         let api = Arc::new(TwitchApi::new("abc".to_string(), "secret".to_string()));
+        let store = BridgeStore::new(Arc::new(InMemoryStore::default()), BridgePlatform::Twitch);
         let platform = Twitch::new(
             api,
             "999".to_string(),
             "ocbridge".to_string(),
             "https://bridge.example.com".to_string(),
             "conduit".to_string(),
+            store.clone(),
         );
-        let store = BridgeStore::new(Arc::new(InMemoryStore::default()), BridgePlatform::Twitch);
         let bridge = Arc::new(Bridge::new(openchat, store, platform));
         // Its OpenChat runtime can't be dropped within async code
         std::mem::forget(bridge.clone());
@@ -291,7 +295,7 @@ mod tests {
             ("/bridge", "scope=channel%3Abot&", "state=bridge"),
             (
                 "/authorize-bot",
-                "scope=user%3Abot+user%3Aread%3Achat+user%3Awrite%3Achat+moderator%3Amanage%3Achat_messages&",
+                "scope=user%3Abot+user%3Aread%3Achat+user%3Awrite%3Achat+moderator%3Amanage%3Achat_messages+user%3Amanage%3Awhispers&",
                 "state=bot",
             ),
         ] {

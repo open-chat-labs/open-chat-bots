@@ -4,8 +4,8 @@ use crate::model::{
 use crate::openchat::{Author, LinkedUser, OpenChat};
 use crate::platform::{InboundMessage, OutboundMessage, PermanentFailure, Platform};
 use crate::util::{
-    content_hash, inbound_message_id, mentioned_user_ids, message_text, transfer_ledger,
-    without_mention_everyone,
+    content_hash, held_tip_text, inbound_message_id, mentioned_user_ids, message_text,
+    oc_message_url, transfer_ledger, without_mention_everyone,
 };
 use anyhow::Result;
 use oc_bots_sdk::api::event_notification::{
@@ -340,6 +340,11 @@ impl<P: Platform> Bridge<P> {
 
         let timestamp = wrapper.timestamp;
         let result = match wrapper.event {
+            // A tip isn't relayed, but the author of a relayed message is told of one held for them
+            BotEvent::Chat(event) if event.tip.is_some() => {
+                self.tell_of_held_tip(event).await;
+                Ok(())
+            }
             BotEvent::Chat(event) => self.relay_outbound(event).await,
             BotEvent::Lifecycle(BotLifecycleEvent::Uninstalled(event)) => {
                 self.uninstalled(event.location, timestamp).await
@@ -399,6 +404,36 @@ impl<P: Platform> Bridge<P> {
             }
         }
         Ok(())
+    }
+
+    /// Tells the author of a message relayed from the platform, if no one has linked their account,
+    /// of a tip on it, which OpenChat holds for whoever links it. Each bridge only tells the authors
+    /// of the messages it relayed, so only one tells each tip's. A message which can't be sent, eg.
+    /// as the author doesn't take direct messages from the bot, is only logged, as retrying won't
+    /// help, and could send it twice.
+    async fn tell_of_held_tip(&self, event: BotChatEvent) {
+        let (ChatEvent::Message(message), Some(tip)) = (&event.event, &event.tip) else {
+            return;
+        };
+        let Some(account) = tip
+            .held_for
+            .filter(|account| account.platform() == P::PLATFORM)
+        else {
+            return;
+        };
+        let url = oc_message_url(&event.chat, event.thread, message.message_index);
+        let Some(text) = held_tip_text(P::NAME, tip, &url) else {
+            warn!(
+                ?account,
+                symbol = tip.token_symbol,
+                "Not telling of a tip in an unlikely token"
+            );
+            return;
+        };
+        match self.platform.send_direct_message(account, &text).await {
+            Ok(()) => info!(?account, "Told of a held tip"),
+            Err(error) => warn!(?account, %error, "Failed to tell of a held tip"),
+        }
     }
 
     /// Relays a new message, an edit or a deletion from an OpenChat chat to the platform chat it's

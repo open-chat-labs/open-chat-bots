@@ -1,7 +1,8 @@
 use ic_agent::export::Principal;
+use oc_bots_sdk::api::event_notification::BotMessageTip;
 use oc_bots_sdk::types::{
     BlobReference, BridgedUser, CanisterId, Chat, CryptoTransaction, MessageContent, MessageId,
-    UserId,
+    MessageIndex, UserId,
 };
 use sha2::{Digest, Sha256};
 
@@ -57,6 +58,40 @@ pub fn oc_chat_url(chat: &Chat) -> String {
             format!("https://oc.app/community/{community}/channel/{channel}")
         }
     }
+}
+
+/// Where a message is on OpenChat's website. One in a thread follows its thread's root message.
+pub fn oc_message_url(
+    chat: &Chat,
+    thread: Option<MessageIndex>,
+    message_index: MessageIndex,
+) -> String {
+    match thread {
+        Some(root) => format!("{}/{root}/{message_index}", oc_chat_url(chat)),
+        None => format!("{}/{message_index}", oc_chat_url(chat)),
+    }
+}
+
+/// What the author of a message relayed from `platform`, whose account no one has linked, is sent
+/// when it's tipped, as plain text. OpenChat holds the tip for whoever links the account, for 30
+/// days. None if the token's symbol doesn't look like one, as it's whatever the tipper's client
+/// said, so the bot can't be made to send other text.
+pub fn held_tip_text(platform: &str, tip: &BotMessageTip, message_url: &str) -> Option<String> {
+    let symbol = &tip.token_symbol;
+    let looks_like_a_symbol = (1..=20).contains(&symbol.chars().count())
+        && symbol
+            .chars()
+            .all(|c| c.is_alphanumeric() || matches!(c, '-' | '_' | '•'));
+    if !looks_like_a_symbol {
+        return None;
+    }
+    Some(format!(
+        "You were tipped {} {symbol} on OpenChat for your message: {message_url}\n\n\
+        To claim it, link your {platform} account to OpenChat within 30 days: open your profile \
+        in OpenChat (sign up at https://oc.app if you haven't), then choose Link {platform} under \
+        Linked accounts. If it isn't claimed by then, it goes back to whoever sent it.",
+        format_tokens(tip.amount, tip.decimals)
+    ))
 }
 
 /// The url of an image, video or file in OpenChat's storage
@@ -322,6 +357,70 @@ mod tests {
             oc_chat_url(&Chat::Channel(community, 2656124989)),
             format!("https://oc.app/community/{community}/channel/2656124989")
         );
+    }
+
+    #[test]
+    fn message_urls_match_the_website_routes() {
+        let group: CanisterId = Principal::from_slice(&[2]).into();
+        assert_eq!(
+            oc_message_url(&Chat::Group(group), None, 12),
+            format!("https://oc.app/group/{group}/12")
+        );
+        assert_eq!(
+            oc_message_url(&Chat::Group(group), Some(3), 12),
+            format!("https://oc.app/group/{group}/3/12")
+        );
+    }
+
+    fn tip(token_symbol: &str, amount: u128, decimals: u8) -> BotMessageTip {
+        BotMessageTip {
+            tipped_by: Principal::from_slice(&[1]).into(),
+            ledger: Principal::from_slice(&[2]).into(),
+            token_symbol: token_symbol.to_string(),
+            amount,
+            decimals,
+            held_for: Some(oc_bots_sdk::types::BridgedUserId::Discord(1)),
+        }
+    }
+
+    #[test]
+    fn a_held_tip_says_how_much_where_and_how_to_claim_it() {
+        let text = held_tip_text(
+            "Discord",
+            &tip("CHAT", 5_0000_0000, 8),
+            "https://oc.app/group/abc/12",
+        )
+        .unwrap();
+        assert_eq!(
+            text,
+            "You were tipped 5.00 CHAT on OpenChat for your message: https://oc.app/group/abc/12\n\n\
+            To claim it, link your Discord account to OpenChat within 30 days: open your profile \
+            in OpenChat (sign up at https://oc.app if you haven't), then choose Link Discord under \
+            Linked accounts. If it isn't claimed by then, it goes back to whoever sent it."
+        );
+        assert!(
+            held_tip_text("Telegram", &tip("ckUSDC", 1_500_000, 6), "url")
+                .unwrap()
+                .starts_with("You were tipped 1.50 ckUSDC on OpenChat")
+        );
+        assert!(held_tip_text("Twitch", &tip("ODINDOG•ID•YTTL", 1, 0), "url").is_some());
+    }
+
+    // A tipper's client names the token, so it can't be used to have the bot send other text
+    #[test]
+    fn a_tip_whose_symbol_isnt_one_isnt_described() {
+        for symbol in [
+            "",
+            "Visit scam.example",
+            "<b>CHAT</b>",
+            "https://x",
+            &"A".repeat(21),
+        ] {
+            assert!(
+                held_tip_text("Discord", &tip(symbol, 1, 0), "url").is_none(),
+                "{symbol}"
+            );
+        }
     }
 
     #[test]

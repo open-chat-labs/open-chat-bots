@@ -49,6 +49,16 @@ The shared parts of the bridge, also used by the Discord and Telegram bridges, a
   3. It redeems the code for that account.
 
   They can unlink from their OpenChat profile.
+- **Tips:** OpenChat holds a tip on a relayed message whose author no one has linked for 30 days,
+  for whoever links the account. The bridge tells the author in a whisper, with a link to the
+  message and how to link their account. Twitch only takes whispers with the sending account's own
+  token, so the bridge keeps the one the bot's account grants at `/authorize-bot` in its store, and
+  refreshes it. A whisper that fails is only logged. Twitch refuses them:
+  - from an account without a verified phone number;
+  - to more than 40 accounts a day which haven't whispered to the bot;
+  - to anyone who only takes whispers from those they follow, or has blocked the bot.
+
+  It may also drop one it suspects is spam without saying so.
 - **Receiving chat:** the bridge gets EventSub's chat events through a conduit, whose one shard is
   the bridge's WebSocket. It uses the app's access token, made from the client id and secret.
   - The subscriptions belong to the conduit, so they survive reconnects and restarts. Each paired
@@ -124,11 +134,14 @@ The shared parts of the bridge, also used by the Discord and Telegram bridges, a
 
 2. **A Twitch account for the bot,** eg. `OpenChatBridge`. This is the name viewers see its messages
    under.
-   - Verify its email and phone number, as some channels require them to chat.
-   - The bridge doesn't need its password or tokens. Instead, once the bridge is running, sign in as
-     the bot at `{PUBLIC_URL}/authorize-bot`. This grants the app `user:bot`, `user:read:chat`,
-     `user:write:chat` and `moderator:manage:chat_messages` for the account. It's the only manual
-     sign-in the bot needs, unless the authorization is revoked.
+   - Verify its email and phone number, as some channels require them to chat, and Twitch requires
+     a phone number to whisper.
+   - The bridge doesn't need its password. Instead, once the bridge is running, sign in as the bot
+     at `{PUBLIC_URL}/authorize-bot`. This grants the app `user:bot`, `user:read:chat`,
+     `user:write:chat`, `moderator:manage:chat_messages` and `user:manage:whispers` for the
+     account. The bridge keeps the token it's given, to whisper with. It's the only manual sign-in
+     the bot needs, unless the authorization is revoked. A bridge set up before it whispered needs
+     it again, to grant `user:manage:whispers`.
 
 3. **An identity for the OpenChat bot,** made with dfx. Keep it secret, as it's what lets the
    bridge act as the bot. dfx's default storage keeps it encrypted in your keychain.
