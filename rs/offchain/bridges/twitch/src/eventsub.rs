@@ -1,7 +1,7 @@
-//! Receives paired channels' chat events from Twitch's EventSub. The bridge's subscriptions belong
-//! to a conduit, whose one shard is the bridge's WebSocket. They're the conduit's, so they survive
-//! the WebSocket reconnecting and the bridge restarting, and each new WebSocket only has to be made
-//! the shard.
+//! Receives paired channels' chat events, and their going live, from Twitch's EventSub. The
+//! bridge's subscriptions belong to a conduit, whose one shard is the bridge's WebSocket. They're
+//! the conduit's, so they survive the WebSocket reconnecting and the bridge restarting, and each new
+//! WebSocket only has to be made the shard.
 
 use crate::api::TwitchApi;
 use crate::chat::ChatHandler;

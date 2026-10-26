@@ -20,6 +20,7 @@ mod oauth;
 mod platform;
 mod profiles;
 mod rate_limit;
+mod stream;
 
 #[tokio::main]
 async fn main() -> Result<()> {

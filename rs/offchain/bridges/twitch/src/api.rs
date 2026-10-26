@@ -141,6 +141,24 @@ impl TwitchApi {
         Ok(users.data.into_iter().next())
     }
 
+    /// The title of the broadcaster's stream, as they last set it. None if they have no channel.
+    pub async fn channel_title(&self, broadcaster_id: &str) -> Result<Option<String>> {
+        #[derive(Deserialize)]
+        struct Channel {
+            title: String,
+        }
+
+        let channels: Data<Channel> = self
+            .helix(
+                Method::GET,
+                "/channels",
+                &[("broadcaster_id", broadcaster_id)],
+                None,
+            )
+            .await?;
+        Ok(channels.data.into_iter().next().map(|c| c.title))
+    }
+
     /// Posts in the broadcaster's chat as `sender_id`. A Shared Chat session's other channels don't
     /// see it, as only this one is bridged.
     pub async fn send_chat_message(
