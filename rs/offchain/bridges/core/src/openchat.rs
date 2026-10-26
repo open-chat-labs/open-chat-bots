@@ -212,18 +212,7 @@ impl OpenChat {
     /// bridged
     pub async fn send_notice(&self, pairing: &Pairing, text: String) -> Result<()> {
         // One id for every attempt, so a call which landed but is retried isn't posted twice
-        self.send_notice_with_id(pairing, rand::random::<u64>().into(), text)
-            .await
-    }
-
-    /// As `send_notice`, with an id derived from what the notice is about, so a repeat of it, eg.
-    /// as the platform sent an event twice, isn't posted
-    pub async fn send_notice_with_id(
-        &self,
-        pairing: &Pairing,
-        message_id: MessageId,
-        text: String,
-    ) -> Result<()> {
+        let message_id: MessageId = rand::random::<u64>().into();
         let response = with_retries(|| {
             let client = self.client(pairing);
             let text = text.clone();

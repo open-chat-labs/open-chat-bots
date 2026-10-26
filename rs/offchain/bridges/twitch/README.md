@@ -43,10 +43,13 @@ The shared parts of the bridge, also used by the Discord and Telegram bridges, a
   stream's title and the channel's link, so members can watch from there, eg.:
 
   ```
-  Nelly is live on Twitch: Speedrunning Celeste
+  Live on Twitch: Speedrunning Celeste
   <https://www.twitch.tv/nelly>
   ```
 
+  - It's relayed as the broadcaster, as their chat messages are, so OpenChat shows them as its
+    author, and tipping it tips them as tipping their messages does.
+  - A reply to it in OpenChat is relayed to Twitch as a message of its own.
   - The title is looked up from Twitch, and left out if that fails.
   - The link is in angle brackets, so OpenChat links all of a login which ends in `_`.
   - Twitch can send the event twice, but the notice's OpenChat id is derived from the stream's, and
