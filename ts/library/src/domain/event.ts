@@ -414,7 +414,8 @@ export type MessageContent =
     | ModerationReportContent
     | UserReferralCard
     | MemeFighterContent
-    | VideoCallContent;
+    | VideoCallContent
+    | PriceChartContent;
 
 export interface FileContent extends DataContent {
     kind: "file_content";
@@ -807,7 +808,10 @@ export type ModerationReportContent = {
 
 export type AuthorityReport =
     | { kind: "due"; urgent: boolean }
-    | { kind: "filed"; portalReference: string };
+    | { kind: "filed"; portalReference: string }
+    | { kind: "attempting"; startedAt: bigint }
+    | { kind: "contingency_required"; error: string; urgent: boolean }
+    | { kind: "validation_failed"; error: string; urgent: boolean };
 
 export type MediaScanMatch = {
     provider: string;
@@ -839,6 +843,45 @@ export type VideoCallContent = {
     participants: VideoCallParticipant[];
     ended?: bigint;
     callType: VideoCallType;
+};
+
+// A chart of token prices, which OpenChat draws so that readers can see the price at any time.
+// Only bots can send one, and it needs the Image permission.
+export type PriceChartContent = {
+    kind: "price_chart_content";
+    // eg. "CHAT · 30 days". It's the chart's text, in notifications, previews and search.
+    title: string;
+    // The time drawn, in ms. Each line runs on flat from its last price to `end`.
+    start: number;
+    end: number;
+    // One token's prices are drawn in USD, with its high and low marked. Several tokens' are drawn
+    // as their change since `start`.
+    series: PriceChartSeries[];
+    // Where the prices are from, credited with links under the chart
+    sources: PriceChartSource[];
+};
+
+export type PriceChartSeries = {
+    token: PriceChartToken;
+    // eg. ckBTC
+    symbol: string;
+    name: string;
+    // The times strictly increasing, between the chart's `start` and `end`, and the prices above 0
+    points: PriceChartPoint[];
+};
+
+// A token on the Internet Computer, by its ledger, or any other coin, by its CoinGecko id
+export type PriceChartToken = { kind: "token"; ledger: string } | { kind: "coin"; id: string };
+
+export type PriceChartPoint = {
+    timestamp: number;
+    usd: number;
+};
+
+export type PriceChartSource = {
+    name: string;
+    // An https url
+    url: string;
 };
 
 export type ChatEventsCriteria = ChatEventsPage | ChatEventsByIndex | ChatEventsWindow;

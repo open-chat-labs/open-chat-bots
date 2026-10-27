@@ -1,12 +1,14 @@
 use crate::api::{SentMessage, TwitchApi, helix_status};
 use crate::profiles::Profiles;
 use crate::rate_limit::RateLimiter;
-use anyhow::{Result, anyhow};
+use crate::whispers::BotToken;
+use anyhow::{Result, anyhow, bail};
 use async_trait::async_trait;
-use oc_bots_sdk::types::{BridgePlatform, BridgedUser};
+use oc_bots_sdk::types::{BridgePlatform, BridgedUser, BridgedUserId};
 use oc_bridge_core::util::oc_chat_url;
 use oc_bridge_core::{
-    OutboundMessage, Pairing, PermanentFailure, Platform, PlatformMessageId, platform_name,
+    BridgeStore, OutboundMessage, Pairing, PermanentFailure, Platform, PlatformMessageId,
+    platform_name,
 };
 use serde_json::json;
 use std::collections::HashSet;
@@ -40,6 +42,8 @@ pub struct Twitch {
     pub conduit_id: String,
     pub sender: Arc<Sender>,
     pub profiles: Profiles,
+    /// The bot account's own token, which it whispers with
+    pub bot_token: BotToken,
     // The channels whose subscriptions the bridge has made sure of since it started
     subscribed: Mutex<HashSet<String>>,
 }
@@ -109,6 +113,31 @@ impl Platform for Twitch {
         }
     }
 
+    // A whisper, which may fail, eg. as the bot has whispered to 40 accounts which haven't whispered
+    // to it today, or the user only takes whispers from those they follow, or be dropped silently
+    async fn send_direct_message(&self, account: BridgedUserId, text: &str) -> Result<()> {
+        let BridgedUserId::Twitch(user_id) = account else {
+            bail!("{account:?} isn't a Twitch account");
+        };
+        let to = user_id.to_string();
+        let text = truncate(text.to_string(), MAX_MESSAGE_LENGTH);
+        let token = self.bot_token.access_token(&self.api, false).await?;
+        match self
+            .api
+            .send_whisper(&token, &self.bot_id, &to, &text)
+            .await
+        {
+            // The token was revoked, or expired early
+            Err(error) if helix_status(&error) == Some(401) => {
+                let token = self.bot_token.access_token(&self.api, true).await?;
+                self.api
+                    .send_whisper(&token, &self.bot_id, &to, &text)
+                    .await
+            }
+            result => result,
+        }
+    }
+
     async fn paired(&self, pairing: &Pairing) -> Result<()> {
         // Subscribed when the code was given, but unsubscribed if the chat was unbridged since
         self.subscribe(&pairing.platform_chat).await?;
@@ -138,9 +167,11 @@ impl Twitch {
         bot_login: String,
         public_url: String,
         conduit_id: String,
+        store: BridgeStore,
     ) -> Self {
         Twitch {
             profiles: Profiles::new(api.clone()),
+            bot_token: BotToken::new(store),
             sender: Arc::new(Sender {
                 api: api.clone(),
                 bot_id: bot_id.clone(),

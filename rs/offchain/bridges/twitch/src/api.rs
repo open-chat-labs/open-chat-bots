@@ -89,6 +89,12 @@ pub struct Subscription {
 #[derive(Deserialize, Debug)]
 pub struct UserToken {
     pub access_token: String,
+    /// To get a new token once this one expires
+    #[serde(default)]
+    pub refresh_token: Option<String>,
+    /// In seconds
+    #[serde(default)]
+    pub expires_in: Option<u64>,
     // Left out, or null, when none were asked for
     #[serde(default)]
     scope: Option<Vec<String>>,
@@ -331,6 +337,54 @@ impl TwitchApi {
             ("redirect_uri", redirect_uri),
         ])
         .await
+    }
+
+    /// A new token in place of the one `refresh_token` came with, once it has expired
+    pub async fn refresh_user_token(&self, refresh_token: &str) -> Result<UserToken> {
+        self.oauth_token(&[
+            ("grant_type", "refresh_token"),
+            ("refresh_token", refresh_token),
+        ])
+        .await
+    }
+
+    /// Whispers to `to_user_id` as `from_user_id`, with the sender's own token, as Twitch only takes
+    /// whispers from a user's token. It takes them only from an account with a verified phone
+    /// number, to at most 40 accounts a day which haven't whispered to it, and may drop one it
+    /// suspects is spam without saying so.
+    pub async fn send_whisper(
+        &self,
+        user_token: &str,
+        from_user_id: &str,
+        to_user_id: &str,
+        message: &str,
+    ) -> Result<()> {
+        let response = self
+            .http
+            .post(format!("{HELIX_URL}/whispers"))
+            .query(&[("from_user_id", from_user_id), ("to_user_id", to_user_id)])
+            .bearer_auth(user_token)
+            .header("Client-Id", &self.client_id)
+            .json(&json!({ "message": message }))
+            .send()
+            .await
+            .map_err(|e| anyhow!("Twitch's /whispers failed: {e}"))?;
+        body(response).await.map(|_| ())
+    }
+
+    /// Whether Twitch still takes a user's token
+    pub async fn validate_token(&self, access_token: &str) -> Result<bool> {
+        let response = self
+            .http
+            .get(format!("{OAUTH_URL}/validate"))
+            .header("Authorization", format!("OAuth {access_token}"))
+            .send()
+            .await
+            .map_err(|e| anyhow!("Twitch's /validate failed: {e}"))?;
+        if response.status() == StatusCode::UNAUTHORIZED {
+            return Ok(false);
+        }
+        body(response).await.map(|_| true)
     }
 
     /// Who signed in, with the token they granted

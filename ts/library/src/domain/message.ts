@@ -1,4 +1,10 @@
-import { apiBlobReference, apiBotChatContext, apiOptional, identity } from "../mapping";
+import {
+    apiBlobReference,
+    apiBotChatContext,
+    apiOptional,
+    apiPriceChartContent,
+    identity,
+} from "../mapping";
 import type {
     LocalUserIndexBotSendMessageArgs as BotSendMessageArgs,
     FileContent,
@@ -10,6 +16,7 @@ import type {
 import { random64 } from "../utils/rng";
 import type { BotChatContext } from "./bot";
 import type { BlobReference } from "./data";
+import type { PriceChartContent } from "./event";
 import type { MessagePermission } from "./permissions";
 
 type FileMessageContent = { File: FileContent };
@@ -193,6 +200,21 @@ export class FileMessage extends Message {
     setCaption(caption?: string): FileMessage {
         (this.content as FileMessageContent).File.caption = apiOptional(caption, identity);
         return this;
+    }
+}
+
+/**
+ * A chart of token prices, which OpenChat draws so that readers can see the price at any time.
+ * OpenChat refuses a chart with a title over 100 characters, more than 5 series, more than 1,000
+ * points across all the series or more than 3 sources.
+ */
+export class PriceChartMessage extends Message {
+    constructor(chart: Omit<PriceChartContent, "kind">) {
+        super({ PriceChart: apiPriceChartContent(chart) });
+    }
+
+    public get requiredMessagePermissions(): MessagePermission[] {
+        return ["Image"];
     }
 }
 

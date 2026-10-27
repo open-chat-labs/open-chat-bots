@@ -10,7 +10,8 @@ use oc_bots_sdk::types::BridgePlatform;
 use oc_bridge_core::{Bridge, BridgeStore, OpenChat, http};
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
-use tracing::{error, info};
+use std::time::Duration;
+use tracing::{error, info, warn};
 
 mod api;
 mod chat;
@@ -21,6 +22,7 @@ mod platform;
 mod profiles;
 mod rate_limit;
 mod stream;
+mod whispers;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -49,11 +51,26 @@ async fn main() -> Result<()> {
         bot.login,
         config.public_url,
         conduit_id.clone(),
+        store.clone(),
     );
     let bridge = Arc::new(Bridge::new(openchat, store, platform));
     // Kept alive until the process exits, as the OpenChat runtime can't be dropped from within
     // async code
     std::mem::forget(bridge.clone());
+
+    // Twitch requires an app which keeps a user's token, as the bridge does the bot's, to check it
+    // when it starts, then hourly
+    let validating = bridge.clone();
+    tokio::spawn(async move {
+        let mut hourly = tokio::time::interval(Duration::from_secs(60 * 60));
+        loop {
+            hourly.tick().await;
+            let platform = &validating.platform;
+            if let Err(error) = platform.bot_token.validate(&platform.api).await {
+                warn!(%error, "Failed to check the bot's token");
+            }
+        }
+    });
 
     let routes = http::router(bridge.clone()).merge(oauth::router(bridge.clone()));
     let listener =

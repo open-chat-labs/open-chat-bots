@@ -16,7 +16,6 @@ pub mod community_summary;
 pub mod create_channel;
 pub mod delete_channel;
 pub mod delete_messages;
-#[cfg(feature = "bridge")]
 pub mod edit_message;
 pub mod installation_events;
 pub mod invite_users;

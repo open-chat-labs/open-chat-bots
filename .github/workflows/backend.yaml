@@ -23,7 +23,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/workflows/setup-rust
-      # Without features too, as most bots build the SDK that way
+      # Without the bridges too, which turn the SDK's `bridge` feature on across the workspace, so
+      # that the SDKs and example bots are linted as most bots build them
+      - uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-targets --workspace --exclude *bridge* --manifest-path rs/Cargo.toml -- -D warnings
       - uses: actions-rs/cargo@v1
         with:
           command: clippy

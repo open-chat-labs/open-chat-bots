@@ -2,7 +2,7 @@ use crate::model::Pairing;
 use crate::platform::PermanentFailure;
 use crate::util::{bridged_avatar_url, bridged_name, user_avatar_url};
 use anyhow::{Result, anyhow, bail};
-use candid::{Decode, Encode};
+use candid::{CandidType, Encode};
 use ic_agent::identity::{BasicIdentity, Secp256k1Identity};
 use ic_agent::{Agent, Identity};
 use oc_bots_sdk::api::command::Message;
@@ -20,6 +20,7 @@ use oc_bots_sdk::types::{
     OCError, OCErrorCode, TimestampMillis, UnitResult, UserId,
 };
 use oc_bots_sdk_offchain::{AgentRuntime, OgPreviewConfig, env};
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::future::Future;
@@ -100,6 +101,7 @@ pub struct OpenChat {
     // For calls to ledgers, which take candid rather than msgpack
     agent: Agent,
     token_decimals: Mutex<HashMap<CanisterId, u8>>,
+    token_symbols: Mutex<HashMap<CanisterId, String>>,
     bot_id: tokio::sync::OnceCell<UserId>,
 }
 
@@ -144,6 +146,7 @@ impl OpenChat {
             authors: Mutex::default(),
             agent,
             token_decimals: Mutex::default(),
+            token_symbols: Mutex::default(),
             bot_id: tokio::sync::OnceCell::new(),
         })
     }
@@ -397,30 +400,22 @@ impl OpenChat {
     /// How many decimal places a token's amounts have, from its ledger, or None if it can't be
     /// looked up
     pub async fn token_decimals(&self, ledger: CanisterId) -> Option<u8> {
-        if let Some(decimals) = self.token_decimals.lock().unwrap().get(&ledger) {
-            return Some(*decimals);
-        }
+        cached_ledger_query(&self.agent, &self.token_decimals, ledger, "icrc1_decimals").await
+    }
 
-        let response = self
-            .agent
-            .query(&ledger.into(), "icrc1_decimals")
-            .with_arg(Encode!().unwrap())
-            .call()
-            .await;
-        match response
-            .map_err(anyhow::Error::from)
-            .and_then(|bytes| Ok(Decode!(&bytes, u8)?))
-        {
-            Ok(decimals) => {
-                self.token_decimals.lock().unwrap().insert(ledger, decimals);
-                Some(decimals)
-            }
-            Err(error) => {
-                // Not cached, so it's tried again next time
-                warn!(%ledger, ?error, "Failed to look up a token's decimals");
-                None
-            }
-        }
+    /// A token's symbol, from its ledger, or None if it can't be looked up
+    pub async fn token_symbol(&self, ledger: CanisterId) -> Option<String> {
+        cached_ledger_query(&self.agent, &self.token_symbols, ledger, "icrc1_symbol").await
+    }
+
+    /// So tests needn't call a ledger
+    #[cfg(test)]
+    pub(crate) fn remember_token(&self, ledger: CanisterId, symbol: &str, decimals: u8) {
+        self.token_symbols
+            .lock()
+            .unwrap()
+            .insert(ledger, symbol.to_string());
+        self.token_decimals.lock().unwrap().insert(ledger, decimals);
     }
 
     /// The profile of an account another bridge bot relays messages from, eg. Telegram's
@@ -460,6 +455,38 @@ impl OpenChat {
             UserResponse::Success(user) => Ok(Some(user)),
             UserResponse::UserNotFound => Ok(None),
             UserResponse::Error(error) => Err(oc_error(error)),
+        }
+    }
+}
+
+// A token's symbol or decimals, from its ledger, which are kept once found, as they don't change
+async fn cached_ledger_query<T: CandidType + DeserializeOwned + Clone>(
+    agent: &Agent,
+    cache: &Mutex<HashMap<CanisterId, T>>,
+    ledger: CanisterId,
+    method: &str,
+) -> Option<T> {
+    if let Some(value) = cache.lock().unwrap().get(&ledger) {
+        return Some(value.clone());
+    }
+
+    let response = agent
+        .query(&ledger.into(), method)
+        .with_arg(Encode!().unwrap())
+        .call()
+        .await;
+    match response
+        .map_err(anyhow::Error::from)
+        .and_then(|bytes| Ok(candid::decode_one::<T>(&bytes)?))
+    {
+        Ok(value) => {
+            cache.lock().unwrap().insert(ledger, value.clone());
+            Some(value)
+        }
+        Err(error) => {
+            // Not cached, so it's tried again next time
+            warn!(%ledger, method, ?error, "Failed to look up a token");
+            None
         }
     }
 }

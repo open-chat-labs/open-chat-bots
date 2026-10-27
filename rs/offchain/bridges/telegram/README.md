@@ -42,6 +42,11 @@ the Discord bridge, are in [`../core`](../core).
 - **`/status`** tells the user whether their account is linked, and to whom. In a group, it also says
   whether the group is bridged, with a link to the OpenChat chat. Anyone in the group can run it,
   and the reply is posted in the group.
+- **Tips:** OpenChat holds a tip on a relayed message whose author no one has linked for 30 days,
+  for whoever links the account. The bridge tells the author in a private message, with the amount,
+  as its ledger gives it, a link to the message, and how to link their account. A bot can only
+  message a user who has started a chat with it, so Telegram refuses it for anyone who hasn't, or
+  who has blocked the bot. That's only logged.
 - **State** is kept in DynamoDB, in the same kind of table as the Discord bridge's. The two can share
   a table, as their keys don't overlap.
 - **Avatars:** a Telegram user's profile photo is copied to an S3 bucket behind a CDN, as

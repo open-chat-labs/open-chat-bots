@@ -9,6 +9,7 @@ import {
     ImageMessage,
     OCErrorCode,
     PollMessage,
+    PriceChartMessage,
     TextMessage,
     type BotClientConfig,
     type BotInstallationEventsResponse,
@@ -25,6 +26,7 @@ import {
     type MembersResponse,
     type Message,
     type PermissionRole,
+    type PriceChartContent,
     type SendMessageResponse,
     type UnitResult,
     type UserSummaryResponse,
@@ -306,6 +308,10 @@ export class BotClient {
         return Promise.resolve(
             new PollMessage(question, answers).setContextMessageId(this.messageId),
         );
+    }
+
+    createPriceChartMessage(chart: Omit<PriceChartContent, "kind">): Promise<PriceChartMessage> {
+        return Promise.resolve(new PriceChartMessage(chart).setContextMessageId(this.messageId));
     }
 
     createImageMessage(

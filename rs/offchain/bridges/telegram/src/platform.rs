@@ -1,8 +1,8 @@
 use crate::api::TelegramApi;
 use crate::avatars::Avatars;
-use anyhow::Result;
+use anyhow::{Result, bail};
 use async_trait::async_trait;
-use oc_bots_sdk::types::{BridgePlatform, BridgedUser};
+use oc_bots_sdk::types::{BridgePlatform, BridgedUser, BridgedUserId};
 use oc_bridge_core::util::oc_chat_url;
 use oc_bridge_core::{
     OutboundMessage, Pairing, PermanentFailure, Platform, PlatformMessageId, platform_name,
@@ -70,6 +70,17 @@ impl Platform for Telegram {
             .delete_message(pairing.platform_chat.parse()?, id.parse()?)
             .await;
         ignore_if(result, &["message to delete not found"])
+    }
+
+    // A bot can only message a user who has started a chat with it, so this fails with a 403 for
+    // anyone who hasn't, as well as for anyone who has blocked it
+    async fn send_direct_message(&self, account: BridgedUserId, text: &str) -> Result<()> {
+        // A negative id is a chat's, eg. a group's anonymous admins, which would post it there
+        let BridgedUserId::Telegram(user_id @ 1..) = account else {
+            bail!("{account:?} isn't a Telegram user");
+        };
+        self.api.send_message(user_id, &escape(text), None).await?;
+        Ok(())
     }
 
     async fn paired(&self, pairing: &Pairing) -> Result<()> {
