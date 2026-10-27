@@ -300,11 +300,9 @@ pub struct PriceChartSeries {
     pub symbol: String,
     /// Up to 50 characters
     pub name: String,
-    /// Strictly increasing, between the chart's `start` and `end`, each with its price at the same
-    /// index of `prices`
-    pub timestamps: Vec<TimestampMillis>,
-    /// In USD, each above 0
-    pub prices: Vec<f64>,
+    /// Each time and its price in USD, as the price service's histories give them: the times
+    /// strictly increasing, between the chart's `start` and `end`, and the prices above 0
+    pub points: Vec<(TimestampMillis, f64)>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -861,15 +859,13 @@ mod tests {
                     token: PriceChartToken::Ledger(ledger),
                     symbol: "CHAT".to_string(),
                     name: "OpenChat".to_string(),
-                    timestamps: vec![1_000, 2_000],
-                    prices: vec![0.5, 0.25],
+                    points: vec![(1_000, 0.5), (2_000, 0.25)],
                 },
                 PriceChartSeries {
                     token: PriceChartToken::Coin("cardano".to_string()),
                     symbol: "ADA".to_string(),
                     name: "Cardano".to_string(),
-                    timestamps: vec![1_500, 2_500],
-                    prices: vec![0.75, 1.0],
+                    points: vec![(1_500, 0.75), (2_500, 1.0)],
                 },
             ],
             sources: vec![PriceChartSource {
@@ -886,8 +882,8 @@ mod tests {
         };
         assert!(matches!(chart.series[0].token, PriceChartToken::Ledger(l) if l == ledger));
         assert!(matches!(&chart.series[1].token, PriceChartToken::Coin(id) if id == "cardano"));
-        assert_eq!(chart.series[0].prices, [0.5, 0.25]);
-        assert_eq!(chart.series[1].timestamps, [1_500, 2_500]);
+        assert_eq!(chart.series[0].points, [(1_000, 0.5), (2_000, 0.25)]);
+        assert_eq!(chart.series[1].points, [(1_500, 0.75), (2_500, 1.0)]);
         assert_eq!(chart.sources[0].url, "https://www.icpswap.com");
         assert_eq!(content.text(), Some("CHAT and ADA · 30 days"));
     }
