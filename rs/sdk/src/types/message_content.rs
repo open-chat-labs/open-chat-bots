@@ -17,6 +17,7 @@ pub enum MessageContentInitial {
     Poll(PollContent),
     Giphy(GiphyContent),
     Custom(CustomContent),
+    PriceChart(PriceChartContent),
 }
 
 impl MessageContentInitial {
@@ -48,6 +49,7 @@ pub enum MessageContent {
     VideoCall(VideoCallContent),
     Encrypted(EncryptedContent),
     Custom(CustomContent),
+    PriceChart(PriceChartContent),
     Unsupported(UnsupportedContent),
 }
 
@@ -74,6 +76,7 @@ tolerant_enum!(
         VideoCall,
         Encrypted,
         Custom,
+        PriceChart,
         Unsupported,
     ],
     units: [],
@@ -94,6 +97,7 @@ impl MessageContent {
             MessageContent::Crypto(c) => c.caption.as_deref(),
             MessageContent::Prize(p) => p.caption.as_deref(),
             MessageContent::P2PSwap(s) => s.caption.as_deref(),
+            MessageContent::PriceChart(c) => Some(c.title.as_str()),
             MessageContent::Deleted(_)
             | MessageContent::PrizeWinner(_)
             | MessageContent::MessageReminderCreated(_)
@@ -262,6 +266,60 @@ pub struct DeletedBy {
 pub struct CustomContent {
     pub kind: String,
     pub data: Vec<u8>,
+}
+
+/// A chart of token prices, which OpenChat draws, so that readers can see the price at any time
+/// by hovering over it, or pressing and dragging. Only bots can send one, and it needs the Image
+/// permission. OpenChat refuses one beyond the limits below.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PriceChartContent {
+    /// Eg. "CHAT · 30 days". It's the chart's text, in notifications, previews and search.
+    pub title: String,
+    /// The time drawn. Each line runs on flat from its last price to `end`.
+    pub start: TimestampMillis,
+    pub end: TimestampMillis,
+    /// One token's prices are drawn in USD, with its high and low marked. Several tokens' are
+    /// drawn as their change since `start`.
+    pub series: Vec<PriceChartSeries>,
+    /// Where the prices are from, credited with links under the chart
+    pub sources: Vec<PriceChartSource>,
+}
+
+impl PriceChartContent {
+    pub const MAX_TITLE_CHARS: usize = 100;
+    pub const MAX_SERIES: usize = 5;
+    /// Across all the series
+    pub const MAX_POINTS: usize = 1_000;
+    pub const MAX_SOURCES: usize = 3;
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PriceChartSeries {
+    pub token: PriceChartToken,
+    /// Up to 20 characters, eg. ckBTC
+    pub symbol: String,
+    /// Up to 50 characters
+    pub name: String,
+    /// Strictly increasing, between the chart's `start` and `end`, each with its price at the same
+    /// index of `prices`
+    pub timestamps: Vec<TimestampMillis>,
+    /// In USD, each above 0
+    pub prices: Vec<f64>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum PriceChartToken {
+    /// A token on the Internet Computer, by its ledger
+    Ledger(CanisterId),
+    /// Any other coin, by its CoinGecko id, eg. "cardano"
+    Coin(String),
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PriceChartSource {
+    pub name: String,
+    /// An https url
+    pub url: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -789,5 +847,48 @@ mod tests {
             MessageContent::Encrypted(e) if matches!(e.content_type, EncryptedMessageContentType::Giphy)
         ));
         assert!(matches!(&contents[17], MessageContent::Custom(c) if c.data == [1, 2]));
+    }
+
+    #[test]
+    fn a_price_chart_a_bot_sends_reads_back_as_one() {
+        let ledger = CanisterId::from(Principal::from_slice(&[1; 10]));
+        let chart = PriceChartContent {
+            title: "CHAT and ADA · 30 days".to_string(),
+            start: 1_000,
+            end: 3_000,
+            series: vec![
+                PriceChartSeries {
+                    token: PriceChartToken::Ledger(ledger),
+                    symbol: "CHAT".to_string(),
+                    name: "OpenChat".to_string(),
+                    timestamps: vec![1_000, 2_000],
+                    prices: vec![0.5, 0.25],
+                },
+                PriceChartSeries {
+                    token: PriceChartToken::Coin("cardano".to_string()),
+                    symbol: "ADA".to_string(),
+                    name: "Cardano".to_string(),
+                    timestamps: vec![1_500, 2_500],
+                    prices: vec![0.75, 1.0],
+                },
+            ],
+            sources: vec![PriceChartSource {
+                name: "ICPSwap".to_string(),
+                url: "https://www.icpswap.com".to_string(),
+            }],
+        };
+
+        let bytes = msgpack::serialize_then_unwrap(MessageContentInitial::PriceChart(chart));
+        let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
+
+        let MessageContent::PriceChart(chart) = &content else {
+            panic!("Expected a price chart, got {content:?}");
+        };
+        assert!(matches!(chart.series[0].token, PriceChartToken::Ledger(l) if l == ledger));
+        assert!(matches!(&chart.series[1].token, PriceChartToken::Coin(id) if id == "cardano"));
+        assert_eq!(chart.series[0].prices, [0.5, 0.25]);
+        assert_eq!(chart.series[1].timestamps, [1_500, 2_500]);
+        assert_eq!(chart.sources[0].url, "https://www.icpswap.com");
+        assert_eq!(content.text(), Some("CHAT and ADA · 30 days"));
     }
 }
