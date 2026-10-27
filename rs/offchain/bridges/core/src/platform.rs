@@ -2,7 +2,7 @@ use crate::model::{Pairing, PlatformChatId, PlatformMessageId};
 use crate::openchat::Author;
 use anyhow::Result;
 use async_trait::async_trait;
-use oc_bots_sdk::types::{BridgePlatform, BridgedUser};
+use oc_bots_sdk::types::{BridgePlatform, BridgedUser, BridgedUserId};
 
 /// What each bridge does on its platform, eg. Discord
 #[async_trait]
@@ -18,6 +18,10 @@ pub trait Platform: Send + Sync + 'static {
     async fn edit(&self, pairing: &Pairing, id: &str, message: &OutboundMessage) -> Result<()>;
 
     async fn delete(&self, pairing: &Pairing, id: &str) -> Result<()>;
+
+    /// Sends the account a direct message, eg. to tell its owner of a tip which OpenChat holds for
+    /// them. The text is plain, so the platform escapes it as it needs.
+    async fn send_direct_message(&self, account: BridgedUserId, text: &str) -> Result<()>;
 
     /// How to bridge an OpenChat chat with one on the platform, shown when /bridge is run in
     /// OpenChat without a code: how to add the bot there, and how to get a code from it

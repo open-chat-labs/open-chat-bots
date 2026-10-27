@@ -345,6 +345,15 @@ impl BridgeStore {
             .await
     }
 
+    /// A token the platform granted the bot's own account, eg. Twitch's, which whispers need
+    pub async fn bot_token<T: DeserializeOwned>(&self) -> Result<Option<T>> {
+        self.get(&self.bot_token_key()).await
+    }
+
+    pub async fn save_bot_token<T: Serialize>(&self, token: &T) -> Result<()> {
+        self.put(&self.bot_token_key(), token, None).await
+    }
+
     async fn get<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
         match self.kv.get(key).await? {
             Some(bytes) => Ok(Some(serde_json::from_slice(&bytes)?)),
@@ -366,6 +375,10 @@ impl BridgeStore {
             "notification/{}/{api_gateway}/{notification_index}",
             self.platform
         )
+    }
+
+    fn bot_token_key(&self) -> String {
+        format!("bot_token/{}", self.platform)
     }
 
     fn avatar_key(&self, platform_user: &str) -> String {

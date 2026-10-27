@@ -1,12 +1,13 @@
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result, anyhow, bail};
 use async_trait::async_trait;
-use oc_bots_sdk::types::BridgePlatform;
+use oc_bots_sdk::types::{BridgePlatform, BridgedUserId};
 use oc_bridge_core::platform::PermanentFailure;
 use oc_bridge_core::util::oc_chat_url;
 use oc_bridge_core::{OutboundMessage, Pairing, Platform, PlatformMessageId, platform_name};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serenity::http::{Http, HttpError};
+use serenity::model::channel::MessageFlags;
 use serenity::model::id::{ChannelId, MessageId, WebhookId};
 use serenity::model::permissions::Permissions;
 use std::sync::Arc;
@@ -116,6 +117,30 @@ impl Platform for Discord {
             )
             .await;
         ignore_not_found(result)
+    }
+
+    // Fails if the user only takes direct messages from friends, or from no one in the servers they
+    // share with the bot, or has blocked it
+    async fn send_direct_message(&self, account: BridgedUserId, text: &str) -> Result<()> {
+        let BridgedUserId::Discord(user_id) = account else {
+            bail!("{account:?} isn't a Discord account");
+        };
+        let channel = self
+            .http
+            .create_private_channel(&json!({ "recipient_id": user_id.to_string() }))
+            .await
+            .map_err(discord_error)?;
+        let body = json!({
+            "content": truncate(text.to_string(), MAX_CONTENT_LENGTH),
+            "allowed_mentions": { "parse": [] },
+            // Without a preview of the link
+            "flags": MessageFlags::SUPPRESS_EMBEDS.bits(),
+        });
+        self.http
+            .send_message(channel.id, Vec::new(), &body)
+            .await
+            .map_err(discord_error)?;
+        Ok(())
     }
 
     async fn paired(&self, pairing: &Pairing) -> Result<()> {

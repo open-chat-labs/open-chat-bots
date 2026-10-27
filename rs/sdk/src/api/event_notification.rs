@@ -2,8 +2,9 @@ use crate::{
     ecdsa, msgpack,
     oc_api::actions::community_events::CommunityEvent,
     types::{
-        BotInstalledEvent, BotRegisteredEvent, BotUninstalledEvent, CanisterId, Chat, ChatEvent,
-        CommunityId, EventIndex, MessageIndex, TimestampMillis, TokenError,
+        BotInstalledEvent, BotRegisteredEvent, BotUninstalledEvent, BridgedUserId, CanisterId,
+        Chat, ChatEvent, CommunityId, EventIndex, MessageIndex, TimestampMillis, TokenError,
+        UserId,
     },
 };
 use serde::Deserialize;
@@ -67,6 +68,25 @@ pub struct BotChatEvent {
     pub event_index: EventIndex,
     #[serde(alias = "l")]
     pub latest_event_index: EventIndex,
+    /// Set when the event is a tip on the message, as the message's tips are each tipper's totals
+    #[serde(default)]
+    pub tip: Option<Box<BotMessageTip>>,
+}
+
+/// A tip on a message, which a bot is told of along with the message
+#[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct BotMessageTip {
+    pub tipped_by: UserId,
+    pub ledger: CanisterId,
+    pub token_symbol: String,
+    /// In the token's smallest units. The token's symbol and decimals are best looked up from its
+    /// ledger, as `token_symbol` is whatever the tipper's client said.
+    pub amount: u128,
+    /// The account the message was relayed from, if no one had linked it, so OpenChat holds the
+    /// tip for whoever links it, and refunds it if no one does within 30 days. None for an account
+    /// on a platform this SDK doesn't know yet.
+    #[serde(default, deserialize_with = "BridgedUserId::deserialize_known")]
+    pub held_for: Option<BridgedUserId>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -89,4 +109,57 @@ pub enum BotLifecycleEvent {
     Installed(BotInstalledEvent),
     #[serde(alias = "u")]
     Uninstalled(BotUninstalledEvent),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::msgpack;
+    use candid::Principal;
+    use serde::Serialize;
+
+    #[derive(Serialize)]
+    struct Tip<P> {
+        tipped_by: UserId,
+        ledger: CanisterId,
+        token_symbol: String,
+        amount: u128,
+        held_for: Option<P>,
+    }
+
+    fn tip<P: Serialize>(held_for: Option<P>) -> Vec<u8> {
+        msgpack::serialize_then_unwrap(Tip {
+            tipped_by: Principal::from_slice(&[1]).into(),
+            ledger: Principal::from_slice(&[2]).into(),
+            token_symbol: "CHAT".to_string(),
+            amount: 5_0000_0000,
+            held_for,
+        })
+    }
+
+    #[test]
+    fn a_tip_says_who_its_held_for() {
+        let decoded: BotMessageTip =
+            msgpack::deserialize_from_slice(&tip(Some(BridgedUserId::Telegram(42)))).unwrap();
+        assert_eq!(decoded.held_for, Some(BridgedUserId::Telegram(42)));
+        assert_eq!(decoded.amount, 5_0000_0000);
+
+        let decoded: BotMessageTip =
+            msgpack::deserialize_from_slice(&tip::<BridgedUserId>(None)).unwrap();
+        assert_eq!(decoded.held_for, None);
+    }
+
+    // A platform bridged since this SDK was released
+    #[test]
+    fn a_tip_held_for_an_account_on_an_unknown_platform_still_decodes() {
+        #[derive(Serialize)]
+        enum Platform {
+            Bluesky(u64),
+        }
+
+        let decoded: BotMessageTip =
+            msgpack::deserialize_from_slice(&tip(Some(Platform::Bluesky(42)))).unwrap();
+        assert_eq!(decoded.held_for, None);
+        assert_eq!(decoded.token_symbol, "CHAT");
+    }
 }
