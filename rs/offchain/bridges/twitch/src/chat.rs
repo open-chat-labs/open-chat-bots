@@ -1,4 +1,5 @@
 use crate::platform::Twitch;
+use crate::stream;
 use anyhow::{Context, Result};
 use oc_bots_sdk::types::{BridgedUser, TwitchUser};
 use oc_bridge_core::util::{oc_chat_url, without_mention_everyone};
@@ -86,7 +87,8 @@ pub enum Command {
     Unbridge,
 }
 
-/// Relays what happens in paired channels' chats into OpenChat, and handles the bridge's commands
+/// Relays what happens in paired channels' chats into OpenChat, and handles the bridge's commands.
+/// Also tells OpenChat when a paired channel goes live.
 pub struct ChatHandler {
     pub bridge: Arc<Bridge<Twitch>>,
     // Each channel's latest messages, by their authors
@@ -130,7 +132,7 @@ impl ChatHandler {
         }
     }
 
-    /// Handles an event of one of the types in `CHAT_EVENTS`
+    /// Handles an event of one of the types in `CHAT_EVENTS`, or `STREAM_ONLINE`
     pub async fn handle(&self, kind: &str, event: Value) -> Result<()> {
         match kind {
             "channel.chat.message" => self.message(serde_json::from_value(event)?).await,
@@ -149,6 +151,7 @@ impl ChatHandler {
                 }
                 result
             }
+            "stream.online" => stream::online(&self.bridge, serde_json::from_value(event)?).await,
             _ => Ok(()),
         }
     }

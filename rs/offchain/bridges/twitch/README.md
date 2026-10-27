@@ -39,6 +39,25 @@ The shared parts of the bridge, also used by the Discord and Telegram bridges, a
     app or banned the bot. If it's the bot's own authorization of the app that's gone, which every
     chat relies on, nothing is unpaired. Sign in as the bot at `/authorize-bot` again, and each
     chat is subscribed to again when OpenChat next relays to it.
+- **Going live:** when a bridged channel goes live, the bridge tells its OpenChat chat, with the
+  stream's title and the channel's link, so members can watch from there, eg.:
+
+  ```
+  Live on Twitch: Speedrunning Celeste
+  <https://www.twitch.tv/nelly>
+  ```
+
+  - It's relayed as the broadcaster, as their chat messages are, so OpenChat shows them as its
+    author, and tipping it tips them as tipping their messages does.
+  - A reply to it in OpenChat is relayed to Twitch as a message of its own.
+  - The title is looked up from Twitch, and left out if that fails.
+  - The link is in angle brackets, so OpenChat links all of a login which ends in `_`.
+  - Twitch can send the event twice, but the notice's OpenChat id is derived from the stream's, and
+    OpenChat doesn't post a message whose id the chat has already. So a stream isn't announced
+    twice.
+  - Nor is it retried: a stream which starts while the bridge is restarting isn't announced, nor is
+    one whose notice OpenChat doesn't take within a few seconds.
+  - Going offline isn't announced, to keep the chat quiet.
 - **Chat commands:** `!bridge` and `!unbridge` are answered only for the broadcaster and the
   channel's moderators. Anyone else's are relayed like any message. `!unbridge` in a chat which
   isn't bridged takes the bot out of it, eg. if the broadcaster got a code but never used it.
@@ -65,7 +84,8 @@ The shared parts of the bridge, also used by the Discord and Telegram bridges, a
   the bridge's WebSocket. It uses the app's access token, made from the client id and secret.
   - The subscriptions belong to the conduit, so they survive reconnects and restarts. Each paired
     channel has `channel.chat.message`, `channel.chat.message_delete` and
-    `channel.chat.clear_user_messages`.
+    `channel.chat.clear_user_messages`, and `stream.online` for it going live, which needs no
+    authorization.
   - Chats joined with the broadcaster's `channel:bot` don't count toward Twitch's limit of 100 per
     bot, and the bot shows with the Chat Bot badge.
   - Twitch deletes a conduit after 72 hours with no shard connected, along with its subscriptions.

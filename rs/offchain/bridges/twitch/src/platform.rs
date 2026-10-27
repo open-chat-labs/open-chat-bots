@@ -27,6 +27,10 @@ pub const CHAT_EVENTS: [&str; 3] = [
     "channel.chat.clear_user_messages",
 ];
 
+/// Also subscribed to in each paired channel: it going live, which its OpenChat chat is told of. It
+/// needs no authorization.
+pub const STREAM_ONLINE: &str = "stream.online";
+
 pub struct Twitch {
     pub api: Arc<TwitchApi>,
     /// The Twitch account the bot chats as
@@ -194,8 +198,8 @@ impl Twitch {
         });
     }
 
-    /// Subscribes the bridge's conduit to the channel's chat. A subscription which exists already
-    /// is left as it is.
+    /// Subscribes the bridge's conduit to the channel's chat, and to the channel going live. A
+    /// subscription which exists already is left as it is.
     pub async fn subscribe(&self, channel: &str) -> Result<()> {
         let condition = json!({ "broadcaster_user_id": channel, "user_id": self.bot_id });
         for kind in CHAT_EVENTS {
@@ -203,15 +207,27 @@ impl Twitch {
                 .subscribe(kind, condition.clone(), &self.conduit_id)
                 .await?;
         }
+        // The chat can be bridged without it, so failing doesn't fail the rest. It's tried again
+        // when OpenChat next relays to the chat.
+        let condition = json!({ "broadcaster_user_id": channel });
+        if let Err(error) = self
+            .api
+            .subscribe(STREAM_ONLINE, condition, &self.conduit_id)
+            .await
+        {
+            warn!(%error, channel, "Failed to subscribe to a channel going live");
+            return Ok(());
+        }
         self.subscribed.lock().unwrap().insert(channel.to_string());
         Ok(())
     }
 
-    /// So the bot leaves the channel's chat
+    /// So the bot leaves the channel's chat, and the bridge stops hearing of the channel going live
     pub async fn unsubscribe(&self, channel: &str) -> Result<()> {
         self.subscribed.lock().unwrap().remove(channel);
         for subscription in self.api.subscriptions_for_user(channel).await? {
-            if CHAT_EVENTS.contains(&subscription.kind.as_str())
+            let kind = subscription.kind.as_str();
+            if (CHAT_EVENTS.contains(&kind) || kind == STREAM_ONLINE)
                 && subscription.condition["broadcaster_user_id"] == channel
             {
                 self.api.unsubscribe(&subscription.id).await?;
@@ -242,7 +258,7 @@ impl Twitch {
             return;
         }
         if let Err(error) = self.subscribe(channel).await {
-            warn!(%error, channel, "Failed to subscribe to a channel's chat");
+            warn!(%error, channel, "Failed to subscribe to a channel's events");
         }
     }
 }
