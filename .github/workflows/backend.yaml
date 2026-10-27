@@ -28,7 +28,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --tests --workspace --exclude oc_bridge_core --exclude oc_discord_bridge --exclude oc_telegram_bridge --exclude oc_twitch_bridge --manifest-path rs/Cargo.toml -- -D warnings
+          args: --all-targets --workspace --exclude *bridge* --manifest-path rs/Cargo.toml -- -D warnings
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
