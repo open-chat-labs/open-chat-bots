@@ -807,7 +807,10 @@ export type ModerationReportContent = {
 
 export type AuthorityReport =
     | { kind: "due"; urgent: boolean }
-    | { kind: "filed"; portalReference: string };
+    | { kind: "filed"; portalReference: string }
+    | { kind: "attempting"; startedAt: bigint }
+    | { kind: "contingency_required"; error: string; urgent: boolean }
+    | { kind: "validation_failed"; error: string; urgent: boolean };
 
 export type MediaScanMatch = {
     provider: string;
