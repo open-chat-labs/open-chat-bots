@@ -1395,6 +1395,9 @@ export function messageContent(value: ApiMessageContent, sender: string): Messag
     if ("VideoCall" in value) {
         return videoCallContent(value.VideoCall);
     }
+    if ("PriceChart" in value) {
+        throw new Error("PriceChart content not supported yet");
+    }
     if ("Encrypted" in value) {
         throw new Error("Encrypted content not supported yet");
     }
@@ -1528,6 +1531,18 @@ function pendingCryptoTransfer(
     }
     if ("ICRC2" in value) {
         throw new Error("ICRC2 is not supported yet");
+    }
+    if ("Certified" in value) {
+        return {
+            kind: "pending",
+            ledger: principalBytesToString(value.Certified.ledger),
+            token: value.Certified.token_symbol,
+            recipient,
+            amountE8s: value.Certified.amount,
+            feeE8s: value.Certified.fee,
+            memo: optional(value.Certified.memo, bytesToBigint),
+            createdAtNanos: value.Certified.created,
+        };
     }
 
     throw new UnsupportedValueError("Unexpected ApiPendingCryptoTransaction type received", value);
@@ -1906,7 +1921,24 @@ function authorityReport(value: ApiAuthorityReportState): AuthorityReport {
     if ("Due" in value) {
         return { kind: "due", urgent: value.Due.urgent };
     }
-    return { kind: "filed", portalReference: value.Filed.portal_reference };
+    if ("Filed" in value) {
+        return { kind: "filed", portalReference: value.Filed.portal_reference };
+    }
+    if ("Attempting" in value) {
+        return { kind: "attempting", startedAt: value.Attempting.started_at };
+    }
+    if ("ContingencyRequired" in value) {
+        return {
+            kind: "contingency_required",
+            error: value.ContingencyRequired.error,
+            urgent: value.ContingencyRequired.urgent ?? false,
+        };
+    }
+    return {
+        kind: "validation_failed",
+        error: value.ValidationFailed.error,
+        urgent: value.ValidationFailed.urgent ?? false,
+    };
 }
 
 function mediaScanMatch(value: ApiMediaScanMatch): MediaScanMatch {
