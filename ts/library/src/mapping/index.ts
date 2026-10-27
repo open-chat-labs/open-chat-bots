@@ -63,6 +63,8 @@ import {
     type PollConfig,
     type PollContent,
     type PollVotes,
+    type PriceChartContent,
+    type PriceChartToken,
     type PrizeContent,
     type PrizeWinnerContent,
     type Proposal,
@@ -169,6 +171,8 @@ import {
     type PollConfig as ApiPollConfig,
     type PollContent as ApiPollContent,
     type PollVotes as ApiPollVotes,
+    type PriceChartContent as ApiPriceChartContent,
+    type PriceChartToken as ApiPriceChartToken,
     type PrizeContent as ApiPrizeContent,
     type PrizeWinnerContent as ApiPrizeWinnerContent,
     type Proposal as ApiProposal,
@@ -1383,6 +1387,9 @@ export function messageContent(value: ApiMessageContent, sender: string): Messag
     if ("Custom" in value) {
         return customContent(value.Custom);
     }
+    if ("PriceChart" in value) {
+        return priceChartContent(value.PriceChart);
+    }
     if ("ReportedMessage" in value) {
         return reportedMessage(value.ReportedMessage);
     }
@@ -1394,9 +1401,6 @@ export function messageContent(value: ApiMessageContent, sender: string): Messag
     }
     if ("VideoCall" in value) {
         return videoCallContent(value.VideoCall);
-    }
-    if ("PriceChart" in value) {
-        throw new Error("PriceChart content not supported yet");
     }
     if ("Encrypted" in value) {
         throw new Error("Encrypted content not supported yet");
@@ -2055,6 +2059,53 @@ function videoCallContent(value: ApiVideoCallContent): VideoCallContent {
         participants: value.participants.map(videoCallParticipant),
         callType: videoCallType(value.call_type),
     };
+}
+
+export function priceChartContent(value: ApiPriceChartContent): PriceChartContent {
+    return {
+        kind: "price_chart_content",
+        title: value.title,
+        start: Number(value.start),
+        end: Number(value.end),
+        series: value.series.map((s) => ({
+            token: priceChartToken(s.token),
+            symbol: s.symbol,
+            name: s.name,
+            points: s.points.map(([timestamp, usd]) => ({ timestamp: Number(timestamp), usd })),
+        })),
+        sources: value.sources.map((s) => ({ name: s.name, url: s.url })),
+    };
+}
+
+function priceChartToken(value: ApiPriceChartToken): PriceChartToken {
+    if ("Ledger" in value) {
+        return { kind: "token", ledger: principalBytesToString(value.Ledger) };
+    }
+    return { kind: "coin", id: value.Coin };
+}
+
+export function apiPriceChartContent(
+    domain: Omit<PriceChartContent, "kind">,
+): ApiPriceChartContent {
+    return {
+        title: domain.title,
+        start: BigInt(domain.start),
+        end: BigInt(domain.end),
+        series: domain.series.map((s) => ({
+            token: apiPriceChartToken(s.token),
+            symbol: s.symbol,
+            name: s.name,
+            points: s.points.map((p) => [BigInt(p.timestamp), p.usd]),
+        })),
+        sources: domain.sources.map((s) => ({ name: s.name, url: s.url })),
+    };
+}
+
+function apiPriceChartToken(domain: PriceChartToken): ApiPriceChartToken {
+    if (domain.kind === "token") {
+        return { Ledger: principalStringToBytes(domain.ledger) };
+    }
+    return { Coin: domain.id };
 }
 
 function videoCallParticipant(value: ApiCallParticipant): VideoCallParticipant {
