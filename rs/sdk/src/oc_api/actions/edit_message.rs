@@ -5,8 +5,9 @@ use crate::types::{
 use serde::{Deserialize, Serialize};
 
 /// A bot edits its own messages autonomously, in a group or channel, eg. a bridge bot relaying the
-/// edits made on the other platform. The new content must be the same type as the old, and a poll
-/// can't be edited.
+/// edits made on the other platform. The bot needs the autonomous permission to send the new
+/// content's type. The new content must be the same type as the old, a poll can't be edited, and nor
+/// can a deleted message.
 pub struct EditMessageAction;
 
 impl ActionDef for EditMessageAction {
