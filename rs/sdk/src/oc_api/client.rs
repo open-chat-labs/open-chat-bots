@@ -5,8 +5,8 @@ use crate::oc_api::actions::members::MemberType;
 use crate::oc_api::client::members::MembersBuilder;
 use crate::oc_api::client::remove_user::RemoveUserBuilder;
 use crate::types::{
-    ActionContext, BridgedUserId, CanisterId, ChannelId, ChatRole, MessageContentInitial,
-    MessageId, Reaction, TextContent, UserId,
+    ActionContext, AutonomousContext, BridgedUserId, CanisterId, ChannelId, ChatRole,
+    MessageContentInitial, MessageId, Reaction, TextContent, UserId,
 };
 use add_reaction::AddReactionBuilder;
 #[cfg(feature = "bridge")]
@@ -127,17 +127,6 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
         DeleteMessagesBuilder::new(self, message_ids)
     }
 
-    /// Edits one of the bot's own messages, in a group or channel, eg. for a bridge bot to relay an
-    /// edit made on the other platform. It must be autonomous. The new content must be the same type
-    /// as the old, and a poll can't be edited.
-    pub fn edit_message(
-        &self,
-        message_id: MessageId,
-        content: MessageContentInitial,
-    ) -> EditMessageBuilder<'_, R, C> {
-        EditMessageBuilder::new(self, message_id, content)
-    }
-
     pub fn invite_users(&self, user_ids: Vec<UserId>) -> InviteUsersBuilder<'_, R, C> {
         InviteUsersBuilder::new(self, user_ids)
     }
@@ -156,6 +145,21 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
 
     pub fn send_text_message(&self, text: String) -> SendMessageBuilder<'_, R, C> {
         self.send_message(MessageContentInitial::Text(TextContent { text }))
+    }
+}
+
+// A bot edits its messages autonomously, as OpenChat refuses an edit made with a command's context
+impl<R: Runtime> Client<R, AutonomousContext> {
+    /// Edits one of the bot's own messages, in a group or channel, eg. for a bridge bot to relay an
+    /// edit made on the other platform. The bot needs the autonomous permission to send the new
+    /// content's type, eg. `MessagePermission::Text`. The new content must be the same type as the
+    /// old, a poll can't be edited, and nor can a deleted message.
+    pub fn edit_message(
+        &self,
+        message_id: MessageId,
+        content: MessageContentInitial,
+    ) -> EditMessageBuilder<'_, R, AutonomousContext> {
+        EditMessageBuilder::new(self, message_id, content)
     }
 }
 
