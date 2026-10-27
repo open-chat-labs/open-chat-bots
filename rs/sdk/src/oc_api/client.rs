@@ -20,7 +20,6 @@ use community_summary::CommunitySummaryBuilder;
 use create_channel::CreateChannelBuilder;
 use delete_channel::DeleteChannelBuilder;
 use delete_messages::DeleteMessagesBuilder;
-#[cfg(feature = "bridge")]
 use edit_message::EditMessageBuilder;
 use installation_events::InstallationEventsBuilder;
 use invite_users::InviteUsersBuilder;
@@ -41,7 +40,6 @@ mod community_summary;
 mod create_channel;
 mod delete_channel;
 mod delete_messages;
-#[cfg(feature = "bridge")]
 mod edit_message;
 mod installation_events;
 mod invite_users;
@@ -129,9 +127,9 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
         DeleteMessagesBuilder::new(self, message_ids)
     }
 
-    /// For a bridge bot to relay an edit made on the other platform to a message it relayed. It
-    /// must be autonomous, into a group or channel.
-    #[cfg(feature = "bridge")]
+    /// Edits one of the bot's own messages, in a group or channel, eg. for a bridge bot to relay an
+    /// edit made on the other platform. It must be autonomous. The new content must be the same type
+    /// as the old, and a poll can't be edited.
     pub fn edit_message(
         &self,
         message_id: MessageId,

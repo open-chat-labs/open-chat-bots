@@ -4,8 +4,9 @@ use crate::types::{
 };
 use serde::{Deserialize, Serialize};
 
-/// For now only bridge bots can edit their messages, to relay the edits made on the other platform.
-/// The new content must be the same type as the old, and a poll can't be edited.
+/// A bot edits its own messages autonomously, in a group or channel, eg. a bridge bot relaying the
+/// edits made on the other platform. The new content must be the same type as the old, and a poll
+/// can't be edited.
 pub struct EditMessageAction;
 
 impl ActionDef for EditMessageAction {
