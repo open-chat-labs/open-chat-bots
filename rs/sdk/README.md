@@ -373,7 +373,16 @@ registered.
 
 To post in the chat, eg. a game's result, the bot acts autonomously, with a client built from
 `session.autonomous_context()`, so it needs that permission in its `autonomous_config`, eg.
-`MessagePermission::Text`.
+`MessagePermission::Text`:
+
+```rust
+oc_client_factory
+    .build(session.autonomous_context())
+    .send_message(MessageContentInitial::from_text(result))
+    .in_thread(session.thread)
+    .execute_async()
+    .await;
+```
 
 ### No wagering
 

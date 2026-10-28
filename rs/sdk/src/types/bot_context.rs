@@ -199,7 +199,7 @@ impl BotMessageSession {
 
     /// For a client acting autonomously in the card's chat, eg. to post a game's result there. The
     /// bot needs the autonomous permissions for what it does, eg. `MessagePermission::Text`. Pass
-    /// [`Self::thread`] to the message builder's `with_thread` to post in the card's thread.
+    /// [`Self::thread`] to the message builder's `in_thread` to post in the card's thread.
     pub fn autonomous_context(&self) -> AutonomousContext {
         AutonomousContext {
             api_gateway: self.api_gateway,
