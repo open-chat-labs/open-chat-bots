@@ -387,7 +387,9 @@ principal. The registry fetches it from the UserIndex, with `factory.botId()`, w
 arrives rather than at startup, as a bot is usually started before it's registered, and keeps it.
 Until the lookup succeeds, presses are answered with a 500, and it's tried again on the next one. A
 bot which already knows its id, eg. from the `bot_registered_event`, can pass it, as
-`new ActionHandlerRegistry(factory, { botId })`.
+`new ActionHandlerRegistry(factory, { botId })`. The lookup asks the UserIndex in the factory's
+`userIndexCanisterId`, which defaults to OpenChat's on mainnet, so anywhere else, eg. a local or
+test environment, set `userIndexCanisterId` or pass `botId`, or no press will get through.
 
 The token only vouches for the user. OpenChat's bot endpoints don't accept it, so a bot acts on a
 press autonomously: `press.client` acts in the chat through the token's `bot_api_gateway`, and

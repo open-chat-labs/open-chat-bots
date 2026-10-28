@@ -4,7 +4,7 @@ import type { MiniAppContent } from "../domain/event";
 import { MiniAppLimits, MiniAppMessage } from "../domain/message";
 import { BotMessageSession, TokenError } from "../domain/message_session";
 import type { UnitResult } from "../domain/response";
-import { ActionResponse, actionHttpResponse } from "./action_response";
+import { ActionResponse, actionHttpResponse, type ActionHttpResponse } from "./action_response";
 
 /** The body of a button press */
 export type ActionArgs = {
@@ -63,7 +63,8 @@ export type ActionHandlerRegistryOptions = {
     /**
      * The user id OpenChat gave the bot when it was registered, which isn't its principal. By
      * default it's fetched from the UserIndex, with `BotClientFactory.botId()`, when the first
-     * press arrives.
+     * press arrives. That asks the UserIndex in the factory's `userIndexCanisterId`, which
+     * defaults to OpenChat's on mainnet, so off mainnet set `userIndexCanisterId` or pass this.
      */
     botId?: string;
 };
@@ -151,16 +152,17 @@ export class ActionHandlerRegistry {
             return ActionResponse.badRequest("Button id invalid");
         }
 
-        const handler = this.#handlers.find((h) => h.handles?.(buttonId) ?? true);
-        if (handler === undefined) {
-            return ActionResponse.badRequest(`Unknown button: ${buttonId}`);
-        }
-
-        const client = this.#factory.createClientInAutonomouseContext(
-            session.scope,
-            session.apiGateway,
-        );
+        // A handler's own code, `handles` included, can throw, which is answered with a 500
         try {
+            const handler = this.#handlers.find((h) => h.handles?.(buttonId) ?? true);
+            if (handler === undefined) {
+                return ActionResponse.badRequest(`Unknown button: ${buttonId}`);
+            }
+
+            const client = this.#factory.createClientInAutonomouseContext(
+                session.scope,
+                session.apiGateway,
+            );
             return await handler.execute(new ButtonPress(session, buttonId, client));
         } catch (err) {
             console.error("OpenChat action handler failed with: ", err);
@@ -173,10 +175,17 @@ export class ActionHandlerRegistry {
      * `app.post("/execute_action", express.json(), actions.expressHandler())`
      */
     expressHandler(): (req: ActionRequest, res: ActionResponseWriter) => Promise<void> {
+        // It never rejects, as express 4 leaves the request hanging if a route's promise does
         return async (req, res) => {
-            const header = req.headers["x-oc-jwt"];
-            const token = Array.isArray(header) ? header[0] : header;
-            const response = actionHttpResponse(await this.execute(token, req.body));
+            let response: ActionHttpResponse;
+            try {
+                const header = req.headers["x-oc-jwt"];
+                const token = Array.isArray(header) ? header[0] : header;
+                response = actionHttpResponse(await this.execute(token, req.body));
+            } catch (err) {
+                console.error("OpenChat action handler failed with: ", err);
+                response = actionHttpResponse(ActionResponse.internalError(`${err}`));
+            }
             res.setHeader("Content-Type", response.contentType);
             res.status(response.status).send(response.body);
         };

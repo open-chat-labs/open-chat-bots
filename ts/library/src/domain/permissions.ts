@@ -61,7 +61,11 @@ type LowercaseFirstLetter<T extends string> = T extends `${infer First}${infer R
 export type LowercaseChatPermission = LowercaseFirstLetter<
     Exclude<ChatPermission, "ReadMessages" | "ReadMembership" | "ReadChatSummary">
 >;
-export type LowercaseMessagePermission = LowercaseFirstLetter<MessagePermission>;
+// Without MiniApp, as only bots can send MiniApp messages, so a group's or channel's permissions have
+// no setting for them
+export type LowercaseMessagePermission = LowercaseFirstLetter<
+    Exclude<MessagePermission, "MiniApp">
+>;
 export type LowercaseCommunityPermission = LowercaseFirstLetter<
     Exclude<CommunityPermission, "ReadMembership" | "ReadCommunitySummary">
 >;

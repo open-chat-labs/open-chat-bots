@@ -24,3 +24,15 @@ describe("channel tip permission", () => {
         expect(args.permissions?.tip_messages).toBe("None");
     });
 });
+
+describe("channel message permissions", () => {
+    test("have no MiniApp setting, as only bots send MiniApp messages", () => {
+        const channel = new Channel("name", "description");
+
+        // @ts-expect-error A group's or channel's permissions have no setting for MiniApp messages
+        channel.setMessagePermissions("miniApp", "admin");
+        // @ts-expect-error Nor do their threads'
+        channel.setThreadPermissions("miniApp", "admin");
+        channel.setMessagePermissions("videoCall", "admin");
+    });
+});

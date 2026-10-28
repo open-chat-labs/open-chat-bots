@@ -114,7 +114,8 @@ export class BotClientFactory {
      * The user id OpenChat gave the bot when it was registered, which is the `bot` in its tokens.
      * It isn't the bot's principal. It's fetched from the UserIndex when first asked for, rather
      * than at startup, as a bot is usually started before it's registered, and kept once found. A
-     * failed lookup is tried again next time.
+     * failed lookup is tried again next time. It asks the UserIndex in `userIndexCanisterId`, which
+     * defaults to OpenChat's on mainnet, so set that for any other environment.
      */
     botId(): Promise<string> {
         if (this.#botId === undefined) {

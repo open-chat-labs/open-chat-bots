@@ -180,6 +180,23 @@ describe("ActionHandlerRegistry", () => {
         expect(response).toEqual(ActionResponse.internalError("Error: Oops"));
     });
 
+    test("answers a handler whose handles throws with a 500", async () => {
+        const fallback = recorder();
+        const registry = new ActionHandlerRegistry(factory(), { botId: BOT_ID })
+            .register({
+                handles: () => {
+                    throw new Error("Oops");
+                },
+                execute: async () => ActionResponse.ok(),
+            })
+            .register(fallback);
+
+        const response = await registry.execute(sessionToken(), join, NOW);
+
+        expect(response).toEqual(ActionResponse.internalError("Error: Oops"));
+        expect(fallback.presses).toHaveLength(0);
+    });
+
     test("looks the bot's id up when the first press arrives, and keeps it", async () => {
         const lookup = vi
             .spyOn(GlobalClient.prototype, "botId")
@@ -321,6 +338,37 @@ describe("expressHandler", () => {
 
         expect(written.status).toBe(401);
         expect(written.headers["Content-Type"]).toBe("text/plain");
+    });
+
+    // Express 4 leaves a request hanging if a route's promise rejects
+    test("answers with a 500 rather than rejecting", async () => {
+        const handlers: ActionHandler[] = [
+            {
+                handles: () => {
+                    throw new Error("Oops");
+                },
+                execute: async () => ActionResponse.ok(),
+            },
+            // Eg. a handler in javascript which forgot to return its response
+            { execute: async () => undefined as unknown as ActionResponse },
+        ];
+
+        for (const handler of handlers) {
+            const registry = new ActionHandlerRegistry(factory(), { botId: BOT_ID }).register(
+                handler,
+            );
+            const { res, written } = response();
+
+            await expect(
+                registry.expressHandler()(
+                    { headers: { "x-oc-jwt": sessionToken() }, body: { button_id: "join" } },
+                    res,
+                ),
+            ).resolves.toBeUndefined();
+
+            expect(written.status).toBe(500);
+            expect(written.headers["Content-Type"]).toBe("text/plain");
+        }
     });
 });
 
