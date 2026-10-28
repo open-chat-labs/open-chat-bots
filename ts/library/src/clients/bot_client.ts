@@ -195,10 +195,12 @@ export class BotClient {
     /**
      * Changes what the bot's MiniApp card, `messageId`, shows as its game goes on: its status,
      * players, whose move it is and the result. Whatever `update` leaves undefined stays as it was.
-     * It works with a command's context or autonomously, eg. a client from
-     * `createClientInAutonomouseContext(session.scope, session.apiGateway)`, and needs no
-     * permission beyond the bot being installed. The players must be members of the chat, or the
-     * bot itself, and a finished card can't change.
+     * As for deleting its own messages, any installed bot can with a command's context, while
+     * autonomously, eg. with a client from
+     * `createClientInAutonomouseContext(session.scope, session.apiGateway)`, the bot must be
+     * installed to act autonomously: its definition has an `autonomous_config`, even with no
+     * permissions, which the owner granted when installing it. The players must be members of the
+     * chat, or the bot itself, and a finished card can't change.
      *
      * `thread` is the card's thread, which defaults to the command's. `channelId` is the card's
      * channel, for a client in a community's scope.

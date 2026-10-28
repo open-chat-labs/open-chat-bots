@@ -334,8 +334,12 @@ export function validateMiniAppContent(content: Omit<MiniAppContent, "kind">): s
     if (content.spectatorCount > 0 && !content.spectators) {
         return "Only a game open to spectators has any";
     }
-    if ((content.waitingFor ?? []).some((user) => !content.players.includes(user))) {
+    const waitingFor = content.waitingFor ?? [];
+    if (waitingFor.some((user) => !content.players.includes(user))) {
         return "Only players can be waited for";
+    }
+    if (new Set(waitingFor).size < waitingFor.length) {
+        return "A player is waited for twice";
     }
     if (content.result !== undefined) {
         if (content.status !== "finished") {

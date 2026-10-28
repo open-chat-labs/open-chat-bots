@@ -283,8 +283,9 @@ Only bots installed in the chat can post one, and they need the `MiniApp` messag
 in the command's `permissions`. It can't be posted in a direct chat, nor forwarded.
 `validateMiniAppContent` checks a card as OpenChat does: the text has 1 to 2,000 characters,
 `maxPlayers` is 1 to 100, the players are at most that many (or 100), each listed once, only a card
-open to spectators has a `spectatorCount`, only players are waited for, and only a finished game
-has a result, of 1 to 200 characters.
+open to spectators has a `spectatorCount`, only players are waited for, each once, and only a
+finished game has a result, of 1 to 200 characters. A card must be sent finalised, as messages are
+by default, or OpenChat refuses it.
 
 A card can have an image, shown above the text, eg. the game's artwork. `createMiniAppMessage`
 uploads it to OpenChat's storage first, as `createImageMessage` does, so that it's scanned like any
@@ -316,9 +317,14 @@ was, and `null` removes `waitingFor` or `result`:
 - `{ status: "finished", waitingFor: null, result: "Bob won" }` at the end. A finished card never
   changes again.
 
-Only the bot which posted the card can update it, and it needs no permission beyond being
-installed. It can use a command's context, or act autonomously, eg. from its app's API with the
-user's session:
+Only the bot which posted the card can update it, as for deleting its own messages:
+
+- With a command's context, eg. straight after posting the card, any installed bot can.
+- Autonomously, eg. from its app's API or a background task, the bot must be installed to act
+  autonomously: its definition has an `autonomous_config`, even with no permissions, and the owner
+  granted it when installing the bot.
+
+From its app's API, with the user's session:
 
 ```ts
 await factory

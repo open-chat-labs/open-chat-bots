@@ -245,6 +245,9 @@ describe("validateMiniAppContent", () => {
         expect(error({ players: [ALICE], waitingFor: [BOB] })).toBe(
             "Only players can be waited for",
         );
+        expect(error({ players: [ALICE], waitingFor: [ALICE, ALICE] })).toBe(
+            "A player is waited for twice",
+        );
         expect(error({ status: "active", result: "Bob won" })).toBe(
             "Only a finished game has a result",
         );
