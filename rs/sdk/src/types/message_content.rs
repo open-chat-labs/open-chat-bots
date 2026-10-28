@@ -18,6 +18,7 @@ pub enum MessageContentInitial {
     Giphy(GiphyContent),
     Custom(CustomContent),
     PriceChart(PriceChartContent),
+    MiniApp(MiniAppContent),
 }
 
 impl MessageContentInitial {
@@ -50,6 +51,7 @@ pub enum MessageContent {
     Encrypted(EncryptedContent),
     Custom(CustomContent),
     PriceChart(PriceChartContent),
+    MiniApp(MiniAppContent),
     Unsupported(UnsupportedContent),
 }
 
@@ -77,6 +79,7 @@ tolerant_enum!(
         Encrypted,
         Custom,
         PriceChart,
+        MiniApp,
         Unsupported,
     ],
     units: [],
@@ -98,6 +101,7 @@ impl MessageContent {
             MessageContent::Prize(p) => p.caption.as_deref(),
             MessageContent::P2PSwap(s) => s.caption.as_deref(),
             MessageContent::PriceChart(c) => Some(c.title.as_str()),
+            MessageContent::MiniApp(c) => Some(c.text.as_str()),
             MessageContent::Deleted(_)
             | MessageContent::PrizeWinner(_)
             | MessageContent::MessageReminderCreated(_)
@@ -318,6 +322,43 @@ pub struct PriceChartSource {
     pub name: String,
     /// An https url
     pub url: String,
+}
+
+/// A bot's card for an app it hosts, eg. a game. OpenChat shows the text with an Open button, which
+/// opens the bot's app, served by the bot at `/app` under its endpoint, in a frame. Everything the
+/// app shows, eg. a lobby, a board and buttons, is the bot's own page, so the card never changes:
+/// OpenChat refuses an edit of it. The bot posts anything the chat should see later, eg. a game's
+/// result, as a new message.
+///
+/// Only a bot installed in the chat can send one, and it needs `MessagePermission::MiniApp`. It
+/// can't be sent in a direct chat, nor forwarded, as the bot knows its app's state by the card's
+/// message id.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct MiniAppContent {
+    /// Markdown, eg. "**Tic-tac-toe** · tap Open to play", of 1 to 2,000 characters. It's the
+    /// message's text in notifications, previews and search.
+    pub text: String,
+}
+
+impl MiniAppContent {
+    pub const MAX_TEXT_CHARS: usize = 2_000;
+
+    pub fn new(text: impl Into<String>) -> Self {
+        MiniAppContent { text: text.into() }
+    }
+
+    /// Checks the text as OpenChat does, so that a mistake shows up before the card is sent. The
+    /// error is the one OpenChat gives.
+    pub fn validate(&self) -> Result<(), String> {
+        if self.text.trim().is_empty() || self.text.chars().count() > Self::MAX_TEXT_CHARS {
+            Err(format!(
+                "The text must have 1 to {} characters",
+                Self::MAX_TEXT_CHARS
+            ))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -886,5 +927,54 @@ mod tests {
         assert_eq!(chart.series[1].points, [(1_500, 0.75), (2_500, 1.0)]);
         assert_eq!(chart.sources[0].url, "https://www.icpswap.com");
         assert_eq!(content.text(), Some("CHAT and ADA · 30 days"));
+    }
+
+    #[test]
+    fn a_mini_app_a_bot_sends_reads_back_as_one() {
+        let card = MiniAppContent::new("**Tic-tac-toe** · tap Open to play");
+
+        let bytes = msgpack::serialize_then_unwrap(MessageContentInitial::MiniApp(card));
+        let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
+
+        let MessageContent::MiniApp(card) = &content else {
+            panic!("Expected a mini app, got {content:?}");
+        };
+        assert_eq!(card.text, "**Tic-tac-toe** · tap Open to play");
+        assert_eq!(content.text(), Some("**Tic-tac-toe** · tap Open to play"));
+    }
+
+    // As OpenChat's `types::MessageContent` encodes one, which is how bots receive it in events
+    #[test]
+    fn a_mini_app_decodes_as_openchat_encodes_it() {
+        #[derive(Serialize)]
+        enum OpenChatContent {
+            MiniApp { text: String },
+        }
+
+        let bytes = msgpack::serialize_then_unwrap(OpenChatContent::MiniApp {
+            text: "**Uno** · 2 to 4 players".to_string(),
+        });
+        let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
+
+        assert!(
+            matches!(&content, MessageContent::MiniApp(c) if c.text == "**Uno** · 2 to 4 players")
+        );
+    }
+
+    #[test]
+    fn a_mini_app_is_valid_with_1_to_2000_characters() {
+        assert_eq!(MiniAppContent::new("x").validate(), Ok(()));
+        assert_eq!(
+            MiniAppContent::new("é".repeat(MiniAppContent::MAX_TEXT_CHARS)).validate(),
+            Ok(())
+        );
+
+        for text in [
+            String::new(),
+            " \n".to_string(),
+            "x".repeat(MiniAppContent::MAX_TEXT_CHARS + 1),
+        ] {
+            assert!(MiniAppContent::new(text).validate().is_err());
+        }
     }
 }

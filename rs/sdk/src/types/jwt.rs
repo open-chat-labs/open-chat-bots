@@ -1,5 +1,5 @@
 use super::{ActionScope, BotPermissions, CanisterId, Chat, MessageId, MessageIndex, UserId};
-use crate::api::command::Command;
+use crate::api::command::{Command, CommandMeta};
 use crate::types::ChannelId;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -19,6 +19,27 @@ impl Display for TokenError {
             TokenError::Expired => write!(f, "Token has expired"),
         }
     }
+}
+
+/// The `claim_type` of the token OpenChat gives a bot with each command
+pub const CLAIM_TYPE_BOT_ACTION_BY_COMMAND: &str = "BotActionByCommand";
+
+/// The `claim_type` of the token OpenChat gives a user for the app a bot opens from one of its
+/// MiniApp cards
+pub const CLAIM_TYPE_BOT_MESSAGE_SESSION: &str = "BotMessageSession";
+
+/// What OpenChat vouches for when it gives a user, a member of the chat, a token for the app a bot
+/// opens from one of its MiniApp cards: who the user is, and which card they opened. See
+/// [`super::BotMessageSession`].
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct BotMessageSessionClaims {
+    pub bot_api_gateway: CanisterId,
+    pub bot: UserId,
+    pub chat: Chat,
+    pub thread: Option<MessageIndex>,
+    pub message_id: MessageId,
+    pub user_id: UserId,
+    pub meta: Option<CommandMeta>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

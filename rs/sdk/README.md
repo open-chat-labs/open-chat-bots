@@ -153,6 +153,7 @@ pub enum MessagePermission {
     Prize,
     P2pSwap,
     VideoCall,
+    MiniApp,
 }
 ```
 
@@ -304,3 +305,77 @@ client
   or community's files along with it, so upload with the client you'll send the message with.
 - Uploads count against the bot's allowance of 1 GB, which OpenChat gives it when it's registered.
 - The bot needs permission to send image messages.
+
+## MiniApp cards
+
+A bot can host an app, eg. a game, which members of a chat open from a card the bot posts there.
+The card is markdown text, with an Open button which OpenChat draws, and it **never changes**:
+OpenChat refuses an edit of it. Everything interactive, eg. a lobby, a board, buttons and whose turn
+it is, is the bot's own web page, which OpenChat shows in a sandboxed frame. Anything the chat
+should see later, eg. a game's result, the bot posts as a new message.
+
+[TicTacToeBot](../offchain/examples/tictactoe) is an example.
+
+### Posting a card
+
+```rust
+client
+    .send_message(MessageContentInitial::MiniApp(MiniAppContent::new(
+        "**Tic-tac-toe** · tap Open to play",
+    )))
+    .execute_async()
+    .await;
+```
+
+- Only bots installed in the chat can post one, and they need `MessagePermission::MiniApp`, eg. in
+  the command's `permissions`.
+- The text has 1 to 2,000 characters, which `MiniAppContent::validate` checks.
+- It can't be posted in a direct chat, nor forwarded, so a bot should set its definition's
+  `restricted_locations` to communities and groups.
+
+### Serving the app
+
+OpenChat opens the bot's endpoint, with any trailing slash removed, followed by `/app`, eg.
+`https://tictactoe.example.com/app`. That page talks to OpenChat, its parent window, with
+`postMessage`, each message a JSON object with a `kind`:
+
+| From | Message | When |
+| --- | --- | --- |
+| app | `{ kind: "mini_app_ready" }` | Once the app is listening, to `window.parent` with target origin `"*"`. It carries nothing secret. |
+| OpenChat | `{ kind: "initialise_mini_app", token, dark_mode, locale }` | In answer. Accept it only from `window.parent` (`event.source === window.parent`), and send everything after it to its `event.origin`. |
+| app | `{ kind: "mini_app_token_request" }` | When the token is about to expire, or the bot's server refused it with a 401 |
+| OpenChat | `{ kind: "mini_app_token", token }` | In answer, with a new token |
+| OpenChat | `{ kind: "set_dark_mode", dark_mode }` | When the user's theme changes |
+
+The TypeScript SDK's `MiniAppClient` does the app's side of this. The app calls the bot's server
+with the token in the `x-oc-jwt` header, which `ExtractJwtLayer` takes, as it does for commands.
+
+### The session token
+
+OpenChat gives the app a `BotMessageSession` token for the user and the card, once it has checked
+the user is a member of the chat. It's signed with the key OpenChat signs commands with, and is valid
+for 15 minutes. It only vouches for who the user is: OpenChat's bot endpoints refuse it.
+
+```rust
+let session = BotMessageSession::parse(&jwt, &oc_public_key, bot_id, now)?;
+
+// A message id is only unique within its chat and thread, so key the app's state by all three
+let game = games.get(&session.card());
+let player = session.user_id;
+```
+
+`parse` checks the signature, that it's a `BotMessageSession` token, that it's for this bot, and that
+it hasn't expired (`TokenError::Expired`, to answer with a 401). Checking the bot matters, as
+otherwise one bot's server could replay a user's token to another bot. `bot_id` is the user id
+OpenChat gave the bot when it was registered, not its principal: an offchain bot can fetch it with
+`installation_events().size(0)` on the UserIndex, and a canister bot is told it when it's
+registered.
+
+To post in the chat, eg. a game's result, the bot acts autonomously, with a client built from
+`session.autonomous_context()`, so it needs that permission in its `autonomous_config`, eg.
+`MessagePermission::Text`.
+
+### No wagering
+
+Apps must never take or pay out tokens, or anything else of value, eg. a stake to join a game or a
+prize paid from the players' stakes. That's gambling, which OpenChat isn't licensed for.
