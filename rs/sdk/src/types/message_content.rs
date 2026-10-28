@@ -324,11 +324,11 @@ pub struct PriceChartSource {
     pub url: String,
 }
 
-/// A bot's card for an app it hosts, eg. a game. OpenChat shows the text with an Open button, which
-/// opens the bot's app, served by the bot at `/app` under its endpoint, in a frame. Everything the
-/// app shows, eg. a lobby, a board and buttons, is the bot's own page, so the card never changes:
-/// OpenChat refuses an edit of it. The bot posts anything the chat should see later, eg. a game's
-/// result, as a new message.
+/// A bot's card for an app it hosts, eg. a game. OpenChat shows the text, under the image if it has
+/// one, with an Open button, which opens the bot's app, served by the bot at `/app` under its
+/// endpoint, in a frame. Everything the app shows, eg. a lobby, a board and buttons, is the bot's own
+/// page, so the card never changes: OpenChat refuses an edit of it. The bot posts anything the chat
+/// should see later, eg. a game's result, as a new message.
 ///
 /// Only a bot installed in the chat can send one, and it needs `MessagePermission::MiniApp`. It
 /// can't be sent in a direct chat, nor forwarded, as the bot knows its app's state by the card's
@@ -338,26 +338,70 @@ pub struct MiniAppContent {
     /// Markdown, eg. "**Tic-tac-toe** · tap Open to play", of 1 to 2,000 characters. It's the
     /// message's text in notifications, previews and search.
     pub text: String,
+    /// Shown above the text, eg. the game's artwork
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub image: Option<MiniAppImage>,
+}
+
+/// A card's image, which the bot uploads to OpenChat's storage first, as for an image message, eg.
+/// with `Client::upload_mini_app_image`, so that it's scanned like any image and deleted with the
+/// message
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MiniAppImage {
+    pub width: u32,
+    pub height: u32,
+    /// eg. "image/png"
+    pub mime_type: String,
+    pub blob_reference: BlobReference,
 }
 
 impl MiniAppContent {
     pub const MAX_TEXT_CHARS: usize = 2_000;
 
+    /// A card without an image
     pub fn new(text: impl Into<String>) -> Self {
-        MiniAppContent { text: text.into() }
+        MiniAppContent {
+            text: text.into(),
+            image: None,
+        }
     }
 
-    /// Checks the text as OpenChat does, so that a mistake shows up before the card is sent. The
-    /// error is the one OpenChat gives.
+    pub fn with_image(mut self, image: MiniAppImage) -> Self {
+        self.image = Some(image);
+        self
+    }
+
+    /// Checks the card as OpenChat does, so that a mistake shows up before it's sent: the text has
+    /// 1 to 2,000 characters, and the image, if any, a width, a height and an image's mime type.
+    /// The errors are those OpenChat gives.
     pub fn validate(&self) -> Result<(), String> {
         if self.text.trim().is_empty() || self.text.chars().count() > Self::MAX_TEXT_CHARS {
-            Err(format!(
+            return Err(format!(
                 "The text must have 1 to {} characters",
                 Self::MAX_TEXT_CHARS
-            ))
-        } else {
-            Ok(())
+            ));
         }
+        if let Some(image) = &self.image {
+            image.validate()?;
+        }
+        Ok(())
+    }
+}
+
+impl MiniAppImage {
+    /// Checks the image as OpenChat does: it has a width and a height, and an image's mime type
+    pub fn validate(&self) -> Result<(), String> {
+        Self::check(self.width, self.height, &self.mime_type)
+    }
+
+    pub(crate) fn check(width: u32, height: u32, mime_type: &str) -> Result<(), String> {
+        if width == 0 || height == 0 {
+            return Err("The image must have a width and a height".to_string());
+        }
+        if !mime_type.starts_with("image/") {
+            return Err("The image's mime type must be an image's".to_string());
+        }
+        Ok(())
     }
 }
 
@@ -929,36 +973,60 @@ mod tests {
         assert_eq!(content.text(), Some("CHAT and ADA · 30 days"));
     }
 
-    #[test]
-    fn a_mini_app_a_bot_sends_reads_back_as_one() {
-        let card = MiniAppContent::new("**Tic-tac-toe** · tap Open to play");
-
-        let bytes = msgpack::serialize_then_unwrap(MessageContentInitial::MiniApp(card));
-        let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
-
-        let MessageContent::MiniApp(card) = &content else {
-            panic!("Expected a mini app, got {content:?}");
-        };
-        assert_eq!(card.text, "**Tic-tac-toe** · tap Open to play");
-        assert_eq!(content.text(), Some("**Tic-tac-toe** · tap Open to play"));
+    fn mini_app_image() -> MiniAppImage {
+        MiniAppImage {
+            width: 640,
+            height: 360,
+            mime_type: "image/png".to_string(),
+            blob_reference: BlobReference {
+                canister_id: Principal::from_slice(&[1; 10]),
+                blob_id: BIG,
+            },
+        }
     }
 
-    // As OpenChat's `types::MessageContent` encodes one, which is how bots receive it in events
+    #[test]
+    fn a_mini_app_a_bot_sends_reads_back_as_one() {
+        for image in [None, Some(mini_app_image())] {
+            let mut card = MiniAppContent::new("**Tic-tac-toe** · tap Open to play");
+            card.image = image.clone();
+
+            let bytes = msgpack::serialize_then_unwrap(MessageContentInitial::MiniApp(card));
+            let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
+
+            let MessageContent::MiniApp(card) = &content else {
+                panic!("Expected a mini app, got {content:?}");
+            };
+            assert_eq!(card.text, "**Tic-tac-toe** · tap Open to play");
+            assert_eq!(card.image, image);
+            assert_eq!(content.text(), Some("**Tic-tac-toe** · tap Open to play"));
+        }
+    }
+
+    // As OpenChat's `types::MessageContent` encodes one, which is how bots receive it in events: a
+    // missing image as nil
     #[test]
     fn a_mini_app_decodes_as_openchat_encodes_it() {
         #[derive(Serialize)]
         enum OpenChatContent {
-            MiniApp { text: String },
+            MiniApp {
+                text: String,
+                image: Option<MiniAppImage>,
+            },
         }
 
-        let bytes = msgpack::serialize_then_unwrap(OpenChatContent::MiniApp {
-            text: "**Uno** · 2 to 4 players".to_string(),
-        });
-        let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
+        for image in [None, Some(mini_app_image())] {
+            let bytes = msgpack::serialize_then_unwrap(OpenChatContent::MiniApp {
+                text: "**Uno** · 2 to 4 players".to_string(),
+                image: image.clone(),
+            });
+            let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
 
-        assert!(
-            matches!(&content, MessageContent::MiniApp(c) if c.text == "**Uno** · 2 to 4 players")
-        );
+            assert!(
+                matches!(&content, MessageContent::MiniApp(c) if c.text == "**Uno** · 2 to 4 players" && c.image == image),
+                "{content:?}"
+            );
+        }
     }
 
     #[test]
@@ -975,6 +1043,35 @@ mod tests {
             "x".repeat(MiniAppContent::MAX_TEXT_CHARS + 1),
         ] {
             assert!(MiniAppContent::new(text).validate().is_err());
+        }
+    }
+
+    #[test]
+    fn a_mini_app_image_needs_a_size_and_an_image_mime_type() {
+        let card = |change: fn(&mut MiniAppImage)| {
+            let mut image = mini_app_image();
+            change(&mut image);
+            MiniAppContent::new("x").with_image(image).validate()
+        };
+
+        assert_eq!(card(|_| ()), Ok(()));
+        assert_eq!(card(|i| i.mime_type = "image/webp".to_string()), Ok(()));
+        for change in [
+            (|i: &mut MiniAppImage| i.width = 0) as fn(&mut MiniAppImage),
+            |i| i.height = 0,
+        ] {
+            assert_eq!(
+                card(change),
+                Err("The image must have a width and a height".to_string())
+            );
+        }
+        for mime_type in ["video/mp4", "application/octet-stream", ""] {
+            let mut image = mini_app_image();
+            image.mime_type = mime_type.to_string();
+            assert_eq!(
+                MiniAppContent::new("x").with_image(image).validate(),
+                Err("The image's mime type must be an image's".to_string())
+            );
         }
     }
 }

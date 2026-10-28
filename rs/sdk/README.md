@@ -331,6 +331,25 @@ client
 - It can't be posted in a direct chat, nor forwarded, so a bot should set its definition's
   `restricted_locations` to communities and groups.
 
+A card can have an image, shown above the text, eg. the game's artwork. Upload it to OpenChat's
+storage first, as for an image message, so that it's scanned like any image and deleted with the
+card. `Client::upload_mini_app_image` reads a PNG's size, and `upload_mini_app_image_of_size` takes
+any image with the size you give. OpenChat refuses an image without a width and a height, or
+without an image's mime type.
+
+```rust
+let image = client
+    .upload_mini_app_image(mainnet_storage_index_canister_id(), png, image::ImageFormat::Png)
+    .await?;
+
+client
+    .send_message(MessageContentInitial::MiniApp(
+        MiniAppContent::new("**Tic-tac-toe** · tap Open to play").with_image(image),
+    ))
+    .execute_async()
+    .await;
+```
+
 ### Serving the app
 
 OpenChat opens the bot's endpoint, with any trailing slash removed, followed by `/app`, eg.
