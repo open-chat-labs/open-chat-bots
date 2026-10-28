@@ -351,6 +351,10 @@ pub struct MiniAppContent {
     /// Whether members who aren't playing can open the app once the game has started
     #[serde(default)]
     pub spectators: bool,
+    /// How many members who aren't playing have the app open, as the bot reports it, so that they
+    /// stay anonymous. It's 0 unless `spectators` is set.
+    #[serde(default)]
+    pub spectator_count: u32,
     #[serde(default)]
     pub status: MiniAppStatus,
     /// The members playing, in the bot's order, at most `max_players` (or 100), each once. The bot
@@ -404,6 +408,9 @@ pub struct MiniAppUpdate {
     /// Replaces the players
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub players: Option<Vec<UserId>>,
+    /// How many members who aren't playing have the app open
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spectator_count: Option<u32>,
     #[serde(default, skip_serializing_if = "OptionUpdate::is_no_change")]
     pub waiting_for: OptionUpdate<Vec<UserId>>,
     #[serde(default, skip_serializing_if = "OptionUpdate::is_no_change")]
@@ -423,6 +430,7 @@ impl MiniAppContent {
             image: None,
             max_players: None,
             spectators: false,
+            spectator_count: 0,
             status: MiniAppStatus::Open,
             players: Vec::new(),
             waiting_for: None,
@@ -478,6 +486,9 @@ impl MiniAppContent {
         if self.players.iter().collect::<HashSet<_>>().len() < self.players.len() {
             return Err("A player is listed twice".to_string());
         }
+        if self.spectator_count > 0 && !self.spectators {
+            return Err("Only a game open to spectators has any".to_string());
+        }
         if self
             .waiting_for
             .iter()
@@ -503,6 +514,9 @@ impl MiniAppContent {
         }
         if let Some(players) = update.players {
             self.players = players;
+        }
+        if let Some(spectator_count) = update.spectator_count {
+            self.spectator_count = spectator_count;
         }
         self.waiting_for = update.waiting_for.apply_to(self.waiting_for.take());
         self.result = update.result.apply_to(self.result.take());
@@ -535,6 +549,13 @@ impl MiniAppUpdate {
     /// Replaces the players
     pub fn with_players(mut self, players: Vec<UserId>) -> Self {
         self.players = Some(players);
+        self
+    }
+
+    /// How many members who aren't playing have the app open, which only a card open to
+    /// spectators can have
+    pub fn with_spectator_count(mut self, spectator_count: u32) -> Self {
+        self.spectator_count = Some(spectator_count);
         self
     }
 
@@ -1184,6 +1205,7 @@ mod tests {
             #[serde(skip_serializing_if = "Option::is_none")]
             max_players: Option<u32>,
             spectators: bool,
+            spectator_count: u32,
             status: MiniAppStatus,
             players: Vec<UserId>,
             #[serde(skip_serializing_if = "Option::is_none")]
@@ -1201,6 +1223,7 @@ mod tests {
             image: Some(mini_app_image()),
             max_players: Some(4),
             spectators: true,
+            spectator_count: 3,
             status: MiniAppStatus::Finished,
             players: vec![user(1), user(2)],
             waiting_for: Some(vec![user(2)]),
@@ -1218,6 +1241,7 @@ mod tests {
                 image: Some(mini_app_image()),
                 max_players: Some(4),
                 spectators: true,
+                spectator_count: 3,
                 status: MiniAppStatus::Finished,
                 players: vec![user(1), user(2)],
                 waiting_for: Some(vec![user(2)]),
@@ -1231,6 +1255,7 @@ mod tests {
             image: None,
             max_players: None,
             spectators: false,
+            spectator_count: 0,
             status: MiniAppStatus::Open,
             players: Vec::new(),
             waiting_for: None,
@@ -1253,7 +1278,7 @@ mod tests {
 
         assert_eq!(
             keys(MiniAppContent::new("x")),
-            ["players", "spectators", "status", "text"]
+            ["players", "spectator_count", "spectators", "status", "text"]
         );
         assert_eq!(
             keys(
@@ -1267,6 +1292,7 @@ mod tests {
                 "image",
                 "max_players",
                 "players",
+                "spectator_count",
                 "spectators",
                 "status",
                 "text"
@@ -1359,6 +1385,24 @@ mod tests {
     }
 
     #[test]
+    fn only_a_mini_app_open_to_spectators_has_any() {
+        let mut card = MiniAppContent::new("x");
+        card.spectator_count = 2;
+        assert_eq!(
+            card.validate(),
+            Err("Only a game open to spectators has any".to_string())
+        );
+
+        card.spectators = true;
+        assert_eq!(card.validate(), Ok(()));
+
+        card.apply(MiniAppUpdate::default().with_spectator_count(5));
+        assert_eq!(card.spectator_count, 5);
+        card.apply(MiniAppUpdate::default());
+        assert_eq!(card.spectator_count, 5);
+    }
+
+    #[test]
     fn only_a_finished_mini_app_has_a_result_of_1_to_200_characters() {
         let with_result = |status, result: &str| {
             let mut card = MiniAppContent::new("x");
@@ -1432,6 +1476,10 @@ mod tests {
                 "waiting_for": "SetToNone",
                 "result": { "SetToSome": "Bob won" },
             })
+        );
+        assert_eq!(
+            value(MiniAppUpdate::default().with_spectator_count(3)),
+            serde_json::json!({ "spectator_count": 3 })
         );
 
         // A user id is sent as its principal's bytes, which JSON can't hold

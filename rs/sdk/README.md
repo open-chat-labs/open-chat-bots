@@ -336,8 +336,8 @@ client
   the command's `permissions`.
 - `MiniAppContent::validate` checks the card as OpenChat does, with its errors: the text has 1 to
   2,000 characters, `max_players` is 1 to 100, the players are at most that many (or 100), each
-  listed once, only players are waited for, and only a finished game has a result, of 1 to 200
-  characters.
+  listed once, only a card open to spectators has a `spectator_count`, only players are waited for,
+  and only a finished game has a result, of 1 to 200 characters.
 - It can't be posted in a direct chat, nor forwarded, so a bot should set its definition's
   `restricted_locations` to communities and groups.
 
@@ -370,6 +370,9 @@ set stays as it was:
   chat, or the bot itself.
 - `with_status(MiniAppStatus::Active)` when the game starts.
 - `with_waiting_for(Some(vec![player]))` each turn, so the card shows whose move it is, or `None`.
+- `with_spectator_count(n)`, for a card open to spectators, as members who aren't playing open and
+  close the app. The bot counts them itself, so they stay anonymous, eg. the users who've called
+  its API in the last minute without playing. Send it only when it changes, and not too often.
 - `MiniAppUpdate::finished("Bob won")` at the end: status `Finished`, waiting for no one, and the
   result. A finished card never changes again.
 
