@@ -68,8 +68,9 @@ which takes, all optional:
 ./rs/scripts/deploy_press_counter_bot.sh [identity, default press_counter_bot] [port, default 3100] [UserIndex canister id]
 ```
 
-and the environment variables `OPEN_CHAT_DIR` (default `../open-chat`, from this repo's root) and
-`IC_URL` (default `http://127.0.0.1:8080`). It:
+and the environment variables `OPEN_CHAT_DIR`, the `open-chat` checkout (default `../open-chat`, from
+this repo's root, so set it when running from a worktree), and `OC_REPLICA_PORT` (default 8080) and
+`OC_DEV_PORT` (default 5001), as OpenChat's own scripts take them. It:
 
 - creates the dfx identity `press_counter_bot`, if there isn't one, which the bot signs its calls
   with, and exports it to `bot.pem`;
@@ -112,8 +113,11 @@ cargo run --release              # reads ./config.toml, or pass its path
 
 The bot logs to the terminal it runs in, and the app shows the API's errors under the button.
 
-- **"Failed to look up the bot's id. Has it been registered?"**: register it (step 3), and check the
-  script found the right UserIndex.
+- **"Failed to look up the bot's id. Has it been registered? ... OCError(207, None)"**: the
+  UserIndex doesn't know the bot (207 is `BotNotFound`), so register it (step 3).
+- **"... Canister has no query method 'bot_installation_events_msgpack'"**: `config.toml`'s
+  `user_index_canister_id` isn't the running replica's UserIndex. Point `OPEN_CHAT_DIR` at the
+  `open-chat` checkout which deployed it and run the script again.
 - **A 401, "Invalid token: ..."**: the public key in `config.toml` isn't the one OpenChat signs with,
   eg. after redeploying OpenChat. Run the script again.
 - **"The token is for the bot ..., not this one"**: the card is another bot's, or the bot looked up
