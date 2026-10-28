@@ -309,25 +309,35 @@ client
 ## MiniApp cards
 
 A bot can host an app, eg. a game, which members of a chat open from a card the bot posts there.
-The card is markdown text, with an Open button which OpenChat draws, and it **never changes**:
-OpenChat refuses an edit of it. Everything interactive, eg. a lobby, a board, buttons and whose turn
-it is, is the bot's own web page, which OpenChat shows in a sandboxed frame. Anything the chat
-should see later, eg. a game's result, the bot posts as a new message.
+The card is markdown text, with an optional image, the game's players, whose move it is and its
+result, and an Open button, all of which OpenChat draws. Its text, image, player limit and whether
+others can watch never change: OpenChat refuses an edit of it. Its status, players, whose move it is
+and its result are the bot's to [keep up to date](#keeping-the-card-up-to-date). Everything
+interactive, eg. a lobby, a board and buttons, is the bot's own web page, which OpenChat shows in a
+sandboxed frame.
 
 ### Posting a card
 
 ```rust
+let card = MiniAppContent::new("**Tic-tac-toe** · tap Open to play")
+    .with_max_players(2)
+    // Whether members who aren't playing can open the app once the game has started
+    .with_spectators(true)
+    // eg. the member who ran the command
+    .with_players(vec![initiator]);
+
 client
-    .send_message(MessageContentInitial::MiniApp(MiniAppContent::new(
-        "**Tic-tac-toe** · tap Open to play",
-    )))
+    .send_message(MessageContentInitial::MiniApp(card))
     .execute_async()
     .await;
 ```
 
 - Only bots installed in the chat can post one, and they need `MessagePermission::MiniApp`, eg. in
   the command's `permissions`.
-- The text has 1 to 2,000 characters, which `MiniAppContent::validate` checks.
+- `MiniAppContent::validate` checks the card as OpenChat does, with its errors: the text has 1 to
+  2,000 characters, `max_players` is 1 to 100, the players are at most that many (or 100), each
+  listed once, only players are waited for, and only a finished game has a result, of 1 to 200
+  characters.
 - It can't be posted in a direct chat, nor forwarded, so a bot should set its definition's
   `restricted_locations` to communities and groups.
 
@@ -349,6 +359,35 @@ client
     .execute_async()
     .await;
 ```
+
+### Keeping the card up to date
+
+As the game goes on, the bot updates the card with `Client::update_mini_app(message_id,
+MiniAppUpdate)`, which calls the LocalUserIndex's `bot_update_mini_app`. Whatever the update doesn't
+set stays as it was:
+
+- `with_players(..)` as players join or leave, replacing the list. They must be members of the
+  chat, or the bot itself.
+- `with_status(MiniAppStatus::Active)` when the game starts.
+- `with_waiting_for(Some(vec![player]))` each turn, so the card shows whose move it is, or `None`.
+- `MiniAppUpdate::finished("Bob won")` at the end: status `Finished`, waiting for no one, and the
+  result. A finished card never changes again.
+
+Only the bot which posted the card can update it, and it needs no permission beyond being
+installed. It can use a command's context, or act autonomously, eg. from its app's API with the
+user's session:
+
+```rust
+oc_client_factory
+    .build(session.autonomous_context())
+    .update_mini_app(session.message_id, MiniAppUpdate::default().with_players(players))
+    .in_thread(session.thread)
+    .execute_async()
+    .await;
+```
+
+`MiniAppContent::apply(update)` gives the card as OpenChat leaves it, so a bot keeping its own copy
+can `validate` an update before sending it.
 
 ### Serving the app
 
@@ -389,9 +428,9 @@ OpenChat gave the bot when it was registered, not its principal: an offchain bot
 `installation_events().size(0)` on the UserIndex, and a canister bot is told it when it's
 registered.
 
-To post in the chat, eg. a game's result, the bot acts autonomously, with a client built from
-`session.autonomous_context()`, so it needs that permission in its `autonomous_config`, eg.
-`MessagePermission::Text`:
+To post in the chat, eg. a game's result as a message of its own, the bot acts autonomously, with a
+client built from `session.autonomous_context()`, so it needs that permission in its
+`autonomous_config`, eg. `MessagePermission::Text`:
 
 ```rust
 oc_client_factory

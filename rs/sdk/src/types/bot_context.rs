@@ -113,8 +113,8 @@ impl ActionContext for AutonomousContext {
 /// sends it to the bot's server, which verifies it with [`Self::parse`] and keys the app's state,
 /// eg. a game, by [`Self::card`], with [`Self::user_id`] as the player.
 ///
-/// It only vouches for who the user is: OpenChat's bot endpoints refuse it. To post in the chat,
-/// eg. a game's result, the bot acts autonomously, with [`Self::autonomous_context`].
+/// It only vouches for who the user is: OpenChat's bot endpoints refuse it. To update the card, or
+/// post in the chat, the bot acts autonomously, with [`Self::autonomous_context`].
 #[derive(Clone, Debug)]
 pub struct BotMessageSession {
     /// The user id OpenChat gave the bot when it was registered
@@ -197,9 +197,10 @@ impl BotMessageSession {
         }
     }
 
-    /// For a client acting autonomously in the card's chat, eg. to post a game's result there. The
-    /// bot needs the autonomous permissions for what it does, eg. `MessagePermission::Text`. Pass
-    /// [`Self::thread`] to the message builder's `in_thread` to post in the card's thread.
+    /// For a client acting autonomously in the card's chat, eg. to update the card, with
+    /// `update_mini_app`, or to post a message there, which needs the autonomous permission for its
+    /// type, eg. `MessagePermission::Text`. Pass [`Self::thread`] to the builder's `in_thread` to act
+    /// in the card's thread.
     pub fn autonomous_context(&self) -> AutonomousContext {
         AutonomousContext {
             api_gateway: self.api_gateway,
