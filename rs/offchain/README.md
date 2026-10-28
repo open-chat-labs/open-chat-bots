@@ -15,8 +15,8 @@ In the root of the repo there are scripts to deploy the Rust offchain example bo
 ```
 
 - [TicTacToeBot](../scripts/deploy_tictactoe_bot.sh), which plays tic-tac-toe in a
-  [MiniApp message](../sdk/README.md#miniapp-messages). Grant it the MiniApp and Text permissions
-  to act autonomously when you install it, so it can edit the game as it's played.
+  [MiniApp message](../sdk/README.md#miniapp-messages). Grant it the MiniApp permission to act
+  autonomously when you install it, so it can edit the game as it's played.
 
 ```bash
   ./scripts/deploy_tictactoe_bot.sh

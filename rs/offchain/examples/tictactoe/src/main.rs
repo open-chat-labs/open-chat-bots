@@ -9,16 +9,20 @@ use axum::http::header::CONTENT_TYPE;
 use axum::response::{IntoResponse, Json, Response};
 use axum::routing::{get, post};
 use axum::{Extension, Router};
-use oc_bots_sdk::api::action::{ActionHandlerRegistry, ActionHttpResponse};
+use oc_bots_sdk::api::action::{ActionHandlerRegistry, ActionHttpResponse, ActionResponse};
 use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
-use oc_bots_sdk::api::definition::{AutonomousConfig, BotDefinition, MessagePermission};
-use oc_bots_sdk::oc_api::client::ClientFactory;
-use oc_bots_sdk::types::{BotPermissionsBuilder, InstallationLocationType, UserId};
+use oc_bots_sdk::api::definition::{
+    AutonomousConfig, BotDefinition, BotPermissions, MessagePermission,
+};
+use oc_bots_sdk::oc_api::actions::{ActionArgsBuilder, installation_events};
+use oc_bots_sdk::oc_api::client::{Client, ClientFactory};
+use oc_bots_sdk::types::{CanisterId, InstallationLocationType, UserId};
 use oc_bots_sdk_offchain::middleware::tower::{ExtractJwtLayer, OpenChatJwt};
 use oc_bots_sdk_offchain::{AgentRuntime, env};
 use std::collections::HashSet;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
+use tokio::sync::OnceCell;
 use tower_http::cors::CorsLayer;
 use tracing::info;
 
@@ -40,6 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         pem_file,
         ic_url,
         oc_public_key,
+        user_index_canister_id,
         port,
     } = Config::from_file(&config_file_path)?;
 
@@ -48,9 +53,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("TicTacToeBot starting");
 
     let agent = oc_bots_sdk_offchain::build_agent(ic_url, &pem_file).await;
-
-    // The bot's id is its identity's principal. Session tokens for other bots are refused.
-    let bot_id: UserId = agent.get_principal()?.into();
 
     let oc_client_factory = Arc::new(ClientFactory::new(AgentRuntime::new(
         agent,
@@ -64,11 +66,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         games: games.clone(),
     });
 
-    let actions = ActionHandlerRegistry::new(oc_client_factory).register(PlayTicTacToe { games });
+    let actions =
+        ActionHandlerRegistry::new(oc_client_factory.clone()).register(PlayTicTacToe { games });
 
     let app_state = AppState {
         oc_public_key,
-        bot_id,
+        user_index: oc_client_factory.build(user_index_canister_id),
+        bot_id: OnceCell::new(),
         commands,
         actions,
     };
@@ -121,15 +125,21 @@ async fn execute_action(
     Extension(OpenChatJwt(jwt)): Extension<OpenChatJwt>,
     body: Bytes,
 ) -> Response {
+    let response = match state.bot_id().await {
+        Ok(bot_id) => {
+            state
+                .actions
+                .execute(&jwt, &body, &state.oc_public_key, bot_id, env::now())
+                .await
+        }
+        Err(error) => ActionResponse::internal_error(error),
+    };
+
     let ActionHttpResponse {
         status_code,
         content_type,
         body,
-    } = state
-        .actions
-        .execute(&jwt, &body, &state.oc_public_key, state.bot_id, env::now())
-        .await
-        .into_http();
+    } = response.into_http();
 
     (
         StatusCode::from_u16(status_code).unwrap(),
@@ -148,10 +158,7 @@ async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> Js
         commands: state.commands.definitions(),
         // To edit the game's message as it's played
         autonomous_config: Some(AutonomousConfig {
-            permissions: BotPermissionsBuilder::new()
-                .with_message(MessagePermission::MiniApp)
-                .with_message(MessagePermission::Text)
-                .build(),
+            permissions: BotPermissions::from_message_permission(MessagePermission::MiniApp),
         }),
         default_subscriptions: None,
         // MiniApp messages can't be sent in direct chats
@@ -164,7 +171,31 @@ async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> Js
 
 struct AppState {
     oc_public_key: String,
-    bot_id: UserId,
+    user_index: Client<AgentRuntime, CanisterId>,
+    bot_id: OnceCell<UserId>,
     commands: CommandHandlerRegistry<AgentRuntime>,
     actions: ActionHandlerRegistry<AgentRuntime>,
+}
+
+impl AppState {
+    // The user id OpenChat gave the bot when it was registered, which is what session tokens are
+    // for, rather than the bot's principal. It's fetched when the first press arrives, as the bot is
+    // started before it's registered, then kept.
+    async fn bot_id(&self) -> Result<UserId, String> {
+        self.bot_id
+            .get_or_try_init(|| async {
+                match self
+                    .user_index
+                    .installation_events()
+                    .size(0)
+                    .execute_async()
+                    .await
+                {
+                    Ok(installation_events::Response::Success(result)) => Ok(result.bot_id),
+                    other => Err(format!("Failed to look up the bot's id: {other:?}")),
+                }
+            })
+            .await
+            .copied()
+    }
 }

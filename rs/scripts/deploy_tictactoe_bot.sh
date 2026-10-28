@@ -6,6 +6,14 @@ cd $SCRIPT_DIR
 
 IDENTITY=${1:-tictactoe_bot} # The identity to use for the bot. This must be different for each offchain bot.
 PORT=${2:-3100} # The port the bot will listen on
+# The local UserIndex, where the bot looks up the user id OpenChat gives it when it's registered.
+# By default it's read from the OpenChat repo, cloned next to this one.
+USER_INDEX_CANISTER_ID=${3:-$(cd ../../../open-chat 2>/dev/null && dfx canister id user_index 2>/dev/null)}
+
+if [ -z "$USER_INDEX_CANISTER_ID" ]; then
+    echo "Couldn't find the local UserIndex. Pass its canister id as the third argument."
+    exit 1
+fi
 
 # The local IC URL
 IC_URL=http://127.0.0.1:8080
@@ -37,6 +45,11 @@ ic_url = "$IC_URL"
 # can be obtained from the OC UI by visiting User Profile -> Advanced -> Bot client config.
 # If not specified the mainnet OC public key will be used.
 oc_public_key = "$OC_PUBLIC_KEY"
+
+# [optional]
+# The UserIndex canister, where the bot looks up the user id OpenChat gave it when it was
+# registered. If not specified the mainnet UserIndex will be used.
+user_index_canister_id = "$USER_INDEX_CANISTER_ID"
 
 # The port the bot will listen for commands and button presses on
 port = $PORT

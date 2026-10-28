@@ -1,10 +1,21 @@
 use crate::board::{Board, CELL, Outcome};
-use oc_bots_sdk::games::{Lobby, LobbyState};
-use oc_bots_sdk::types::{MessageId, MiniAppContent, UserId};
+use oc_bots_sdk::games::{Lobby, LobbyError, LobbyState};
+use oc_bots_sdk::types::{
+    Chat, MessageId, MessageIndex, Milliseconds, MiniAppContent, TimestampMillis, UserId,
+};
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::sync::{Arc, Mutex};
 
 const TITLE: &str = "Tic-tac-toe";
+
+/// A game is dropped once no one's pressed its buttons for this long
+const MAX_IDLE: Milliseconds = 24 * 60 * 60 * 1000;
+
+/// Where a game is played: the chat, the thread if it's in one, and the id of its message. A message
+/// id is only unique within its chat and thread, and the user who runs the command chooses it, so a
+/// game is never looked up by its message id alone.
+pub type GameKey = (Chat, Option<MessageIndex>, MessageId);
 
 /// A game, from its lobby, where its host waits for an opponent, to its last move
 #[derive(Clone, Debug)]
@@ -55,6 +66,10 @@ impl Game {
                 }
                 Ok(())
             }
+            // Eg. Start pressed twice, or Join pressed on a lobby the user hadn't seen start
+            Game::Playing(_) if [Lobby::JOIN, Lobby::LEAVE, Lobby::START].contains(&button_id) => {
+                Err(PressError::Reply(LobbyError::AlreadyStarted.to_string()))
+            }
             Game::Playing(board) => {
                 let cell = button_id
                     .strip_prefix(CELL)
@@ -70,27 +85,50 @@ impl Game {
     }
 }
 
-/// The games being played, by the id of the message each is in. Each game has its own lock, held
-/// from a press until the message is edited, so that the edits land in the order of the moves.
+/// The games being played, by where each is played. Each game has its own lock, held from a press
+/// until the message is edited, so that the edits land in the order of the moves.
 #[derive(Default)]
 pub struct Games {
-    games: Mutex<HashMap<MessageId, Arc<tokio::sync::Mutex<Game>>>>,
+    games: Mutex<HashMap<GameKey, Played>>,
+}
+
+struct Played {
+    game: Arc<tokio::sync::Mutex<Game>>,
+    last_pressed: TimestampMillis,
 }
 
 impl Games {
-    pub fn insert(&self, message_id: MessageId, game: Game) {
-        self.games
-            .lock()
-            .unwrap()
-            .insert(message_id, Arc::new(tokio::sync::Mutex::new(game)));
+    /// Adds the game, unless there's one in that message already. Games no one's played for a day
+    /// are dropped first.
+    pub fn insert(&self, key: GameKey, game: Game, now: TimestampMillis) -> bool {
+        let mut games = self.games.lock().unwrap();
+        games.retain(|_, played| now.saturating_sub(played.last_pressed) < MAX_IDLE);
+
+        match games.entry(key) {
+            Entry::Occupied(_) => false,
+            Entry::Vacant(entry) => {
+                entry.insert(Played {
+                    game: Arc::new(tokio::sync::Mutex::new(game)),
+                    last_pressed: now,
+                });
+                true
+            }
+        }
     }
 
-    pub fn get(&self, message_id: MessageId) -> Option<Arc<tokio::sync::Mutex<Game>>> {
-        self.games.lock().unwrap().get(&message_id).cloned()
+    pub fn get(
+        &self,
+        key: &GameKey,
+        now: TimestampMillis,
+    ) -> Option<Arc<tokio::sync::Mutex<Game>>> {
+        let mut games = self.games.lock().unwrap();
+        let played = games.get_mut(key)?;
+        played.last_pressed = now;
+        Some(played.game.clone())
     }
 
-    pub fn remove(&self, message_id: MessageId) {
-        self.games.lock().unwrap().remove(&message_id);
+    pub fn remove(&self, key: &GameKey) {
+        self.games.lock().unwrap().remove(key);
     }
 }
 
@@ -162,10 +200,68 @@ mod tests {
 
         game.press(user(2), Lobby::JOIN).unwrap();
         game.press(user(1), Lobby::START).unwrap();
-        for button_id in [Lobby::JOIN, "cell-", "cell-x", "cell--1", "cell-9"] {
+        for button_id in ["cell-", "cell-x", "cell--1", "cell-9", "rematch"] {
             let result = game.press(user(1), button_id);
             assert_eq!(result, Err(PressError::InvalidButton), "{button_id}");
         }
+    }
+
+    #[test]
+    fn a_lobby_button_once_its_started_is_answered() {
+        let mut game = Game::new(user(1));
+        game.press(user(2), Lobby::JOIN).unwrap();
+        game.press(user(1), Lobby::START).unwrap();
+
+        for (user_id, button_id) in [(1, Lobby::START), (3, Lobby::JOIN), (2, Lobby::LEAVE)] {
+            assert_eq!(
+                game.press(user(user_id), button_id),
+                reply("The game has already started")
+            );
+        }
+        assert!(matches!(game, Game::Playing(_)));
+    }
+
+    fn key(chat: u8, thread: Option<MessageIndex>, message_id: u64) -> GameKey {
+        (Chat::Group(user(chat)), thread, message_id.into())
+    }
+
+    #[test]
+    fn a_game_is_found_only_where_its_played() {
+        let games = Games::default();
+        assert!(games.insert(key(1, None, 5), Game::new(user(1)), 0));
+
+        assert!(games.get(&key(1, None, 5), 0).is_some());
+        assert!(games.get(&key(2, None, 5), 0).is_none());
+        assert!(games.get(&key(1, Some(3), 5), 0).is_none());
+        assert!(games.get(&key(1, None, 6), 0).is_none());
+    }
+
+    #[test]
+    fn a_game_isnt_replaced() {
+        let games = Games::default();
+        assert!(games.insert(key(1, None, 5), Game::new(user(1)), 0));
+
+        assert!(!games.insert(key(1, None, 5), Game::new(user(2)), 0));
+        let game = games.get(&key(1, None, 5), 0).unwrap();
+        let Game::Lobby(lobby) = &*game.try_lock().unwrap() else {
+            panic!("Expected a lobby");
+        };
+        assert_eq!(lobby.host, user(1));
+    }
+
+    #[test]
+    fn a_game_no_one_plays_for_a_day_is_dropped() {
+        let games = Games::default();
+        games.insert(key(1, None, 1), Game::new(user(1)), 0);
+        games.insert(key(1, None, 2), Game::new(user(1)), 0);
+        // Pressed an hour later
+        games.get(&key(1, None, 2), 3_600_000);
+
+        games.insert(key(1, None, 3), Game::new(user(1)), MAX_IDLE);
+
+        assert!(games.get(&key(1, None, 1), MAX_IDLE).is_none());
+        assert!(games.get(&key(1, None, 2), MAX_IDLE).is_some());
+        assert!(games.get(&key(1, None, 3), MAX_IDLE).is_some());
     }
 
     #[test]

@@ -1,4 +1,5 @@
-use oc_bots_sdk::mainnet::{mainnet_ic_url, mainnet_oc_public_key};
+use oc_bots_sdk::mainnet::{mainnet_ic_url, mainnet_oc_public_key, mainnet_user_index_canister_id};
+use oc_bots_sdk::types::CanisterId;
 use serde::Deserialize;
 use std::error::Error;
 use std::fs;
@@ -10,6 +11,9 @@ pub struct Config {
     pub ic_url: String,
     #[serde(default = "mainnet_oc_public_key")]
     pub oc_public_key: String,
+    /// Where the bot looks up the user id OpenChat gave it
+    #[serde(default = "mainnet_user_index_canister_id")]
+    pub user_index_canister_id: CanisterId,
     pub port: u16,
 }
 

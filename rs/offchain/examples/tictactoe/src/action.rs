@@ -4,6 +4,7 @@ use oc_bots_sdk::api::action::{ActionHandler, ActionResponse, ButtonPress};
 use oc_bots_sdk::oc_api::Runtime;
 use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
 use oc_bots_sdk::types::UnitResult;
+use oc_bots_sdk_offchain::env;
 use std::sync::Arc;
 
 /// Plays each button press on a game's message, then edits the message to show it
@@ -14,10 +15,12 @@ pub struct PlayTicTacToe {
 #[async_trait]
 impl<R: Runtime> ActionHandler<R> for PlayTicTacToe {
     async fn execute(&self, press: ButtonPress<R>) -> ActionResponse {
-        let message_id = press.session.message_id;
+        // Where the press was, as OpenChat vouches
+        let session = &press.session;
+        let key = (session.chat, session.thread, session.message_id);
 
         // Eg. the bot was restarted, as it keeps games in memory
-        let Some(game) = self.games.get(message_id) else {
+        let Some(game) = self.games.get(&key, env::now()) else {
             return ActionResponse::reply("This game isn't running any more");
         };
 
@@ -36,7 +39,7 @@ impl<R: Runtime> ActionHandler<R> for PlayTicTacToe {
         }
 
         if game.is_over() {
-            self.games.remove(message_id);
+            self.games.remove(&key);
         }
 
         match press.edit_message(game.render()).execute_async().await {
@@ -61,7 +64,7 @@ mod tests {
     use oc_bots_sdk::oc_api::client::Client;
     use oc_bots_sdk::types::{
         BotMessageSession, CallResult, CanisterId, Chat, MessageContentInitial, MessageId,
-        TimestampMillis, UserId,
+        MessageIndex, TimestampMillis, UserId,
     };
     use serde::{Deserialize, Serialize};
     use std::future::Future;
@@ -103,9 +106,14 @@ mod tests {
     }
 
     const MESSAGE_ID: u64 = 99;
+    const THREAD: Option<MessageIndex> = Some(3);
 
     fn user(byte: u8) -> UserId {
         Principal::from_slice(&[byte]).into()
+    }
+
+    fn chat() -> Chat {
+        Chat::Channel(user(7), 4)
     }
 
     struct Test {
@@ -116,7 +124,11 @@ mod tests {
     impl Test {
         fn new() -> Self {
             let games = Arc::new(Games::default());
-            games.insert(MessageId::from(MESSAGE_ID), Game::new(user(1)));
+            games.insert(
+                (chat(), THREAD, MessageId::from(MESSAGE_ID)),
+                Game::new(user(1)),
+                env::now(),
+            );
             Test {
                 runtime: Arc::default(),
                 handler: PlayTicTacToe { games },
@@ -124,11 +136,21 @@ mod tests {
         }
 
         async fn press(&self, user_id: UserId, button_id: &str) -> ActionResponse {
+            self.press_in(chat(), THREAD, user_id, button_id).await
+        }
+
+        async fn press_in(
+            &self,
+            chat: Chat,
+            thread: Option<MessageIndex>,
+            user_id: UserId,
+            button_id: &str,
+        ) -> ActionResponse {
             let session = BotMessageSession {
                 bot_id: user(9),
                 api_gateway: user(8),
-                chat: Chat::Group(user(7)),
-                thread: None,
+                chat,
+                thread,
                 message_id: MESSAGE_ID.into(),
                 user_id,
                 meta: None,
@@ -148,6 +170,7 @@ mod tests {
                 .map(|(method_name, args)| {
                     assert_eq!(method_name, "bot_edit_message_msgpack");
                     assert_eq!(args["message_id"], MESSAGE_ID);
+                    assert_eq!(args["thread"], 3);
                     args["content"]["MiniApp"]["text"]
                         .as_str()
                         .unwrap()
@@ -215,6 +238,37 @@ mod tests {
         assert_eq!(
             reply_text(test.press(user(3), "cell-4").await),
             "You're not playing in this game"
+        );
+        assert_eq!(test.edits().len(), 2);
+    }
+
+    // A message id is only unique within its chat and thread
+    #[tokio::test]
+    async fn a_message_with_the_same_id_elsewhere_isnt_the_game() {
+        let test = Test::new();
+
+        for (chat, thread) in [
+            (Chat::Group(user(7)), THREAD),
+            (chat(), None),
+            (chat(), Some(4)),
+        ] {
+            assert_eq!(
+                reply_text(test.press_in(chat, thread, user(2), "join").await),
+                "This game isn't running any more"
+            );
+        }
+        assert!(test.edits().is_empty());
+    }
+
+    #[tokio::test]
+    async fn start_pressed_twice_is_answered_only_to_the_host() {
+        let test = Test::new();
+        test.press(user(2), "join").await;
+        test.press(user(1), "start").await;
+
+        assert_eq!(
+            reply_text(test.press(user(1), "start").await),
+            "The game has already started"
         );
         assert_eq!(test.edits().len(), 2);
     }

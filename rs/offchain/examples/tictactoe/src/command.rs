@@ -5,7 +5,7 @@ use oc_bots_sdk::api::definition::*;
 use oc_bots_sdk::oc_api::actions::send_message;
 use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::{BotCommandContext, Chat, MessageContentInitial};
-use oc_bots_sdk_offchain::AgentRuntime;
+use oc_bots_sdk_offchain::{AgentRuntime, env};
 use std::sync::{Arc, LazyLock};
 use tracing::error;
 
@@ -27,32 +27,39 @@ impl CommandHandler<AgentRuntime> for NewGame {
         oc_client: Client<AgentRuntime, BotCommandContext>,
     ) -> Result<SuccessResult, String> {
         let cxt = oc_client.context();
-        let message_id = cxt
-            .scope
-            .message_id()
-            .ok_or("Tic-tac-toe is played in a chat")?;
-
-        // OpenChat doesn't allow MiniApp messages in direct chats, for now
-        if matches!(cxt.scope.chat(), Some(Chat::Direct(_))) {
-            let text = "Tic-tac-toe can only be played in groups and channels".to_string();
-            return Ok(EphemeralMessageBuilder::new(
-                MessageContentInitial::from_text(text),
+        let (Some(&chat), Some(message_id)) = (cxt.scope.chat(), cxt.scope.message_id()) else {
+            return Err("Tic-tac-toe is played in a chat".to_string());
+        };
+        let reply = |text: &str| {
+            Ok(EphemeralMessageBuilder::new(
+                MessageContentInitial::from_text(text.to_string()),
                 message_id,
             )
             .build()
-            .into());
+            .into())
+        };
+
+        // OpenChat doesn't allow MiniApp messages in direct chats, for now
+        if matches!(chat, Chat::Direct(_)) {
+            return reply("Tic-tac-toe can only be played in groups and channels");
         }
 
-        // Kept by the id of the message the lobby's posted in, which the game is played in
+        // Kept by where the lobby's posted, which the game is played in. The message id is the one
+        // the user's client chose for the command, so it could be another game's.
+        let key = (chat, cxt.scope.thread(), message_id);
         let game = Game::new(cxt.command.initiator);
         let content = game.render();
-        self.games.insert(message_id, game);
+        if !self.games.insert(key, game, env::now()) {
+            return reply("There's already a game in that message");
+        }
 
+        let games = self.games.clone();
         let message = oc_client
             .send_message(MessageContentInitial::MiniApp(content))
-            .execute_then_return_message(|_, response| {
+            .execute_then_return_message(move |_, response| {
                 if !matches!(response, Ok(send_message::Response::Success(_))) {
                     error!("Failed to post a game: {response:?}");
+                    games.remove(&key);
                 }
             });
 
