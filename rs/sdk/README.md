@@ -314,8 +314,6 @@ OpenChat refuses an edit of it. Everything interactive, eg. a lobby, a board, bu
 it is, is the bot's own web page, which OpenChat shows in a sandboxed frame. Anything the chat
 should see later, eg. a game's result, the bot posts as a new message.
 
-[TicTacToeBot](../offchain/examples/tictactoe) is an example.
-
 ### Posting a card
 
 ```rust
@@ -347,8 +345,9 @@ OpenChat opens the bot's endpoint, with any trailing slash removed, followed by 
 | OpenChat | `{ kind: "mini_app_token", token }` | In answer, with a new token |
 | OpenChat | `{ kind: "set_dark_mode", dark_mode }` | When the user's theme changes |
 
-The TypeScript SDK's `MiniAppClient` does the app's side of this. The app calls the bot's server
-with the token in the `x-oc-jwt` header, which `ExtractJwtLayer` takes, as it does for commands.
+The TypeScript SDK's browser entry, `@open-ic/openchat-botclient-ts/mini_app`, does the app's side
+of this, with `connectToOpenChat()`. The app calls the bot's server with the token in the `x-oc-jwt`
+header, which `ExtractJwtLayer` takes, as it does for commands.
 
 ### The session token
 
