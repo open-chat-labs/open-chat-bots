@@ -12,13 +12,14 @@ import type {
     FileContent,
     ImageContent,
     BotMessageContent as MessageContent,
+    MiniAppContent as ApiMiniAppContent,
     OgPreview,
     PollContent,
 } from "../typebox/typebox";
 import { random64 } from "../utils/rng";
 import type { BotChatContext } from "./bot";
 import type { BlobReference } from "./data";
-import type { PriceChartContent } from "./event";
+import type { MiniAppImage, PriceChartContent } from "./event";
 import type { MessagePermission } from "./permissions";
 
 type FileMessageContent = { File: FileContent };
@@ -242,15 +243,18 @@ export class PriceChartMessage extends Message {
 export const MINI_APP_MAX_TEXT_CHARS = 2_000;
 
 /**
- * A bot's card for an app it hosts, eg. a game: markdown text, with an Open button which OpenChat
- * draws. It opens the bot's app, which the bot serves at `/app` under its endpoint, in a frame. The
- * card never changes, so post anything the chat should see later, eg. a game's result, as a new
- * message. It needs the MiniApp permission, and can't be sent in a direct chat. Check its text with
- * `validate` before sending it.
+ * A bot's card for an app it hosts, eg. a game: markdown text, under an optional image, with an
+ * Open button which OpenChat draws. It opens the bot's app, which the bot serves at `/app` under its
+ * endpoint, in a frame. The card never changes, so post anything the chat should see later, eg. a
+ * game's result, as a new message. It needs the MiniApp permission, and can't be sent in a direct
+ * chat. Check it with `validate` before sending it.
+ *
+ * Upload the image first, as `BotClient.createMiniAppMessage` does, so that it's scanned like any
+ * image and deleted with the card.
  */
 export class MiniAppMessage extends Message {
-    constructor(text: string) {
-        super({ MiniApp: apiMiniAppContent({ text }) });
+    constructor(text: string, image?: MiniAppImage) {
+        super({ MiniApp: apiMiniAppContent({ text, image }) });
     }
 
     public get requiredMessagePermissions(): MessagePermission[] {
@@ -259,7 +263,13 @@ export class MiniAppMessage extends Message {
 
     /** Why OpenChat would refuse this card, with the error it gives, or undefined if it's valid */
     validate(): string | undefined {
-        return validateMiniAppText((this.content as { MiniApp: { text: string } }).MiniApp.text);
+        const { text, image } = (this.content as { MiniApp: ApiMiniAppContent }).MiniApp;
+        return (
+            validateMiniAppText(text) ??
+            (image === undefined
+                ? undefined
+                : validateMiniAppImage(image.width, image.height, image.mime_type))
+        );
     }
 }
 
@@ -271,6 +281,24 @@ export function validateMiniAppText(text: string): string | undefined {
     // Counted in code points, as OpenChat counts Rust's chars
     if (text.trim().length === 0 || [...text].length > MINI_APP_MAX_TEXT_CHARS) {
         return `The text must have 1 to ${MINI_APP_MAX_TEXT_CHARS} characters`;
+    }
+    return undefined;
+}
+
+/**
+ * Checks a MiniApp card's image as OpenChat does: it has a width and a height, and an image's mime
+ * type. Returns the error OpenChat would give, or undefined if it's valid.
+ */
+export function validateMiniAppImage(
+    width: number,
+    height: number,
+    mimeType: string,
+): string | undefined {
+    if (!(width > 0) || !(height > 0)) {
+        return "The image must have a width and a height";
+    }
+    if (!mimeType.startsWith("image/")) {
+        return "The image's mime type must be an image's";
     }
     return undefined;
 }

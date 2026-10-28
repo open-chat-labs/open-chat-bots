@@ -11,11 +11,13 @@ import {
     MINI_APP_MAX_TEXT_CHARS,
     MiniAppMessage,
     TextMessage,
+    validateMiniAppImage,
     validateMiniAppText,
 } from "../domain/message";
 import { Permissions } from "../domain/permissions";
 import { ChatActionScope, CommunityActionScope } from "../domain/scope";
 import { MsgpackCanisterAgent } from "../services/canisterAgent/msgpack";
+import { DataClient } from "../services/data/data.client";
 import {
     BotMessageContent as ApiBotMessageContent,
     MessageContent as ApiMessageContent,
@@ -33,6 +35,14 @@ const SENDER = "2yfsq-kaaaa-aaaaf-aaa4q-cai";
 const GROUP = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const COMMUNITY = "r7inp-6aaaa-aaaaa-aaabq-cai";
 const TEXT = "**Tic-tac-toe** · tap Open to play";
+const BUCKET = "rturd-qaaaa-aaaaf-aabaq-cai";
+
+const IMAGE = {
+    width: 640,
+    height: 360,
+    mimeType: "image/png",
+    blobReference: { canisterId: BUCKET, blobId: 340282366920938463463374607431768211455n },
+};
 
 describe("MiniApp cards", () => {
     test("are read from a chat as OpenChat sends them", () => {
@@ -43,12 +53,58 @@ describe("MiniApp cards", () => {
         expect(messageContent(api, SENDER)).toEqual({ kind: "mini_app_content", text: TEXT });
     });
 
+    test("are read with their image, as OpenChat sends it", () => {
+        // A u128 as a string, as OpenChat writes large ints, and the bucket as principal bytes
+        const wire = Packer.pack({
+            MiniApp: {
+                text: TEXT,
+                image: {
+                    width: 640,
+                    height: 360,
+                    mime_type: "image/png",
+                    blob_reference: {
+                        canister_id: Principal.fromText(BUCKET).toUint8Array(),
+                        blob_id: "340282366920938463463374607431768211455",
+                    },
+                },
+            },
+        });
+
+        const api = Value.Parse(ApiMessageContent, Packer.unpack(wire));
+
+        expect(messageContent(api, SENDER)).toEqual({
+            kind: "mini_app_content",
+            text: TEXT,
+            image: IMAGE,
+        });
+    });
+
     test("are sent as OpenChat reads them", () => {
         const message = new MiniAppMessage(TEXT);
         const sent = Value.Parse(ApiBotMessageContent, message.toResponse().content);
 
+        // Without an image, rather than a nil one
         expect(Packer.unpack(Packer.pack(sent))).toEqual({ MiniApp: { text: TEXT } });
         expect(message.requiredMessagePermissions).toEqual(["MiniApp"]);
+    });
+
+    test("are sent with their image", () => {
+        const message = new MiniAppMessage(TEXT, IMAGE);
+        const sent = Value.Parse(ApiBotMessageContent, message.toResponse().content);
+        const wire = Packer.unpack(Packer.pack(sent));
+
+        // The u128 as a string and the bucket as principal bytes, as for an image message
+        expect(wire.MiniApp.image.blob_reference.blob_id).toBe(
+            "340282366920938463463374607431768211455",
+        );
+        expect(Uint8Array.from(wire.MiniApp.image.blob_reference.canister_id)).toEqual(
+            Principal.fromText(BUCKET).toUint8Array(),
+        );
+        expect(messageContent(Value.Parse(ApiMessageContent, wire), SENDER)).toEqual({
+            kind: "mini_app_content",
+            text: TEXT,
+            image: IMAGE,
+        });
     });
 
     test("need message permission 11", () => {
@@ -80,6 +136,109 @@ describe("validateMiniAppText", () => {
             expect(validateMiniAppText(text)).toBe("The text must have 1 to 2000 characters");
         }
         expect(new MiniAppMessage(" ").validate()).toBeDefined();
+    });
+});
+
+describe("validateMiniAppImage", () => {
+    test("needs a width, a height and an image's mime type, with OpenChat's errors", () => {
+        expect(validateMiniAppImage(1, 1, "image/webp")).toBeUndefined();
+        expect(new MiniAppMessage(TEXT, IMAGE).validate()).toBeUndefined();
+
+        for (const [width, height] of [
+            [0, 10],
+            [10, 0],
+            [NaN, 10],
+        ]) {
+            expect(validateMiniAppImage(width, height, "image/png")).toBe(
+                "The image must have a width and a height",
+            );
+        }
+        for (const mimeType of ["video/mp4", "application/octet-stream", ""]) {
+            expect(validateMiniAppImage(10, 10, mimeType)).toBe(
+                "The image's mime type must be an image's",
+            );
+        }
+        expect(new MiniAppMessage(TEXT, { ...IMAGE, width: 0 }).validate()).toBe(
+            "The image must have a width and a height",
+        );
+    });
+});
+
+describe("BotClient.createMiniAppMessage", () => {
+    const config: BotClientConfig = {
+        openStorageCanisterId: "aaaaa-aa",
+        icHost: "https://icp-api.io",
+        identityPrivateKey: "not-used",
+        openchatPublicKey: "not-used",
+        autoFetchOgPreviews: false,
+    };
+
+    function client() {
+        const context = ActionContext.inAutonomousContext(
+            new ChatActionScope(new GroupChatIdentifier(GROUP)),
+            "aaaaa-aa",
+        );
+        return new BotClient({} as HttpAgent, config, context);
+    }
+
+    function stubUpload() {
+        return vi.spyOn(DataClient.prototype, "uploadData").mockResolvedValue(IMAGE.blobReference);
+    }
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    test("uploads the image, for the chat, then makes the card", async () => {
+        const upload = stubUpload();
+        const data = new Uint8Array([1, 2, 3]);
+
+        const message = await client().createMiniAppMessage(TEXT, {
+            data,
+            mimeType: "image/png",
+            width: 640,
+            height: 360,
+        });
+
+        expect(upload).toHaveBeenCalledWith([GROUP], "image/png", data);
+        const content = Value.Parse(ApiBotMessageContent, message.toResponse().content);
+        expect("MiniApp" in content && messageContent(content, SENDER)).toEqual({
+            kind: "mini_app_content",
+            text: TEXT,
+            image: IMAGE,
+        });
+    });
+
+    test("uploads nothing for a card without an image", async () => {
+        const upload = stubUpload();
+
+        const message = await client().createMiniAppMessage(TEXT);
+
+        expect(upload).not.toHaveBeenCalled();
+        expect(message.toResponse().content).toEqual({ MiniApp: { text: TEXT } });
+    });
+
+    test("doesn't upload an image OpenChat would refuse", async () => {
+        const upload = stubUpload();
+        const data = new Uint8Array([1]);
+
+        await expect(
+            client().createMiniAppMessage(TEXT, {
+                data,
+                mimeType: "image/png",
+                width: 0,
+                height: 1,
+            }),
+        ).rejects.toThrow("The image must have a width and a height");
+        await expect(
+            client().createMiniAppMessage(TEXT, {
+                data,
+                mimeType: "text/plain",
+                width: 1,
+                height: 1,
+            }),
+        ).rejects.toThrow("The image's mime type must be an image's");
+        expect(upload).not.toHaveBeenCalled();
     });
 });
 

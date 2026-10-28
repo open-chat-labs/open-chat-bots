@@ -6654,9 +6654,18 @@ export const CommunityOrGroup = /* @__PURE__ */ Type.Union([
     }),
 ]);
 
+export type MiniAppImage = Static<typeof MiniAppImage>;
+export const MiniAppImage = /* @__PURE__ */ Type.Object({
+    width: Type.Number(),
+    height: Type.Number(),
+    mime_type: Type.String(),
+    blob_reference: BlobReference,
+});
+
 export type MiniAppContent = Static<typeof MiniAppContent>;
 export const MiniAppContent = /* @__PURE__ */ Type.Object({
     text: Type.String(),
+    image: Type.Optional(MiniAppImage),
 });
 
 export type PriceChartContent = Static<typeof PriceChartContent>;

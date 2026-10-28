@@ -12,6 +12,7 @@ import {
     PollMessage,
     PriceChartMessage,
     TextMessage,
+    validateMiniAppImage,
     type BotClientConfig,
     type BotInstallationEventsResponse,
     type ChangeRoleResponse,
@@ -357,9 +358,33 @@ export class BotClient {
         return Promise.resolve(new PriceChartMessage(chart).setContextMessageId(this.messageId));
     }
 
-    /** A MiniApp card, whose Open button opens the bot's app. See `MiniAppMessage`. */
-    createMiniAppMessage(text: string): Promise<MiniAppMessage> {
-        return Promise.resolve(new MiniAppMessage(text).setContextMessageId(this.messageId));
+    /**
+     * A MiniApp card, whose Open button opens the bot's app. See `MiniAppMessage`. Its optional
+     * image, shown above the text, is uploaded to OpenChat's storage first, as for
+     * `createImageMessage`, so that it's scanned like any image and deleted with the card. An image
+     * OpenChat would refuse, without a width and a height or an image's mime type, isn't uploaded,
+     * and the promise rejects.
+     */
+    async createMiniAppMessage(
+        text: string,
+        image?: { data: Uint8Array; mimeType: string; width: number; height: number },
+    ): Promise<MiniAppMessage> {
+        if (image === undefined) {
+            return new MiniAppMessage(text).setContextMessageId<MiniAppMessage>(this.messageId);
+        }
+        const invalid = validateMiniAppImage(image.width, image.height, image.mimeType);
+        if (invalid !== undefined) {
+            throw new Error(invalid);
+        }
+        const dataClient = new DataClient(this.#agent, this.#env);
+        const canisterId = this.#extractCanisterFromChat();
+        const blobReference = await dataClient.uploadData([canisterId], image.mimeType, image.data);
+        return new MiniAppMessage(text, {
+            width: image.width,
+            height: image.height,
+            mimeType: image.mimeType,
+            blobReference,
+        }).setContextMessageId<MiniAppMessage>(this.messageId);
     }
 
     createImageMessage(

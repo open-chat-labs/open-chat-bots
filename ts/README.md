@@ -275,6 +275,20 @@ await client.sendMessage(card);
 Only bots installed in the chat can post one, and they need the `MiniApp` message permission, eg.
 in the command's `permissions`. It can't be posted in a direct chat, nor forwarded.
 
+A card can have an image, shown above the text, eg. the game's artwork. `createMiniAppMessage`
+uploads it to OpenChat's storage first, as `createImageMessage` does, so that it's scanned like any
+image and deleted with the card. OpenChat refuses an image without a width and a height, or without
+an image's mime type, so `createMiniAppMessage` rejects one before uploading it:
+
+```ts
+const card = await client.createMiniAppMessage("**Tic-tac-toe** · tap Open to play", {
+    data: png, // a Uint8Array
+    mimeType: "image/png",
+    width: 640,
+    height: 360,
+});
+```
+
 ### The app
 
 OpenChat opens the bot's endpoint, with any trailing slash removed, followed by `/app`, eg.

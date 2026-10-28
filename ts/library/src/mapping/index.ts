@@ -2117,12 +2117,24 @@ export function miniAppContent(value: ApiMiniAppContent): MiniAppContent {
     return {
         kind: "mini_app_content",
         text: value.text,
+        image: optional(value.image, (image) => ({
+            width: image.width,
+            height: image.height,
+            mimeType: image.mime_type,
+            blobReference: blobReference(image.blob_reference),
+        })),
     };
 }
 
 export function apiMiniAppContent(domain: Omit<MiniAppContent, "kind">): ApiMiniAppContent {
     return {
         text: domain.text,
+        image: apiOptional(domain.image, (image) => ({
+            width: image.width,
+            height: image.height,
+            mime_type: image.mimeType,
+            blob_reference: apiBlobReference(image.blobReference),
+        })),
     };
 }
 

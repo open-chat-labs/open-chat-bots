@@ -885,15 +885,28 @@ export type PriceChartSource = {
     url: string;
 };
 
-// A bot's card for an app it hosts, eg. a game. OpenChat shows the text with an Open button, which
-// opens the bot's app, served by the bot at `/app` under its endpoint, in a frame. The card never
-// changes: OpenChat refuses an edit of it. Only a bot installed in the chat can send one, needing
-// the MiniApp permission, and it can't be sent in a direct chat nor forwarded. See `MiniAppMessage`.
+// A bot's card for an app it hosts, eg. a game. OpenChat shows the text, under the image if it has
+// one, with an Open button, which opens the bot's app, served by the bot at `/app` under its
+// endpoint, in a frame. The card never changes: OpenChat refuses an edit of it. Only a bot installed
+// in the chat can send one, needing the MiniApp permission, and it can't be sent in a direct chat
+// nor forwarded. See `MiniAppMessage`.
 export type MiniAppContent = {
     kind: "mini_app_content";
     // Markdown, eg. "**Tic-tac-toe** · tap Open to play", of 1 to 2,000 characters. It's the
     // message's text in notifications, previews and search.
     text: string;
+    // Shown above the text, eg. the game's artwork
+    image?: MiniAppImage;
+};
+
+// A card's image, which the bot uploads to OpenChat's storage first, as for an image message, so
+// that it's scanned like any image and deleted with the card
+export type MiniAppImage = {
+    width: number;
+    height: number;
+    // eg. "image/png"
+    mimeType: string;
+    blobReference: BlobReference;
 };
 
 export type ChatEventsCriteria = ChatEventsPage | ChatEventsByIndex | ChatEventsWindow;
