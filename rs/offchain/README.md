@@ -14,6 +14,14 @@ In the root of the repo there are scripts to deploy the Rust offchain example bo
   ./scripts/deploy_llama_bot.sh
 ```
 
+- [TicTacToeBot](../scripts/deploy_tictactoe_bot.sh), which plays tic-tac-toe in a
+  [MiniApp message](../sdk/README.md#miniapp-messages). Grant it the MiniApp and Text permissions
+  to act autonomously when you install it, so it can edit the game as it's played.
+
+```bash
+  ./scripts/deploy_tictactoe_bot.sh
+```
+
 Note: the bridges aren't deployed locally, since they need a Discord app, a Telegram bot or a Twitch
 app, and must be reachable by OpenChat.
 

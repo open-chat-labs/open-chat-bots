@@ -426,6 +426,7 @@ pub async fn execute(request: HttpRequest) -> HttpResponse {
 Offchain, `ExtractJwtLayer` takes the token from the header for `/execute_action` as it does for
 `/execute_command`, refusing a request without one with a 401. Pass the registry the body and the
 bot's own id, eg. its agent's principal, and send the `ActionResponse::into_http` it gives back.
+The [TicTacToeBot](../offchain/examples/tictactoe) shows it all.
 
 ### The session token
 
