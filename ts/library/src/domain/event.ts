@@ -415,7 +415,8 @@ export type MessageContent =
     | UserReferralCard
     | MemeFighterContent
     | VideoCallContent
-    | PriceChartContent;
+    | PriceChartContent
+    | MiniAppContent;
 
 export interface FileContent extends DataContent {
     kind: "file_content";
@@ -883,6 +884,34 @@ export type PriceChartSource = {
     // An https url
     url: string;
 };
+
+// A message a bot keeps up to date while something it runs goes on, eg. a game's lobby or board:
+// markdown text with rows of buttons, each of which the website sends to the bot when pressed (see
+// `ActionHandlerRegistry`). Only a bot can send one, and it needs the MiniApp permission to send or
+// edit it. It can't be forwarded, nor sent in a direct chat, for now. OpenChat refuses one beyond
+// the limits in `MiniAppLimits`, which `validateMiniAppContent` checks.
+export type MiniAppContent = {
+    kind: "mini_app_content";
+    // Markdown, eg. "**Uno** · 2 of 4 players: @UserId(..) @UserId(..)", in which OpenChat shows
+    // each `@UserId(<id>)` as the user's name. It's the message's text in notifications, previews
+    // and search.
+    text: string;
+    // Shown under the text, row by row
+    buttonRows: MessageButton[][];
+};
+
+export type MessageButton = {
+    // The bot's own name for the button, sent to it when the button's pressed. It's 1 to 64 bytes,
+    // and no two buttons on a message share one.
+    id: string;
+    label: string;
+    style: MessageButtonStyle;
+    // The ids of the users shown the button, everyone if undefined. It only hides the button, so
+    // the bot still checks who may press it.
+    visibleTo?: string[];
+};
+
+export type MessageButtonStyle = "primary" | "secondary" | "danger";
 
 export type ChatEventsCriteria = ChatEventsPage | ChatEventsByIndex | ChatEventsWindow;
 

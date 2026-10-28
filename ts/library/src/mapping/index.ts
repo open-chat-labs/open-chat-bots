@@ -13,6 +13,8 @@ import {
     type BotEventWrapper,
     type BotLifecycleEvent,
     type BotMessageContext,
+    type BotMessageTip,
+    type BridgedUserId,
     ChannelIdentifier,
     ChatActionScope,
     type ChatEvent,
@@ -49,12 +51,15 @@ import {
     type ImageContent,
     type InstallationLocation,
     type LeafGate,
+    type MessageButton,
+    type MessageButtonStyle,
     type MessageContent,
     type MessageContext,
     type MessageEvent,
     type MessagePermissions,
     type MessageReminderContent,
     type MessageReminderCreatedContent,
+    type MiniAppContent,
     type P2PSwapContent,
     type P2PSwapStatus,
     type PendingCryptocurrencyTransfer,
@@ -127,6 +132,8 @@ import {
     type BotInstallationLocation as ApiBotInstallationLocation,
     type BotLifecycleEvent as ApiBotLifecycleEvent,
     type BotMessageContext as ApiBotMessageContext,
+    type BotMessageTip as ApiBotMessageTip,
+    type BridgedUserId as ApiBridgedUserId,
     type CallParticipant as ApiCallParticipant,
     type CommunityChannelSummary as ApiChannelSummary,
     Chat as ApiChat,
@@ -159,10 +166,13 @@ import {
     type ImageContent as ApiImageContent,
     MembersResponse as ApiMembersResponse,
     type Message as ApiMessage,
+    type MessageButton as ApiMessageButton,
+    type MessageButtonStyle as ApiMessageButtonStyle,
     type MessageContent as ApiMessageContent,
     type MessagePermissions as ApiMessagePermissions,
     type MessageReminderContent as ApiMessageReminderContent,
     type MessageReminderCreatedContent as ApiMessageReminderCreatedContent,
+    type MiniAppContent as ApiMiniAppContent,
     type OCError as ApiOCError,
     type P2PSwapContent as ApiP2PSwapContent,
     type P2PSwapStatus as ApiP2PSwapStatus,
@@ -1390,6 +1400,9 @@ export function messageContent(value: ApiMessageContent, sender: string): Messag
     if ("PriceChart" in value) {
         return priceChartContent(value.PriceChart);
     }
+    if ("MiniApp" in value) {
+        return miniAppContent(value.MiniApp);
+    }
     if ("ReportedMessage" in value) {
         return reportedMessage(value.ReportedMessage);
     }
@@ -2108,6 +2121,61 @@ function apiPriceChartToken(domain: PriceChartToken): ApiPriceChartToken {
     return { Coin: domain.id };
 }
 
+export function miniAppContent(value: ApiMiniAppContent): MiniAppContent {
+    return {
+        kind: "mini_app_content",
+        text: value.text,
+        buttonRows: value.button_rows.map((row) => row.map(messageButton)),
+    };
+}
+
+function messageButton(value: ApiMessageButton): MessageButton {
+    return {
+        id: value.id,
+        label: value.label,
+        style: messageButtonStyle(value.style),
+        visibleTo: optional(value.visible_to, (users) => users.map(principalBytesToString)),
+    };
+}
+
+function messageButtonStyle(value: ApiMessageButtonStyle): MessageButtonStyle {
+    switch (value) {
+        case "Primary":
+            return "primary";
+        case "Secondary":
+            return "secondary";
+        case "Danger":
+            return "danger";
+    }
+}
+
+export function apiMiniAppContent(domain: Omit<MiniAppContent, "kind">): ApiMiniAppContent {
+    return {
+        text: domain.text,
+        button_rows: domain.buttonRows.map((row) => row.map(apiMessageButton)),
+    };
+}
+
+function apiMessageButton(domain: MessageButton): ApiMessageButton {
+    return {
+        id: domain.id,
+        label: domain.label,
+        style: apiMessageButtonStyle(domain.style),
+        visible_to: apiOptional(domain.visibleTo, (users) => users.map(principalStringToBytes)),
+    };
+}
+
+function apiMessageButtonStyle(domain: MessageButtonStyle): ApiMessageButtonStyle {
+    switch (domain) {
+        case "primary":
+            return "Primary";
+        case "secondary":
+            return "Secondary";
+        case "danger":
+            return "Danger";
+    }
+}
+
 function videoCallParticipant(value: ApiCallParticipant): VideoCallParticipant {
     return {
         userId: principalBytesToString(value.user_id),
@@ -2337,7 +2405,28 @@ export function botChatEvent(api: ApiBotChatEvent): BotChatEvent {
         eventIndex: api.event_index,
         latestEventIndex: api.latest_event_index,
         initiatedBy: undefined, // TODO - check why this is not here
+        tip: optional(api.tip, botMessageTip),
     };
+}
+
+function botMessageTip(api: ApiBotMessageTip): BotMessageTip {
+    return {
+        tippedBy: principalBytesToString(api.tipped_by),
+        ledger: principalBytesToString(api.ledger),
+        tokenSymbol: api.token_symbol,
+        amount: api.amount,
+        heldFor: optional(api.held_for, bridgedUserId),
+    };
+}
+
+function bridgedUserId(api: ApiBridgedUserId): BridgedUserId {
+    if ("Discord" in api) {
+        return { platform: "discord", id: api.Discord };
+    }
+    if ("Telegram" in api) {
+        return { platform: "telegram", id: api.Telegram };
+    }
+    return { platform: "twitch", id: api.Twitch };
 }
 
 export function botCommunityEvent(api: ApiBotCommunityEvent): BotCommunityEvent {

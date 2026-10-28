@@ -7,6 +7,7 @@ import {
     CommunityIdentifier,
     FileMessage,
     ImageMessage,
+    MiniAppMessage,
     OCErrorCode,
     PollMessage,
     PriceChartMessage,
@@ -25,6 +26,7 @@ import {
     type DeleteChannelResponse,
     type MembersResponse,
     type Message,
+    type MiniAppContent,
     type PermissionRole,
     type PriceChartContent,
     type SendMessageResponse,
@@ -142,6 +144,48 @@ export class BotClient {
             .then((resp) => {
                 if (resp.kind !== "success") {
                     console.error("OpenChat botClient.sendMessage failed with: ", resp);
+                }
+                return resp;
+            });
+    }
+
+    /**
+     * Replaces the content of one of the bot's own messages with `message`'s, eg. to show a game's
+     * new state in its MiniApp message. The message's thread (`setThread`), channel
+     * (`setChannelId`, for a client in a community's scope), block level markdown and link
+     * previews apply; its other settings don't. The new content must be the same type as the old,
+     * a poll can't be edited, and nor can a deleted message.
+     *
+     * A bot edits its messages autonomously, as OpenChat refuses an edit made with a command's
+     * token, so this needs a client from `createClientInAutonomouseContext` and the autonomous
+     * permission to send the content's type, eg. MiniApp.
+     */
+    public async editMessage(messageId: bigint, message: Message): Promise<UnitResult> {
+        if (this.#actionContext.jwt !== undefined) {
+            return {
+                kind: "error",
+                code: OCErrorCode.InvalidRequest,
+                message: "Bots must edit their messages autonomously",
+            };
+        }
+        if (!this.#messagePermitted(message)) {
+            return {
+                kind: "error",
+                code: OCErrorCode.InitiatorNotAuthorized,
+                message: "Not authorized",
+            };
+        }
+        const ogPreviews = await this.#resolveOgPreviews(message);
+        return this.#botService
+            .editMessage(
+                this.#actionContext.chatContext(message.channelId),
+                messageId,
+                message,
+                ogPreviews,
+            )
+            .then((resp) => {
+                if (resp.kind !== "success") {
+                    console.error("OpenChat botClient.editMessage failed with: ", resp);
                 }
                 return resp;
             });
@@ -312,6 +356,10 @@ export class BotClient {
 
     createPriceChartMessage(chart: Omit<PriceChartContent, "kind">): Promise<PriceChartMessage> {
         return Promise.resolve(new PriceChartMessage(chart).setContextMessageId(this.messageId));
+    }
+
+    createMiniAppMessage(miniApp: Omit<MiniAppContent, "kind">): Promise<MiniAppMessage> {
+        return Promise.resolve(new MiniAppMessage(miniApp).setContextMessageId(this.messageId));
     }
 
     createImageMessage(

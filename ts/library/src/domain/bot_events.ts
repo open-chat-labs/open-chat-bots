@@ -27,7 +27,26 @@ export type BotChatEvent = {
     eventIndex: number;
     latestEventIndex: number;
     initiatedBy?: string;
+    // Set when the event is a tip on the message, as the message's tips are each tipper's totals
+    tip?: BotMessageTip;
 };
+
+// A tip on a message, which a bot is told of along with the message
+export type BotMessageTip = {
+    tippedBy: string;
+    ledger: string;
+    // Whatever the tipper's client said, so the token's symbol and decimals are best looked up from
+    // its ledger
+    tokenSymbol: string;
+    // In the token's smallest units
+    amount: bigint;
+    // The account the message was relayed from, if no one had linked it, so OpenChat holds the tip
+    // for whoever links it, and refunds it if no one does within 30 days
+    heldFor?: BridgedUserId;
+};
+
+// An account on another platform, which a bridge bot relays messages from
+export type BridgedUserId = { platform: "discord" | "telegram" | "twitch"; id: bigint };
 
 export type BotCommunityEvent = {
     kind: "bot_community_event";

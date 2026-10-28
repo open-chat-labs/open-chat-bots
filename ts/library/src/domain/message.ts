@@ -1,27 +1,32 @@
 import {
     apiBlobReference,
     apiBotChatContext,
+    apiMiniAppContent,
     apiOptional,
     apiPriceChartContent,
     identity,
+    miniAppContent,
 } from "../mapping";
 import type {
+    LocalUserIndexBotEditMessageArgs as BotEditMessageArgs,
     LocalUserIndexBotSendMessageArgs as BotSendMessageArgs,
     FileContent,
     ImageContent,
     BotMessageContent as MessageContent,
+    MiniAppContent as ApiMiniAppContent,
     OgPreview,
     PollContent,
 } from "../typebox/typebox";
 import { random64 } from "../utils/rng";
 import type { BotChatContext } from "./bot";
 import type { BlobReference } from "./data";
-import type { PriceChartContent } from "./event";
+import type { MiniAppContent, PriceChartContent } from "./event";
 import type { MessagePermission } from "./permissions";
 
 type FileMessageContent = { File: FileContent };
 type PollMessageContent = { Poll: PollContent };
 type ImageMessageContent = { Image: ImageContent };
+type MiniAppMessageContent = { MiniApp: ApiMiniAppContent };
 
 export type MessageResponse = {
     id: bigint;
@@ -146,6 +151,23 @@ export abstract class Message {
             og_previews: this.#ogPreviews ?? ogPreviews,
         };
     }
+
+    // The args to replace message `messageId`'s content with this message's. Only its content,
+    // thread, block level markdown and link previews apply to an edit.
+    toEditArgs(
+        ctx: BotChatContext,
+        messageId: bigint,
+        ogPreviews?: OgPreview[],
+    ): BotEditMessageArgs {
+        return {
+            chat_context: apiBotChatContext(ctx),
+            thread: apiOptional(this.#thread, identity),
+            message_id: messageId,
+            content: this.content as MessageContent,
+            block_level_markdown: this.#blockLevelMarkdown,
+            og_previews: this.#ogPreviews ?? ogPreviews,
+        };
+    }
 }
 
 export class TextMessage extends Message {
@@ -216,6 +238,91 @@ export class PriceChartMessage extends Message {
     public get requiredMessagePermissions(): MessagePermission[] {
         return ["Image"];
     }
+}
+
+/**
+ * A message a bot keeps up to date while something it runs goes on, eg. a game's lobby or board:
+ * markdown text with rows of buttons. The website sends each press of a button to the bot's
+ * `/execute_action` endpoint (see `ActionHandlerRegistry`), and the bot edits the message to show
+ * what changed. It needs the MiniApp permission, to send it and, autonomously, to edit it. It can't
+ * be sent in a direct chat. OpenChat refuses content beyond `MiniAppLimits`, so check it with
+ * `validate` first.
+ */
+export class MiniAppMessage extends Message {
+    constructor(miniApp: Omit<MiniAppContent, "kind">) {
+        super({ MiniApp: apiMiniAppContent(miniApp) });
+    }
+
+    public get requiredMessagePermissions(): MessagePermission[] {
+        return ["MiniApp"];
+    }
+
+    /** Why OpenChat would refuse this content, with the error it gives, or undefined if it's valid */
+    validate(): string | undefined {
+        return validateMiniAppContent(
+            miniAppContent((this.content as MiniAppMessageContent).MiniApp),
+        );
+    }
+}
+
+/** The limits OpenChat enforces on a MiniApp message's content */
+export const MiniAppLimits = {
+    MAX_TEXT_CHARS: 2_000,
+    MAX_ROWS: 5,
+    MAX_BUTTONS_PER_ROW: 5,
+    MAX_ID_BYTES: 64,
+    MAX_LABEL_CHARS: 40,
+    MAX_VISIBLE_TO: 100,
+} as const;
+
+/**
+ * Checks MiniApp content against the limits OpenChat enforces, so that a mistake shows up before
+ * it's sent. Returns the error OpenChat would give, or undefined if the content is valid.
+ */
+export function validateMiniAppContent(content: Omit<MiniAppContent, "kind">): string | undefined {
+    const textError = checkChars("text", content.text, MiniAppLimits.MAX_TEXT_CHARS);
+    if (textError !== undefined) return textError;
+    if (content.buttonRows.length > MiniAppLimits.MAX_ROWS) {
+        return `A message has at most ${MiniAppLimits.MAX_ROWS} rows of buttons`;
+    }
+    const ids = new Set<string>();
+    for (const row of content.buttonRows) {
+        if (row.length === 0 || row.length > MiniAppLimits.MAX_BUTTONS_PER_ROW) {
+            return `A row has 1 to ${MiniAppLimits.MAX_BUTTONS_PER_ROW} buttons`;
+        }
+        for (const button of row) {
+            const idBytes = utf8Length(button.id);
+            if (idBytes === 0 || idBytes > MiniAppLimits.MAX_ID_BYTES) {
+                return `A button's id has 1 to ${MiniAppLimits.MAX_ID_BYTES} bytes`;
+            }
+            if (ids.has(button.id)) {
+                return `Two buttons have the id ${button.id}`;
+            }
+            ids.add(button.id);
+            const labelError = checkChars(
+                "button label",
+                button.label,
+                MiniAppLimits.MAX_LABEL_CHARS,
+            );
+            if (labelError !== undefined) return labelError;
+            if ((button.visibleTo?.length ?? 0) > MiniAppLimits.MAX_VISIBLE_TO) {
+                return `A button is shown to at most ${MiniAppLimits.MAX_VISIBLE_TO} users`;
+            }
+        }
+    }
+    return undefined;
+}
+
+// As OpenChat checks text: not blank, and at most `max` characters (code points, as Rust counts)
+function checkChars(field: string, value: string, max: number): string | undefined {
+    if (value.trim().length === 0 || [...value].length > max) {
+        return `The ${field} must have 1 to ${max} characters`;
+    }
+    return undefined;
+}
+
+function utf8Length(value: string): number {
+    return new TextEncoder().encode(value).length;
 }
 
 export type PollDuration = "oneHour" | "oneDay" | "oneWeek";

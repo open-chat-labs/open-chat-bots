@@ -45,6 +45,8 @@ export const messagePermissionList = [
     "Prize",
     "P2pSwap",
     "VideoCall",
+    // To send or edit a MiniApp message, eg. a game
+    "MiniApp",
 ] as const;
 
 type MessagePermissionType = typeof messagePermissionList;
@@ -117,6 +119,7 @@ const messagePermissionMap = {
     Prize: 8,
     P2pSwap: 9,
     VideoCall: 10,
+    MiniApp: 11,
 };
 
 export class Permissions {
