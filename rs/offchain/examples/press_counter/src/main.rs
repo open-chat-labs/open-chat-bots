@@ -12,15 +12,18 @@ use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
 use oc_bots_sdk::api::definition::BotDefinition;
 use oc_bots_sdk::oc_api::actions::{ActionArgsBuilder, installation_events};
 use oc_bots_sdk::oc_api::client::{Client, ClientFactory};
-use oc_bots_sdk::types::{CanisterId, InstallationLocationType, UserId};
+use oc_bots_sdk::types::{
+    ActionScope, AutonomousContext, CanisterId, InstallationLocationType, UnitResult, UserId,
+};
 use oc_bots_sdk_offchain::middleware::tower::{ExtractJwtLayer, OpenChatJwt};
 use oc_bots_sdk_offchain::{AgentRuntime, env};
 use std::collections::HashSet;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::OnceCell;
 use tower_http::cors::CorsLayer;
-use tracing::info;
+use tracing::{error, info};
 
 mod api;
 mod command;
@@ -62,11 +65,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         oc_public_key,
         user_index: oc_client_factory.build(user_index_canister_id),
         bot_id: OnceCell::new(),
-        commands: CommandHandlerRegistry::new(oc_client_factory).register(Press),
+        commands: CommandHandlerRegistry::new(oc_client_factory.clone()).register(Press),
         presses: Presses::default(),
+        oc_client_factory,
     };
+    let app_state = Arc::new(app_state);
 
-    let routes = routes(Arc::new(app_state));
+    tokio::spawn(update_cards(app_state.clone()));
+
+    let routes = routes(app_state);
 
     let socket_addr = SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), port);
     let listener = tokio::net::TcpListener::bind(socket_addr).await?;
@@ -117,6 +124,37 @@ async fn execute_command(
     }
 }
 
+/// How often the bot brings the cards up to date
+const UPDATE_CARDS_INTERVAL: Duration = Duration::from_secs(2);
+
+// Keeps each card showing its players, that the game's on once anyone has pressed, and how many
+// others have the app open. The bot updates its cards autonomously, as itself, which needs no
+// permission beyond being installed. Updates go one at a time, so they land in order.
+async fn update_cards(state: Arc<AppState>) {
+    let mut interval = tokio::time::interval(UPDATE_CARDS_INTERVAL);
+    loop {
+        interval.tick().await;
+        for update in state.presses.due_updates(env::now()) {
+            let client = state.oc_client_factory.build(AutonomousContext {
+                api_gateway: update.api_gateway,
+                scope: ActionScope::Chat(update.card.chat),
+            });
+            let response = client
+                .update_mini_app(update.card.message_id, update.update.clone())
+                .in_thread(update.card.thread)
+                .execute_async()
+                .await;
+
+            if matches!(response, Ok(UnitResult::Success)) {
+                state.presses.updated(&update, env::now());
+            } else {
+                error!("Failed to update a card, {update:?}: {response:?}");
+                state.presses.failed(&update, env::now());
+            }
+        }
+    }
+}
+
 // OpenChat opens the bot's endpoint followed by `/app`. The page needs no token to load: OpenChat
 // gives it one once it's running.
 async fn app() -> impl IntoResponse {
@@ -141,6 +179,7 @@ async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> Js
 
 pub struct AppState {
     oc_public_key: String,
+    oc_client_factory: Arc<ClientFactory<AgentRuntime>>,
     user_index: Client<AgentRuntime, CanisterId>,
     bot_id: OnceCell<UserId>,
     commands: CommandHandlerRegistry<AgentRuntime>,
@@ -181,6 +220,7 @@ mod tests {
     use ct_codecs::{Base64UrlSafeNoPadding, Encoder};
     use ic_agent::Agent;
     use ic_principal::Principal;
+    use oc_bots_sdk::types::{Chat, MessageId, MiniAppStatus, MiniAppUpdate};
     use p256::ecdsa::signature::Signer;
     use p256::ecdsa::{Signature, SigningKey};
     use p256::pkcs8::{EncodePublicKey, LineEnding};
@@ -244,8 +284,9 @@ mod tests {
                 user_index: factory.build(id(5)),
                 // As if it had been looked up already
                 bot_id: OnceCell::new_with(Some(id(BOT))),
-                commands: CommandHandlerRegistry::new(factory).register(Press),
+                commands: CommandHandlerRegistry::new(factory.clone()).register(Press),
                 presses: Presses::default(),
+                oc_client_factory: factory,
             };
             Bot {
                 state: Arc::new(state),
@@ -307,6 +348,29 @@ mod tests {
         assert_eq!(
             bot.presses("GET", "/api/presses", session(3, 2))["total"],
             0
+        );
+    }
+
+    // Through the LocalUserIndex which signed the session, in the card's chat and thread
+    #[test]
+    fn a_first_press_puts_the_player_on_the_card() {
+        let bot = Bot::new();
+        bot.presses("GET", "/api/presses", session(4, 1));
+        bot.presses("POST", "/api/press", session(3, 1));
+
+        let due = bot.state.presses.due_updates(env::now());
+
+        assert_eq!(due.len(), 1);
+        assert_eq!(due[0].api_gateway, id(1));
+        assert_eq!(due[0].card.chat, Chat::Group(id(9)));
+        assert_eq!(due[0].card.thread, None);
+        assert_eq!(due[0].card.message_id, MessageId::from(1));
+        assert_eq!(
+            due[0].update,
+            MiniAppUpdate::default()
+                .with_players(vec![id(3)])
+                .with_status(MiniAppStatus::Active)
+                .with_spectator_count(1)
         );
     }
 

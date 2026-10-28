@@ -19,17 +19,27 @@ pub async fn presses(
 ) -> Result<Json<PressesView>, ApiError> {
     let session = verify(&state, &jwt).await?;
 
-    Ok(Json(state.presses.get(session.card(), session.user_id)))
+    Ok(Json(state.presses.get(
+        session.card(),
+        session.api_gateway,
+        session.user_id,
+        env::now(),
+    )))
 }
 
-/// POST /api/press
+/// POST /api/press. A user's first press makes them a player, which the bot shows on the card.
 pub async fn press(
     State(state): State<Arc<AppState>>,
     Extension(OpenChatJwt(jwt)): Extension<OpenChatJwt>,
 ) -> Result<Json<PressesView>, ApiError> {
     let session = verify(&state, &jwt).await?;
 
-    Ok(Json(state.presses.press(session.card(), session.user_id)))
+    Ok(Json(state.presses.press(
+        session.card(),
+        session.api_gateway,
+        session.user_id,
+        env::now(),
+    )))
 }
 
 // Checks the token is OpenChat's, that it's a BotMessageSession token, for this bot, and that it

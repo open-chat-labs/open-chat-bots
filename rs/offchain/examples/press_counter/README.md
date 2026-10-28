@@ -3,7 +3,8 @@
 A bot with a [MiniApp](../../../sdk/README.md#miniapp-cards): a button any member of a chat can press,
 and a table of how many times each of them has.
 
-- `/press` posts a card, "**Button presses** · tap Open to play". The card never changes.
+- `/press` posts a card, "**Button presses** · tap Open to play", open to spectators and with no
+  limit on players. Its text never changes.
 - Its Open button, which OpenChat's website draws, opens the bot's app, `{endpoint}/app`, in a
   frame. That's [one HTML page](./src/app.html), with inline JS and no build step, which:
   - does the app's side of OpenChat's postMessage protocol: it sends `mini_app_ready`, takes the
@@ -15,6 +16,16 @@ and a table of how many times each of them has.
   `BotMessageSession` token, that it's for this bot and that it hasn't expired. It keeps the counts
   by the card, `(chat, thread, message_id)`, then by user, in memory, so they're lost when the bot is
   restarted.
+- The bot keeps each card up to date with `update_mini_app`, autonomously, as itself, which needs
+  no permission beyond being installed. Every 2 seconds it sends each card whatever has changed, one
+  update at a time so they land in order:
+  - the players, everyone who has pressed, in the order they first did (the first 100, the most a
+    card lists);
+  - status `Active`, once anyone has pressed;
+  - the spectator count: the users who've called the API for the card in the last minute without
+    pressing. It changes at most every 5 seconds.
+
+  A card OpenChat refuses an update to, eg. as it was deleted, is left for 30 seconds.
 
 | Route | Token | |
 | --- | --- | --- |
@@ -108,6 +119,9 @@ cargo run --release              # reads ./config.toml, or pass its path
 2. Tap Open on the card, then Press.
 3. Sign in as another user, eg. in a private window or another browser, join the group, and open
    the same card. Each of you sees the other's presses within a couple of seconds.
+4. The card lists you as a player after your first press, and shows the game as active. Before the
+   second user presses, it counts them as a spectator, within about 5 seconds, and stops a minute
+   after they close the app.
 
 ### If something's wrong
 
@@ -124,6 +138,8 @@ The bot logs to the terminal it runs in, and the app shows the API's errors unde
   its id from another OpenChat deployment.
 - **"Couldn't connect to OpenChat"** in the app: the website didn't answer `mini_app_ready`, eg. it
   doesn't have MiniApp support yet.
+- **"Failed to update a card"** in the bot's log: OpenChat refused `bot_update_mini_app`, eg. as the
+  LocalUserIndex doesn't have it yet, or the card was deleted. The presses still count.
 
 Games must never take or pay out tokens, or anything else of value. That's gambling, which OpenChat
 isn't licensed for.

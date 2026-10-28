@@ -10,7 +10,7 @@ oc_bots_sdk = { path = "../../../sdk" }
 oc_bots_sdk_offchain = { path = "../../sdk", features = ["tower"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync", "time"] }
 toml = { workspace = true }
 tower-http = { workspace = true, features = ["cors"] }
 tracing = { workspace = true }

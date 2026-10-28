@@ -11,7 +11,7 @@ use tracing::error;
 static DEFINITION: LazyLock<BotCommandDefinition> = LazyLock::new(Press::definition);
 
 /// The card's text. It never changes: the counts are shown in the bot's app, which the card's Open
-/// button opens.
+/// button opens, while the card lists the players and how many others have the app open.
 pub const CARD_TEXT: &str = "**Button presses** · tap Open to play";
 
 /// `/press` posts a card. Its counts start when someone first opens the card's app.
@@ -44,10 +44,12 @@ impl CommandHandler<AgentRuntime> for Press {
             .into());
         }
 
+        // Anyone can watch, and press, whenever they like, so there's no limit on players. The
+        // players and spectators are shown as they come, and the game starts at the first press.
+        let card = MiniAppContent::new(CARD_TEXT).with_spectators(true);
+
         let message = oc_client
-            .send_message(MessageContentInitial::MiniApp(MiniAppContent::new(
-                CARD_TEXT,
-            )))
+            .send_message(MessageContentInitial::MiniApp(card))
             .execute_then_return_message(|_, response| {
                 if !matches!(response, Ok(send_message::Response::Success(_))) {
                     error!("Failed to post the card: {response:?}");
