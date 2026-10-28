@@ -3,8 +3,8 @@ use crate::jwt;
 use crate::jwt::Claims;
 use crate::types::{
     ActionContext, ActionScope, BotActionByCommandClaims, BotCommandScope, BotMessageSessionClaims,
-    BotPermissions, CLAIM_TYPE_BOT_MESSAGE_SESSION, CanisterId, Chat, MessageId, MessageIndex,
-    TimestampMillis, TokenError, UserId,
+    BotPermissions, CLAIM_TYPE_BOT_ACTION_BY_COMMAND, CLAIM_TYPE_BOT_MESSAGE_SESSION, CanisterId,
+    Chat, MessageId, MessageIndex, TimestampMillis, TokenError, UserId,
 };
 
 #[derive(Clone, Debug)]
@@ -21,6 +21,15 @@ impl BotCommandContext {
     pub fn parse(jwt: String, public_key: &str, now: TimestampMillis) -> Result<Self, TokenError> {
         let claims = jwt::verify::<Claims<BotActionByCommandClaims>>(&jwt, public_key)
             .map_err(|error| TokenError::Invalid(error.to_string()))?;
+
+        // All of OpenChat's tokens are signed with the same key, so a token for another purpose
+        // must not be taken for a command's
+        if claims.claim_type() != CLAIM_TYPE_BOT_ACTION_BY_COMMAND {
+            return Err(TokenError::Invalid(format!(
+                "Expected a {CLAIM_TYPE_BOT_ACTION_BY_COMMAND} token, got {}",
+                claims.claim_type()
+            )));
+        }
 
         if claims.exp_ms() <= now {
             return Err(TokenError::Expired);
@@ -99,11 +108,13 @@ impl ActionContext for AutonomousContext {
 
 /// A user acting on one of the bot's MiniApp messages, eg. pressing its buttons, as OpenChat vouches
 /// for in the `BotMessageSession` token the website sends with each press. OpenChat gives one to a
-/// member of the chat, for one message, and it's valid for an hour, after which the website fetches
-/// another. It isn't accepted by OpenChat's bot endpoints, so the bot acts on the message
-/// autonomously, with [`Self::autonomous_context`].
+/// member of the chat, for one message, and it's valid for 15 minutes. The website reuses it for each
+/// press until then, and fetches a new one when the bot answers a press with a 401. It isn't
+/// accepted by OpenChat's bot endpoints, so the bot acts on the message autonomously, with
+/// [`Self::autonomous_context`].
 #[derive(Clone, Debug)]
 pub struct BotMessageSession {
+    /// The user id OpenChat gave the bot when it was registered
     pub bot_id: UserId,
     /// The LocalUserIndex which signed the token, through which the bot acts in the chat
     pub api_gateway: CanisterId,
@@ -120,6 +131,10 @@ impl BotMessageSession {
     /// Verifies a `BotMessageSession` token: that OpenChat signed it, with `public_key`, for this
     /// bot, `bot_id`, and that it hasn't expired. A token for another bot is refused, as otherwise
     /// one bot's server could replay a user's token to another bot.
+    ///
+    /// `bot_id` is the user id OpenChat gave the bot when it was registered, which isn't the bot's
+    /// principal. An offchain bot can fetch it from the UserIndex, with
+    /// `installation_events().size(0)`, and a canister bot is told it when it's registered.
     pub fn parse(
         jwt: &str,
         public_key: &str,
@@ -296,6 +311,47 @@ mod tests {
         let result = parse(&parts.join("."));
 
         assert!(matches!(result, Err(TokenError::Invalid(_))), "{result:?}");
+    }
+
+    fn command_token(claim_type: &str) -> String {
+        use crate::api::command::Command;
+        use crate::types::BotActionChatDetails;
+
+        let claims = Claims::new(
+            NOW + 3_600_000,
+            claim_type.to_string(),
+            BotActionByCommandClaims {
+                bot_api_gateway: id(1),
+                bot: id(2),
+                scope: BotCommandScope::Chat(BotActionChatDetails {
+                    chat: Chat::Group(id(3)),
+                    thread: None,
+                    message_id: 1.into(),
+                    user_message_id: None,
+                }),
+                granted_permissions: BotPermissions::text_only(),
+                command: Command {
+                    name: "roll".to_string(),
+                    args: Vec::new(),
+                    initiator: id(4),
+                    meta: None,
+                },
+            },
+        );
+        sign(&signing_key(), &serde_json::to_string(&claims).unwrap())
+    }
+
+    #[test]
+    fn only_a_command_token_parses_as_a_command() {
+        let command =
+            BotCommandContext::parse(command_token("BotActionByCommand"), &public_key_pem(), NOW);
+        assert!(command.is_ok(), "{command:?}");
+
+        for claim_type in ["BotMessageSession", "StartVideoCall"] {
+            let result =
+                BotCommandContext::parse(command_token(claim_type), &public_key_pem(), NOW);
+            assert!(matches!(result, Err(TokenError::Invalid(_))), "{result:?}");
+        }
     }
 
     #[test]

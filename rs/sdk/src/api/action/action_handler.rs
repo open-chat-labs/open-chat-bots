@@ -26,8 +26,8 @@ impl<R: Runtime> ActionHandlerRegistry<R> {
     }
 
     /// Handles a POST to `/execute_action`: `jwt` is the `x-oc-jwt` header, `body` the request's
-    /// body, `public_key` OpenChat's, and `bot_id` this bot's own id, as tokens for other bots are
-    /// refused
+    /// body and `public_key` OpenChat's. Tokens for other bots are refused, so `bot_id` is this
+    /// bot's: the user id OpenChat gave it when it was registered, not its principal.
     pub async fn execute(
         &self,
         jwt: &str,
@@ -167,8 +167,14 @@ mod tests {
         )
     }
 
+    // The user id OpenChat gave the bot when it was registered: 8 random bytes, unlike any
+    // principal the bot signs its calls with
+    fn bot_id() -> UserId {
+        Principal::from_slice(&[0x5e, 0x1f, 0x09, 0x3a, 0xc4, 0x77, 0x20, 0x01]).into()
+    }
+
     fn valid_token() -> String {
-        token(id(2), NOW / 1000 + 3600)
+        token(bot_id(), NOW / 1000 + 3600)
     }
 
     fn registry(handlers: Vec<Recorder>) -> ActionHandlerRegistry<Recording> {
@@ -183,7 +189,7 @@ mod tests {
         jwt: &str,
         body: &str,
     ) -> ActionResponse {
-        block_on(registry.execute(jwt, body.as_bytes(), &public_key_pem(), id(2), NOW))
+        block_on(registry.execute(jwt, body.as_bytes(), &public_key_pem(), bot_id(), NOW))
     }
 
     // Nothing here waits, so each future is ready when first polled
@@ -225,7 +231,7 @@ mod tests {
     #[test]
     fn a_bad_token_is_unauthorized() {
         let registry = registry(vec![Recorder::default()]);
-        let expired = token(id(2), NOW / 1000);
+        let expired = token(bot_id(), NOW / 1000);
         let for_another_bot = token(id(9), NOW / 1000 + 3600);
 
         for jwt in ["", &expired, &for_another_bot] {
@@ -235,6 +241,23 @@ mod tests {
                 assert_eq!(response.status_code(), 401, "{response:?}");
             }
         }
+    }
+
+    // The token's `bot` is the bot's user id, so a bot which passed its principal instead would
+    // refuse every press
+    #[test]
+    fn a_token_is_for_the_bots_user_id_not_its_principal() {
+        let registry = registry(vec![Recorder::default()]);
+        let principal: UserId = Principal::self_authenticating([7; 44]).into();
+        let jwt = valid_token();
+        let body = br#"{"button_id":"join"}"#;
+
+        let as_user_id = block_on(registry.execute(&jwt, body, &public_key_pem(), bot_id(), NOW));
+        let as_principal =
+            block_on(registry.execute(&jwt, body, &public_key_pem(), principal, NOW));
+
+        assert_eq!(as_user_id.status_code(), 200, "{as_user_id:?}");
+        assert_eq!(as_principal.status_code(), 401, "{as_principal:?}");
     }
 
     #[test]
@@ -262,7 +285,7 @@ mod tests {
     fn a_press_edits_its_message_autonomously_in_its_thread() {
         let runtime = Arc::new(Recording::default());
         let session = BotMessageSession {
-            bot_id: id(2),
+            bot_id: bot_id(),
             api_gateway: id(1),
             chat: Chat::Channel(id(3), 7),
             thread: Some(12),

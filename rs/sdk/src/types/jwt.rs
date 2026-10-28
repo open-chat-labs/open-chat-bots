@@ -21,6 +21,9 @@ impl Display for TokenError {
     }
 }
 
+/// The `claim_type` of the token OpenChat gives a bot with each command
+pub const CLAIM_TYPE_BOT_ACTION_BY_COMMAND: &str = "BotActionByCommand";
+
 /// The `claim_type` of the token OpenChat gives a user to act on one of a bot's MiniApp messages
 pub const CLAIM_TYPE_BOT_MESSAGE_SESSION: &str = "BotMessageSession";
 
