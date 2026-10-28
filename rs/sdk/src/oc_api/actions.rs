@@ -26,6 +26,7 @@ pub mod remove_user;
 pub mod send_message;
 #[cfg(feature = "bridge")]
 pub mod unlink_bridged_user;
+pub mod update_mini_app;
 pub mod upload_chunk;
 
 pub trait ActionDef {

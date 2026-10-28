@@ -6,7 +6,7 @@ use crate::oc_api::client::members::MembersBuilder;
 use crate::oc_api::client::remove_user::RemoveUserBuilder;
 use crate::types::{
     ActionContext, AutonomousContext, BridgedUserId, CanisterId, ChannelId, ChatRole,
-    MessageContentInitial, MessageId, Reaction, TextContent, UserId,
+    MessageContentInitial, MessageId, MiniAppUpdate, Reaction, TextContent, UserId,
 };
 use add_reaction::AddReactionBuilder;
 #[cfg(feature = "bridge")]
@@ -26,6 +26,7 @@ use invite_users::InviteUsersBuilder;
 use send_message::SendMessageBuilder;
 use std::collections::HashSet;
 use std::sync::Arc;
+use update_mini_app::UpdateMiniAppBuilder;
 pub use upload::UploadError;
 
 mod add_reaction;
@@ -46,6 +47,7 @@ mod invite_users;
 mod members;
 mod remove_user;
 mod send_message;
+mod update_mini_app;
 mod upload;
 
 pub struct ClientFactory<R> {
@@ -145,6 +147,19 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
 
     pub fn send_text_message(&self, text: String) -> SendMessageBuilder<'_, R, C> {
         self.send_message(MessageContentInitial::Text(TextContent { text }))
+    }
+
+    /// Changes what the bot's MiniApp card, `message_id`, shows as its game goes on: its status,
+    /// players, whose move it is and the result. It works with a command's context or
+    /// autonomously, eg. with a `BotMessageSession`'s `autonomous_context()`, and needs no permission
+    /// beyond the bot being installed. A card in a thread needs `in_thread`, unless the context is
+    /// a command's in that thread.
+    pub fn update_mini_app(
+        &self,
+        message_id: MessageId,
+        update: MiniAppUpdate,
+    ) -> UpdateMiniAppBuilder<'_, R, C> {
+        UpdateMiniAppBuilder::new(self, message_id, update)
     }
 }
 

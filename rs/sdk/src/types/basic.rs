@@ -184,3 +184,27 @@ impl From<InstallationLocation> for InstallationLocationType {
         }
     }
 }
+
+/// A change to an optional value: none, removing it, or setting it, as OpenChat's `OptionUpdate`
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
+pub enum OptionUpdate<T> {
+    #[default]
+    NoChange,
+    SetToNone,
+    SetToSome(T),
+}
+
+impl<T> OptionUpdate<T> {
+    pub fn is_no_change(&self) -> bool {
+        matches!(self, OptionUpdate::NoChange)
+    }
+
+    /// The value after the change
+    pub fn apply_to(self, old: Option<T>) -> Option<T> {
+        match self {
+            OptionUpdate::NoChange => old,
+            OptionUpdate::SetToNone => None,
+            OptionUpdate::SetToSome(value) => Some(value),
+        }
+    }
+}
