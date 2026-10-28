@@ -340,7 +340,9 @@ client
 - `MiniAppContent::validate` checks the card as OpenChat does, with its errors: the text has 1 to
   2,000 characters, `max_players` is 1 to 100, the players are at most that many (or 100), each
   listed once, only a card open to spectators has a `spectator_count`, only players are waited for,
-  and only a finished game has a result, of 1 to 200 characters.
+  each once, and only a finished game has a result, of 1 to 200 characters.
+- A card must be sent finalised, as `send_message` sends messages by default, or OpenChat refuses
+  it.
 - It can't be posted in a direct chat, nor forwarded, so a bot should set its definition's
   `restricted_locations` to communities and groups.
 
@@ -379,9 +381,14 @@ set stays as it was:
 - `MiniAppUpdate::finished("Bob won")` at the end: status `Finished`, waiting for no one, and the
   result. A finished card never changes again.
 
-Only the bot which posted the card can update it, and it needs no permission beyond being
-installed. It can use a command's context, or act autonomously, eg. from its app's API with the
-user's session:
+Only the bot which posted the card can update it, as for deleting its own messages:
+
+- With a command's context, eg. straight after posting the card, any installed bot can.
+- Autonomously, eg. from its app's API or a background task, the bot must be installed to act
+  autonomously: its definition has an `autonomous_config`, even with no permissions, and the
+  owner granted it when installing the bot.
+
+From its app's API, with the user's session:
 
 ```rust
 oc_client_factory
