@@ -256,6 +256,187 @@ fetch automatically. In-canister bots (`oc_bots_sdk_canister`, the Motoko SDK) a
 only, because scraping a link from a canister would mean a consensus-replicated http outcall and
 a cycles cost on every send.
 
+## MiniApp messages and games
+
+A MiniApp message is markdown text with up to 5 rows of buttons, which a bot posts and keeps up to
+date while something it runs goes on, eg. a game's lobby, then its board. When a member of the chat
+presses a button, the OpenChat website sends the press to the bot, which acts on it and edits the
+message to show what changed. The bot keeps all the state, eg. the game's: OpenChat only stores the
+message.
+
+```typescript
+const message = await client.createMiniAppMessage({
+  text: "**Tic-tac-toe** · @UserId(..)'s turn",
+  buttonRows: [
+    [
+      // No visibleTo shows it to everyone, or eg. visibleTo: [host] only to the host
+      { id: "cell-4", label: "·", style: "secondary" },
+    ],
+  ],
+});
+const error = message.validate();
+if (error === undefined) {
+  await client.sendMessage(message);
+}
+```
+
+- Only bots can send them, and they need the `MiniApp` message permission to, eg. in a command's
+  `permissions`. They can't be forwarded, and can't be sent in direct chats for now.
+- `@UserId(<id>)` in the text is shown as the user's name.
+- `visibleTo` only hides a button, so the bot still checks who may press it.
+- OpenChat refuses content beyond `MiniAppLimits` (eg. 2,000 characters of text, 5 buttons a row,
+  ids of up to 64 bytes, each unique within the message). `validate()` (or
+  `validateMiniAppContent`) gives the error OpenChat would, so a mistake shows up before sending.
+
+### Editing a message
+
+`client.editMessage(messageId, message)` replaces the content of one of the bot's own messages,
+taking the message's thread (`setThread`), channel (`setChannelId`, for a client in a community's
+scope), block level markdown and link previews. A bot edits its messages autonomously, as OpenChat
+refuses an edit made with a command's token, so this needs a client from
+`createClientInAutonomouseContext` and the autonomous permission to send the content's type. The
+new content must be the same type as the old.
+
+### Button presses
+
+The website POSTs each press to the bot's endpoint at `/execute_action`, with the user's
+[session token](#the-session-token) in the `x-oc-jwt` header and the button's id as the body:
+
+```
+POST /execute_action
+Content-Type: application/json
+x-oc-jwt: <BotMessageSession JWT>
+
+{"button_id": "cell-4"}
+```
+
+An `ActionHandlerRegistry` verifies the token, then gives the press to the first registered handler
+which `handles` the button, every button by default. The handler gets a `ButtonPress`, with the
+`session` (the user, chat, thread, message id and the user's timezone and language), the
+`buttonId`, and a `client` acting autonomously in the chat, and answers with an `ActionResponse`:
+
+| `ActionResponse`                        | status | body                                                                                     |
+| --------------------------------------- | ------ | ---------------------------------------------------------------------------------------- |
+| `ok()`, `reply(text)`, `replyWith(msg)` | 200    | `{ "message"?: { "content": <MessageContentInitial>, "block_level_markdown"?: bool } }`  |
+| `badRequest(reason)`                    | 400    | the reason, as text, eg. for a button which isn't valid now                              |
+| `unauthorized(reason)`                  | 401    | the reason, as text: the token is invalid or has expired, so the website fetches a new one and tries once more |
+| `tooManyRequests()`                     | 429    | none                                                                                     |
+| `internalError(error)`                  | 500    | the error, as text. A handler which throws is answered with this.                        |
+
+The registry answers a press without a valid token with a 401, and a body which isn't
+`{"button_id": "<id>"}`, or a button no handler takes, with a 400. A successful response's
+`message`, usually text, is shown to the user who pressed the button and no one else, like a
+command's ephemeral reply, eg. `ActionResponse.reply("It's not your turn")`.
+
+Mount the registry next to `/execute_command`:
+
+```typescript
+const actions = new ActionHandlerRegistry(factory).register({
+  handles: (buttonId) => buttonId.startsWith("cell-"),
+  execute: async (press) => {
+    // Look the game up by the message's chat, thread and message id together, as a message id is
+    // only unique within its chat and thread
+    const game = games.get(press.session.messageKey);
+    if (game === undefined) return ActionResponse.reply("This game has ended");
+    if (game.turn !== press.userId) return ActionResponse.reply("It's not your turn");
+    game.play(press.buttonId);
+
+    const result = await press.editMessage(game.render());
+    return result.kind === "success"
+      ? ActionResponse.ok()
+      : ActionResponse.internalError(`${result.message}`);
+  },
+});
+
+app.post("/execute_action", express.json(), actions.expressHandler());
+```
+
+The website calls the endpoint from the browser, so the bot answers CORS requests for it too, eg.
+with `app.use(cors())` as the examples do. Outside express, call `actions.execute(token, body)` and
+send what `actionHttpResponse` makes of the `ActionResponse` it gives back.
+
+### The session token
+
+The website fetches a `BotMessageSession` token for each user and MiniApp message, and sends it with
+every button they press there. OpenChat signs it, with the key it signs command tokens with, once it
+has checked the user is a member of the chat and the message is the bot's. It's valid for 15
+minutes. The website reuses it for each press until then, and fetches a new one, then tries once
+more, when the bot answers a press with a 401. Its claims are:
+
+```
+{
+  exp,              // seconds
+  claim_type: "BotMessageSession",
+  bot_api_gateway,  // the LocalUserIndex which signed it
+  bot,
+  chat,
+  thread?,
+  message_id,
+  user_id,          // who pressed the button
+  meta?: { timezone, language },
+}
+```
+
+`BotMessageSession.parse(token, openchatPublicKey, botId)`, which the registry calls, checks the
+signature, that the token is a `BotMessageSession` token, that it's for this bot, and that it hasn't
+expired. It throws a `TokenError` whose `kind` is `expired` or `invalid`. Checking the bot matters:
+otherwise one bot's server could replay a user's token to another bot.
+
+The bot's id in its tokens is the user id OpenChat gave it when it was registered, not its
+principal. The registry fetches it from the UserIndex, with `factory.botId()`, when the first press
+arrives rather than at startup, as a bot is usually started before it's registered, and keeps it.
+Until the lookup succeeds, presses are answered with a 500, and it's tried again on the next one. A
+bot which already knows its id, eg. from the `bot_registered_event`, can pass it, as
+`new ActionHandlerRegistry(factory, { botId })`.
+
+The token only vouches for the user. OpenChat's bot endpoints don't accept it, so a bot acts on a
+press autonomously: `press.client` acts in the chat through the token's `bot_api_gateway`, and
+`press.editMessage(content)` edits the message the button is on, in its thread. The bot needs the
+autonomous `MiniApp` permission to edit it, so declare it in the definition's `autonomous_config`.
+
+### Lobbies
+
+`Lobby` gathers players for a game: its host, who posted it, is its first player, others join and
+leave, and the host starts the game once enough have joined. `join`, `leave` and `start` return a
+`LobbyResult`, whose `error` (eg. `full`, `not_a_player`, `not_the_host`, `too_few_players`,
+`already_started`) `lobbyErrorMessage` words for the player. `render(title)` gives the lobby's
+message: its players, mentioned by `@UserId`, with Join and Leave buttons for everyone, and a Start
+button only the host is shown.
+
+Keep each game by its message's chat, thread and message id together, with `messageKey` or
+`press.session.messageKey`, and don't let a new game replace one already kept under the same key: a
+message id is only unique within its chat and thread, and the client which sends a command chooses
+the id of the message the bot answers it with.
+
+```typescript
+// In the command which starts a game. The bot's message takes the command's message id.
+const key = messageKey(client.chatId!, client.threadRootMessageId, client.messageId!);
+if (lobbies.has(key)) {
+  res.status(400).send("There's already a game for this message");
+  return;
+}
+const lobby = new Lobby(client.initiator!, 2, 2);
+lobbies.set(key, lobby);
+const message = await client.createMiniAppMessage(lobby.render("Tic-tac-toe"));
+client.sendMessage(message);
+res.status(200).json({ message: message.toResponse() });
+
+// On a press of Lobby.JOIN
+const lobby = lobbies.get(press.session.messageKey);
+if (lobby === undefined) return ActionResponse.reply("This game has ended");
+const result = lobby.join(press.userId);
+if (result.kind === "error") {
+  return ActionResponse.reply(lobbyErrorMessage(result.error));
+}
+await press.editMessage(lobby.render("Tic-tac-toe"));
+return ActionResponse.ok();
+```
+
+### No wagering
+
+Games must never involve wagering tokens, or anything else of value, eg. a stake to join or a prize
+paid from the players' stakes. That's gambling, which OpenChat isn't licensed for.
+
 ## BotClient interface
 
 Here is a full description of the BotClient interface.

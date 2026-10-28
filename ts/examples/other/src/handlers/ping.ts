@@ -110,8 +110,8 @@ export class Ping {
                                     event.location,
                                     new InstallationRecord(
                                         event.apiGateway,
-                                        event.grantedAutonomousPermissions,
                                         event.grantedCommandPermissions,
+                                        event.grantedAutonomousPermissions,
                                         event.installedAt,
                                     ),
                                 );
