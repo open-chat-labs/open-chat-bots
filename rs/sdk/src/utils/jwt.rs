@@ -57,3 +57,39 @@ pub fn verify<T: DeserializeOwned>(jwt: &str, public_key_pem: &str) -> Result<T,
 
     Ok(serde_json::from_slice(&bytes)?)
 }
+
+// Tokens signed as OpenChat signs them, with ES256, by a key which stands in for OpenChat's
+#[cfg(test)]
+pub(crate) mod test_tokens {
+    use ct_codecs::{Base64UrlSafeNoPadding, Encoder};
+    use p256::ecdsa::signature::Signer;
+    use p256::ecdsa::{Signature, SigningKey};
+    use p256::pkcs8::{EncodePublicKey, LineEnding};
+
+    pub fn signing_key() -> SigningKey {
+        SigningKey::from_slice(&[7; 32]).unwrap()
+    }
+
+    // Not OpenChat's
+    pub fn other_signing_key() -> SigningKey {
+        SigningKey::from_slice(&[8; 32]).unwrap()
+    }
+
+    pub fn public_key_pem() -> String {
+        signing_key()
+            .verifying_key()
+            .to_public_key_pem(LineEnding::LF)
+            .unwrap()
+    }
+
+    pub fn sign(key: &SigningKey, claims_json: &str) -> String {
+        let header = encode(br#"{"alg":"ES256"}"#);
+        let claims = encode(claims_json.as_bytes());
+        let signature: Signature = key.sign(format!("{header}.{claims}").as_bytes());
+        format!("{header}.{claims}.{}", encode(&signature.to_bytes()))
+    }
+
+    fn encode(bytes: &[u8]) -> String {
+        Base64UrlSafeNoPadding::encode_to_string(bytes).unwrap()
+    }
+}

@@ -1,5 +1,5 @@
 use super::{ActionScope, BotPermissions, CanisterId, Chat, MessageId, MessageIndex, UserId};
-use crate::api::command::Command;
+use crate::api::command::{Command, CommandMeta};
 use crate::types::ChannelId;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -19,6 +19,23 @@ impl Display for TokenError {
             TokenError::Expired => write!(f, "Token has expired"),
         }
     }
+}
+
+/// The `claim_type` of the token OpenChat gives a user to act on one of a bot's MiniApp messages
+pub const CLAIM_TYPE_BOT_MESSAGE_SESSION: &str = "BotMessageSession";
+
+/// What OpenChat vouches for when it gives a user, a member of the chat, a token to act on one of
+/// the bot's MiniApp messages, eg. by pressing its buttons. It's signed once for the user and the
+/// message, and reused for every button they press on it. See [`super::BotMessageSession`].
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct BotMessageSessionClaims {
+    pub bot_api_gateway: CanisterId,
+    pub bot: UserId,
+    pub chat: Chat,
+    pub thread: Option<MessageIndex>,
+    pub message_id: MessageId,
+    pub user_id: UserId,
+    pub meta: Option<CommandMeta>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

@@ -12,6 +12,10 @@ impl OpenChatJwt {
     }
 }
 
+/// Takes the `x-oc-jwt` header OpenChat sends with each command (`/execute_command`) and button
+/// press (`/execute_action`), into an [`OpenChatJwt`] extension for the route's handler, which
+/// verifies it. A request without one is refused with a 401, which the website answers to a button
+/// press by fetching a token and trying again.
 #[derive(Clone)]
 pub struct ExtractJwtLayer {
     header_name: HeaderName,

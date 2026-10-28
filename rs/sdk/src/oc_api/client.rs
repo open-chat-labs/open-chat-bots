@@ -20,7 +20,7 @@ use community_summary::CommunitySummaryBuilder;
 use create_channel::CreateChannelBuilder;
 use delete_channel::DeleteChannelBuilder;
 use delete_messages::DeleteMessagesBuilder;
-use edit_message::EditMessageBuilder;
+pub use edit_message::EditMessageBuilder;
 use installation_events::InstallationEventsBuilder;
 use invite_users::InviteUsersBuilder;
 use send_message::SendMessageBuilder;

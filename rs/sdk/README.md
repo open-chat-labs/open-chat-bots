@@ -12,7 +12,7 @@ Within the SDK is an `api` folder which reflects the [Bot API](#bot-api) which b
 
 The Bot API defines the [bot definition](#bot-definition) which when serialised as JSON conforms to the [Bot definition _schema_](<(../../schema/bot_schema.json)>).
 
-It also provides a [command handler registry](#command-handler-registry) which simplifies the process of digesting JWTs to handle commands.
+It also provides a [command handler registry](#command-handler-registry) which simplifies the process of digesting JWTs to handle commands, and an action handler registry which does the same for [presses of buttons](#button-presses) on the bot's [MiniApp messages](#miniapp-messages).
 
 ### Bot definition
 
@@ -21,6 +21,8 @@ pub struct BotDefinition {
     pub description: String,
     pub commands: Vec<BotCommandDefinition>,
     pub autonomous_config: Option<AutonomousConfig>,
+    pub default_subscriptions: Option<BotSubscriptions>,
+    pub restricted_locations: Option<HashSet<InstallationLocationType>>,
 }
 ```
 
@@ -32,7 +34,9 @@ It _does_ include the `description` of the bot which is shown in the OpenChat UI
 
 It also defines a list of [commands](#commands).
 
-Finally, the bot definition specifies an optional [autonomous_config](#autonomous-configuration).
+Next, the bot definition specifies an optional [autonomous_config](#autonomous-configuration).
+
+Finally, `default_subscriptions` lists the chat and community events the bot would like OpenChat to notify it of, and `restricted_locations` limits where it can be installed, eg. only in groups.
 
 #### Commands
 
@@ -46,7 +50,7 @@ pub struct BotCommandDefinition {
     pub params: Vec<BotCommandParam>,
     pub permissions: BotPermissions,
     pub default_role: Option<ChatRole>,
-    pub direct_messages: bool,
+    pub direct_messages: Option<bool>,
 }
 ```
 
@@ -81,7 +85,7 @@ pub enum BotCommandParamType {
 
 A parameter can be either a boolean, a string, an integer, a decimal, a datetime, or an open chat user id. In the case of strings, integers and decimals, the range of possible inputs can be specified and a list of possible `choices` provided. If `choices` are specified, then OpenChat will show a drop down list for this parameter with the possible options.
 
-Next up, are the command [permissions](#bot-permissions). This is the set of permissions the bot requires to take action(s) within OpenChat when this command is executed. For simplicity, the `BotPermissions` type includes permissions for all types of OpenChat action, whether at community, chat, or message scope regardless of whether this makes sense when used in a particular context. For instance, commands can currently only be issued within chats so community permissions like `CreatePrivateChannel`, don't apply, whereas they _do_ make sense for a bot acting with a community scoped API key. When the owner of a particular location (community/group/direct chat) installs a bot, they can choose which permissions to grant to the bot and this will determine which commands are available for use within this location.
+Next up, are the command [permissions](#bot-permissions). This is the set of permissions the bot requires to take action(s) within OpenChat when this command is executed. For simplicity, the `BotPermissions` type includes permissions for all types of OpenChat action, whether at community, chat, or message scope regardless of whether this makes sense when used in a particular context. For instance, commands can currently only be issued within chats so community permissions like `CreatePrivateChannel`, don't apply, whereas they _do_ make sense for a bot acting autonomously in a community. When the owner of a particular location (community/group/direct chat) installs a bot, they can choose which permissions to grant to the bot and this will determine which commands are available for use within this location.
 
 Next, the command has an optional `default_role`. This can be either `Owner`, `Admin`, `Moderator` or `Participant` and defaults to the latter if none is specified. This is a hint to OpenChat to use this default when asking the bot installer which roles should be able to call this command. In fact, at the time of writing, OpenChat does _not_ ask the installer which roles can call each command, and so `default_role` actually allows the bot developer to specify which roles should be able to call this command. Roles are hierarchical, so for instance, if the `default_role` is `Admin` this means it can be called by all members with the `Admin` or `Owner` role.
 
@@ -94,13 +98,21 @@ In addition to acting in response to user commands, bots can take actions autono
 ```
 pub struct AutonomousConfig {
     pub permissions: BotPermissions,
-    pub sync_api_key: bool,
 }
 ```
 
-The optional `AutonomousConfig` tells OpenChat which permissions the bot would like in order to take autonomous actions. When a bot is installed, the user can choose which of these permissions to grant the bot within this scope. The installer can then generate an API key for the bot in this scope. The installer can give this API key to a 3rd party to enable a particular integration, say to a github action which calls the bot to send a message whenever a PR is created. Or if the `sync_api_key` flag is set, the UI will show a triangular "sync API key" button which will send the API key directly to the bot. In response the bot should store it in a map of scope to API key so it can subsequently take the permitted autonomous actions within these scopes. A map, [ApiKeyRegistry](./src/api_key_registry.rs), is provided by the SDK for this purpose.
+The optional `AutonomousConfig` tells OpenChat which permissions the bot would like in order to take autonomous actions. When a bot is installed, the installer chooses which of these permissions to grant it in that location, and OpenChat notifies the bot, at `/notify`, with a `BotInstalledEvent` giving the location and the permissions granted. The bot keeps each installation's `api_gateway`, eg. in an [InstallationRegistry](./src/installation_registry.rs), and acts in the location with a client built from an `AutonomousContext`:
 
-It is worth clarifying the different between _location_ and _scope_. The bot can be _installed_ into a _location_ which is either a community, group or direct chat. However, a bot can _act_ in a _scope_ which is ether a community, _channel_, group or direct chat. For groups and direct chats, location and scope are the same thing. Bots can be installed into communities but _not_ channels. However, API keys can be generated at the community scope, in which case the permissions cascade to all channels, or at the channel scope, in which case the API key can only be used with that specific channel.
+```
+let client = oc_client_factory.build(AutonomousContext {
+    api_gateway: record.api_gateway,
+    scope: ActionScope::Chat(chat),
+});
+```
+
+A bot can also let a 3rd party act through it, say a GitHub action which has the bot send a message whenever a PR is created, by giving it an API key for a location. The bot issues and checks its own keys, eg. with an [ApiKeyRegistry](./src/api_key_registry.rs), as the [GreetBot](../canister/examples/greet/canister/src/router/commands/generate_api_key.rs) does with its `/generate_api_key` command.
+
+It is worth clarifying the different between _location_ and _scope_. The bot can be _installed_ into a _location_ which is either a community, group or direct chat. However, a bot can _act_ in a _scope_ which is ether a community, _channel_, group or direct chat. For groups and direct chats, location and scope are the same thing. Bots can be installed into communities but _not_ channels, and the permissions granted in a community cascade to all its channels.
 
 #### Bot permissions
 
@@ -112,7 +124,7 @@ pub struct BotPermissions {
 }
 ```
 
-This struct bit encodes the permissions which otherwise can take considerable space when serialised, such as in JWTs or API keys. However, it provides an interface which allows you to consider it as a set of community permissions, a set of chat permissions and a set of message permissions - defined below.
+This struct bit encodes the permissions which otherwise can take considerable space when serialised, such as in JWTs. However, it provides an interface which allows you to consider it as a set of community permissions, a set of chat permissions and a set of message permissions - defined below.
 
 ```
 pub enum CommunityPermission {
@@ -123,6 +135,8 @@ pub enum CommunityPermission {
     CreatePublicChannel,
     CreatePrivateChannel,
     ManageUserGroups,
+    ReadMembership,
+    ReadSummary,
 }
 
 pub enum ChatPermission {
@@ -138,7 +152,7 @@ pub enum ChatPermission {
     StartVideoCall,
     ReadMessages,
     ReadMembership,
-    ReadChatSummary,
+    ReadSummary,
 }
 
 pub enum MessagePermission {
@@ -153,6 +167,7 @@ pub enum MessagePermission {
     Prize,
     P2pSwap,
     VideoCall,
+    MiniApp,
 }
 ```
 
@@ -168,10 +183,9 @@ Here is an example from the [ReminderBot](../canister/examples/reminder/src/rout
         .register(RemindAt)
         .register(List)
         .register(Delete)
-        .on_sync_api_key(Box::new(sync_api_key::callback))
 ```
 
-In this case four command handlers are registered and a separate handler is provided for receiving API keys from OpenChat. Each command handler implements the [CommandHandler](./src/api/command/command_handler.rs#108) trait:
+In this case four command handlers are registered. Each command handler implements the [CommandHandler](./src/api/command/command_handler.rs) trait:
 
 ```
 pub trait CommandHandler<R>: Send + Sync {
@@ -179,15 +193,14 @@ pub trait CommandHandler<R>: Send + Sync {
 
     async fn execute(
         &self,
-        context: BotCommandContext,
-        oc_client_factory: &ClientFactory<R>,
+        oc_client: Client<R, BotCommandContext>,
     ) -> Result<SuccessResult, String>;
 
     ...
 }
 ```
 
-Each command handler implements it's portion of the [BotDefinition](#bot-definition) and an `execute` function where all the action happens! The execute function is passed a `context` with the command context, including its arguments, extracted from the JWT, and a reference to an `oc_client_factory` used to call into OpenChat which we'll cover in the [OpenChat API section](#openchat-api).
+Each command handler implements its portion of the [BotDefinition](#bot-definition) and an `execute` function where all the action happens! The execute function is passed an `oc_client` for calling into OpenChat, which we'll cover in the [OpenChat API section](#openchat-api), whose `context()` is the command's context, including its arguments, extracted from the JWT.
 
 ## OpenChat API
 
@@ -304,3 +317,167 @@ client
   or community's files along with it, so upload with the client you'll send the message with.
 - Uploads count against the bot's allowance of 1 GB, which OpenChat gives it when it's registered.
 - The bot needs permission to send image messages.
+
+## MiniApp messages
+
+A MiniApp message is markdown text with up to 5 rows of buttons, which a bot posts and keeps up to
+date while something it runs goes on, eg. a game's lobby, then its board. When a member of the chat
+presses a button, the OpenChat website sends the press to the bot, which acts on it and edits the
+message to show what changed. The bot keeps all the state, eg. the game's: OpenChat only stores the
+message.
+
+```rust
+let content = MiniAppContent {
+    text: "**Tic-tac-toe** · @UserId(..)'s turn".to_string(),
+    button_rows: vec![vec![MessageButton {
+        id: "cell-4".to_string(),
+        label: "·".to_string(),
+        style: MessageButtonStyle::Secondary,
+        // Everyone, or eg. `Some(vec![host])` to show it only to the host
+        visible_to: None,
+    }]],
+};
+content.validate()?;
+
+client
+    .send_message(MessageContentInitial::MiniApp(content))
+    .execute_async()
+    .await;
+```
+
+- Only bots can send them, and they need `MessagePermission::MiniApp` to, eg. in a command's
+  `permissions`. They can't be forwarded, and can't be sent in direct chats for now.
+- `@UserId(<id>)` in the text is shown as the user's name.
+- `visible_to` only hides a button, so the bot still checks who may press it.
+- OpenChat refuses content beyond the limits on `MiniAppContent` (eg. 2,000 characters of text,
+  5 buttons a row, ids of up to 64 bytes, each unique within the message). `validate` checks them,
+  so that a mistake shows up before the message is sent.
+
+### Button presses
+
+The website POSTs each press to the bot's endpoint at `/execute_action`, with the user's
+[session token](#the-session-token) in the `x-oc-jwt` header and the button's id as the body:
+
+```
+POST /execute_action
+Content-Type: application/json
+x-oc-jwt: <BotMessageSession JWT>
+
+{"button_id": "cell-4"}
+```
+
+An [ActionHandlerRegistry](./src/api/action/action_handler.rs) verifies the token, then gives the
+press to the first registered [ActionHandler](./src/api/action/action_handler.rs) which `handles`
+the button, every button by default. The handler gets a `ButtonPress`, with the session (the user,
+chat, thread, message id and the user's timezone and language), the `button_id`, and a client for
+the chat, and answers with an `ActionResponse`:
+
+| `ActionResponse` | status | body |
+| --- | --- | --- |
+| `Success` | 200 | `{ "message"?: { "content": <MessageContentInitial>, "block_level_markdown"?: bool } }` |
+| `BadRequest` | 400 | the reason, as text, eg. for a button which isn't valid now |
+| `Unauthorized` | 401 | the reason, as text. The token is invalid or has expired, so the website fetches a new one and tries once more. |
+| `TooManyRequests` | 429 | none |
+| `InternalError` | 500 | the reason, as text |
+
+A successful response's `message`, usually text, is shown to the user who pressed the button and no
+one else, like a command's ephemeral reply, eg. `ActionResponse::reply("It's not your turn")`.
+
+```rust
+struct TicTacToe;
+
+#[async_trait]
+impl<R: Runtime> ActionHandler<R> for TicTacToe {
+    fn handles(&self, button_id: &str) -> bool {
+        button_id.starts_with("cell-")
+    }
+
+    async fn execute(&self, press: ButtonPress<R>) -> ActionResponse {
+        // Look the game up by `press.session.message_id`, check it's `press.user_id()`'s turn and
+        // make the move, then show it
+        let board = game.render();
+
+        match press.edit_message(board).execute_async().await {
+            Ok(UnitResult::Success) => ActionResponse::ok(),
+            other => ActionResponse::internal_error(format!("{other:?}")),
+        }
+    }
+}
+```
+
+In a canister bot, route `/execute_action` to the canister SDK's `http_action_handler`, which takes
+the token from the header and checks it's for this canister:
+
+```rust
+static ACTIONS: LazyLock<ActionHandlerRegistry<CanisterRuntime>> =
+    LazyLock::new(|| ActionHandlerRegistry::new(OPENCHAT_CLIENT_FACTORY.clone()).register(TicTacToe));
+
+HttpRouter::default()
+    .route("/execute_command", POST, commands::execute)
+    .route("/execute_action", POST, actions::execute)
+
+// actions::execute
+pub async fn execute(request: HttpRequest) -> HttpResponse {
+    let public_key = state::read(|state| state.oc_public_key().to_string());
+    http_action_handler::execute(request, &ACTIONS, &public_key, now()).await
+}
+```
+
+Offchain, `ExtractJwtLayer` takes the token from the header for `/execute_action` as it does for
+`/execute_command`, refusing a request without one with a 401. Pass the registry the body and the
+bot's own id, eg. its agent's principal, and send the `ActionResponse::into_http` it gives back.
+
+### The session token
+
+The website fetches a `BotMessageSession` token for each user and MiniApp message, and sends it with
+every button they press there. OpenChat signs it, with the key it signs command JWTs with, once it
+has checked the user is a member of the chat and the message is the bot's. It's valid for an hour,
+and the website fetches a new one before it runs out. Its claims are:
+
+```
+pub struct BotMessageSessionClaims {
+    pub bot_api_gateway: CanisterId,
+    pub bot: UserId,
+    pub chat: Chat,
+    pub thread: Option<MessageIndex>,
+    pub message_id: MessageId,
+    pub user_id: UserId,
+    pub meta: Option<CommandMeta>,
+}
+```
+
+`BotMessageSession::parse(jwt, oc_public_key, bot_id, now)`, which the registry calls, checks the
+signature, that the token is a `BotMessageSession` token, for this bot, and hasn't expired
+(`TokenError::Expired`). Checking the bot matters: otherwise one bot's server could replay a user's
+token to another bot.
+
+The token only vouches for the user. OpenChat's bot endpoints don't accept it, so a bot acts on a
+press autonomously: `ButtonPress::client` acts in the chat through the token's `bot_api_gateway`,
+and `ButtonPress::edit_message` edits the message the button is on, in its thread. The bot needs
+the autonomous `MessagePermission::MiniApp` permission to edit it, so declare it in the definition's
+`autonomous_config`.
+
+### Lobbies
+
+[`games::Lobby`](./src/games.rs) gathers players for a game: its host, who posted it, is its first
+player, others join and leave, and the host starts the game once enough have joined. `join`, `leave`
+and `start` return a `LobbyError` (eg. `Full`, `NotAPlayer`, `NotTheHost`, `TooFewPlayers`,
+`AlreadyStarted`), worded for the player, for an `ActionResponse::reply`. `render(title)` gives the
+lobby's message: its players, mentioned by `@UserId`, with Join and Leave buttons for everyone, and
+a Start button only the host is shown.
+
+```rust
+let mut lobby = Lobby::new(host, 2, 2);
+let content = lobby.render("Tic-tac-toe");
+
+// On a press of `Lobby::JOIN`
+if let Err(error) = lobby.join(press.user_id()) {
+    return ActionResponse::reply(error.to_string());
+}
+press.edit_message(lobby.render("Tic-tac-toe")).execute_async().await;
+```
+
+### No wagering
+
+Games must never involve wagering tokens, or anything else of value, eg. a stake to join or a prize
+paid from the players' stakes. That's gambling, which OpenChat isn't licensed for.

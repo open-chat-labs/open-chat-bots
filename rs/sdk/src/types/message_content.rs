@@ -5,7 +5,7 @@ use super::{
 use crate::utils::{serialize_large_uint, serialize_principal_as_bytes, tolerant_enum};
 use ic_principal::Principal;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum MessageContentInitial {
@@ -18,6 +18,7 @@ pub enum MessageContentInitial {
     Giphy(GiphyContent),
     Custom(CustomContent),
     PriceChart(PriceChartContent),
+    MiniApp(MiniAppContent),
 }
 
 impl MessageContentInitial {
@@ -50,6 +51,7 @@ pub enum MessageContent {
     Encrypted(EncryptedContent),
     Custom(CustomContent),
     PriceChart(PriceChartContent),
+    MiniApp(MiniAppContent),
     Unsupported(UnsupportedContent),
 }
 
@@ -77,6 +79,7 @@ tolerant_enum!(
         Encrypted,
         Custom,
         PriceChart,
+        MiniApp,
         Unsupported,
     ],
     units: [],
@@ -98,6 +101,7 @@ impl MessageContent {
             MessageContent::Prize(p) => p.caption.as_deref(),
             MessageContent::P2PSwap(s) => s.caption.as_deref(),
             MessageContent::PriceChart(c) => Some(c.title.as_str()),
+            MessageContent::MiniApp(c) => Some(c.text.as_str()),
             MessageContent::Deleted(_)
             | MessageContent::PrizeWinner(_)
             | MessageContent::MessageReminderCreated(_)
@@ -318,6 +322,105 @@ pub struct PriceChartSource {
     pub name: String,
     /// An https url
     pub url: String,
+}
+
+/// A message a bot keeps up to date while something it runs goes on, eg. a game's lobby or board:
+/// markdown text with rows of buttons, each of which calls the bot when pressed (see
+/// [`crate::api::action`]). Only a bot can send one, and it needs the MiniApp permission to send or
+/// edit it. It can't be forwarded, nor sent in a direct chat, for now. OpenChat refuses one beyond
+/// the limits below, which [`MiniAppContent::validate`] checks, so that a bot can catch a mistake
+/// before sending it.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct MiniAppContent {
+    /// Markdown, eg. "**Uno** · 2 of 4 players: @UserId(..) @UserId(..)", in which OpenChat shows
+    /// each `@UserId(<id>)` as the user's name. It's the message's text in notifications, previews
+    /// and search.
+    pub text: String,
+    /// Shown under the text, row by row
+    pub button_rows: Vec<Vec<MessageButton>>,
+}
+
+impl MiniAppContent {
+    pub const MAX_TEXT_CHARS: usize = 2_000;
+    pub const MAX_ROWS: usize = 5;
+    pub const MAX_BUTTONS_PER_ROW: usize = 5;
+    pub const MAX_ID_BYTES: usize = 64;
+    pub const MAX_LABEL_CHARS: usize = 40;
+    pub const MAX_VISIBLE_TO: usize = 100;
+
+    /// Checks the content against the limits OpenChat enforces, so that a mistake shows up before
+    /// it's sent. The errors are those OpenChat gives.
+    pub fn validate(&self) -> Result<(), String> {
+        check_chars("text", &self.text, Self::MAX_TEXT_CHARS)?;
+        if self.button_rows.len() > Self::MAX_ROWS {
+            return Err(format!(
+                "A message has at most {} rows of buttons",
+                Self::MAX_ROWS
+            ));
+        }
+        let mut ids = HashSet::new();
+        for row in &self.button_rows {
+            if row.is_empty() || row.len() > Self::MAX_BUTTONS_PER_ROW {
+                return Err(format!(
+                    "A row has 1 to {} buttons",
+                    Self::MAX_BUTTONS_PER_ROW
+                ));
+            }
+            for button in row {
+                if button.id.is_empty() || button.id.len() > Self::MAX_ID_BYTES {
+                    return Err(format!(
+                        "A button's id has 1 to {} bytes",
+                        Self::MAX_ID_BYTES
+                    ));
+                }
+                if !ids.insert(button.id.as_str()) {
+                    return Err(format!("Two buttons have the id {}", button.id));
+                }
+                check_chars("button label", &button.label, Self::MAX_LABEL_CHARS)?;
+                if button
+                    .visible_to
+                    .as_ref()
+                    .is_some_and(|users| users.len() > Self::MAX_VISIBLE_TO)
+                {
+                    return Err(format!(
+                        "A button is shown to at most {} users",
+                        Self::MAX_VISIBLE_TO
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct MessageButton {
+    /// The bot's own name for the button, sent to it when the button's pressed. It's 1 to 64 bytes,
+    /// and no two buttons on a message share one.
+    pub id: String,
+    pub label: String,
+    pub style: MessageButtonStyle,
+    /// Who's shown the button, everyone if `None`. It only hides the button, so the bot still
+    /// checks who may press it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub visible_to: Option<Vec<UserId>>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum MessageButtonStyle {
+    #[default]
+    Primary,
+    Secondary,
+    Danger,
+}
+
+// As OpenChat checks text: not blank, and at most `max` characters
+fn check_chars(field: &str, value: &str, max: usize) -> Result<(), String> {
+    if value.trim().is_empty() || value.chars().count() > max {
+        Err(format!("The {field} must have 1 to {max} characters"))
+    } else {
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -886,5 +989,113 @@ mod tests {
         assert_eq!(chart.series[1].points, [(1_500, 0.75), (2_500, 1.0)]);
         assert_eq!(chart.sources[0].url, "https://www.icpswap.com");
         assert_eq!(content.text(), Some("CHAT and ADA · 30 days"));
+    }
+
+    fn mini_app() -> MiniAppContent {
+        MiniAppContent {
+            text: "**Uno** · 2 of 4 players".to_string(),
+            button_rows: vec![vec![
+                MessageButton {
+                    id: "join".to_string(),
+                    label: "Join".to_string(),
+                    style: MessageButtonStyle::Primary,
+                    visible_to: None,
+                },
+                MessageButton {
+                    id: "start".to_string(),
+                    label: "Start".to_string(),
+                    style: MessageButtonStyle::Danger,
+                    visible_to: Some(vec![Principal::from_slice(&[1]).into()]),
+                },
+            ]],
+        }
+    }
+
+    #[test]
+    fn a_mini_app_a_bot_sends_reads_back_as_one() {
+        let bytes = msgpack::serialize_then_unwrap(MessageContentInitial::MiniApp(mini_app()));
+        let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
+
+        let MessageContent::MiniApp(mini_app) = &content else {
+            panic!("Expected a mini app, got {content:?}");
+        };
+        let [join, start] = &mini_app.button_rows[0][..] else {
+            panic!("Expected 2 buttons, got {:?}", mini_app.button_rows);
+        };
+        assert_eq!(join.id, "join");
+        assert_eq!(join.style, MessageButtonStyle::Primary);
+        assert!(join.visible_to.is_none());
+        assert_eq!(start.label, "Start");
+        assert_eq!(start.style, MessageButtonStyle::Danger);
+        assert_eq!(
+            start.visible_to,
+            Some(vec![Principal::from_slice(&[1]).into()])
+        );
+        assert_eq!(content.text(), Some("**Uno** · 2 of 4 players"));
+    }
+
+    #[test]
+    fn a_mini_app_within_the_limits_is_valid() {
+        assert_eq!(mini_app().validate(), Ok(()));
+
+        let mut largest = mini_app();
+        largest.text = "x".repeat(MiniAppContent::MAX_TEXT_CHARS);
+        largest.button_rows = (0..MiniAppContent::MAX_ROWS)
+            .map(|row| {
+                (0..MiniAppContent::MAX_BUTTONS_PER_ROW)
+                    .map(|i| MessageButton {
+                        id: format!("{row}-{i}-{:x<1$}", "", MiniAppContent::MAX_ID_BYTES - 4),
+                        label: "é".repeat(MiniAppContent::MAX_LABEL_CHARS),
+                        style: MessageButtonStyle::Secondary,
+                        visible_to: Some(vec![
+                            Principal::anonymous().into();
+                            MiniAppContent::MAX_VISIBLE_TO
+                        ]),
+                    })
+                    .collect()
+            })
+            .collect();
+        assert_eq!(largest.validate(), Ok(()));
+
+        let mut no_buttons = mini_app();
+        no_buttons.button_rows.clear();
+        assert_eq!(no_buttons.validate(), Ok(()));
+    }
+
+    #[test]
+    fn a_mini_app_beyond_the_limits_is_invalid() {
+        let invalid = |change: fn(&mut MiniAppContent)| {
+            let mut content = mini_app();
+            change(&mut content);
+            assert!(content.validate().is_err(), "{content:?} should be invalid");
+        };
+
+        invalid(|c| c.text = " ".to_string());
+        invalid(|c| c.text = "x".repeat(MiniAppContent::MAX_TEXT_CHARS + 1));
+        invalid(|c| c.button_rows = vec![c.button_rows[0].clone(); MiniAppContent::MAX_ROWS + 1]);
+        invalid(|c| c.button_rows.push(Vec::new()));
+        invalid(|c| {
+            c.button_rows[0] = (0..=MiniAppContent::MAX_BUTTONS_PER_ROW)
+                .map(|i| MessageButton {
+                    id: i.to_string(),
+                    ..c.button_rows[0][0].clone()
+                })
+                .collect()
+        });
+        invalid(|c| c.button_rows[0][0].id = String::new());
+        invalid(|c| c.button_rows[0][0].id = "x".repeat(MiniAppContent::MAX_ID_BYTES + 1));
+        // Counted in bytes, so 33 two-byte characters are too many
+        invalid(|c| c.button_rows[0][0].id = "é".repeat(MiniAppContent::MAX_ID_BYTES / 2 + 1));
+        invalid(|c| c.button_rows[0][1].id = c.button_rows[0][0].id.clone());
+        // Unique across rows, not only within one
+        invalid(|c| c.button_rows.push(vec![c.button_rows[0][0].clone()]));
+        invalid(|c| c.button_rows[0][0].label = String::new());
+        invalid(|c| c.button_rows[0][0].label = "x".repeat(MiniAppContent::MAX_LABEL_CHARS + 1));
+        invalid(|c| {
+            c.button_rows[0][0].visible_to = Some(vec![
+                Principal::anonymous().into();
+                MiniAppContent::MAX_VISIBLE_TO + 1
+            ])
+        });
     }
 }

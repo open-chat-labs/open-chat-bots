@@ -1,5 +1,6 @@
 pub mod api;
 pub mod api_key_registry;
+pub mod games;
 pub mod installation_registry;
 pub mod mainnet;
 pub mod oc_api;

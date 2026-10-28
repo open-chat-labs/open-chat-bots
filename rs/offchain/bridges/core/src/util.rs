@@ -239,6 +239,8 @@ pub fn message_text(content: &MessageContent, token_decimals: Option<u8>) -> Opt
         MessageContent::Encrypted(_) => "[Encrypted message]".to_string(),
         MessageContent::Custom(c) => format!("[{}]", c.kind),
         MessageContent::PriceChart(c) => format!("[Chart] {}", c.title),
+        // Its buttons can only be pressed in OpenChat
+        MessageContent::MiniApp(c) => c.text.clone(),
         MessageContent::Unsupported(u) => format!("[{}]", u.kind),
         MessageContent::Deleted(_) => return None,
     })
