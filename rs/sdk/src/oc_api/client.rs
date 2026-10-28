@@ -150,10 +150,11 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
     }
 
     /// Changes what the bot's MiniApp card, `message_id`, shows as its game goes on: its status,
-    /// players, whose move it is and the result. It works with a command's context or
-    /// autonomously, eg. with a `BotMessageSession`'s `autonomous_context()`, and needs no permission
-    /// beyond the bot being installed. A card in a thread needs `in_thread`, unless the context is
-    /// a command's in that thread.
+    /// players, whose move it is and the result. As for deleting its own messages, any installed
+    /// bot can with a command's context, while autonomously, eg. with a `BotMessageSession`'s
+    /// `autonomous_context()`, the bot must be installed to act autonomously: its definition has an
+    /// `autonomous_config`, even with no permissions, which the owner granted when installing it. A
+    /// card in a thread needs `in_thread`, unless the context is a command's in that thread.
     pub fn update_mini_app(
         &self,
         message_id: MessageId,

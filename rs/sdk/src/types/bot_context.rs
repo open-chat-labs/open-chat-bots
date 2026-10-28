@@ -198,8 +198,9 @@ impl BotMessageSession {
     }
 
     /// For a client acting autonomously in the card's chat, eg. to update the card, with
-    /// `update_mini_app`, or to post a message there, which needs the autonomous permission for its
-    /// type, eg. `MessagePermission::Text`. Pass [`Self::thread`] to the builder's `in_thread` to act
+    /// `update_mini_app`, which needs the bot installed to act autonomously (an `autonomous_config`),
+    /// or to post a message there, which needs the autonomous permission for its type, eg.
+    /// `MessagePermission::Text`. Pass [`Self::thread`] to the builder's `in_thread` to act
     /// in the card's thread.
     pub fn autonomous_context(&self) -> AutonomousContext {
         AutonomousContext {

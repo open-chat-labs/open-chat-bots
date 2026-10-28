@@ -334,8 +334,8 @@ pub struct PriceChartSource {
 /// change: OpenChat refuses an edit of it. Its status, players, whose move it is and the result are
 /// the bot's to keep up to date, with `Client::update_mini_app`, until the game is finished.
 ///
-/// Only a bot installed in the chat can send one, and it needs `MessagePermission::MiniApp`. It
-/// can't be sent in a direct chat, nor forwarded, as the bot knows its app's state by the card's
+/// Only a bot installed in the chat can send one, finalised, and it needs
+/// `MessagePermission::MiniApp`. It can't be sent in a direct chat, nor forwarded, as the bot knows its app's state by the card's
 /// message id.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MiniAppContent {
@@ -489,13 +489,16 @@ impl MiniAppContent {
         if self.spectator_count > 0 && !self.spectators {
             return Err("Only a game open to spectators has any".to_string());
         }
-        if self
-            .waiting_for
-            .iter()
-            .flatten()
-            .any(|user_id| !self.players.contains(user_id))
-        {
-            return Err("Only players can be waited for".to_string());
+        if let Some(waiting_for) = &self.waiting_for {
+            if waiting_for
+                .iter()
+                .any(|user_id| !self.players.contains(user_id))
+            {
+                return Err("Only players can be waited for".to_string());
+            }
+            if waiting_for.iter().collect::<HashSet<_>>().len() < waiting_for.len() {
+                return Err("A player is waited for twice".to_string());
+            }
         }
         if let Some(result) = &self.result {
             if self.status != MiniAppStatus::Finished {
@@ -1382,6 +1385,10 @@ mod tests {
         let mut waiting = card();
         waiting.waiting_for = Some(vec![user(3)]);
         assert_eq!(error(waiting), "Only players can be waited for");
+
+        let mut waiting = card();
+        waiting.waiting_for = Some(vec![user(1), user(1)]);
+        assert_eq!(error(waiting), "A player is waited for twice");
     }
 
     #[test]
