@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Button presses</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1d1d1f;
+    --muted: #6e6e73;
+    --line: #e5e5ea;
+    --you: #f2f2f7;
+    --accent: #0a6cff;
+    --accent-pressed: #0857cc;
+    --accent-fg: #ffffff;
+    --error: #d70015;
+  }
+  :root[data-theme="dark"] {
+    --bg: #1c1c1e;
+    --fg: #f5f5f7;
+    --muted: #a1a1a6;
+    --line: #3a3a3c;
+    --you: #2c2c2e;
+    --accent: #0a84ff;
+    --accent-pressed: #409cff;
+    --error: #ff6961;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 16px;
+  }
+  main { max-width: 400px; margin: 0 auto; text-align: center; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  #status { min-height: 1.4em; color: var(--muted); margin: 0 0 16px; }
+  #press {
+    width: 140px;
+    height: 140px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-fg);
+    font: 700 22px/1 system-ui, sans-serif;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  #press:active { background: var(--accent-pressed); transform: scale(0.97); }
+  #press:disabled { opacity: 0.5; cursor: default; }
+  #error { min-height: 1.4em; margin: 12px 0; color: var(--error); }
+  table { width: 100%; border-collapse: collapse; text-align: left; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; font-size: 14px; }
+  td.count, th.count { text-align: right; font-variant-numeric: tabular-nums; }
+  td.user { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; }
+  tr.you td { background: var(--you); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Button presses</h1>
+  <p id="status">Connecting to OpenChat…</p>
+  <button id="press" type="button" disabled>Press</button>
+  <p id="error" role="alert"></p>
+  <table id="table" hidden>
+    <thead><tr><th>User</th><th class="count">Presses</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+</main>
+<script>
+"use strict";
+
+// The app's side of OpenChat's MiniApp protocol. OpenChat, the window this page is framed in, gives
+// it a token which says who the user is and which card they opened, and a new one whenever it asks.
+// The page sends the token to the bot's API in the `x-oc-jwt` header, and the bot verifies it.
+
+const POLL_MS = 2000;
+const TOKEN_TIMEOUT_MS = 10000;
+// A new token is asked for this long before the current one expires
+const REFRESH_EARLY_MS = 60000;
+// The least time between the token requests the page makes by itself, so that a token which looks
+// expired already, eg. as the user's clock is wrong, isn't asked for again and again
+const MIN_REFRESH_DELAY_MS = 30000;
+
+let openChatOrigin = null;
+let token = null;
+let refreshTimer = null;
+// The token request OpenChat hasn't answered yet: { promise, resolve, reject, timer }
+let tokenRequest = null;
+
+// Each answer from the API is numbered as it's asked for, so a slow one doesn't overwrite a later one
+let asked = 0;
+let shown = 0;
+
+const statusText = document.getElementById("status");
+const pressButton = document.getElementById("press");
+const errorText = document.getElementById("error");
+const table = document.getElementById("table");
+const rows = document.getElementById("rows");
+
+pressButton.addEventListener("click", press);
+
+window.addEventListener("message", (event) => {
+  // Only OpenChat, the window this page is framed in, is listened to
+  if (event.source !== window.parent) return;
+  const message = event.data;
+  if (message === null || typeof message !== "object") return;
+
+  if (message.kind === "initialise_mini_app") {
+    if (openChatOrigin !== null && event.origin !== openChatOrigin) return;
+    if (typeof message.token !== "string") return;
+    const first = openChatOrigin === null;
+    // Everything the page sends OpenChat from now on goes to this origin only
+    openChatOrigin = event.origin;
+    setDarkMode(message.dark_mode);
+    if (typeof message.locale === "string") document.documentElement.lang = message.locale;
+    setToken(message.token);
+    if (first) {
+      statusText.textContent = "Loading…";
+      poll();
+    }
+    return;
+  }
+
+  if (openChatOrigin === null || event.origin !== openChatOrigin) return;
+
+  if (message.kind === "mini_app_token" && typeof message.token === "string") {
+    setToken(message.token);
+  } else if (message.kind === "set_dark_mode") {
+    setDarkMode(message.dark_mode);
+  }
+});
+
+if (window.parent === window) {
+  statusText.textContent = "Open this from its card in OpenChat";
+} else {
+  // Nothing secret, so to any origin. OpenChat answers with `initialise_mini_app`.
+  window.parent.postMessage({ kind: "mini_app_ready" }, "*");
+  setTimeout(() => {
+    if (openChatOrigin === null) statusText.textContent = "Couldn't connect to OpenChat";
+  }, TOKEN_TIMEOUT_MS);
+}
+
+function setDarkMode(dark) {
+  document.documentElement.dataset.theme = dark === true ? "dark" : "light";
+}
+
+function setToken(newToken) {
+  token = newToken;
+  clearTimeout(refreshTimer);
+  const expiry = expiryMs(newToken);
+  if (expiry !== null) {
+    const delay = Math.max(MIN_REFRESH_DELAY_MS, expiry - REFRESH_EARLY_MS - Date.now());
+    refreshTimer = setTimeout(() => requestToken().catch(() => {}), delay);
+  }
+  if (tokenRequest !== null) {
+    clearTimeout(tokenRequest.timer);
+    tokenRequest.resolve(newToken);
+    tokenRequest = null;
+  }
+}
+
+// When the token expires, from its claims. The page reads them only to know when to ask for a new
+// token: the bot's server is what verifies it.
+function expiryMs(jwt) {
+  try {
+    const payload = jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const claims = JSON.parse(atob(payload));
+    return typeof claims.exp === "number" ? claims.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+// Asks OpenChat for a new token, resolving once it's sent one. Requests made while one is waiting
+// share it.
+function requestToken() {
+  if (tokenRequest === null) {
+    let resolve, reject;
+    const promise = new Promise((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    const timer = setTimeout(() => {
+      tokenRequest = null;
+      reject(new Error("OpenChat didn't send a new token"));
+    }, TOKEN_TIMEOUT_MS);
+    tokenRequest = { promise, resolve, reject, timer };
+    window.parent.postMessage({ kind: "mini_app_token_request" }, openChatOrigin);
+  }
+  return tokenRequest.promise;
+}
+
+// Calls the bot's API, which is next to this page, eg. `{endpoint}/api/presses` for the page at
+// `{endpoint}/app`. A 401 means the token has expired, or isn't valid, so the page asks OpenChat
+// for a new one and tries once more.
+async function api(method, path) {
+  for (let attempt = 0; ; attempt++) {
+    const response = await fetch(path, { method, headers: { "x-oc-jwt": token } });
+    if (response.status === 401 && attempt === 0) {
+      await requestToken();
+      continue;
+    }
+    const json = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(json !== null && typeof json.error === "string" ? json.error : `The bot answered ${response.status}`);
+    }
+    return json;
+  }
+}
+
+async function load(method, path) {
+  const id = ++asked;
+  const presses = await api(method, path);
+  if (id > shown) {
+    shown = id;
+    render(presses);
+  }
+}
+
+async function poll() {
+  if (!document.hidden) {
+    try {
+      await load("GET", "api/presses");
+      if (errorText.dataset.from === "poll") showError("");
+    } catch (error) {
+      showError(error.message, "poll");
+    }
+  }
+  setTimeout(poll, POLL_MS);
+}
+
+async function press() {
+  showError("");
+  try {
+    await load("POST", "api/press");
+  } catch (error) {
+    showError(error.message);
+  }
+}
+
+function showError(text, from) {
+  errorText.textContent = text;
+  errorText.dataset.from = from ?? "";
+}
+
+// The app has no usernames, so each user is shown by their id, shortened
+function shortId(id) {
+  return id.length > 13 ? `${id.slice(0, 5)}…${id.slice(-5)}` : id;
+}
+
+function render(presses) {
+  pressButton.disabled = false;
+  const yours = presses.presses.find((p) => p.user_id === presses.user_id)?.count ?? 0;
+  statusText.textContent = `You've pressed it ${yours} ${yours === 1 ? "time" : "times"} · ${presses.total} in all`;
+
+  table.hidden = presses.presses.length === 0;
+  rows.replaceChildren(
+    ...presses.presses.map((p) => {
+      const row = document.createElement("tr");
+      if (p.user_id === presses.user_id) row.className = "you";
+      const user = document.createElement("td");
+      user.className = "user";
+      user.title = p.user_id;
+      user.textContent = p.user_id === presses.user_id ? `${shortId(p.user_id)} (you)` : shortId(p.user_id);
+      const count = document.createElement("td");
+      count.className = "count";
+      count.textContent = String(p.count);
+      row.append(user, count);
+      return row;
+    }),
+  );
+}
+</script>
+</body>
+</html>

@@ -16,6 +16,7 @@ members = [
     "offchain/bridges/twitch",
     "offchain/examples/dice",
     "offchain/examples/llama",
+    "offchain/examples/press_counter",
     "offchain/sdk",
     "sdk",
 ]

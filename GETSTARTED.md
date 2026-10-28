@@ -65,7 +65,7 @@ In each case the scripts will output the following which are needed in step 4 to
 
 ### Off-chain bots
 
-The DiceBot and LlamaBot will each need to be run in a separate terminal.
+The DiceBot, LlamaBot and PressCounterBot will each need to be run in a separate terminal.
 
 - [DiceBot](./rs/scripts/deploy_dice_bot.sh)
 
@@ -77,6 +77,12 @@ The DiceBot and LlamaBot will each need to be run in a separate terminal.
 
 ```bash
   ./rs/scripts/deploy_llama_bot.sh
+```
+
+- [PressCounterBot](./rs/offchain/examples/press_counter/README.md), a MiniApp
+
+```bash
+  ./rs/scripts/deploy_press_counter_bot.sh
 ```
 
 - [Discord bridge](./rs/offchain/bridges/discord/README.md)

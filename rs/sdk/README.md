@@ -314,6 +314,9 @@ OpenChat refuses an edit of it. Everything interactive, eg. a lobby, a board, bu
 it is, is the bot's own web page, which OpenChat shows in a sandboxed frame. Anything the chat
 should see later, eg. a game's result, the bot posts as a new message.
 
+The [PressCounterBot](../offchain/examples/press_counter) is an example, with how to run it against
+a local OpenChat.
+
 ### Posting a card
 
 ```rust
