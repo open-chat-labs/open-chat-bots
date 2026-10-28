@@ -6654,6 +6654,34 @@ export const CommunityOrGroup = /* @__PURE__ */ Type.Union([
     }),
 ]);
 
+export type MiniAppStatus = Static<typeof MiniAppStatus>;
+export const MiniAppStatus = /* @__PURE__ */ Type.Union([
+    Type.Literal("Open"),
+    Type.Literal("Active"),
+    Type.Literal("Finished"),
+]);
+
+export type OptionUpdateUserIds = Static<typeof OptionUpdateUserIds>;
+export const OptionUpdateUserIds = /* @__PURE__ */ Type.Union(
+    [
+        Type.Literal("NoChange"),
+        Type.Literal("SetToNone"),
+        Type.Object({
+            SetToSome: Type.Array(UserId),
+        }),
+    ],
+    { default: "NoChange" },
+);
+
+export type MiniAppUpdate = Static<typeof MiniAppUpdate>;
+export const MiniAppUpdate = /* @__PURE__ */ Type.Object({
+    status: Type.Optional(MiniAppStatus),
+    players: Type.Optional(Type.Array(UserId)),
+    spectator_count: Type.Optional(Type.Number()),
+    waiting_for: OptionUpdateUserIds,
+    result: OptionUpdateString,
+});
+
 export type MiniAppImage = Static<typeof MiniAppImage>;
 export const MiniAppImage = /* @__PURE__ */ Type.Object({
     width: Type.Number(),
@@ -6666,6 +6694,13 @@ export type MiniAppContent = Static<typeof MiniAppContent>;
 export const MiniAppContent = /* @__PURE__ */ Type.Object({
     text: Type.String(),
     image: Type.Optional(MiniAppImage),
+    max_players: Type.Optional(Type.Number()),
+    spectators: Type.Boolean(),
+    spectator_count: Type.Number(),
+    status: MiniAppStatus,
+    players: Type.Array(UserId),
+    waiting_for: Type.Optional(Type.Array(UserId)),
+    result: Type.Optional(Type.String()),
 });
 
 export type PriceChartContent = Static<typeof PriceChartContent>;
@@ -9264,6 +9299,14 @@ export const LocalUserIndexBotEditMessageArgs = /* @__PURE__ */ Type.Object({
     content: BotMessageContent,
     block_level_markdown: Type.Boolean(),
     og_previews: Type.Optional(Type.Array(OgPreview)),
+});
+
+export type LocalUserIndexBotUpdateMiniAppArgs = Static<typeof LocalUserIndexBotUpdateMiniAppArgs>;
+export const LocalUserIndexBotUpdateMiniAppArgs = /* @__PURE__ */ Type.Object({
+    chat_context: BotChatContext,
+    thread: Type.Optional(MessageIndex),
+    message_id: MessageId,
+    update: MiniAppUpdate,
 });
 
 export type LocalUserIndexAccessTokenV2Args = Static<typeof LocalUserIndexAccessTokenV2Args>;

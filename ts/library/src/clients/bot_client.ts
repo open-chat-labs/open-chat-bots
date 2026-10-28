@@ -27,6 +27,7 @@ import {
     type DeleteChannelResponse,
     type MembersResponse,
     type Message,
+    type MiniAppUpdate,
     type PermissionRole,
     type PriceChartContent,
     type SendMessageResponse,
@@ -186,6 +187,37 @@ export class BotClient {
             .then((resp) => {
                 if (resp.kind !== "success") {
                     console.error("OpenChat botClient.editMessage failed with: ", resp);
+                }
+                return resp;
+            });
+    }
+
+    /**
+     * Changes what the bot's MiniApp card, `messageId`, shows as its game goes on: its status,
+     * players, whose move it is and the result. Whatever `update` leaves undefined stays as it was.
+     * It works with a command's context or autonomously, eg. a client from
+     * `createClientInAutonomouseContext(session.scope, session.apiGateway)`, and needs no
+     * permission beyond the bot being installed. The players must be members of the chat, or the
+     * bot itself, and a finished card can't change.
+     *
+     * `thread` is the card's thread, which defaults to the command's. `channelId` is the card's
+     * channel, for a client in a community's scope.
+     */
+    public updateMiniApp(
+        messageId: bigint,
+        update: MiniAppUpdate,
+        options: { thread?: number; channelId?: bigint } = {},
+    ): Promise<UnitResult> {
+        return this.#botService
+            .updateMiniApp(
+                this.#actionContext.chatContext(options.channelId),
+                options.thread ?? this.#actionContext.thread,
+                messageId,
+                update,
+            )
+            .then((resp) => {
+                if (resp.kind !== "success") {
+                    console.error("OpenChat botClient.updateMiniApp failed with: ", resp);
                 }
                 return resp;
             });

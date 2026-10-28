@@ -16,6 +16,7 @@ import type {
     DeleteChannelResponse,
     MembersResponse,
     Message,
+    MiniAppUpdate,
     PermissionRole,
     SendMessageResponse,
     UnitResult,
@@ -27,6 +28,7 @@ import {
     apiChatEventsCriteria,
     apiCommunityEventsCriteria,
     apiGroupRole,
+    apiMiniAppUpdate,
     changeRoleResponse,
     chatEventsResponse,
     chatSummaryResponse,
@@ -59,6 +61,7 @@ import {
     UnitResult as BotDeleteChannelResponse,
     LocalUserIndexBotDeleteMessagesArgs as BotDeleteMessagesArgs,
     LocalUserIndexBotEditMessageArgs as BotEditMessageArgs,
+    LocalUserIndexBotUpdateMiniAppArgs as BotUpdateMiniAppArgs,
     LocalUserIndexBotMembersArgs as BotMemberArgs,
     LocalUserIndexBotSendMessageArgs as BotSendMessageArgs,
     LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
@@ -130,6 +133,30 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
             ApiUnitResult,
         ).catch((err) => {
             console.error("Call to bot_edit_message failed with: ", JSON.stringify(err));
+            throw err;
+        });
+    }
+
+    // A bot updates its own MiniApp card, with a command's context or autonomously
+    updateMiniApp(
+        ctx: BotChatContext,
+        thread: number | undefined,
+        messageId: bigint,
+        update: MiniAppUpdate,
+    ): Promise<UnitResult> {
+        return this.executeMsgpackUpdate(
+            "bot_update_mini_app",
+            {
+                chat_context: apiBotChatContext(ctx),
+                thread,
+                message_id: messageId,
+                update: apiMiniAppUpdate(update),
+            },
+            unitResult,
+            BotUpdateMiniAppArgs,
+            ApiUnitResult,
+        ).catch((err) => {
+            console.error("Call to bot_update_mini_app failed with: ", JSON.stringify(err));
             throw err;
         });
     }

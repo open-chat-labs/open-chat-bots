@@ -886,10 +886,12 @@ export type PriceChartSource = {
 };
 
 // A bot's card for an app it hosts, eg. a game. OpenChat shows the text, under the image if it has
-// one, with an Open button, which opens the bot's app, served by the bot at `/app` under its
-// endpoint, in a frame. The card never changes: OpenChat refuses an edit of it. Only a bot installed
-// in the chat can send one, needing the MiniApp permission, and it can't be sent in a direct chat
-// nor forwarded. See `MiniAppMessage`.
+// one, with the players, whose move it is or the result, and an Open button, which opens the bot's
+// app, served by the bot at `/app` under its endpoint, in a frame. Its text, image, player limit and
+// whether others can watch never change: OpenChat refuses an edit of it. Its status, players, whose
+// move it is and the result are the bot's to keep up to date, with `BotClient.updateMiniApp`, until
+// the game is finished. Only a bot installed in the chat can send one, needing the MiniApp
+// permission, and it can't be sent in a direct chat nor forwarded. See `MiniAppMessage`.
 export type MiniAppContent = {
     kind: "mini_app_content";
     // Markdown, eg. "**Tic-tac-toe** · tap Open to play", of 1 to 2,000 characters. It's the
@@ -897,6 +899,36 @@ export type MiniAppContent = {
     text: string;
     // Shown above the text, eg. the game's artwork
     image?: MiniAppImage;
+    // The most who can play, 1 to 100, if there's a limit, so the card can show eg. "2 of 4"
+    maxPlayers?: number;
+    // Whether members who aren't playing can open the app once the game has started
+    spectators: boolean;
+    // How many members who aren't playing have the app open, as the bot reports it, so that they
+    // stay anonymous. It's 0 unless `spectators` is set.
+    spectatorCount: number;
+    status: MiniAppStatus;
+    // The user ids of the members playing, in the bot's order, at most `maxPlayers` (or 100), each
+    // once. The bot itself can be one.
+    players: string[];
+    // The players whose move it is, if the game has turns
+    waitingFor?: string[];
+    // eg. "Bob won", of 1 to 200 characters, once the game is finished
+    result?: string;
+};
+
+// Taking players, being played, or over, after which the card never changes
+export type MiniAppStatus = "open" | "active" | "finished";
+
+// What `BotClient.updateMiniApp` changes on a card. Whatever's undefined stays as it was, and a
+// `waitingFor` or `result` of null removes it.
+export type MiniAppUpdate = {
+    status?: MiniAppStatus;
+    // Replaces the players
+    players?: string[];
+    // How many members who aren't playing have the app open
+    spectatorCount?: number;
+    waitingFor?: string[] | null;
+    result?: string | null;
 };
 
 // A card's image, which the bot uploads to OpenChat's storage first, as for an image message, so

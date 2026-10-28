@@ -56,6 +56,8 @@ import {
     type MessageReminderContent,
     type MessageReminderCreatedContent,
     type MiniAppContent,
+    type MiniAppStatus,
+    type MiniAppUpdate,
     type P2PSwapContent,
     type P2PSwapStatus,
     type PendingCryptocurrencyTransfer,
@@ -165,6 +167,8 @@ import {
     type MessageReminderContent as ApiMessageReminderContent,
     type MessageReminderCreatedContent as ApiMessageReminderCreatedContent,
     type MiniAppContent as ApiMiniAppContent,
+    type MiniAppStatus as ApiMiniAppStatus,
+    type MiniAppUpdate as ApiMiniAppUpdate,
     type OCError as ApiOCError,
     type P2PSwapContent as ApiP2PSwapContent,
     type P2PSwapStatus as ApiP2PSwapStatus,
@@ -2123,6 +2127,13 @@ export function miniAppContent(value: ApiMiniAppContent): MiniAppContent {
             mimeType: image.mime_type,
             blobReference: blobReference(image.blob_reference),
         })),
+        maxPlayers: optional(value.max_players, identity),
+        spectators: value.spectators,
+        spectatorCount: value.spectator_count,
+        status: miniAppStatus(value.status),
+        players: value.players.map(principalBytesToString),
+        waitingFor: optional(value.waiting_for, (users) => users.map(principalBytesToString)),
+        result: optional(value.result, identity),
     };
 }
 
@@ -2135,7 +2146,58 @@ export function apiMiniAppContent(domain: Omit<MiniAppContent, "kind">): ApiMini
             mime_type: image.mimeType,
             blob_reference: apiBlobReference(image.blobReference),
         })),
+        max_players: apiOptional(domain.maxPlayers, identity),
+        spectators: domain.spectators,
+        spectator_count: domain.spectatorCount,
+        status: apiMiniAppStatus(domain.status),
+        players: domain.players.map(principalStringToBytes),
+        waiting_for: apiOptional(domain.waitingFor, (users) => users.map(principalStringToBytes)),
+        result: apiOptional(domain.result, identity),
     };
+}
+
+function miniAppStatus(value: ApiMiniAppStatus): MiniAppStatus {
+    switch (value) {
+        case "Open":
+            return "open";
+        case "Active":
+            return "active";
+        case "Finished":
+            return "finished";
+    }
+}
+
+function apiMiniAppStatus(domain: MiniAppStatus): ApiMiniAppStatus {
+    switch (domain) {
+        case "open":
+            return "Open";
+        case "active":
+            return "Active";
+        case "finished":
+            return "Finished";
+    }
+}
+
+export function apiMiniAppUpdate(domain: MiniAppUpdate): ApiMiniAppUpdate {
+    return {
+        status: apiOptional(domain.status, apiMiniAppStatus),
+        players: apiOptional(domain.players, (users) => users.map(principalStringToBytes)),
+        spectator_count: apiOptional(domain.spectatorCount, identity),
+        waiting_for: apiNullableUpdate(domain.waitingFor, (users) =>
+            users.map(principalStringToBytes),
+        ),
+        result: apiNullableUpdate(domain.result, identity),
+    };
+}
+
+// undefined is no change, null removes the value, and anything else sets it
+function apiNullableUpdate<A, B>(
+    domain: A | null | undefined,
+    mapper: (a: A) => B,
+): "NoChange" | "SetToNone" | { SetToSome: B } {
+    if (domain === undefined) return "NoChange";
+    if (domain === null) return "SetToNone";
+    return { SetToSome: mapper(domain) };
 }
 
 function videoCallParticipant(value: ApiCallParticipant): VideoCallParticipant {

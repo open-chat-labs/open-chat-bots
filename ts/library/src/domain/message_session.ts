@@ -63,8 +63,8 @@ export function miniAppCardKey(card: MiniAppCard): string {
  * sends it to the bot's server, in the `x-oc-jwt` header, and the server verifies it with `parse`
  * and keeps the app's state by `cardKey`, with `userId` as the player.
  *
- * It only vouches for who the user is: OpenChat's bot endpoints refuse it. To post in the chat, eg.
- * a game's result, the bot acts autonomously, with a client from
+ * It only vouches for who the user is: OpenChat's bot endpoints refuse it. To update the card, with
+ * `updateMiniApp`, or post in the chat, the bot acts autonomously, with a client from
  * `BotClientFactory.createClientInAutonomouseContext(session.scope, session.apiGateway)`.
  */
 export class BotMessageSession {

@@ -259,21 +259,32 @@ a cycles cost on every send.
 ## MiniApp cards
 
 A bot can host an app, eg. a game, which members of a chat open from a card the bot posts there.
-The card is markdown text, with an Open button which OpenChat draws, and it **never changes**:
-OpenChat refuses an edit of it. Everything interactive, eg. a lobby, a board, buttons and whose turn
-it is, is the bot's own web page, which OpenChat shows in a sandboxed frame. Anything the chat
-should see later, eg. a game's result, the bot posts as a new message.
+The card is markdown text, with an optional image, the game's players, whose move it is and its
+result, and an Open button, all of which OpenChat draws. Its text, image, player limit and whether
+others can watch never change: OpenChat refuses an edit of it. Its status, players, spectator count,
+whose move it is and its result are the bot's to [keep up to date](#keeping-the-card-up-to-date).
+Everything interactive, eg. a lobby, a board and buttons, is the bot's own web page, which OpenChat
+shows in a sandboxed frame.
 
 ### Posting a card
 
 ```ts
-const card = await client.createMiniAppMessage("**Tic-tac-toe** · tap Open to play");
-const invalid = card.validate(); // 1 to 2,000 characters, as OpenChat checks
+const card = (await client.createMiniAppMessage("**Tic-tac-toe** · tap Open to play"))
+    .setMaxPlayers(2)
+    // Whether members who aren't playing can open the app once the game has started
+    .setSpectators(true)
+    // eg. the member who ran the command
+    .setPlayers([client.initiator!]);
+const invalid = card.validate(); // as OpenChat checks it, with its errors
 await client.sendMessage(card);
 ```
 
 Only bots installed in the chat can post one, and they need the `MiniApp` message permission, eg.
 in the command's `permissions`. It can't be posted in a direct chat, nor forwarded.
+`validateMiniAppContent` checks a card as OpenChat does: the text has 1 to 2,000 characters,
+`maxPlayers` is 1 to 100, the players are at most that many (or 100), each listed once, only a card
+open to spectators has a `spectatorCount`, only players are waited for, and only a finished game
+has a result, of 1 to 200 characters.
 
 A card can have an image, shown above the text, eg. the game's artwork. `createMiniAppMessage`
 uploads it to OpenChat's storage first, as `createImageMessage` does, so that it's scanned like any
@@ -288,6 +299,35 @@ const card = await client.createMiniAppMessage("**Tic-tac-toe** · tap Open to p
     height: 360,
 });
 ```
+
+### Keeping the card up to date
+
+As the game goes on, the bot updates the card with `client.updateMiniApp(messageId, update)`, which
+calls the LocalUserIndex's `bot_update_mini_app`. Whatever the update leaves undefined stays as it
+was, and `null` removes `waitingFor` or `result`:
+
+- `players` as players join or leave, replacing the list. They must be members of the chat, or the
+  bot itself.
+- `status: "active"` when the game starts.
+- `waitingFor: [player]` each turn, so the card shows whose move it is, or `null`.
+- `spectatorCount`, for a card open to spectators, as members who aren't playing open and close
+  the app. The bot counts them itself, so they stay anonymous, eg. the users who've called its API
+  in the last minute without playing. Send it only when it changes, and not too often.
+- `{ status: "finished", waitingFor: null, result: "Bob won" }` at the end. A finished card never
+  changes again.
+
+Only the bot which posted the card can update it, and it needs no permission beyond being
+installed. It can use a command's context, or act autonomously, eg. from its app's API with the
+user's session:
+
+```ts
+await factory
+    .createClientInAutonomouseContext(session.scope, session.apiGateway)
+    .updateMiniApp(session.messageId, { players }, { thread: session.thread });
+```
+
+`applyMiniAppUpdate(card, update)` gives the card as OpenChat leaves it, so a bot keeping its own
+copy can `validateMiniAppContent` an update before sending it.
 
 ### The app
 
@@ -353,9 +393,9 @@ it hasn't expired (a `TokenError` whose `kind` is `expired`). Checking the bot m
 one bot's server could replay a user's token to another bot. `factory.botId()` asks the UserIndex,
 in `userIndexCanisterId`, once the bot is registered, and keeps it.
 
-To post in the chat, eg. a game's result, the bot acts autonomously, with
-`factory.createClientInAutonomouseContext(session.scope, session.apiGateway)`, so it needs that
-permission in its autonomous config.
+To update the card, or post a message of its own in the chat, the bot acts autonomously, with
+`factory.createClientInAutonomouseContext(session.scope, session.apiGateway)`. A message needs the
+autonomous permission for its type, in the bot's autonomous config.
 
 ### No wagering
 
