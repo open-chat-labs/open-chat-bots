@@ -16,8 +16,9 @@ and a table of how many times each of them has.
   `BotMessageSession` token, that it's for this bot and that it hasn't expired. It keeps the counts
   by the card, `(chat, thread, message_id)`, then by user, in memory, so they're lost when the bot is
   restarted.
-- The bot keeps each card up to date with `update_mini_app`, autonomously, as itself, which needs
-  no permission beyond being installed. Every 2 seconds it sends each card whatever has changed, one
+- The bot keeps each card up to date with `update_mini_app`, autonomously, as itself. OpenChat
+  only lets it if it's installed to act autonomously, so its definition has an `autonomous_config`,
+  with no permissions. Every 2 seconds it sends each card whatever has changed, one
   update at a time so they land in order:
   - the players, everyone who has pressed, in the order they first did (the first 100, the most a
     card lists);
@@ -111,7 +112,8 @@ cargo run --release              # reads ./config.toml, or pass its path
 1. In your test group on http://localhost:5001, send `/register_bot`, and fill in the name, principal
    and endpoint the script printed.
 2. Open the group's members, choose "Add bots", pick PressCounterBot and install it, granting it the
-   MiniApp message permission which `/press` needs.
+   MiniApp message permission which `/press` needs, and letting it act autonomously, which it
+   updates its cards with.
 
 ### 4. Play
 
@@ -139,7 +141,8 @@ The bot logs to the terminal it runs in, and the app shows the API's errors unde
 - **"Couldn't connect to OpenChat"** in the app: the website didn't answer `mini_app_ready`, eg. it
   doesn't have MiniApp support yet.
 - **"Failed to update a card"** in the bot's log: OpenChat refused `bot_update_mini_app`, eg. as the
-  LocalUserIndex doesn't have it yet, or the card was deleted. The presses still count.
+  bot wasn't installed to act autonomously, the LocalUserIndex doesn't have it yet, or the card was
+  deleted. The presses still count.
 
 Games must never take or pay out tokens, or anything else of value. That's gambling, which OpenChat
 isn't licensed for.

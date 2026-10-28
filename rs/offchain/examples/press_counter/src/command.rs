@@ -48,6 +48,7 @@ impl CommandHandler<AgentRuntime> for Press {
         // players and spectators are shown as they come, and the game starts at the first press.
         let card = MiniAppContent::new(CARD_TEXT).with_spectators(true);
 
+        // Finalised, as OpenChat needs a card to be, which messages are by default
         let message = oc_client
             .send_message(MessageContentInitial::MiniApp(card))
             .execute_then_return_message(|_, response| {

@@ -9,7 +9,7 @@ use axum::response::{Html, IntoResponse, Json};
 use axum::routing::{get, post};
 use axum::{Extension, Router};
 use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
-use oc_bots_sdk::api::definition::BotDefinition;
+use oc_bots_sdk::api::definition::{AutonomousConfig, BotDefinition, BotPermissions};
 use oc_bots_sdk::oc_api::actions::{ActionArgsBuilder, installation_events};
 use oc_bots_sdk::oc_api::client::{Client, ClientFactory};
 use oc_bots_sdk::types::{
@@ -167,7 +167,11 @@ async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> Js
             tap Open on it to press it and see how many times each member has."
             .to_string(),
         commands: state.commands.definitions(),
-        autonomous_config: None,
+        // To update its cards from the background task, as itself, OpenChat needs the bot installed
+        // to act autonomously. It needs no permissions for that, as a card is its own message.
+        autonomous_config: Some(AutonomousConfig {
+            permissions: BotPermissions::empty(),
+        }),
         default_subscriptions: None,
         // MiniApp messages can't be sent in direct chats
         restricted_locations: Some(HashSet::from([
@@ -352,6 +356,23 @@ mod tests {
     }
 
     // Through the LocalUserIndex which signed the session, in the card's chat and thread
+    // So that OpenChat lets the bot update its cards autonomously
+    #[test]
+    fn the_bot_acts_autonomously_with_no_permissions() {
+        let (status, body) = Bot::new().call("GET", "/", None);
+        let definition: Value = serde_json::from_str(&body).unwrap();
+
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(
+            definition["autonomous_config"],
+            json!({ "permissions": {} })
+        );
+        assert_eq!(
+            definition["commands"][0]["permissions"],
+            json!({ "message": 2048 })
+        );
+    }
+
     #[test]
     fn a_first_press_puts_the_player_on_the_card() {
         let bot = Bot::new();
