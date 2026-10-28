@@ -21,8 +21,8 @@ export async function notify(req: Request, res: Response, scheduler: DigestSched
                     ev.location,
                     new InstallationRecord(
                         apiGateway,
-                        ev.grantedAutonomousPermissions,
                         ev.grantedCommandPermissions,
+                        ev.grantedAutonomousPermissions,
                         timestamp,
                     ),
                 );

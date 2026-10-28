@@ -256,6 +256,98 @@ fetch automatically. In-canister bots (`oc_bots_sdk_canister`, the Motoko SDK) a
 only, because scraping a link from a canister would mean a consensus-replicated http outcall and
 a cycles cost on every send.
 
+## MiniApp cards
+
+A bot can host an app, eg. a game, which members of a chat open from a card the bot posts there.
+The card is markdown text, with an Open button which OpenChat draws, and it **never changes**:
+OpenChat refuses an edit of it. Everything interactive, eg. a lobby, a board, buttons and whose turn
+it is, is the bot's own web page, which OpenChat shows in a sandboxed frame. Anything the chat
+should see later, eg. a game's result, the bot posts as a new message.
+
+### Posting a card
+
+```ts
+const card = await client.createMiniAppMessage("**Tic-tac-toe** · tap Open to play");
+const invalid = card.validate(); // 1 to 2,000 characters, as OpenChat checks
+await client.sendMessage(card);
+```
+
+Only bots installed in the chat can post one, and they need the `MiniApp` message permission, eg.
+in the command's `permissions`. It can't be posted in a direct chat, nor forwarded.
+
+### The app
+
+OpenChat opens the bot's endpoint, with any trailing slash removed, followed by `/app`, eg.
+`https://tictactoe.example.com/app`. That page talks to OpenChat, its parent window, with
+`postMessage`:
+
+| From | Message | When |
+| --- | --- | --- |
+| app | `{ kind: "mini_app_ready" }` | Once the app is listening, to `window.parent` with target origin `"*"`. It carries nothing secret. |
+| OpenChat | `{ kind: "initialise_mini_app", token, dark_mode, locale }` | In answer. Accept it only from `window.parent`, and send everything after it to its `event.origin`. |
+| app | `{ kind: "mini_app_token_request" }` | When the token is about to expire, or the bot's server refused it with a 401 |
+| OpenChat | `{ kind: "mini_app_token", token }` | In answer, with a new token |
+| OpenChat | `{ kind: "set_dark_mode", dark_mode }` | When the user's theme changes |
+
+The SDK's browser entry, `@open-ic/openchat-botclient-ts/mini_app`, which has no Node
+dependencies, does the app's side of this:
+
+```ts
+import { connectToOpenChat } from "@open-ic/openchat-botclient-ts/mini_app";
+
+// Sends mini_app_ready, and resolves once OpenChat has sent the token
+const openChat = await connectToOpenChat();
+
+setTheme(openChat.darkMode);
+openChat.onDarkModeChange(setTheme);
+
+// With the token in the `x-oc-jwt` header. On a 401 it asks OpenChat for a new token and tries
+// once more.
+const presses = await (await openChat.fetch("api/presses")).json();
+```
+
+- `connectToOpenChat({ openChatOrigins?, timeoutMs?, refreshBeforeExpiryMs? })` rejects outside a
+  frame, or if OpenChat doesn't answer within `timeoutMs` (10 seconds).
+- `token()` is the current token. The client asks for a new one a minute before it expires.
+- `refreshToken()` asks OpenChat for a new token now, and resolves with it, or rejects if OpenChat
+  doesn't answer in time.
+- `darkMode`, `locale` and `onDarkModeChange(callback)`, which returns a function to stop it.
+- `close()` stops listening.
+
+### The session token
+
+OpenChat gives the app a `BotMessageSession` token for the user and the card, once it has checked
+the user is a member of the chat. It's signed with the key OpenChat signs commands with, and is valid
+for 15 minutes. It only vouches for who the user is: OpenChat's bot endpoints refuse it. The bot's
+server verifies it:
+
+```ts
+const botId = await factory.botId(); // the user id OpenChat gave the bot, not its principal
+
+try {
+    const session = BotMessageSession.parse(req.headers["x-oc-jwt"], openchatPublicKey, botId);
+    // A message id is only unique within its chat and thread, so key the app's state by all three
+    const game = games.get(session.cardKey);
+    const player = session.userId;
+} catch (err) {
+    if (err instanceof TokenError) res.status(401).send(err.message);
+}
+```
+
+`parse` checks the signature, that it's a `BotMessageSession` token, that it's for this bot, and that
+it hasn't expired (a `TokenError` whose `kind` is `expired`). Checking the bot matters, as otherwise
+one bot's server could replay a user's token to another bot. `factory.botId()` asks the UserIndex,
+in `userIndexCanisterId`, once the bot is registered, and keeps it.
+
+To post in the chat, eg. a game's result, the bot acts autonomously, with
+`factory.createClientInAutonomouseContext(session.scope, session.apiGateway)`, so it needs that
+permission in its autonomous config.
+
+### No wagering
+
+Apps must never take or pay out tokens, or anything else of value, eg. a stake to join a game or a
+prize paid from the players' stakes. That's gambling, which OpenChat isn't licensed for.
+
 ## BotClient interface
 
 Here is a full description of the BotClient interface.

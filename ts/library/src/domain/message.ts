@@ -1,11 +1,13 @@
 import {
     apiBlobReference,
     apiBotChatContext,
+    apiMiniAppContent,
     apiOptional,
     apiPriceChartContent,
     identity,
 } from "../mapping";
 import type {
+    LocalUserIndexBotEditMessageArgs as BotEditMessageArgs,
     LocalUserIndexBotSendMessageArgs as BotSendMessageArgs,
     FileContent,
     ImageContent,
@@ -146,6 +148,24 @@ export abstract class Message {
             og_previews: this.#ogPreviews ?? ogPreviews,
         };
     }
+
+    // The args to edit message `messageId` to this message's text. OpenChat takes only the text, or
+    // caption, of the content, which must be of the same type as the message's. The thread, block
+    // level markdown and link previews apply; the message's other settings don't.
+    toEditArgs(
+        ctx: BotChatContext,
+        messageId: bigint,
+        ogPreviews?: OgPreview[],
+    ): BotEditMessageArgs {
+        return {
+            chat_context: apiBotChatContext(ctx),
+            thread: apiOptional(this.#thread, identity),
+            message_id: messageId,
+            content: this.content as MessageContent,
+            block_level_markdown: this.#blockLevelMarkdown ?? false,
+            og_previews: this.#ogPreviews ?? ogPreviews,
+        };
+    }
 }
 
 export class TextMessage extends Message {
@@ -216,6 +236,43 @@ export class PriceChartMessage extends Message {
     public get requiredMessagePermissions(): MessagePermission[] {
         return ["Image"];
     }
+}
+
+/** The most characters a MiniApp card's text can have */
+export const MINI_APP_MAX_TEXT_CHARS = 2_000;
+
+/**
+ * A bot's card for an app it hosts, eg. a game: markdown text, with an Open button which OpenChat
+ * draws. It opens the bot's app, which the bot serves at `/app` under its endpoint, in a frame. The
+ * card never changes, so post anything the chat should see later, eg. a game's result, as a new
+ * message. It needs the MiniApp permission, and can't be sent in a direct chat. Check its text with
+ * `validate` before sending it.
+ */
+export class MiniAppMessage extends Message {
+    constructor(text: string) {
+        super({ MiniApp: apiMiniAppContent({ text }) });
+    }
+
+    public get requiredMessagePermissions(): MessagePermission[] {
+        return ["MiniApp"];
+    }
+
+    /** Why OpenChat would refuse this card, with the error it gives, or undefined if it's valid */
+    validate(): string | undefined {
+        return validateMiniAppText((this.content as { MiniApp: { text: string } }).MiniApp.text);
+    }
+}
+
+/**
+ * Checks a MiniApp card's text as OpenChat does: not blank, and at most 2,000 characters. Returns
+ * the error OpenChat would give, or undefined if it's valid.
+ */
+export function validateMiniAppText(text: string): string | undefined {
+    // Counted in code points, as OpenChat counts Rust's chars
+    if (text.trim().length === 0 || [...text].length > MINI_APP_MAX_TEXT_CHARS) {
+        return `The text must have 1 to ${MINI_APP_MAX_TEXT_CHARS} characters`;
+    }
+    return undefined;
 }
 
 export type PollDuration = "oneHour" | "oneDay" | "oneWeek";

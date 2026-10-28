@@ -24,3 +24,15 @@ describe("channel tip permission", () => {
         expect(args.permissions?.tip_messages).toBe("None");
     });
 });
+
+describe("channel message permissions", () => {
+    test("have no MiniApp setting, as a member may have a bot post a card whenever they can post text", () => {
+        const channel = new Channel("name", "description");
+
+        // @ts-expect-error A group's or channel's permissions have no setting for MiniApp cards
+        channel.setMessagePermissions("miniApp", "admin");
+        // @ts-expect-error Nor do their threads'
+        channel.setThreadPermissions("miniApp", "admin");
+        channel.setMessagePermissions("videoCall", "admin");
+    });
+});

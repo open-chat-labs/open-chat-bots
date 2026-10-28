@@ -415,7 +415,8 @@ export type MessageContent =
     | UserReferralCard
     | MemeFighterContent
     | VideoCallContent
-    | PriceChartContent;
+    | PriceChartContent
+    | MiniAppContent;
 
 export interface FileContent extends DataContent {
     kind: "file_content";
@@ -882,6 +883,17 @@ export type PriceChartSource = {
     name: string;
     // An https url
     url: string;
+};
+
+// A bot's card for an app it hosts, eg. a game. OpenChat shows the text with an Open button, which
+// opens the bot's app, served by the bot at `/app` under its endpoint, in a frame. The card never
+// changes: OpenChat refuses an edit of it. Only a bot installed in the chat can send one, needing
+// the MiniApp permission, and it can't be sent in a direct chat nor forwarded. See `MiniAppMessage`.
+export type MiniAppContent = {
+    kind: "mini_app_content";
+    // Markdown, eg. "**Tic-tac-toe** · tap Open to play", of 1 to 2,000 characters. It's the
+    // message's text in notifications, previews and search.
+    text: string;
 };
 
 export type ChatEventsCriteria = ChatEventsPage | ChatEventsByIndex | ChatEventsWindow;

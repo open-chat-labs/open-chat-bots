@@ -6654,6 +6654,11 @@ export const CommunityOrGroup = /* @__PURE__ */ Type.Union([
     }),
 ]);
 
+export type MiniAppContent = Static<typeof MiniAppContent>;
+export const MiniAppContent = /* @__PURE__ */ Type.Object({
+    text: Type.String(),
+});
+
 export type PriceChartContent = Static<typeof PriceChartContent>;
 export const PriceChartContent = /* @__PURE__ */ Type.Object({
     title: Type.String(),
@@ -9060,6 +9065,9 @@ export const BotMessageContent = /* @__PURE__ */ Type.Union([
     Type.Object({
         PriceChart: PriceChartContent,
     }),
+    Type.Object({
+        MiniApp: MiniAppContent,
+    }),
 ]);
 
 export type CurrentUserSummary = Static<typeof CurrentUserSummary>;
@@ -9375,6 +9383,9 @@ export const MessageContent = /* @__PURE__ */ Type.Union([
     Type.Object({
         PriceChart: PriceChartContent,
     }),
+    Type.Object({
+        MiniApp: MiniAppContent,
+    }),
 ]);
 
 export type GroupMatch = Static<typeof GroupMatch>;
@@ -9447,6 +9458,9 @@ export const MessageContentInitial = /* @__PURE__ */ Type.Union([
     }),
     Type.Object({
         PriceChart: PriceChartContent,
+    }),
+    Type.Object({
+        MiniApp: MiniAppContent,
     }),
 ]);
 

@@ -38,9 +38,13 @@ function createIdentity(privateKey: string) {
     }
 }
 
+// The `claim_type` of a command's token
+const CLAIM_TYPE_BOT_ACTION_BY_COMMAND = "BotActionByCommand";
+
 export class BotClientFactory {
     #agent: HttpAgent;
     #env: BotClientConfig;
+    #botId?: Promise<string>;
 
     constructor(env: BotClientConfig) {
         this.#env = this.#validateConfig(env);
@@ -84,7 +88,12 @@ export class BotClientFactory {
         const publicKey = this.#env.openchatPublicKey.replace(/\\n/g, "\n");
         try {
             const decoded = jwt.verify(token, publicKey, { algorithms: ["ES256"] });
-            if (typeof decoded !== "string") {
+            // All of OpenChat's tokens are signed with the same key, so a token for another
+            // purpose, eg. a MiniApp's session, must not be taken for a command's
+            if (
+                typeof decoded !== "string" &&
+                decoded.claim_type === CLAIM_TYPE_BOT_ACTION_BY_COMMAND
+            ) {
                 const actionContext = ActionContext.fromCommand(token, decoded as RawCommandJwt);
                 return new BotClient(this.#agent, this.env, actionContext);
             } else {
@@ -99,5 +108,26 @@ export class BotClientFactory {
 
     createGlobalClient(): GlobalClient {
         return new GlobalClient(this.#agent, this.env);
+    }
+
+    /**
+     * The user id OpenChat gave the bot when it was registered, which is the `bot` in its tokens,
+     * eg. to pass to `BotMessageSession.parse`. It isn't the bot's principal. It's fetched from the
+     * UserIndex when first asked for, rather than at startup, as a bot is usually started before
+     * it's registered, and kept once found. A failed lookup is tried again next time. It asks the
+     * UserIndex in `userIndexCanisterId`, which defaults to OpenChat's on mainnet, so set that for
+     * any other environment.
+     */
+    botId(): Promise<string> {
+        if (this.#botId === undefined) {
+            const lookup = this.createGlobalClient().botId();
+            this.#botId = lookup;
+            lookup.catch(() => {
+                if (this.#botId === lookup) {
+                    this.#botId = undefined;
+                }
+            });
+        }
+        return this.#botId;
     }
 }

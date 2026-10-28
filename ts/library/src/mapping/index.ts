@@ -55,6 +55,7 @@ import {
     type MessagePermissions,
     type MessageReminderContent,
     type MessageReminderCreatedContent,
+    type MiniAppContent,
     type P2PSwapContent,
     type P2PSwapStatus,
     type PendingCryptocurrencyTransfer,
@@ -163,6 +164,7 @@ import {
     type MessagePermissions as ApiMessagePermissions,
     type MessageReminderContent as ApiMessageReminderContent,
     type MessageReminderCreatedContent as ApiMessageReminderCreatedContent,
+    type MiniAppContent as ApiMiniAppContent,
     type OCError as ApiOCError,
     type P2PSwapContent as ApiP2PSwapContent,
     type P2PSwapStatus as ApiP2PSwapStatus,
@@ -1390,6 +1392,9 @@ export function messageContent(value: ApiMessageContent, sender: string): Messag
     if ("PriceChart" in value) {
         return priceChartContent(value.PriceChart);
     }
+    if ("MiniApp" in value) {
+        return miniAppContent(value.MiniApp);
+    }
     if ("ReportedMessage" in value) {
         return reportedMessage(value.ReportedMessage);
     }
@@ -2106,6 +2111,19 @@ function apiPriceChartToken(domain: PriceChartToken): ApiPriceChartToken {
         return { Ledger: principalStringToBytes(domain.ledger) };
     }
     return { Coin: domain.id };
+}
+
+export function miniAppContent(value: ApiMiniAppContent): MiniAppContent {
+    return {
+        kind: "mini_app_content",
+        text: value.text,
+    };
+}
+
+export function apiMiniAppContent(domain: Omit<MiniAppContent, "kind">): ApiMiniAppContent {
+    return {
+        text: domain.text,
+    };
 }
 
 function videoCallParticipant(value: ApiCallParticipant): VideoCallParticipant {

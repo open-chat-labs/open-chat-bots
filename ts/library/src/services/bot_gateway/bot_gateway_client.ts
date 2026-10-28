@@ -58,6 +58,7 @@ import {
     LocalUserIndexBotDeleteChannelArgs as BotDeleteChannelArgs,
     UnitResult as BotDeleteChannelResponse,
     LocalUserIndexBotDeleteMessagesArgs as BotDeleteMessagesArgs,
+    LocalUserIndexBotEditMessageArgs as BotEditMessageArgs,
     LocalUserIndexBotMembersArgs as BotMemberArgs,
     LocalUserIndexBotSendMessageArgs as BotSendMessageArgs,
     LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
@@ -109,6 +110,26 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
             BotSendMessageResponse,
         ).catch((err) => {
             console.error("Call to bot_send_message failed with: ", JSON.stringify(err));
+            throw err;
+        });
+    }
+
+    // A bot edits its own messages autonomously, as OpenChat refuses an edit made with a command's
+    // context
+    editMessage(
+        ctx: BotChatContext,
+        messageId: bigint,
+        message: Message,
+        ogPreviews?: OgPreview[],
+    ): Promise<UnitResult> {
+        return this.executeMsgpackUpdate(
+            "bot_edit_message",
+            message.toEditArgs(ctx, messageId, ogPreviews),
+            unitResult,
+            BotEditMessageArgs,
+            ApiUnitResult,
+        ).catch((err) => {
+            console.error("Call to bot_edit_message failed with: ", JSON.stringify(err));
             throw err;
         });
     }
