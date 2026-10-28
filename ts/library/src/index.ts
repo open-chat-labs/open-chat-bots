@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
+export * from "./actions";
 export { BotClient } from "./clients/bot_client";
 export { BotClientFactory } from "./clients/client_factory";
 export * from "./domain";
+export * from "./games";
 export * from "./services/bot_gateway";
 export {
     BotDefinition,
