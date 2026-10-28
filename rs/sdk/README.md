@@ -393,8 +393,11 @@ impl<R: Runtime> ActionHandler<R> for TicTacToe {
     }
 
     async fn execute(&self, press: ButtonPress<R>) -> ActionResponse {
-        // Look the game up by `press.session.message_id`, check it's `press.user_id()`'s turn and
-        // make the move, then show it
+        // Look the game up by the session's chat, thread and message id together, as a message id
+        // is only unique within its chat and thread. Check it's `press.user_id()`'s turn and make
+        // the move, then show it.
+        let session = &press.session;
+        let game = games.get(&(session.chat, session.thread, session.message_id));
         let board = game.render();
 
         match press.edit_message(board).execute_async().await {
@@ -405,8 +408,13 @@ impl<R: Runtime> ActionHandler<R> for TicTacToe {
 }
 ```
 
+Tokens are only accepted for the bot's own id, which is the user id OpenChat gave it when it was
+registered, not its principal.
+
 In a canister bot, route `/execute_action` to the canister SDK's `http_action_handler`, which takes
-the token from the header and checks it's for this canister:
+the token from the header. Pass it the bot's id, which the canister is told in the
+`BotLifecycleEvent::Registered` notification, or by `installation_events::load`, as the
+[ModeratorBot](../canister/examples/moderator/src/installations.rs) does:
 
 ```rust
 static ACTIONS: LazyLock<ActionHandlerRegistry<CanisterRuntime>> =
@@ -418,22 +426,28 @@ HttpRouter::default()
 
 // actions::execute
 pub async fn execute(request: HttpRequest) -> HttpResponse {
-    let public_key = state::read(|state| state.oc_public_key().to_string());
-    http_action_handler::execute(request, &ACTIONS, &public_key, now()).await
+    let (public_key, bot_id) = state::read(|state| (state.oc_public_key().to_string(), state.bot_id));
+    let Some(bot_id) = bot_id else {
+        return HttpResponse::text(500, "The bot hasn't been told its id yet");
+    };
+    http_action_handler::execute(request, &ACTIONS, &public_key, bot_id, now()).await
 }
 ```
 
 Offchain, `ExtractJwtLayer` takes the token from the header for `/execute_action` as it does for
 `/execute_command`, refusing a request without one with a 401. Pass the registry the body and the
-bot's own id, eg. its agent's principal, and send the `ActionResponse::into_http` it gives back.
-The [TicTacToeBot](../offchain/examples/tictactoe) shows it all.
+bot's id, and send the `ActionResponse::into_http` it gives back. An offchain bot can fetch its id
+from the UserIndex, as `client.installation_events().size(0)` gives it as `bot_id`. Fetch it when
+the first press arrives, rather than at startup, as a bot is usually started before it's
+registered. The [TicTacToeBot](../offchain/examples/tictactoe) shows it all.
 
 ### The session token
 
 The website fetches a `BotMessageSession` token for each user and MiniApp message, and sends it with
 every button they press there. OpenChat signs it, with the key it signs command JWTs with, once it
-has checked the user is a member of the chat and the message is the bot's. It's valid for an hour,
-and the website fetches a new one before it runs out. Its claims are:
+has checked the user is a member of the chat and the message is the bot's. It's valid for 15
+minutes. The website reuses it for each press until then, and fetches a new one, then tries once
+more, when the bot answers a press with a 401. Its claims are:
 
 ```
 pub struct BotMessageSessionClaims {
