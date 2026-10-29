@@ -343,6 +343,7 @@ let response = client
 A card can have an image above its text, eg. the game's artwork. Upload it to OpenChat's storage
 first, so that it's scanned like any image and deleted with the card: `Client::upload_mini_app_image`
 reads a PNG's size, and `upload_mini_app_image_of_size` takes any image with the size you give.
+Upload it for each card, rather than reusing one upload, as deleting a card deletes its image.
 
 ```rust
 let image = client
@@ -394,6 +395,11 @@ let claims = verifier.leave(&jwt)?;
 
 - `bot_id` is the user id OpenChat gave the bot when it was registered, not its principal: fetch it
   with `installation_events().size(0)` on the UserIndex.
+- Answer 200 whether the bot accepts or refuses. Any other status counts as the bot being
+  unavailable, and the user isn't shown its message.
+- The user isn't a player until the service adds them, after the bot answers. So don't start the
+  game, or wait for them, while answering: start it from a later request, eg. the host pressing
+  Start in the app, or the new player's first.
 - If the service can't add a player the bot accepted, as the game started or filled up meanwhile,
   it tells the bot they left.
 

@@ -20,9 +20,12 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::sync::Mutex;
+use std::time::Duration;
 
 // The bot's token lasts an hour, and is replaced when it has less than this left
 const BOT_TOKEN_REFRESH_MARGIN: Milliseconds = 5 * 60 * 1000;
+// So a call to a service which stops answering fails, rather than holding up the bot
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// A client for the MiniApp service's bot API, with which a bot registers the games it posts and
 /// tells the service how they go. It calls the service with the bot's token, which it gets from a
@@ -44,7 +47,10 @@ impl<R: Runtime> MiniAppServiceClient<R> {
     /// `oc_client_factory.build(context.api_gateway)`
     pub fn new(url: impl Into<String>, oc_client: Client<R, CanisterId>) -> Self {
         MiniAppServiceClient {
-            http: reqwest::Client::new(),
+            http: reqwest::Client::builder()
+                .timeout(REQUEST_TIMEOUT)
+                .build()
+                .expect("The HTTP client builds"),
             url: url.into(),
             oc_client,
             bot_token: Mutex::new(None),
@@ -329,11 +335,12 @@ impl GameUpdate {
     }
 }
 
-/// The bot's answer to the service's `POST <endpoint>/mini_app/join`, within 5 seconds
+/// The bot's answer to the service's `POST <endpoint>/mini_app/join`, within 5 seconds, with a 200
+/// whether it accepts or refuses. The service takes any other status as the bot being unavailable.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct JoinResponse {
     pub accepted: bool,
-    /// Why not, eg. "Seats are taken", which is shown to the user
+    /// Why not, eg. "Seats are taken", which is shown to the user, cut to 200 characters
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
 }
@@ -373,9 +380,10 @@ impl MiniAppVerifier {
     }
 
     /// The service's `POST <endpoint>/mini_app/join`: the user asks to join the game. Answer with a
-    /// [`JoinResponse`], within 5 seconds. The bot can update the game before it answers, eg. to
-    /// start it once it's full. If the service then can't add them, as the game started or filled
-    /// up meanwhile, it tells the bot they left.
+    /// [`JoinResponse`], within 5 seconds. The user isn't a player until the service adds them,
+    /// after the bot answers, so don't start the game, or wait for them, while answering: start
+    /// it from a later request, eg. the host's, or the new player's first. If the service can't
+    /// add them, as the game started or filled up meanwhile, it tells the bot they left.
     pub fn join(&self, x_oc_jwt: &str) -> Result<MiniAppPlayerClaims, TokenError> {
         self.verify(x_oc_jwt, MiniAppTokenType::Join)
     }
@@ -741,6 +749,9 @@ mod tests {
     #[tokio::test]
     async fn gives_the_service_s_refusals() {
         let (url, _) = serve(vec![
+            (400, r#"{"error":"Only players can be waited for"}"#),
+            (403, r#"{"error":"Not the bot's game"}"#),
+            (404, r#"{"error":"Unknown game"}"#),
             (409, r#"{"error":"The game has finished"}"#),
             (413, "length limit exceeded"),
             (503, r#"{"error":"Unavailable"}"#),
@@ -749,6 +760,9 @@ mod tests {
         let client = client(url, vec![bot_token("a", 3600)]);
 
         for expected in [
+            MiniAppServiceError::Invalid("Only players can be waited for".to_string()),
+            MiniAppServiceError::NotTheBotsGame("Not the bot's game".to_string()),
+            MiniAppServiceError::UnknownGame("Unknown game".to_string()),
             MiniAppServiceError::Finished("The game has finished".to_string()),
             MiniAppServiceError::TooLarge("length limit exceeded".to_string()),
             MiniAppServiceError::Status(503, "Unavailable".to_string()),
@@ -788,5 +802,17 @@ mod tests {
         );
         assert_eq!(requests[1].line, "GET /public_key HTTP/1.1");
         assert_eq!(requests[1].token, None);
+    }
+
+    #[tokio::test]
+    async fn a_malformed_registration_is_refused_without_calling_the_service() {
+        let (url, requests) = serve(Vec::new()).await;
+        let client = client(url, Vec::new());
+
+        assert!(matches!(
+            client.register("not a token").await,
+            Err(MiniAppServiceError::Invalid(_))
+        ));
+        assert!(requests.lock().unwrap().is_empty());
     }
 }

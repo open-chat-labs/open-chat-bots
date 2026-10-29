@@ -412,8 +412,7 @@ impl MiniAppContent {
     /// The longest result the MiniApp service takes, to write to the card when the game finishes
     pub const MAX_RESULT_CHARS: usize = 200;
 
-    /// A card without an image, open, with no limit on players, which only the players can open
-    /// once the game has started
+    /// A card without an image, open, with no limit on players, which only its players can open
     pub fn new(text: impl Into<String>) -> Self {
         MiniAppContent {
             text: text.into(),
