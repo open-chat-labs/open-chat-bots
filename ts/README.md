@@ -352,24 +352,37 @@ A player asks to start, eg. with the app's Start button, and the service calls
 app.post("/mini_app/start", async (req, res) => {
     const { game } = (await miniAppTokens()).verifyStart(req.headers["x-oc-jwt"]);
     const g = games.get(miniAppGameKey(game));
-    if (g.started) return res.json(g.startResponse); // asked again: answer as before
-    if (g.seats.length < 2) return res.json(refuseMiniAppStart("Needs 2 players"));
-    g.start();
-    g.startResponse = acceptMiniAppStart({
-        players: g.seats, // who it starts with
-        waitingFor: [g.seats[0]],
-        state: g.state(), // the first state
-    });
-    res.json(g.startResponse);
+    if (g.firstState === undefined) {
+        if (g.seats.length < 2) return res.json(refuseMiniAppStart("Needs 2 players"));
+        // Dealt once, with a seq above any state sent before. A start that failed is asked again,
+        // and answered with the same first state.
+        g.firstState = g.deal();
+    }
+    res.json(
+        acceptMiniAppStart({
+            players: g.seats, // as they are now
+            waitingFor: [g.seats[0]],
+            state: g.firstState,
+        }),
+    );
 });
 ```
 
-Answer within 5 seconds. Each player must be playing, or have a join the bot's still answering;
-anyone playing whom it leaves out is taken off. The service holds the game while it asks, so answer
-with the game's first state, rather than with `miniApps.update`, which would wait until the start
-timed out. If the service couldn't save the start, the player can ask again, so a bot asked to start
-a game it already started answers as it did. The service then writes the players to the card, and
-closes joining.
+Answer within 5 seconds.
+
+- **The players** should each be playing, or have a join the bot's still answering. Anyone else
+  isn't added, and the bot's told they left, eg. a player whose leave hadn't reached it yet. Anyone
+  playing whom it leaves out is taken off.
+- **The first state** comes with the answer, with a `seq` above any state the bot has already
+  sent. The service holds the game while it asks, so don't call `miniApps.update`, and don't make
+  the answer wait on any update of the game, eg. one made while answering a join: it would wait
+  until the start timed out.
+- **An answer that's invalid in itself is refused:** a player listed twice, more than the game's
+  limit, waiting for someone it doesn't list, or a state that isn't newer.
+- **If a start fails,** eg. it timed out, the player can ask again. So a bot asked to start a game
+  it already started answers with its players as they are now.
+
+Once the game starts, the service writes its players to the card, and closes joining.
 
 ### 5. Publish state, whose turn it is and the result
 

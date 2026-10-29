@@ -81,7 +81,7 @@ export class MiniAppTokens {
     /**
      * The service's `POST <endpoint>/mini_app/start`: a player asks to start a game, which the bot
      * answers within 5 seconds with `acceptMiniAppStart`, with the game's first state, or
-     * `refuseMiniAppStart`
+     * `refuseMiniAppStart`. See `MiniAppStart` for the rules.
      */
     verifyStart(header: MiniAppTokenHeader, now: number = Date.now()): MiniAppPlayerClaims {
         return this.#verify(header, CLAIM_TYPE_MINI_APP_START, now);

@@ -44,25 +44,34 @@ export type MiniAppPlayerClaims = {
 export type MiniAppJoinResponse = { accepted: boolean; message?: string };
 
 /**
- * How a bot starts a game when a player asks it to, with `acceptMiniAppStart`. The service holds
- * the game while it asks, so the bot gives the game's first state here, rather than with
- * `MiniAppServiceClient.update`, which would wait until the start timed out.
+ * How a bot starts a game when a player asks it to, with `acceptMiniAppStart`.
+ *
+ * The service holds the game while it asks, so the bot gives the game's first state here, rather
+ * than with `MiniAppServiceClient.update`, and its answer mustn't wait on any update of the game,
+ * eg. one made while answering a join: that would wait until the start timed out.
+ *
+ * The service refuses an answer that's invalid in itself: a player listed twice, more players than
+ * the game's limit, waiting for someone it doesn't list, or a state that isn't newer.
  */
 export type MiniAppStart = {
     /**
-     * The user ids of those it starts with, in any order. Each must be playing, or have a join the
-     * bot's still answering, as it accepted them. Anyone playing whom it leaves out is taken off.
+     * The user ids of those it starts with, in any order. Each should be playing, or have a join
+     * the bot's still answering, as it accepted them. Anyone else isn't added, and the bot's told
+     * they left, eg. a player whose leave hadn't reached it yet. Anyone playing whom it leaves out
+     * is taken off.
      */
     players: string[];
     /** The players whose turn it is first, each once, or none for no one in particular */
     waitingFor: string[];
+    /** The game's first state, whose `seq` is above any state the bot has already sent */
     state?: MiniAppGameState;
 };
 
 /**
  * The bot's answer to the service's `POST <endpoint>/mini_app/start`, within 5 seconds, as the
- * service reads it, from `acceptMiniAppStart` or `refuseMiniAppStart`. A bot asked to start a game
- * it already started, as the service couldn't save the start, answers as it did the first time.
+ * service reads it, from `acceptMiniAppStart` or `refuseMiniAppStart`. If a start fails, eg. as it
+ * timed out or the service couldn't save it, the player can ask again, so a bot asked to start a
+ * game it already started answers with its players as they are now.
  */
 export type MiniAppStartResponse =
     | {
