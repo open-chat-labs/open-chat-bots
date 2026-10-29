@@ -303,14 +303,15 @@ The service posts every card, as the bot, so that it knows each game from the mo
 exists: `sendMessage` refuses a card. `client.miniAppPostToken()` asks the LocalUserIndex for a
 token to post one card in the chat the client would send a message in, a command's or an autonomous
 one, with the same options, `{ channelId, thread, messageId }`: the channel for a client in a
-community's scope, the thread, and the card's message id if the bot chooses one. The token lasts an
-hour, and needs the `MiniApp` message permission, so a command which posts a card asks for it. A
-card can't be posted in a direct chat, and its text, image, player limit and spectators never
-change. `createMiniAppMessage` uploads the optional image (`{ data, mimeType, width, height }`)
-first, as `createImageMessage` does; `setBlockLevelMarkdown` and `setRepliesTo` apply. Posting the
-same token again posts nothing new and gives the same game, so a bot which got no answer, eg. an
-`unavailable` error, posts again with the same token. `miniAppGameFromPostToken(token)` gives the
-game before the card is posted, eg. so the bot can key it before a join can arrive.
+community's scope, the thread, and the card's message id, which the SDK picks unless the bot chooses
+one (a command's token fixes it). The token lasts an hour, and needs the `MiniApp` message
+permission, so a command which posts a card asks for it. A card can't be posted in a direct chat,
+and its text, image, player limit and spectators never change. `createMiniAppMessage` uploads the
+optional image (`{ data, mimeType, width, height }`) first, as `createImageMessage` does;
+`setBlockLevelMarkdown` and `setRepliesTo` apply. Posting the same token again posts nothing new and
+gives the same game, so a bot which got no answer, eg. an `unavailable` error, posts again with the
+same token. `miniAppGameFromPostToken(token)` gives the game before the card is posted, eg. so the
+bot can key it before a join can arrive.
 
 A `MiniAppGame` is `{ chat, thread?, messageId }`. `miniAppGameKey` gives a key that's unique across
 chats and threads. The service client sends the bot's token, from the LocalUserIndex's

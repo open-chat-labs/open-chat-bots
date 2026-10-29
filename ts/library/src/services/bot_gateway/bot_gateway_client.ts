@@ -323,7 +323,7 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
 
     // A token to post one MiniApp card through OpenChat's MiniApp service, for the chat the bot
     // would send a message in, with the same options: the channel for a community's command, the
-    // thread, and the message id if the bot chose one
+    // thread, and the message id, which a command's token fixes and an autonomous post must give
     async miniAppPostToken(
         ctx: BotChatContext,
         options: { channelId?: bigint; thread?: number; messageId?: bigint },

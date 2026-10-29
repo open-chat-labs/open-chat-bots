@@ -507,6 +507,21 @@ describe("BotClient.miniAppPostToken", () => {
         });
     });
 
+    test("picks a message id for an autonomous card, as OpenChat can't in a query", async () => {
+        const calls = stubQuery();
+        const autonomous = ActionContext.inAutonomousContext(
+            new ChatActionScope(new GroupChatIdentifier(GROUP)),
+            "aaaaa-aa",
+        );
+
+        await client(autonomous).miniAppPostToken();
+        await client(autonomous).miniAppPostToken();
+
+        const ids = calls.map((call) => call.args.message_id);
+        expect(ids.every((id) => typeof id === "bigint" && id >= 0n && id < 1n << 64n)).toBe(true);
+        expect(ids[0]).not.toBe(ids[1]);
+    });
+
     test("sends a command's token, whose message id the card takes", async () => {
         const calls = stubQuery();
 
