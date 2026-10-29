@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chess</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1d1d1f;
+    --muted: #6e6e73;
+    --line: #e5e5ea;
+    --panel: #f2f2f7;
+    --light: #f0d9b5;
+    --dark: #b58863;
+    --selected: rgba(20, 85, 30, 0.5);
+    --last: rgba(155, 199, 0, 0.45);
+    --target: rgba(0, 0, 0, 0.22);
+    --accent: #0a6cff;
+    --accent-pressed: #0857cc;
+    --accent-fg: #ffffff;
+    --error: #d70015;
+    --low: #d70015;
+  }
+  :root[data-theme="dark"] {
+    --bg: #1c1c1e;
+    --fg: #f5f5f7;
+    --muted: #a1a1a6;
+    --line: #3a3a3c;
+    --panel: #2c2c2e;
+    --light: #d8c4a0;
+    --dark: #8f6b4a;
+    --accent: #0a84ff;
+    --accent-pressed: #409cff;
+    --error: #ff6961;
+    --low: #ff6961;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 12px;
+  }
+  main { max-width: 440px; margin: 0 auto; }
+  #status { min-height: 1.4em; margin: 0 0 8px; text-align: center; font-weight: 600; }
+  #offer { min-height: 1.4em; margin: 4px 0 0; text-align: center; color: var(--muted); font-size: 14px; }
+  .player {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    margin: 6px 0;
+    border-radius: 8px;
+    background: var(--panel);
+    border: 2px solid transparent;
+  }
+  .player.active { border-color: var(--accent); }
+  .name { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .name .id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .name .side { font-weight: 600; }
+  .clock {
+    font: 600 22px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+    min-width: 4.5em;
+    text-align: right;
+  }
+  .clock.low { color: var(--low); }
+  #board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 4px;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+  .sq {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    font-size: min(9.5vw, 42px);
+  }
+  .sq.light { background: var(--light); }
+  .sq.dark { background: var(--dark); }
+  .sq.movable { cursor: pointer; }
+  .sq.last::before { content: ""; position: absolute; inset: 0; background: var(--last); }
+  .sq.check::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, rgba(255, 0, 0, 0.85) 0%, rgba(230, 0, 0, 0.5) 45%, transparent 75%);
+  }
+  .sq.selected::before { content: ""; position: absolute; inset: 0; background: var(--selected); }
+  .sq.target::after {
+    content: "";
+    position: absolute;
+    width: 32%;
+    height: 32%;
+    border-radius: 50%;
+    background: var(--target);
+  }
+  .sq.target.capture::after {
+    width: 100%;
+    height: 100%;
+    background: none;
+    border: 0.3em solid var(--target);
+  }
+  .piece { position: relative; z-index: 1; }
+  .piece.w { color: #fff; -webkit-text-stroke: 1px #2a2a2a; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45); }
+  .piece.b { color: #111; }
+  .coord { position: absolute; font-size: 9px; line-height: 1; color: rgba(0, 0, 0, 0.55); }
+  .coord.file { right: 2px; bottom: 2px; }
+  .coord.rank { left: 2px; top: 2px; }
+  #controls { margin: 10px 0 4px; text-align: center; }
+  button {
+    border: 0;
+    border-radius: 8px;
+    padding: 9px 16px;
+    margin: 3px;
+    background: var(--accent);
+    color: var(--accent-fg);
+    font: 600 15px/1 system-ui, sans-serif;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  button:active { background: var(--accent-pressed); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button.quiet { background: var(--panel); color: var(--fg); }
+  #error { min-height: 1.4em; margin: 6px 0; color: var(--error); text-align: center; font-size: 14px; }
+  #moves {
+    display: grid;
+    grid-template-columns: 2.6em 1fr 1fr;
+    column-gap: 4px;
+    row-gap: 2px;
+    max-height: 7.5em;
+    overflow-y: auto;
+    padding: 6px 8px;
+    border-top: 1px solid var(--line);
+    font: 14px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  #moves .n { color: var(--muted); }
+  #moves .m.latest { font-weight: 700; }
+  #promotion {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 2;
+  }
+  #promotion div { background: var(--bg); border-radius: 12px; padding: 12px; text-align: center; }
+  #promotion p { margin: 0 0 8px; }
+  #promotion button.piece-choice { font-size: 32px; padding: 6px 12px; background: var(--panel); color: var(--fg); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <p id="status">Connecting to OpenChat…</p>
+  <div class="player" id="top"><span class="name"></span><span class="clock"></span></div>
+  <div id="board" role="grid" aria-label="Chess board"></div>
+  <div class="player" id="bottom"><span class="name"></span><span class="clock"></span></div>
+  <p id="offer"></p>
+  <div id="controls" hidden>
+    <button id="start" type="button">Start</button>
+    <button id="draw" type="button" class="quiet">Offer draw</button>
+    <button id="resign" type="button" class="quiet">Resign</button>
+  </div>
+  <p id="error" role="alert"></p>
+  <div id="moves" hidden></div>
+</main>
+<div id="promotion" hidden>
+  <div>
+    <p>Promote to</p>
+    <button type="button" class="piece-choice" data-piece="q">♛</button>
+    <button type="button" class="piece-choice" data-piece="r">♜</button>
+    <button type="button" class="piece-choice" data-piece="b">♝</button>
+    <button type="button" class="piece-choice" data-piece="n">♞</button>
+    <br>
+    <button type="button" id="cancel-promotion" class="quiet">Cancel</button>
+  </div>
+</div>
+<script>
+"use strict";
+
+// The app's side of OpenChat's MiniApp protocol. OpenChat, the window this page is framed in, says
+// whether the user is a player or a spectator, gives a player their token, and passes on the game's
+// state as the bot publishes it through the MiniApp service. A player's moves go to the bot's API,
+// with the token in the `x-oc-jwt` header, which the bot verifies. Spectators only watch.
+
+const TOKEN_TIMEOUT_MS = 10000;
+const LOW_TIME_MS = 20000;
+const FILES = "abcdefgh";
+const GLYPHS = { k: "♚", q: "♛", r: "♜", b: "♝", n: "♞", p: "♟" };
+
+let openChatOrigin = null;
+let role = null;
+let userId = null;
+let token = null;
+// The last state shown, so an older one arriving late doesn't replace it
+let lastSeq = -1;
+let shared = null;
+// When the last state arrived, by this page's clock, so the running clock can count down from it
+let receivedAt = 0;
+// The square of the piece picked up, if any, and a promotion waiting for its piece
+let selected = null;
+let promotion = null;
+// A move on its way to the bot, during which the board takes no taps
+let sending = false;
+// The token request OpenChat hasn't answered yet: { promise, resolve, reject, timer }
+let tokenRequest = null;
+
+const statusText = document.getElementById("status");
+const top = document.getElementById("top");
+const bottom = document.getElementById("bottom");
+const board = document.getElementById("board");
+const offerText = document.getElementById("offer");
+const controls = document.getElementById("controls");
+const startButton = document.getElementById("start");
+const drawButton = document.getElementById("draw");
+const resignButton = document.getElementById("resign");
+const errorText = document.getElementById("error");
+const movesList = document.getElementById("moves");
+const promotionDialog = document.getElementById("promotion");
+
+// Starting goes through OpenChat, so that the card records exactly who the game started with
+startButton.addEventListener("click", () => {
+  showError("");
+  window.parent.postMessage({ kind: "mini_app_start" }, openChatOrigin);
+});
+drawButton.addEventListener("click", () => call("api/draw"));
+resignButton.addEventListener("click", () => {
+  if (window.confirm("Resign the game?")) call("api/resign");
+});
+for (const button of promotionDialog.querySelectorAll(".piece-choice")) {
+  button.addEventListener("click", () => {
+    if (promotion !== null) sendMove(promotion + button.dataset.piece);
+    promotion = null;
+    promotionDialog.hidden = true;
+  });
+}
+document.getElementById("cancel-promotion").addEventListener("click", () => {
+  promotion = null;
+  promotionDialog.hidden = true;
+});
+board.addEventListener("click", (event) => {
+  const square = event.target.closest(".sq");
+  if (square !== null) onSquare(square.dataset.square);
+});
+
+window.addEventListener("message", (event) => {
+  // Only OpenChat, the window this page is framed in, is listened to
+  if (event.source !== window.parent) return;
+  const message = event.data;
+  if (message === null || typeof message !== "object") return;
+
+  if (message.kind === "initialise_mini_app") {
+    if (openChatOrigin !== null && event.origin !== openChatOrigin) return;
+    // Everything the page sends OpenChat from now on goes to this origin only. OpenChat sends this
+    // again when the user's role changes.
+    openChatOrigin = event.origin;
+    role = message.role;
+    userId = typeof message.user_id === "string" ? message.user_id : null;
+    token = typeof message.token === "string" ? message.token : null;
+    setDarkMode(message.dark_mode);
+    if (typeof message.locale === "string") document.documentElement.lang = message.locale;
+    render();
+    return;
+  }
+
+  if (openChatOrigin === null || event.origin !== openChatOrigin) return;
+
+  switch (message.kind) {
+    case "mini_app_state":
+      // A state with the same seq replaces the one shown; an older one is dropped
+      if (typeof message.seq !== "number" || message.seq < lastSeq) return;
+      lastSeq = message.seq;
+      shared = message.shared;
+      receivedAt = Date.now();
+      selected = null;
+      render();
+      break;
+    case "mini_app_token":
+      if (typeof message.token === "string") setToken(message.token);
+      break;
+    case "set_dark_mode":
+      setDarkMode(message.dark_mode);
+      break;
+    case "mini_app_start_result":
+      if (message.accepted !== true) showError(message.message || "The game couldn't be started");
+      break;
+  }
+});
+
+if (window.parent === window) {
+  statusText.textContent = "Open this from its card in OpenChat";
+} else {
+  // Nothing secret, so to any origin. OpenChat answers with `initialise_mini_app`.
+  window.parent.postMessage({ kind: "mini_app_ready" }, "*");
+  setTimeout(() => {
+    if (openChatOrigin === null) statusText.textContent = "Couldn't connect to OpenChat";
+  }, TOKEN_TIMEOUT_MS);
+}
+
+setInterval(tickClocks, 100);
+
+function setDarkMode(dark) {
+  document.documentElement.dataset.theme = dark === true ? "dark" : "light";
+}
+
+function setToken(newToken) {
+  token = newToken;
+  if (tokenRequest !== null) {
+    clearTimeout(tokenRequest.timer);
+    tokenRequest.resolve(newToken);
+    tokenRequest = null;
+  }
+}
+
+// Asks OpenChat for a new token, resolving once it's sent one. Requests made while one is waiting
+// share it.
+function requestToken() {
+  if (tokenRequest === null) {
+    let resolve, reject;
+    const promise = new Promise((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    const timer = setTimeout(() => {
+      tokenRequest = null;
+      reject(new Error("OpenChat didn't send a new token"));
+    }, TOKEN_TIMEOUT_MS);
+    tokenRequest = { promise, resolve, reject, timer };
+    window.parent.postMessage({ kind: "mini_app_token_request" }, openChatOrigin);
+  }
+  return tokenRequest.promise;
+}
+
+// Calls the bot's API, which is next to this page, eg. `{endpoint}/api/move` for the page at
+// `{endpoint}/app`. A 401 means the token has expired, or isn't valid, so the page asks OpenChat
+// for a new one and tries once more. The new position arrives as a state, from OpenChat.
+async function call(path, body) {
+  showError("");
+  sending = true;
+  try {
+    for (let attempt = 0; ; attempt++) {
+      const headers = { "x-oc-jwt": token };
+      if (body !== undefined) headers["content-type"] = "application/json";
+      const response = await fetch(path, { method: "POST", headers, body: body === undefined ? undefined : JSON.stringify(body) });
+      if (response.status === 401 && attempt === 0) {
+        await requestToken();
+        continue;
+      }
+      if (response.ok) return;
+      const json = await response.json().catch(() => null);
+      throw new Error(json !== null && typeof json.error === "string" ? json.error : `The bot answered ${response.status}`);
+    }
+  } catch (error) {
+    showError(error.message);
+  } finally {
+    sending = false;
+    renderBoard();
+  }
+}
+
+function sendMove(uci) {
+  selected = null;
+  renderBoard();
+  call("api/move", { move: uci });
+}
+
+function showError(text) {
+  errorText.textContent = text;
+}
+
+// The side the user plays, if they're a player in a started game
+function myColor() {
+  if (role !== "player" || shared === null || userId === null) return null;
+  if (shared.white === userId) return "white";
+  if (shared.black === userId) return "black";
+  return null;
+}
+
+function canMove() {
+  return !sending && shared !== null && shared.status === "Active" && myColor() === shared.turn;
+}
+
+// A tap on a square: picks up one of the player's pieces, puts it down on a square it can move to,
+// or puts it back
+function onSquare(square) {
+  if (!canMove()) return;
+  const moves = shared.legal_moves;
+  if (selected !== null && selected !== square) {
+    const candidates = moves.filter((m) => m.startsWith(selected + square));
+    if (candidates.length > 0) {
+      if (candidates.some((m) => m.length === 5)) {
+        promotion = selected + square;
+        promotionDialog.hidden = false;
+      } else {
+        sendMove(candidates[0]);
+      }
+      return;
+    }
+  }
+  selected = selected !== square && moves.some((m) => m.startsWith(square)) ? square : null;
+  renderBoard();
+}
+
+// The app has no usernames, so each user is shown by their id, shortened
+function shortId(id) {
+  return id.length > 13 ? `${id.slice(0, 5)}…${id.slice(-5)}` : id;
+}
+
+function sideName(color) {
+  return color === "white" ? "White" : "Black";
+}
+
+// The pieces on the board, by square, from the position's FEN
+function pieces(fen) {
+  const placed = {};
+  const rows = fen.split(" ")[0].split("/");
+  rows.forEach((row, i) => {
+    const rank = 8 - i;
+    let file = 0;
+    for (const ch of row) {
+      if (ch >= "1" && ch <= "8") {
+        file += Number(ch);
+      } else {
+        placed[FILES[file] + rank] = ch;
+        file++;
+      }
+    }
+  });
+  return placed;
+}
+
+function render() {
+  renderStatus();
+  renderPlayers();
+  renderBoard();
+  renderMoves();
+  tickClocks();
+}
+
+function renderStatus() {
+  const player = role === "player";
+  const mine = myColor();
+  let text;
+  let offer = "";
+  const status = shared?.status ?? "Open";
+  if (status === "Open") {
+    const joined = shared?.players?.length ?? 0;
+    text = player ? (joined < 2 ? "Waiting for an opponent to join" : "Start the game when you're both ready") : "Waiting for the game to start";
+  } else if (status === "Active") {
+    text = mine === shared.turn ? "Your move" : `${sideName(shared.turn)} to move`;
+    if (shared.check) text += " · Check";
+    if (shared.draw_offer) {
+      offer = shared.draw_offer === mine ? "You've offered a draw" : `${sideName(shared.draw_offer)} offers a draw`;
+    }
+  } else {
+    text = shared.result ?? "Game over";
+  }
+  statusText.textContent = text;
+  offerText.textContent = offer;
+
+  controls.hidden = !player || status === "Finished";
+  startButton.hidden = status !== "Open";
+  drawButton.hidden = status !== "Active" || mine === null;
+  resignButton.hidden = status !== "Active" || mine === null;
+  if (status === "Active" && mine !== null) {
+    const theirs = mine === "white" ? "black" : "white";
+    drawButton.textContent = shared.draw_offer === theirs ? "Accept draw" : "Offer draw";
+    drawButton.disabled = shared.draw_offer === mine;
+  }
+}
+
+// The user's side at the bottom, or White if they're watching
+function flipped() {
+  return myColor() === "black";
+}
+
+function renderPlayers() {
+  const status = shared?.status ?? "Open";
+  const describe = (color) => {
+    const id = status === "Open" ? shared?.players?.[color === "white" ? 0 : 1] : shared?.[color];
+    const label = status === "Open" ? `Player ${color === "white" ? 1 : 2}` : sideName(color);
+    if (id === undefined || id === null) return `<span class="side">${label}</span> · waiting for a player`;
+    const who = id === userId ? "you" : `<span class="id" title="${id}">${shortId(id)}</span>`;
+    return `<span class="side">${label}</span> · ${who}`;
+  };
+  const bottomColor = flipped() ? "black" : "white";
+  const topColor = flipped() ? "white" : "black";
+  bottom.querySelector(".name").innerHTML = describe(bottomColor);
+  top.querySelector(".name").innerHTML = describe(topColor);
+  bottom.dataset.color = bottomColor;
+  top.dataset.color = topColor;
+  const running = shared?.clock?.running ?? null;
+  bottom.classList.toggle("active", running === bottomColor);
+  top.classList.toggle("active", running === topColor);
+}
+
+function renderBoard() {
+  const fen = shared?.fen ?? "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  const placed = pieces(fen);
+  const flip = flipped();
+  const moves = canMove() ? shared.legal_moves : [];
+  const targets = selected === null ? new Set() : new Set(moves.filter((m) => m.startsWith(selected)).map((m) => m.slice(2, 4)));
+  const movable = new Set(moves.map((m) => m.slice(0, 2)));
+  const last = shared?.last_move ?? null;
+  // The king in check, if any
+  let checked = null;
+  if (shared?.check && shared.status === "Active") {
+    const king = shared.turn === "white" ? "K" : "k";
+    checked = Object.keys(placed).find((square) => placed[square] === king) ?? null;
+  }
+
+  const squares = [];
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const file = flip ? 7 - col : col;
+      const rank = flip ? row + 1 : 8 - row;
+      const square = FILES[file] + rank;
+      const div = document.createElement("div");
+      div.className = `sq ${(file + rank) % 2 === 0 ? "dark" : "light"}`;
+      div.dataset.square = square;
+      div.setAttribute("role", "gridcell");
+      if (last !== null && (last.from === square || last.to === square)) div.classList.add("last");
+      if (checked === square) div.classList.add("check");
+      if (selected === square) div.classList.add("selected");
+      if (targets.has(square)) {
+        div.classList.add("target");
+        if (placed[square] !== undefined) div.classList.add("capture");
+      }
+      if (movable.has(square) || targets.has(square)) div.classList.add("movable");
+      const piece = placed[square];
+      if (piece !== undefined) {
+        const span = document.createElement("span");
+        span.className = `piece ${piece === piece.toUpperCase() ? "w" : "b"}`;
+        span.textContent = GLYPHS[piece.toLowerCase()];
+        div.append(span);
+        div.setAttribute("aria-label", `${square} ${piece}`);
+      } else {
+        div.setAttribute("aria-label", square);
+      }
+      if (col === 0) {
+        const coord = document.createElement("span");
+        coord.className = "coord rank";
+        coord.textContent = String(rank);
+        div.append(coord);
+      }
+      if (row === 7) {
+        const coord = document.createElement("span");
+        coord.className = "coord file";
+        coord.textContent = FILES[file];
+        div.append(coord);
+      }
+      squares.push(div);
+    }
+  }
+  board.replaceChildren(...squares);
+}
+
+function renderMoves() {
+  const moves = shared?.moves ?? [];
+  movesList.hidden = moves.length === 0;
+  const cells = [];
+  for (let i = 0; i < moves.length; i += 2) {
+    const n = document.createElement("span");
+    n.className = "n";
+    n.textContent = `${i / 2 + 1}.`;
+    cells.push(n);
+    for (const j of [i, i + 1]) {
+      const m = document.createElement("span");
+      m.className = "m";
+      if (j === moves.length - 1) m.classList.add("latest");
+      m.textContent = moves[j] ?? "";
+      cells.push(m);
+    }
+  }
+  movesList.replaceChildren(...cells);
+  movesList.scrollTop = movesList.scrollHeight;
+}
+
+function formatClock(ms) {
+  if (ms < 10000) return `0:0${Math.floor(ms / 1000)}.${Math.floor((ms % 1000) / 100)}`;
+  const minutes = Math.floor(ms / 60000);
+  const seconds = Math.floor((ms % 60000) / 1000);
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+// What each side has left: the state's figure, less the time since it arrived for the side whose
+// clock is running
+function tickClocks() {
+  for (const panel of [top, bottom]) {
+    const clockText = panel.querySelector(".clock");
+    const clock = shared?.clock;
+    if (!clock) {
+      clockText.textContent = "10:00";
+      clockText.classList.remove("low");
+      continue;
+    }
+    const color = panel.dataset.color;
+    let ms = clock[`${color}_ms`];
+    if (clock.running === color) ms = Math.max(0, ms - (Date.now() - receivedAt));
+    clockText.textContent = formatClock(ms);
+    clockText.classList.toggle("low", clock.running === color && ms < LOW_TIME_MS);
+  }
+}
+
+render();
+</script>
+</body>
+</html>

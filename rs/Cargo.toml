@@ -14,6 +14,7 @@ members = [
     "offchain/bridges/discord",
     "offchain/bridges/telegram",
     "offchain/bridges/twitch",
+    "offchain/examples/chess",
     "offchain/examples/dice",
     "offchain/examples/llama",
     "offchain/sdk",
@@ -60,6 +61,7 @@ serde = "1.0.217"
 serde_bytes = "0.11"
 serde_json = "1.0.138"
 sha2 = "0.10.8"
+shakmaty = "0.30"
 sha3 = "0.10"
 strum = "0.27"
 strum_macros = "0.27"
