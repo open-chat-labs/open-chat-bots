@@ -1,7 +1,7 @@
 //! Hosting games through OpenChat's MiniApp service, which sits between OpenChat's website and the
 //! bots whose games are played from MiniApp cards. Only the service records who joins a game, and
 //! only it writes the game's card: the bot answers the service's calls asking it to accept a player
-//! and telling it one left, and tells the service how the game goes, with
+//! or start the game, and telling it one left, and tells the service how the game goes, with
 //! [`MiniAppServiceClient::update`].
 use crate::env;
 use oc_bots_sdk::jwt;
@@ -85,9 +85,9 @@ impl<R: Runtime> MiniAppServiceClient<R> {
         Ok(game)
     }
 
-    /// Tells the service how one of the bot's games goes: its status, whose turn it is, its result,
-    /// players to take off it, and its state for everyone with it open. The service writes the
-    /// card from it.
+    /// Tells the service how one of the bot's games goes: whose turn it is, players to take off it,
+    /// its state for everyone with it open, and when it's finished, its result. The service writes
+    /// the card from it. A player starts the game, through the service, so an update can't.
     pub async fn update(&self, update: GameUpdate) -> Result<(), MiniAppServiceError> {
         self.post("bot/update", &update).await
     }
@@ -241,25 +241,25 @@ impl Display for MiniAppServiceError {
     }
 }
 
-/// Where a game's got to, which only moves forward: Open → Active → Finished, or Open → Finished
+/// The status a bot can give a game. A player starts it, through the service, so the bot only ever
+/// finishes it.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum GameStatus {
-    /// Taking players
-    Open,
-    /// Being played, which closes joining. The card records the game's players as it starts.
-    Active,
-    /// Over, which ends the game. The card keeps the players it started with, and the result.
+    /// Over, whether it started or not, which ends the game. The card keeps the players it started
+    /// with, and the result.
     Finished,
 }
 
 /// What [`MiniAppServiceClient::update`] changes about a game. Whatever isn't set stays as it was.
 ///
 /// ```ignore
-/// // The game starts, with Alice to move
+/// // Alice moved, so it's Bob's turn
 /// let update = GameUpdate::new(game)
-///     .with_status(GameStatus::Active)
-///     .with_waiting_for(vec![alice])
-///     .with_state(GameState { seq: 1, shared, private });
+///     .with_waiting_for(vec![bob])
+///     .with_state(GameState { seq: 2, shared, private });
+///
+/// // Bob won
+/// let update = GameUpdate::new(game).finished().with_result("Bob won");
 /// ```
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct GameUpdate {
@@ -304,8 +304,9 @@ impl GameUpdate {
         }
     }
 
-    pub fn with_status(mut self, status: GameStatus) -> Self {
-        self.status = Some(status);
+    /// Ends the game, whether it started or not
+    pub fn finished(mut self) -> Self {
+        self.status = Some(GameStatus::Finished);
         self
     }
 
@@ -315,7 +316,7 @@ impl GameUpdate {
         self
     }
 
-    /// eg. "Bob won", of at most 200 characters, which only comes with `GameStatus::Finished`
+    /// eg. "Bob won", of at most 200 characters, which only comes with [`Self::finished`]
     pub fn with_result(mut self, result: impl Into<String>) -> Self {
         self.result = Some(result.into());
         self
@@ -361,6 +362,51 @@ impl JoinResponse {
     }
 }
 
+/// The bot's answer to the service's `POST <endpoint>/mini_app/start`, within 5 seconds, with a 200
+/// whether it starts the game or not. The service takes any other status as the bot being
+/// unavailable.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct StartResponse {
+    pub accepted: bool,
+    /// Why not, eg. "Needs 2 players", which is shown to the player who asked, cut to 200 characters
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub players: Option<Vec<UserId>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub waiting_for: Option<Vec<UserId>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub state: Option<GameState>,
+}
+
+impl StartResponse {
+    /// Starts the game, which closes joining, and the card records its players:
+    /// - `players`, in any order, each playing, or with a join the bot accepted and is still
+    ///   answering, which then succeeds. Anyone playing whom the bot leaves out is taken off.
+    /// - `waiting_for`, whose turn it is first, as in [`GameUpdate::with_waiting_for`].
+    /// - `state`, the game's first state, as the service holds the game while it asks, so an
+    ///   update sent meanwhile would wait until the start timed out.
+    pub fn accept(players: Vec<UserId>, waiting_for: Vec<UserId>, state: GameState) -> Self {
+        StartResponse {
+            accepted: true,
+            message: None,
+            players: Some(players),
+            waiting_for: Some(waiting_for),
+            state: Some(state),
+        }
+    }
+
+    pub fn refuse(message: impl Into<String>) -> Self {
+        StartResponse {
+            accepted: false,
+            message: Some(message.into()),
+            players: None,
+            waiting_for: None,
+            state: None,
+        }
+    }
+}
+
 /// Verifies the MiniApp service's tokens, which come in the `x-oc-jwt` header, eg. as taken by
 /// `middleware::tower::ExtractJwtLayer`. `service_public_key` is the service's, from
 /// [`MiniAppServiceClient::public_key`], and `bot_id` is the user id OpenChat gave the bot when it
@@ -381,11 +427,21 @@ impl MiniAppVerifier {
 
     /// The service's `POST <endpoint>/mini_app/join`: the user asks to join the game. Answer with a
     /// [`JoinResponse`], within 5 seconds. The user isn't a player until the service adds them,
-    /// after the bot answers, so don't start the game, or wait for them, while answering: start
-    /// it from a later request, eg. the host's, or the new player's first. If the service can't
-    /// add them, as the game started or filled up meanwhile, it tells the bot they left.
+    /// after the bot answers, so don't count them as playing until the bot's asked to
+    /// [`start`](Self::start) the game, which may come while it's still answering their join. If
+    /// the service can't add them, as the game started or filled up meanwhile, it tells the bot
+    /// they left.
     pub fn join(&self, x_oc_jwt: &str) -> Result<MiniAppPlayerClaims, TokenError> {
         self.verify(x_oc_jwt, MiniAppTokenType::Join)
+    }
+
+    /// The service's `POST <endpoint>/mini_app/start`: the user, a player, asks to start the game.
+    /// Answer with a [`StartResponse`], within 5 seconds, with the game's first state, rather than
+    /// calling [`MiniAppServiceClient::update`], as the service holds the game while it asks. If
+    /// the service couldn't save the start, the player can ask again, so answer a start of a game
+    /// the bot has already started as it did the first time.
+    pub fn start(&self, x_oc_jwt: &str) -> Result<MiniAppPlayerClaims, TokenError> {
+        self.verify(x_oc_jwt, MiniAppTokenType::Start)
     }
 
     /// The service's `POST <endpoint>/mini_app/leave`: the user left the game, or isn't playing
@@ -457,7 +513,7 @@ mod tests {
         );
 
         let update = GameUpdate::new(game())
-            .with_status(GameStatus::Finished)
+            .finished()
             .with_waiting_for(vec![id(2)])
             .with_result("Bob won")
             .with_removed(vec![id(3)])
@@ -489,13 +545,14 @@ mod tests {
             serde_json::to_value(GameUpdate::new(game()).with_waiting_for(Vec::new())).unwrap(),
             json!({ "game": game_json(), "waiting_for": [] })
         );
-        for (status, expected) in [
-            (GameStatus::Open, "Open"),
-            (GameStatus::Active, "Active"),
-            (GameStatus::Finished, "Finished"),
-        ] {
-            assert_eq!(serde_json::to_value(status).unwrap(), json!(expected));
-        }
+
+        // A bot can only finish a game, as a player starts it
+        assert_eq!(
+            serde_json::to_value(GameUpdate::new(game()).finished().with_result("Bob won"))
+                .unwrap(),
+            json!({ "game": game_json(), "status": "Finished", "result": "Bob won" })
+        );
+        assert!(serde_json::from_value::<GameStatus>(json!("Active")).is_err());
     }
 
     #[test]
@@ -514,6 +571,54 @@ mod tests {
                 accepted: false,
                 message: None,
             }
+        );
+    }
+
+    #[test]
+    fn a_start_is_answered_as_the_protocol_says() {
+        let start = StartResponse::accept(
+            vec![id(2), id(3)],
+            vec![id(2)],
+            GameState {
+                seq: 1,
+                shared: json!({ "version": 1 }),
+                private: HashMap::from([(id(3), json!({ "hand": [5] }))]),
+            },
+        );
+        assert_eq!(
+            serde_json::to_value(&start).unwrap(),
+            json!({
+                "accepted": true,
+                "players": [id(2).to_string(), id(3).to_string()],
+                "waiting_for": [id(2).to_string()],
+                "state": {
+                    "seq": 1,
+                    "shared": { "version": 1 },
+                    "private": { id(3).to_string(): { "hand": [5] } },
+                },
+            })
+        );
+        let json = serde_json::to_string(&start).unwrap();
+        assert_eq!(serde_json::from_str::<StartResponse>(&json).unwrap(), start);
+
+        // Waiting for no one in particular is still sent
+        let start = StartResponse::accept(
+            vec![id(2)],
+            Vec::new(),
+            GameState {
+                seq: 1,
+                shared: json!({}),
+                private: HashMap::new(),
+            },
+        );
+        assert_eq!(
+            serde_json::to_value(&start).unwrap()["waiting_for"],
+            json!([])
+        );
+
+        assert_eq!(
+            serde_json::to_value(StartResponse::refuse("Needs 2 players")).unwrap(),
+            json!({ "accepted": false, "message": "Needs 2 players" })
         );
     }
 
@@ -548,8 +653,9 @@ mod tests {
             .unwrap();
         let verifier = MiniAppVerifier::new(public_key, id(2));
         type Verify = fn(&MiniAppVerifier, &str) -> Result<MiniAppPlayerClaims, TokenError>;
-        let calls: [(&str, Verify); 3] = [
+        let calls: [(&str, Verify); 4] = [
             ("MiniAppJoin", MiniAppVerifier::join),
+            ("MiniAppStart", MiniAppVerifier::start),
             ("MiniAppLeave", MiniAppVerifier::leave),
             ("MiniAppPlayer", MiniAppVerifier::player),
         ];

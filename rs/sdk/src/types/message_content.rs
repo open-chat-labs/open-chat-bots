@@ -330,8 +330,9 @@ pub struct PriceChartSource {
 ///
 /// Its text, image, player limit and whether others can watch are set when it's posted and never
 /// change. Its status is written only by OpenChat's MiniApp service: the players the game starts
-/// with, who joined through the service and were accepted by the bot, whose turn it is, and then its
-/// result. The bot tells the service how its game goes, and the service updates the card.
+/// with, who joined through the service and whom the bot started it with when a player asked,
+/// whose turn it is, and then its result. The bot tells the service how its game goes, and the
+/// service updates the card.
 ///
 /// Only a bot installed in the chat can send one, finalised, and it needs
 /// `MessagePermission::MiniApp`. It can't be sent in a direct chat, nor forwarded or edited.

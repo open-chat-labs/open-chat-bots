@@ -17,6 +17,9 @@ pub struct MiniAppGame {
 /// The `claim_type` of the token the MiniApp service sends with its `POST <endpoint>/mini_app/join`
 pub const CLAIM_TYPE_MINI_APP_JOIN: &str = "MiniAppJoin";
 
+/// The `claim_type` of the token the MiniApp service sends with its `POST <endpoint>/mini_app/start`
+pub const CLAIM_TYPE_MINI_APP_START: &str = "MiniAppStart";
+
 /// The `claim_type` of the token the MiniApp service sends with its `POST <endpoint>/mini_app/leave`
 pub const CLAIM_TYPE_MINI_APP_LEAVE: &str = "MiniAppLeave";
 
@@ -29,6 +32,8 @@ pub const CLAIM_TYPE_MINI_APP_PLAYER: &str = "MiniAppPlayer";
 pub enum MiniAppTokenType {
     /// A user asks to join a game, which the bot accepts or refuses
     Join,
+    /// A player asks to start a game, which the bot does, with its players, or refuses
+    Start,
     /// A player has left a game, or isn't playing after all
     Leave,
     /// A user is a player in a game, sent by their app with each request to the bot
@@ -39,6 +44,7 @@ impl MiniAppTokenType {
     pub fn claim_type(self) -> &'static str {
         match self {
             MiniAppTokenType::Join => CLAIM_TYPE_MINI_APP_JOIN,
+            MiniAppTokenType::Start => CLAIM_TYPE_MINI_APP_START,
             MiniAppTokenType::Leave => CLAIM_TYPE_MINI_APP_LEAVE,
             MiniAppTokenType::Player => CLAIM_TYPE_MINI_APP_PLAYER,
         }
@@ -161,8 +167,9 @@ mod tests {
         MiniAppPlayerClaims::parse(jwt, &public_key_pem(), token_type, id(2), NOW)
     }
 
-    const TOKEN_TYPES: [(MiniAppTokenType, &str); 3] = [
+    const TOKEN_TYPES: [(MiniAppTokenType, &str); 4] = [
         (MiniAppTokenType::Join, "MiniAppJoin"),
+        (MiniAppTokenType::Start, "MiniAppStart"),
         (MiniAppTokenType::Leave, "MiniAppLeave"),
         (MiniAppTokenType::Player, "MiniAppPlayer"),
     ];
@@ -200,6 +207,16 @@ mod tests {
                 assert!(matches!(result, Err(TokenError::Invalid(_))), "{result:?}");
             }
         }
+    }
+
+    // Both name a user and a game, but only a start token says the user asked to start it
+    #[test]
+    fn a_join_token_is_not_taken_as_a_start() {
+        let join = token("MiniAppJoin", id(2), NOW / 1000 + 60);
+
+        assert!(parse(&join, MiniAppTokenType::Join).is_ok());
+        let result = parse(&join, MiniAppTokenType::Start);
+        assert!(matches!(result, Err(TokenError::Invalid(_))), "{result:?}");
     }
 
     #[test]

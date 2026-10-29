@@ -314,8 +314,9 @@ is or the result, and buttons to join, leave and open the game. The game itself 
 web page, which OpenChat shows in a sandboxed frame.
 
 OpenChat's MiniApp service sits between the website and the bot. Only it records who joins, asking
-the bot to accept each player, and only it writes the card's status, from what the bot tells it.
-A bot can take players off a game, but never put them on. The service's API is HTTPS, so the
+the bot to accept each player, and only it writes the card's status, from what the bot tells it. A
+player starts the game through the service too, and the bot decides who it starts with. A bot can
+take players off a game, but never put them on. The service's API is HTTPS, so the
 offchain SDK's `mini_app` module has its client. The whole protocol is in OpenChat's
 `backend/docs/mini_app_service_protocol.md`.
 
@@ -397,44 +398,65 @@ let claims = verifier.leave(&jwt)?;
   with `installation_events().size(0)` on the UserIndex.
 - Answer 200 whether the bot accepts or refuses. Any other status counts as the bot being
   unavailable, and the user isn't shown its message.
-- The user isn't a player until the service adds them, after the bot answers. So don't start the
-  game, or wait for them, while answering: start it from a later request, eg. the host pressing
-  Start in the app, or the new player's first.
+- The user isn't a player until the service adds them, after the bot answers. So don't count them
+  as playing until the bot's asked to start the game, which may come while it's still answering
+  their join.
 - If the service can't add a player the bot accepted, as the game started or filled up meanwhile,
   it tells the bot they left.
 
-### 4. Updating the game
+### 4. Starting the game
+
+A player asks to start the game, eg. with a Start button in the app, and the service calls the bot
+at `POST <endpoint>/mini_app/start`, with a token in `x-oc-jwt`. The bot starts it, or refuses:
+
+```rust
+// POST /mini_app/start, answered within 5 seconds
+let claims = verifier.start(&jwt)?;
+let answer = if accepted.len() >= 2 {
+    StartResponse::accept(accepted, vec![first], GameState { seq: 1, shared, private })
+} else {
+    StartResponse::refuse("Needs 2 players")
+};
+```
+
+- The players are who the game starts with, in any order. Each must be playing, or have a join the
+  bot accepted and is still answering. Anyone playing whom the bot leaves out is taken off.
+- Answer with the game's first state, rather than calling `update`: the service holds the game
+  while it asks, so an update would wait until the start timed out.
+- If the service couldn't save the start, the player can ask again, so answer a start of a game the
+  bot has already started as it did the first time.
+- Starting closes joining, and the card records the players.
+
+### 5. Updating the game
 
 ```rust
 mini_apps
     .update(
         GameUpdate::new(game)
-            .with_status(GameStatus::Active)
-            .with_waiting_for(vec![alice])
-            .with_state(GameState { seq: 1, shared, private }),
+            .with_waiting_for(vec![bob])
+            .with_state(GameState { seq: 2, shared, private }),
     )
     .await?;
 ```
 
 Whatever an update doesn't set stays as it was:
 
-- `with_status`: it only moves forward, Open → Active → Finished, or Open → Finished. Active closes
-  joining, and the card records the players then.
 - `with_waiting_for`: whose turn it is now, players, each once, or none for no one in particular.
-- `with_result("Bob won")`: at most 200 characters, only with Finished.
+- `finished()`: ends the game, whether it started or not. An update can't start a game.
+- `with_result("Bob won")`: at most 200 characters, only with `finished()`.
 - `with_removed`: takes players off the game.
 - `with_state`: goes to everyone with the game open, `shared` to all, and each player's `private`
   part only to them. `seq` must increase. Include a format version, so that an app left open from an
   older release knows to reload. An update is at most 64 KB.
 
-### 5. Serving the app
+### 6. Serving the app
 
 OpenChat opens `<endpoint>/app` in a sandboxed frame and talks to it with `postMessage`. It tells the
-app whether the user is a player or a spectator, gives a player their token, and passes on the
-game's state as it changes. The browser side of this is in the TypeScript SDK, at
-`@open-ic/openchat-botclient-ts/mini_app`.
+app whether the user is a player or a spectator, gives a player their token, passes on the game's
+state as it changes, and asks the service to start the game when a player's app asks. The browser
+side of this is in the TypeScript SDK, at `@open-ic/openchat-botclient-ts/mini_app`.
 
-### 6. Verifying players
+### 7. Verifying players
 
 A player's app sends its player token in `x-oc-jwt` with each request to the bot:
 
