@@ -22,6 +22,8 @@ pub struct Args {
     pub thread: Option<MessageIndex>,
     pub message_id: Option<MessageId>,
     pub replies_to: Option<EventIndex>,
+    /// OpenChat refuses a MiniApp card here: the MiniApp service posts those, eg. with the offchain
+    /// SDK's `MiniAppServiceClient::post`
     pub content: MessageContentInitial,
     pub block_level_markdown: bool,
     pub finalised: bool,
@@ -48,44 +50,4 @@ pub struct SuccessResult {
     pub message_index: MessageIndex,
     pub timestamp: TimestampMillis,
     pub expires_at: Option<TimestampMillis>,
-    /// For a MiniApp card, a token which registers its game with OpenChat's MiniApp service, valid
-    /// for an hour, eg. with the offchain SDK's `MiniAppServiceClient::register`
-    pub mini_app_registration: Option<String>,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::msgpack;
-
-    // As OpenChat's LocalUserIndex encodes it
-    #[derive(Serialize)]
-    enum OpenChatResponse {
-        Success {
-            message_id: MessageId,
-            event_index: EventIndex,
-            message_index: MessageIndex,
-            timestamp: TimestampMillis,
-            expires_at: Option<TimestampMillis>,
-            mini_app_registration: Option<String>,
-        },
-    }
-
-    #[test]
-    fn a_sent_mini_app_comes_back_with_its_registration() {
-        let bytes = msgpack::serialize_then_unwrap(OpenChatResponse::Success {
-            message_id: 5.into(),
-            event_index: 1,
-            message_index: 2,
-            timestamp: 3,
-            expires_at: None,
-            mini_app_registration: Some("token".to_string()),
-        });
-        let response: Response = msgpack::deserialize_then_unwrap(&bytes);
-
-        assert!(matches!(
-            response,
-            Response::Success(r) if r.mini_app_registration.as_deref() == Some("token")
-        ));
-    }
 }

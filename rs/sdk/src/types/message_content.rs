@@ -334,8 +334,10 @@ pub struct PriceChartSource {
 /// whose turn it is, and then its result. The bot tells the service how its game goes, and the
 /// service updates the card.
 ///
-/// Only a bot installed in the chat can send one, finalised, and it needs
-/// `MessagePermission::MiniApp`. It can't be sent in a direct chat, nor forwarded or edited.
+/// A bot posts one through the MiniApp service, eg. with the offchain SDK's
+/// `MiniAppServiceClient::post`, which posts it as the bot and records its game together, so
+/// `send_message` refuses one. The bot must be installed in the chat, with
+/// `MessagePermission::MiniApp`. A card can't be posted in a direct chat, nor forwarded or edited.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MiniAppContent {
     /// Markdown, eg. "**Uno** · 2 to 4 players", of 1 to 2,000 characters. It's the message's text

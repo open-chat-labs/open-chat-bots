@@ -14,6 +14,37 @@ pub struct MiniAppGame {
     pub message_id: MessageId,
 }
 
+/// The `claim_type` of the token a LocalUserIndex's `bot_mini_app_post_token` gives, with which the
+/// MiniApp service posts one card for the bot
+pub const CLAIM_TYPE_MINI_APP_POST: &str = "MiniAppPost";
+
+impl MiniAppGame {
+    /// The game a post token, from `Client::mini_app_post_token`, is for: the card's chat, thread
+    /// and message id, which the LocalUserIndex fixed in the token. So the bot knows its game
+    /// before the card is posted, eg. to have it ready for a join which arrives before the
+    /// service's answer to the post does. The token isn't verified, as the service verifies it, so
+    /// this is only for a token the bot got itself.
+    pub fn from_post_token(post_token: &str) -> Result<Self, TokenError> {
+        #[derive(Deserialize)]
+        struct PostClaims {
+            game: MiniAppGame,
+        }
+
+        let claims = jwt::decode_unverified::<jwt::Claims<PostClaims>>(post_token)
+            .map_err(|error| TokenError::Invalid(format!("Invalid post token: {error}")))?;
+
+        // So that another of the bot's tokens, eg. its bot token, isn't taken for a post token
+        if claims.claim_type() != CLAIM_TYPE_MINI_APP_POST {
+            return Err(TokenError::Invalid(format!(
+                "Expected a {CLAIM_TYPE_MINI_APP_POST} token, got {}",
+                claims.claim_type()
+            )));
+        }
+
+        Ok(claims.into_custom().game)
+    }
+}
+
 /// The `claim_type` of the token the MiniApp service sends with its `POST <endpoint>/mini_app/join`
 pub const CLAIM_TYPE_MINI_APP_JOIN: &str = "MiniAppJoin";
 
@@ -147,6 +178,46 @@ mod tests {
                 serde_json::from_value::<MiniAppGame>(expected).unwrap(),
                 game
             );
+        }
+    }
+
+    // As the LocalUserIndex writes a post token's claims: ids as text, and the message id as a string
+    fn post_token(claim_type: &str) -> String {
+        let claims = format!(
+            r#"{{"exp":{},"claim_type":"{claim_type}","bot":"{}","bot_endpoint":"https://uno.example","bot_api_gateway":"{}","game":{{"chat":{{"Channel":["{}",7]}},"thread":3,"message_id":"18446744073709551615"}},"initiator":"Autonomous"}}"#,
+            NOW / 1000 + 60,
+            id(2),
+            id(5),
+            id(3),
+        );
+        sign(&signing_key(), &claims)
+    }
+
+    #[test]
+    fn a_post_token_names_its_game() {
+        assert_eq!(
+            MiniAppGame::from_post_token(&post_token("MiniAppPost")).unwrap(),
+            MiniAppGame {
+                chat: Chat::Channel(id(3), 7),
+                thread: Some(3),
+                message_id: u64::MAX.into(),
+            }
+        );
+    }
+
+    // Another of the bot's tokens, even one which names a game, isn't taken for a post token
+    #[test]
+    fn another_token_is_not_taken_for_a_post_token() {
+        for jwt in [
+            "",
+            "a.b",
+            "a.b.c",
+            &post_token("MiniAppBot"),
+            &token("MiniAppPlayer", id(2), NOW / 1000 + 60),
+        ] {
+            let result = MiniAppGame::from_post_token(jwt);
+
+            assert!(matches!(result, Err(TokenError::Invalid(_))), "{result:?}");
         }
     }
 

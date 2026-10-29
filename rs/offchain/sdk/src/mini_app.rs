@@ -1,7 +1,8 @@
 //! Hosting games through OpenChat's MiniApp service, which sits between OpenChat's website and the
-//! bots whose games are played from MiniApp cards. Only the service records who joins a game, and
-//! only it writes the game's card: the bot answers the service's calls asking it to accept a player
-//! or start the game, and telling it one left, and tells the service how the game goes, with
+//! bots whose games are played from MiniApp cards. Only the service posts a game's card, records
+//! who joins it and writes to the card: the bot asks it to post the card, with
+//! [`MiniAppServiceClient::post`], answers the service's calls asking it to accept a player or start
+//! the game, and telling it one left, and tells the service how the game goes, with
 //! [`MiniAppServiceClient::update`].
 use crate::env;
 use oc_bots_sdk::jwt;
@@ -10,8 +11,8 @@ use oc_bots_sdk::oc_api::actions::ActionArgsBuilder;
 use oc_bots_sdk::oc_api::actions::mini_app_token;
 use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::{
-    CanisterId, Milliseconds, MiniAppGame, MiniAppPlayerClaims, MiniAppTokenType, TimestampMillis,
-    TokenError, UserId,
+    CanisterId, EventIndex, Milliseconds, MiniAppContent, MiniAppGame, MiniAppPlayerClaims,
+    MiniAppTokenType, TimestampMillis, TokenError, UserId,
 };
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -27,8 +28,8 @@ const BOT_TOKEN_REFRESH_MARGIN: Milliseconds = 5 * 60 * 1000;
 // So a call to a service which stops answering fails, rather than holding up the bot
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// A client for the MiniApp service's bot API, with which a bot registers the games it posts and
-/// tells the service how they go. It calls the service with the bot's token, which it gets from a
+/// A client for the MiniApp service's bot API, with which a bot posts its cards and tells the
+/// service how their games go. It calls the service with the bot's token, which it gets from a
 /// LocalUserIndex and replaces before it expires.
 pub struct MiniAppServiceClient<R> {
     http: reqwest::Client,
@@ -57,39 +58,93 @@ impl<R: Runtime> MiniAppServiceClient<R> {
         }
     }
 
-    /// Registers a game the bot has just posted, with the `mini_app_registration` that sending its
-    /// card returned, which is valid for an hour. Registering again does nothing. Until it's
-    /// registered, no one can join the game.
+    /// Posts a card: the service posts it as the bot, through the LocalUserIndex, and records its
+    /// game, together. `token` is a post token from the context the bot would send a message with,
+    /// `client.mini_app_post_token()`, valid for an hour; `block_level_markdown` and `replies_to`
+    /// are as for a message. `send_message` refuses a card, so this is the only way to post one.
     ///
-    /// Gives the game, by which the service names it in its calls to the bot and its tokens, read
-    /// from the registration. The service verifies the registration itself.
-    pub async fn register(&self, registration: &str) -> Result<MiniAppGame, MiniAppServiceError> {
-        #[derive(Deserialize)]
-        struct RegistrationClaims {
-            game: MiniAppGame,
+    /// Gives the game, by which the service names it in its calls to the bot and its tokens, and
+    /// which [`MiniAppGame::from_post_token`] reads from the token beforehand. Until the card's
+    /// posted, no one can join the game, and [`update`](Self::update) answers
+    /// [`UnknownGame`](MiniAppServiceError::UnknownGame).
+    ///
+    /// Posting the same token again posts nothing new, and gives the game. So after a timeout, or a
+    /// 503 as the service couldn't reach OpenChat, post the same token again.
+    pub async fn post(
+        &self,
+        token: &str,
+        card: MiniAppContent,
+        block_level_markdown: bool,
+        replies_to: Option<EventIndex>,
+    ) -> Result<MiniAppGame, MiniAppServiceError> {
+        #[derive(Serialize)]
+        struct PostArgs<'a> {
+            token: &'a str,
+            card: Card,
+            block_level_markdown: bool,
+            replies_to: Option<EventIndex>,
+        }
+        // The card as the service takes it: without a status, as the service posts it open, and
+        // with the image's blob id as a decimal string, as message ids are
+        #[derive(Serialize)]
+        struct Card {
+            text: String,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            image: Option<Image>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            max_players: Option<u32>,
+            spectators: bool,
         }
         #[derive(Serialize)]
-        struct RegisterArgs<'a> {
-            registration: &'a str,
+        struct Image {
+            width: u32,
+            height: u32,
+            mime_type: String,
+            blob_reference: BlobReference,
+        }
+        #[derive(Serialize)]
+        struct BlobReference {
+            canister_id: String,
+            blob_id: String,
+        }
+        #[derive(Deserialize)]
+        struct Posted {
+            game: MiniAppGame,
         }
 
-        let game = jwt::decode_unverified::<RegistrationClaims>(registration)
-            .map_err(|error| {
-                MiniAppServiceError::Invalid(format!("Invalid registration: {error}"))
-            })?
-            .game;
+        let args = PostArgs {
+            token,
+            card: Card {
+                text: card.text,
+                image: card.image.map(|image| Image {
+                    width: image.width,
+                    height: image.height,
+                    mime_type: image.mime_type,
+                    blob_reference: BlobReference {
+                        canister_id: image.blob_reference.canister_id.to_text(),
+                        blob_id: image.blob_reference.blob_id.to_string(),
+                    },
+                }),
+                max_players: card.max_players,
+                spectators: card.spectators,
+            },
+            block_level_markdown,
+            replies_to,
+        };
 
-        self.post("bot/register", &RegisterArgs { registration })
-            .await?;
+        let response = self.call("bot/post", &args).await?;
+        let posted: Posted = response.json().await?;
 
-        Ok(game)
+        Ok(posted.game)
     }
 
     /// Tells the service how one of the bot's games goes: whose turn it is, players to take off it,
     /// its state for everyone with it open, and when it's finished, its result. The service writes
     /// the card from it. A player starts the game, through the service, so an update can't.
     pub async fn update(&self, update: GameUpdate) -> Result<(), MiniAppServiceError> {
-        self.post("bot/update", &update).await
+        self.call("bot/update", &update).await?;
+
+        Ok(())
     }
 
     /// The service's public key, a PEM, which verifies its tokens, eg. with a [`MiniAppVerifier`]
@@ -100,9 +155,13 @@ impl<R: Runtime> MiniAppServiceClient<R> {
         Ok(response.text().await?)
     }
 
-    // A call with the bot's token. If the service refuses it, eg. as it was revoked, it's
-    // replaced, and the call made again, once.
-    async fn post<T: Serialize>(&self, path: &str, body: &T) -> Result<(), MiniAppServiceError> {
+    // A call with the bot's token, giving the service's answer if it's a success. If the service
+    // refuses the token, eg. as it was revoked, it's replaced, and the call made again, once.
+    async fn call<T: Serialize>(
+        &self,
+        path: &str,
+        body: &T,
+    ) -> Result<reqwest::Response, MiniAppServiceError> {
         let send = |token: String| {
             self.http
                 .post(self.endpoint(path))
@@ -115,9 +174,8 @@ impl<R: Runtime> MiniAppServiceClient<R> {
         if response.status() == StatusCode::UNAUTHORIZED {
             response = send(self.bot_token(true).await?).await?;
         }
-        check(response).await?;
 
-        Ok(())
+        check(response).await
     }
 
     // The bot's token, from the last call unless it's about to expire or `replace` is set
@@ -177,21 +235,21 @@ async fn check(response: reqwest::Response) -> Result<reqwest::Response, MiniApp
 /// Why the MiniApp service refused a call, with its explanation, or why it couldn't be made
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MiniAppServiceError {
-    /// 400: eg. a status moving back, a result without Finished, waiting for someone who isn't
-    /// playing, or a registration which is invalid or has expired
+    /// 400: eg. a post token which is invalid or has expired, a card OpenChat refused, a status
+    /// moving back, a result without Finished, or waiting for someone who isn't playing
     Invalid(String),
     /// 401: the service refused the bot's token, even a new one
     Unauthorized(String),
-    /// 403: another bot's game
+    /// 403: another bot's game, or post token
     NotTheBotsGame(String),
-    /// 404: a game the service doesn't know, eg. one which wasn't registered
+    /// 404: a game the service doesn't know, eg. one whose card hasn't been posted
     UnknownGame(String),
     /// 409: the game has finished, so it can't change
     Finished(String),
     /// 413: the update is over 64 KB
     TooLarge(String),
-    /// Any other status, eg. 503, when the service couldn't read or save the game, so the bot can
-    /// try again
+    /// Any other status, eg. 503, when the service couldn't reach OpenChat, or read or save the
+    /// game, so the bot can try again, a post with the same token
     Status(u16, String),
     /// The service couldn't be reached, or its answer read
     Request(String),
@@ -484,7 +542,7 @@ mod tests {
     use ct_codecs::{Base64UrlSafeNoPadding, Encoder};
     use ic_agent::export::Principal;
     use oc_bots_sdk::msgpack;
-    use oc_bots_sdk::types::{CallResult, Chat};
+    use oc_bots_sdk::types::{BlobReference, CallResult, Chat, MiniAppImage};
     use p256::ecdsa::signature::Signer;
     use p256::ecdsa::{Signature, SigningKey};
     use p256::pkcs8::{EncodePublicKey, LineEnding};
@@ -744,7 +802,9 @@ mod tests {
     }
 
     // A service which answers each request with the next of `responses`, and records them
-    async fn serve(responses: Vec<(u16, &'static str)>) -> (String, Arc<Mutex<Vec<Request>>>) {
+    async fn serve<B: Into<String> + Send + 'static>(
+        responses: Vec<(u16, B)>,
+    ) -> (String, Arc<Mutex<Vec<Request>>>) {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let url = format!("http://{}", listener.local_addr().unwrap());
         let requests = Arc::new(Mutex::new(Vec::new()));
@@ -752,6 +812,7 @@ mod tests {
 
         tokio::spawn(async move {
             for (status, body) in responses {
+                let body: String = body.into();
                 let (mut stream, _) = listener.accept().await.unwrap();
                 let mut bytes = Vec::new();
                 let mut buffer = [0; 4096];
@@ -883,48 +944,136 @@ mod tests {
         }
     }
 
+    fn card() -> MiniAppContent {
+        MiniAppContent::new("**Uno** · 2 to 4 players")
+            .with_max_players(4)
+            .with_spectators(true)
+            .with_image(MiniAppImage {
+                width: 600,
+                height: 400,
+                mime_type: "image/png".to_string(),
+                blob_reference: BlobReference {
+                    canister_id: Principal::from_slice(&[6]),
+                    blob_id: u128::MAX,
+                },
+            })
+    }
+
+    fn posted_json() -> String {
+        json!({ "game": game_json() }).to_string()
+    }
+
+    // As the service's `PostArgs` reads it: ids as text, and the blob id as a decimal string
     #[tokio::test]
-    async fn registers_a_game_and_fetches_the_public_key() {
-        let (url, requests) = serve(vec![(200, "{}"), (200, "-----BEGIN PUBLIC KEY-----")]).await;
+    async fn posts_a_card_and_fetches_the_public_key() {
+        let (url, requests) = serve(vec![
+            (200, posted_json()),
+            (200, "-----BEGIN PUBLIC KEY-----".to_string()),
+        ])
+        .await;
         let token = bot_token("a", 3600);
         let client = client(url, vec![token.clone()]);
-        let registration = format!(
-            "e30.{}.signature",
-            encode(
-                json!({ "claim_type": "MiniAppRegistration", "game": game() })
-                    .to_string()
-                    .as_bytes()
-            )
-        );
 
-        assert_eq!(client.register(&registration).await, Ok(game()));
+        assert_eq!(
+            client.post("post-token", card(), true, Some(3)).await,
+            Ok(game())
+        );
         assert_eq!(
             client.public_key().await,
             Ok("-----BEGIN PUBLIC KEY-----".to_string())
         );
 
         let requests = requests.lock().unwrap();
+        assert_eq!(requests[0].line, "POST /bot/post HTTP/1.1");
+        assert_eq!(requests[0].token, Some(token));
         assert_eq!(
-            requests[0],
-            Request {
-                line: "POST /bot/register HTTP/1.1".to_string(),
-                token: Some(token),
-                body: json!({ "registration": registration }).to_string(),
-            }
+            serde_json::from_str::<Value>(&requests[0].body).unwrap(),
+            json!({
+                "token": "post-token",
+                "card": {
+                    "text": "**Uno** · 2 to 4 players",
+                    "image": {
+                        "width": 600,
+                        "height": 400,
+                        "mime_type": "image/png",
+                        "blob_reference": {
+                            "canister_id": Principal::from_slice(&[6]).to_text(),
+                            "blob_id": "340282366920938463463374607431768211455",
+                        },
+                    },
+                    "max_players": 4,
+                    "spectators": true,
+                },
+                "block_level_markdown": true,
+                "replies_to": 3,
+            })
         );
         assert_eq!(requests[1].line, "GET /public_key HTTP/1.1");
         assert_eq!(requests[1].token, None);
     }
 
+    // The same token posts the same card, so a post which got no answer is sent again as it was
     #[tokio::test]
-    async fn a_malformed_registration_is_refused_without_calling_the_service() {
-        let (url, requests) = serve(Vec::new()).await;
-        let client = client(url, Vec::new());
+    async fn a_card_without_an_image_or_limit_is_posted_without_them_and_may_be_posted_again() {
+        let (url, requests) = serve(vec![
+            (503, r#"{"error":"Unavailable"}"#.to_string()),
+            (200, posted_json()),
+        ])
+        .await;
+        let client = client(url, vec![bot_token("a", 3600)]);
+        let card = MiniAppContent::new("x");
 
-        assert!(matches!(
-            client.register("not a token").await,
-            Err(MiniAppServiceError::Invalid(_))
-        ));
-        assert!(requests.lock().unwrap().is_empty());
+        assert_eq!(
+            client.post("post-token", card.clone(), false, None).await,
+            Err(MiniAppServiceError::Status(503, "Unavailable".to_string()))
+        );
+        assert_eq!(
+            client.post("post-token", card, false, None).await,
+            Ok(game())
+        );
+
+        let requests = requests.lock().unwrap();
+        assert_eq!(requests.len(), 2);
+        for request in requests.iter() {
+            assert_eq!(request.line, "POST /bot/post HTTP/1.1");
+            assert_eq!(
+                serde_json::from_str::<Value>(&request.body).unwrap(),
+                json!({
+                    "token": "post-token",
+                    "card": { "text": "x", "spectators": false },
+                    "block_level_markdown": false,
+                    "replies_to": null,
+                })
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn gives_the_service_s_refusals_of_a_post() {
+        let (url, _) = serve(vec![
+            (400, r#"{"error":"Invalid post token"}"#),
+            (403, r#"{"error":"Another bot's token"}"#),
+            (409, r#"{"error":"The game has finished"}"#),
+            (503, r#"{"error":"Unavailable"}"#),
+            (200, "{}"),
+        ])
+        .await;
+        let client = client(url, vec![bot_token("a", 3600)]);
+        let post = || client.post("post-token", MiniAppContent::new("x"), false, None);
+
+        for expected in [
+            MiniAppServiceError::Invalid("Invalid post token".to_string()),
+            MiniAppServiceError::NotTheBotsGame("Another bot's token".to_string()),
+            MiniAppServiceError::Finished("The game has finished".to_string()),
+            MiniAppServiceError::Status(503, "Unavailable".to_string()),
+        ] {
+            assert_eq!(post().await, Err(expected));
+        }
+        // An answer without the game in it can't be read
+        let result = post().await;
+        assert!(
+            matches!(result, Err(MiniAppServiceError::Request(_))),
+            "{result:?}"
+        );
     }
 }
