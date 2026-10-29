@@ -295,8 +295,9 @@ const card = (await client.createMiniAppMessage("**Uno** · 2 to 4 players", ima
     .setSpectators(true);
 const invalid = card.validate(); // as OpenChat checks it, with its errors
 const token = await client.miniAppPostToken();
-const game = await miniApps.post(token, card);
+const game = miniAppGameFromPostToken(token);
 games.set(miniAppGameKey(game), newGame());
+await miniApps.post(token, card);
 ```
 
 The service posts every card, as the bot, so that it knows each game from the moment its card
@@ -310,8 +311,9 @@ and its text, image, player limit and spectators never change. `createMiniAppMes
 optional image (`{ data, mimeType, width, height }`) first, as `createImageMessage` does;
 `setBlockLevelMarkdown` and `setRepliesTo` apply. Posting the same token again posts nothing new and
 gives the same game, so a bot which got no answer, eg. an `unavailable` error, posts again with the
-same token. `miniAppGameFromPostToken(token)` gives the game before the card is posted, eg. so the
-bot can key it before a join can arrive.
+same token. Key the game before posting, from `miniAppGameFromPostToken(token)`: the service may
+have posted the card and forwarded a join before the bot hears its answer, so the bot should know
+the game first.
 
 A `MiniAppGame` is `{ chat, thread?, messageId }`. `miniAppGameKey` gives a key that's unique across
 chats and threads. The service client sends the bot's token, from the LocalUserIndex's
