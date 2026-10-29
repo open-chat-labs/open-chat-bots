@@ -340,7 +340,11 @@ let token = match client.mini_app_post_token().execute_async().await {
     Ok(mini_app_post_token::Response::Success(token)) => token,
     other => return Err(format!("{other:?}").into()),
 };
-let game = mini_apps.post(&token, card, false, None).await?;
+// Key the game before posting: the service may have posted the card and forwarded a join
+// before the bot hears its answer
+let game = MiniAppGame::from_post_token(&token)?;
+games.insert(game, Game::new());
+mini_apps.post(&token, card, false, None).await?;
 ```
 
 - The bot needs `MessagePermission::MiniApp`, eg. in the command's `permissions`, and must be
@@ -349,15 +353,15 @@ let game = mini_apps.post(&token, card, false, None).await?;
   a direct chat, nor forwarded or edited, so set the definition's `restricted_locations` to
   communities and groups.
 - `mini_app_post_token` takes the setters `send_message` does: `in_channel` for a command in a
-  community, `in_thread`, and `with_message_id` for an id the bot chooses for a card it posts
-  autonomously. Otherwise the SDK picks a random one, as the LocalUserIndex can't in a query. The
-  token fixes the message id, and lasts an hour, so keep it to retry the post with, rather than
-  asking for another token, whose id would differ.
+  community, `in_thread`, and `with_message_id` for an id the bot chooses. A chat command's card is
+  the command's message, so an id given there must match the command's. Otherwise, offchain, the
+  SDK picks a random one, as the LocalUserIndex can't in a query; a canister bot must choose its
+  own. The token fixes the message id, and lasts an hour, so keep it to retry the post with, rather
+  than asking for another token, whose id would differ.
 - Posting the same token again posts nothing new, and gives the game. So after a timeout, or a 503
   as the service couldn't reach OpenChat, post the same token again. Until the service has posted
   the card, no one can join the game, and `update` answers `UnknownGame`.
-- `MiniAppGame::from_post_token` gives the game from the token before the card's posted, eg. to
-  have it ready for a join which arrives before the service's answer does.
+- `post` gives the game too, as the service recorded it: the same game the token names.
 - `MiniAppContent::validate` checks the card as OpenChat does, with its errors: it's open, its text
   has 1 to 2,000 characters, and `max_players` is 1 to 100.
 

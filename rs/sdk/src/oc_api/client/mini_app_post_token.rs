@@ -18,7 +18,7 @@ impl<'c, R: Runtime, C: ActionContext> MiniAppPostTokenBuilder<'c, R, C> {
             client,
             channel_id: None,
             thread: None,
-            message_id: client.context.message_id(),
+            message_id: None,
         }
     }
 
@@ -33,14 +33,14 @@ impl<'c, R: Runtime, C: ActionContext> MiniAppPostTokenBuilder<'c, R, C> {
         self
     }
 
-    /// A command's card takes the command's message id. Otherwise the bot chooses it, as the
-    /// LocalUserIndex can't draw a fresh one in a query: this one, or else a random one. A canister
-    /// has no random source here, so it chooses its own. The token fixes the id, so keep it, and
-    /// retry a post with it rather than asking for another token, whose id would differ.
+    /// The card's message id. A chat command's card is the command's message, so one given here
+    /// must match the command's, which the LocalUserIndex checks. Otherwise the bot chooses it, as
+    /// the LocalUserIndex can't draw a fresh one in a query: this one, or else a random one, except
+    /// in a canister, which has no random source here, so it chooses its own, or gets the
+    /// LocalUserIndex's error. The token fixes the id, so keep it, and retry a post with it rather
+    /// than asking for another token, whose id would differ.
     pub fn with_message_id(mut self, message_id: MessageId) -> Self {
-        if self.message_id.is_none() {
-            self.message_id = Some(message_id);
-        }
+        self.message_id = Some(message_id);
         self
     }
 }
@@ -57,6 +57,14 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for MiniAppPostTokenBuil
     }
 
     fn into_args(self) -> Args {
+        // A chat command's token fixes its card's message id. Otherwise the bot chooses it, as the
+        // LocalUserIndex can't draw a fresh one in a query: its randomness repeats within a round.
+        let message_id = match (self.message_id, self.client.context.message_id()) {
+            (Some(message_id), _) => Some(message_id),
+            (None, Some(_)) => None,
+            (None, None) => random_message_id(),
+        };
+
         Args {
             chat_context: BotChatContext::from_action_context(
                 &self.client.context,
@@ -65,13 +73,21 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for MiniAppPostTokenBuil
             .unwrap(),
             channel_id: self.channel_id,
             thread: self.thread,
-            // The LocalUserIndex refuses an autonomous request without one, as a query's randomness
-            // repeats within a round, and would draw the same id for a community command's card
-            message_id: self
-                .message_id
-                .or_else(|| Some(rand::random::<u64>().into())),
+            message_id,
         }
     }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn random_message_id() -> Option<MessageId> {
+    Some(rand::random::<u64>().into())
+}
+
+// A canister registers no source for `rand`, so it can't draw one: the bot chooses its own, or the
+// LocalUserIndex says it must
+#[cfg(target_arch = "wasm32")]
+fn random_message_id() -> Option<MessageId> {
+    None
 }
 
 #[cfg(test)]
@@ -187,32 +203,33 @@ mod tests {
         }
     }
 
-    // The command's token says which chat and message, as for `send_message`
+    // The command's token says which chat and message, as for `send_message`, so no message id is
+    // sent unless the bot gives one, which the LocalUserIndex checks against the command's
     #[test]
-    fn a_command_asks_its_local_user_index_with_its_token_and_message_id() {
-        let runtime = Arc::new(FakeRuntime::default());
-        let context = command_context(BotCommandScope::Chat(BotActionChatDetails {
-            chat: Chat::Group(id(3)),
-            thread: Some(6),
-            message_id: 5.into(),
-            user_message_id: None,
-        }));
-        let client = Client::new(runtime.clone(), context);
+    fn a_chat_command_asks_its_local_user_index_with_its_token() {
+        for given in [None, Some(9.into())] {
+            let runtime = Arc::new(FakeRuntime::default());
+            let context = command_context(BotCommandScope::Chat(BotActionChatDetails {
+                chat: Chat::Group(id(3)),
+                thread: Some(6),
+                message_id: 5.into(),
+                user_message_id: None,
+            }));
+            let client = Client::new(runtime.clone(), context);
 
-        let response = client
-            .mini_app_post_token()
-            .in_thread(Some(6))
-            .with_message_id(9.into())
-            .execute_async()
-            .now_or_never()
-            .unwrap();
+            let mut builder = client.mini_app_post_token().in_thread(Some(6));
+            if let Some(message_id) = given {
+                builder = builder.with_message_id(message_id);
+            }
+            let response = builder.execute_async().now_or_never().unwrap();
 
-        assert!(matches!(response, Ok(Response::Success(t)) if t == "token"));
-        let args = runtime.args(local_user_index());
-        assert!(matches!(&args.chat_context, BotChatContext::Command(jwt) if jwt == "jwt"));
-        assert_eq!(args.channel_id, None);
-        assert_eq!(args.thread, Some(6));
-        assert_eq!(args.message_id, Some(5.into()));
+            assert!(matches!(response, Ok(Response::Success(t)) if t == "token"));
+            let args = runtime.args(local_user_index());
+            assert!(matches!(&args.chat_context, BotChatContext::Command(jwt) if jwt == "jwt"));
+            assert_eq!(args.channel_id, None);
+            assert_eq!(args.thread, Some(6));
+            assert_eq!(args.message_id, given);
+        }
     }
 
     #[test]
