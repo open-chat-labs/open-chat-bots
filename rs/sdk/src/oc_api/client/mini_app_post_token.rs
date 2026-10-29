@@ -33,8 +33,10 @@ impl<'c, R: Runtime, C: ActionContext> MiniAppPostTokenBuilder<'c, R, C> {
         self
     }
 
-    // A command's card takes the command's message id. Otherwise, if this is not set, OpenChat picks
-    // one, which the token fixes, so a retried post can't create a duplicate either way.
+    /// A command's card takes the command's message id. Otherwise the bot chooses it, as the
+    /// LocalUserIndex can't draw a fresh one in a query: this one, or else a random one. A canister
+    /// has no random source here, so it chooses its own. The token fixes the id, so keep it, and
+    /// retry a post with it rather than asking for another token, whose id would differ.
     pub fn with_message_id(mut self, message_id: MessageId) -> Self {
         if self.message_id.is_none() {
             self.message_id = Some(message_id);
@@ -63,7 +65,11 @@ impl<R: Runtime, C: ActionContext> ActionArgsBuilder<R> for MiniAppPostTokenBuil
             .unwrap(),
             channel_id: self.channel_id,
             thread: self.thread,
-            message_id: self.message_id,
+            // The LocalUserIndex refuses an autonomous request without one, as a query's randomness
+            // repeats within a round, and would draw the same id for a community command's card
+            message_id: self
+                .message_id
+                .or_else(|| Some(rand::random::<u64>().into())),
         }
     }
 }
@@ -228,13 +234,15 @@ mod tests {
         let args = runtime.args(local_user_index());
         assert!(matches!(&args.chat_context, BotChatContext::Command(jwt) if jwt == "jwt"));
         assert_eq!(args.channel_id, Some(7));
-        assert_eq!(args.message_id, None);
+        // The command's token has no message id, so the builder draws one, as for an autonomous post
+        assert!(args.message_id.is_some());
     }
 
-    // Autonomously the bot names the chat, and may choose the message id, or leave it to OpenChat
+    // Autonomously the bot names the chat, and chooses the message id, or else the builder draws
+    // one, as the LocalUserIndex can't in a query
     #[test]
-    fn an_autonomous_post_names_its_chat_and_may_choose_its_message_id() {
-        for (message_id, expected) in [(None, None), (Some(9.into()), Some(9.into()))] {
+    fn an_autonomous_post_names_its_chat_and_always_has_a_message_id() {
+        let post = |message_id: Option<MessageId>| {
             let runtime = Arc::new(FakeRuntime::default());
             let context = AutonomousContext {
                 api_gateway: local_user_index(),
@@ -248,14 +256,19 @@ mod tests {
             }
             builder.execute_async().now_or_never().unwrap().unwrap();
 
-            let args = runtime.args(local_user_index());
-            assert!(matches!(
-                args.chat_context,
-                BotChatContext::Autonomous(Chat::Channel(community, 7)) if community == id(3)
-            ));
-            assert_eq!(args.channel_id, Some(7));
-            assert_eq!(args.thread, None);
-            assert_eq!(args.message_id, expected);
-        }
+            runtime.args(local_user_index())
+        };
+
+        let chosen = post(Some(9.into()));
+        assert!(matches!(
+            chosen.chat_context,
+            BotChatContext::Autonomous(Chat::Channel(community, 7)) if community == id(3)
+        ));
+        assert_eq!(chosen.channel_id, Some(7));
+        assert_eq!(chosen.thread, None);
+        assert_eq!(chosen.message_id, Some(9.into()));
+
+        let drawn = post(None).message_id.unwrap();
+        assert_ne!(drawn, post(None).message_id.unwrap());
     }
 }

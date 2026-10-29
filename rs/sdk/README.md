@@ -350,7 +350,9 @@ let game = mini_apps.post(&token, card, false, None).await?;
   communities and groups.
 - `mini_app_post_token` takes the setters `send_message` does: `in_channel` for a command in a
   community, `in_thread`, and `with_message_id` for an id the bot chooses for a card it posts
-  autonomously. Left to OpenChat, it picks one. The token fixes the message id, and lasts an hour.
+  autonomously. Otherwise the SDK picks a random one, as the LocalUserIndex can't in a query. The
+  token fixes the message id, and lasts an hour, so keep it to retry the post with, rather than
+  asking for another token, whose id would differ.
 - Posting the same token again posts nothing new, and gives the game. So after a timeout, or a 503
   as the service couldn't reach OpenChat, post the same token again. Until the service has posted
   the card, no one can join the game, and `update` answers `UnknownGame`.

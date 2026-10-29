@@ -27,8 +27,9 @@ pub struct Args {
     /// The channel, for a command in a community
     pub channel_id: Option<ChannelId>,
     pub thread: Option<MessageIndex>,
-    /// A command's message id, or one the bot chose for a card it posts autonomously. Left out, the
-    /// LocalUserIndex picks one.
+    /// A command's message id, which its token fixes, or the bot's choice for a card it posts
+    /// autonomously, which it must make: a query can't draw a fresh one, so the LocalUserIndex
+    /// refuses an autonomous request without it
     pub message_id: Option<MessageId>,
 }
 
