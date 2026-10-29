@@ -57,7 +57,6 @@ import {
     type MessageReminderCreatedContent,
     type MiniAppContent,
     type MiniAppGame,
-    type MiniAppGameStatus,
     type MiniAppGameUpdate,
     type MiniAppStatus,
     type P2PSwapContent,
@@ -2234,7 +2233,7 @@ export function apiMiniAppGame(domain: MiniAppGame): ApiMiniAppGame {
 // The body of the MiniApp service's `POST /bot/update`, in which every field but `game` is optional
 export type ApiMiniAppGameUpdate = {
     game: ApiMiniAppGame;
-    status?: "Open" | "Active" | "Finished";
+    status?: "Finished";
     waiting_for?: string[];
     result?: string;
     remove?: string[];
@@ -2245,23 +2244,12 @@ export type ApiMiniAppGameUpdate = {
 export function apiMiniAppGameUpdate(domain: MiniAppGameUpdate): ApiMiniAppGameUpdate {
     return {
         game: apiMiniAppGame(domain.game),
-        status: apiOptional(domain.status, apiMiniAppGameStatus),
+        status: domain.status === "finished" ? "Finished" : undefined,
         waiting_for: domain.waitingFor,
         result: domain.result,
         remove: domain.remove,
         state: domain.state,
     };
-}
-
-function apiMiniAppGameStatus(domain: MiniAppGameStatus): "Open" | "Active" | "Finished" {
-    switch (domain) {
-        case "open":
-            return "Open";
-        case "active":
-            return "Active";
-        case "finished":
-            return "Finished";
-    }
 }
 
 function videoCallParticipant(value: ApiCallParticipant): VideoCallParticipant {

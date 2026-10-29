@@ -26,6 +26,7 @@ const KINDS = [
     ["MiniAppPlayer", (header: string) => tokens.verifyPlayer(header, NOW)],
     ["MiniAppJoin", (header: string) => tokens.verifyJoin(header, NOW)],
     ["MiniAppLeave", (header: string) => tokens.verifyLeave(header, NOW)],
+    ["MiniAppStart", (header: string) => tokens.verifyStart(header, NOW)],
 ] as const;
 
 function refused(verify: () => unknown): TokenError {
@@ -72,13 +73,33 @@ describe("MiniAppTokens", () => {
 
     // As the service signs them all with the same key
     test.each(KINDS)("refuses another claim type for a %s token", (claimType, verify) => {
-        for (const other of ["MiniAppPlayer", "MiniAppJoin", "MiniAppLeave", "MiniAppBot"]) {
+        for (const other of [
+            "MiniAppPlayer",
+            "MiniAppJoin",
+            "MiniAppLeave",
+            "MiniAppStart",
+            "MiniAppBot",
+        ]) {
             if (other === claimType) continue;
             const error = refused(() => verify(playerToken({ claimType: other })));
 
             expect(error.kind).toBe("invalid");
             expect(error.message).toBe(`Expected a ${claimType} token, got ${other}`);
         }
+    });
+
+    // A user asking to join mustn't be taken as a player asking to start, nor the other way round
+    test("refuses a join token as a start, and a start token as a join", () => {
+        const join = playerToken({ claimType: "MiniAppJoin" });
+        const start = playerToken({ claimType: "MiniAppStart" });
+
+        expect(refused(() => tokens.verifyStart(join, NOW)).message).toBe(
+            "Expected a MiniAppStart token, got MiniAppJoin",
+        );
+        expect(refused(() => tokens.verifyJoin(start, NOW)).message).toBe(
+            "Expected a MiniAppJoin token, got MiniAppStart",
+        );
+        expect(tokens.verifyStart(start, NOW).userId).toBe(USER);
     });
 
     test.each(KINDS)("refuses a %s token signed with another key", (claimType, verify) => {

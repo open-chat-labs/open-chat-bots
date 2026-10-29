@@ -74,8 +74,9 @@ export class MiniAppServiceClient {
     }
 
     /**
-     * Updates one of the bot's games: its status, whose turn it is, its result, its players (only
-     * to take some off) and its state. The service writes the card and relays the state.
+     * Updates one of the bot's games: whose turn it is, its players (only to take some off) and its
+     * state, or ends it, with its result. The service writes the card and relays the state. A
+     * player starts a game, which the bot answers at `POST <endpoint>/mini_app/start`.
      */
     async update(update: MiniAppGameUpdate): Promise<void> {
         await this.#call("/bot/update", apiMiniAppGameUpdate(update));

@@ -63,11 +63,11 @@ describe("MiniAppServiceClient.update", () => {
 
         await miniApps.update({
             game: GAME,
-            status: "active",
             waitingFor: [ALICE],
             remove: [BOB],
             state: { seq: 12, shared: { turn: 0 }, private: { [ALICE]: { hand: [1, 2] } } },
         });
+        // Ending it, the only status a bot sets, as a player starts it through the service
         await miniApps.update({ game: GAME, status: "finished", result: "Alice won" });
         await miniApps.update({
             game: { chat: new GroupChatIdentifier(GROUP), messageId: 5n },
@@ -81,7 +81,7 @@ describe("MiniAppServiceClient.update", () => {
             ["POST", `${URL}/bot/update`],
         ]);
         expect(sent[0].body).toBe(
-            `{"game":${GAME_JSON},"status":"Active","waiting_for":["${ALICE}"],"remove":["${BOB}"],"state":{"seq":12,"shared":{"turn":0},"private":{"${ALICE}":{"hand":[1,2]}}}}`,
+            `{"game":${GAME_JSON},"waiting_for":["${ALICE}"],"remove":["${BOB}"],"state":{"seq":12,"shared":{"turn":0},"private":{"${ALICE}":{"hand":[1,2]}}}}`,
         );
         expect(sent[1].body).toBe(`{"game":${GAME_JSON},"status":"Finished","result":"Alice won"}`);
         // An empty waiting_for is sent, as it's no one in particular
@@ -199,7 +199,7 @@ describe("MiniAppServiceClient's bot token", () => {
             vi.fn(async () => tokens.shift()!),
         );
 
-        await miniApps.update({ game: GAME, status: "active" });
+        await miniApps.update({ game: GAME, status: "finished" });
 
         expect(getBotToken).toHaveBeenCalledTimes(2);
         expect(sent.map((s) => s.authorization)).toEqual(["Bearer first", "Bearer second"]);

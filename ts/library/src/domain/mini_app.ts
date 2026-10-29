@@ -1,7 +1,6 @@
 // A bot's games, as OpenChat's MiniApp service knows them. The service sits between OpenChat's
 // website and the bot: it tracks who's joined each game, is the only thing that writes a game's
 // card, and relays the game's state to its players and spectators. See `MiniAppServiceClient`.
-import type { MiniAppStatus } from "./event";
 import type { ChannelIdentifier, GroupChatIdentifier } from "./identifiers";
 
 /** A game, which is played from one of the bot's MiniApp cards */
@@ -26,8 +25,8 @@ export function miniAppGameKey(game: MiniAppGame): string {
 }
 
 /**
- * What one of the MiniApp service's tokens says: a user asks to join one of the bot's games, has
- * left it, or, in a player's token, is playing it
+ * What one of the MiniApp service's tokens says: a user asks to join one of the bot's games, asks
+ * to start it, has left it, or, in a player's token, is playing it
  */
 export type MiniAppPlayerClaims = {
     /** The bot's user id */
@@ -38,12 +37,59 @@ export type MiniAppPlayerClaims = {
 
 /**
  * The bot's answer to the service's `POST <endpoint>/mini_app/join`, within 5 seconds. A refusal's
- * `message` is shown to the user, eg. "Seats are taken".
+ * `message` is shown to the user, eg. "Seats are taken". The user isn't playing until the service
+ * adds them, after this answer, so don't count them as a player until the bot's asked to start the
+ * game, which can come while it's still answering.
  */
 export type MiniAppJoinResponse = { accepted: boolean; message?: string };
 
-/** Where a game's got to. It only moves forward: open, then active, then finished. */
-export type MiniAppGameStatus = MiniAppStatus["kind"];
+/**
+ * How a bot starts a game when a player asks it to, with `acceptMiniAppStart`. The service holds
+ * the game while it asks, so the bot gives the game's first state here, rather than with
+ * `MiniAppServiceClient.update`, which would wait until the start timed out.
+ */
+export type MiniAppStart = {
+    /**
+     * The user ids of those it starts with, in any order. Each must be playing, or have a join the
+     * bot's still answering, as it accepted them. Anyone playing whom it leaves out is taken off.
+     */
+    players: string[];
+    /** The players whose turn it is first, each once, or none for no one in particular */
+    waitingFor: string[];
+    state?: MiniAppGameState;
+};
+
+/**
+ * The bot's answer to the service's `POST <endpoint>/mini_app/start`, within 5 seconds, as the
+ * service reads it, from `acceptMiniAppStart` or `refuseMiniAppStart`. A bot asked to start a game
+ * it already started, as the service couldn't save the start, answers as it did the first time.
+ */
+export type MiniAppStartResponse =
+    | {
+          accepted: true;
+          players: string[];
+          waiting_for: string[];
+          state?: MiniAppGameState;
+      }
+    | { accepted: false; message?: string };
+
+/** Starts a game, in answer to the service's `POST <endpoint>/mini_app/start` */
+export function acceptMiniAppStart(start: MiniAppStart): MiniAppStartResponse {
+    return {
+        accepted: true,
+        players: start.players,
+        waiting_for: start.waitingFor,
+        state: start.state,
+    };
+}
+
+/**
+ * Doesn't start a game, in answer to the service's `POST <endpoint>/mini_app/start`. `message` is
+ * shown to the player, eg. "Needs 2 players".
+ */
+export function refuseMiniAppStart(message?: string): MiniAppStartResponse {
+    return { accepted: false, message };
+}
 
 /**
  * A bot's update to one of its games, for `MiniAppServiceClient.update`. Whatever's undefined stays
@@ -52,10 +98,10 @@ export type MiniAppGameStatus = MiniAppStatus["kind"];
 export type MiniAppGameUpdate = {
     game: MiniAppGame;
     /**
-     * "active" closes joining, and the service writes the game's players to its card. "finished"
-     * ends the game, after which it never changes.
+     * Ends the game, whether it started or not, after which it never changes. A player starts it,
+     * through the service, which asks the bot.
      */
-    status?: MiniAppGameStatus;
+    status?: "finished";
     /**
      * The user ids of the players whose turn it is now, each once, or none for no one in
      * particular

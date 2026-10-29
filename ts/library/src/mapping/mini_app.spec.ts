@@ -16,7 +16,7 @@ import {
     validateMiniAppImage,
     validateMiniAppText,
 } from "../domain/message";
-import { miniAppGameKey } from "../domain/mini_app";
+import { acceptMiniAppStart, miniAppGameKey, refuseMiniAppStart } from "../domain/mini_app";
 import { Permissions } from "../domain/permissions";
 import { ChatActionScope, CommunityActionScope } from "../domain/scope";
 import { MsgpackCanisterAgent } from "../services/canisterAgent/msgpack";
@@ -323,6 +323,31 @@ describe("MiniApp games", () => {
 
         expect(new Set(keys).size).toBe(keys.length);
         expect(miniAppGameKey({ ...channelGame })).toBe(miniAppGameKey(channelGame));
+    });
+});
+
+describe("A bot's answer to starting a game", () => {
+    test("starts it, as the MiniApp service reads it", () => {
+        const response = acceptMiniAppStart({
+            players: [ALICE, BOB],
+            waitingFor: [ALICE],
+            state: { seq: 1, shared: { turn: 0 }, private: { [ALICE]: { hand: [1] }, [BOB]: {} } },
+        });
+
+        expect(JSON.stringify(response)).toBe(
+            `{"accepted":true,"players":["${ALICE}","${BOB}"],"waiting_for":["${ALICE}"],"state":{"seq":1,"shared":{"turn":0},"private":{"${ALICE}":{"hand":[1]},"${BOB}":{}}}}`,
+        );
+        // Without a state, or whose turn it is
+        expect(JSON.stringify(acceptMiniAppStart({ players: [ALICE], waitingFor: [] }))).toBe(
+            `{"accepted":true,"players":["${ALICE}"],"waiting_for":[]}`,
+        );
+    });
+
+    test("refuses, with a message for the player", () => {
+        expect(JSON.stringify(refuseMiniAppStart("Needs 2 players"))).toBe(
+            `{"accepted":false,"message":"Needs 2 players"}`,
+        );
+        expect(JSON.stringify(refuseMiniAppStart())).toBe(`{"accepted":false}`);
     });
 });
 

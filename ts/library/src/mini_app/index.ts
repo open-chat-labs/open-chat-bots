@@ -8,6 +8,7 @@ export {
     type ConnectOptions,
     type MiniAppMessageEvent,
     type MiniAppRole,
+    type MiniAppStartResult,
     type MiniAppState,
     type MiniAppToOpenChat,
     type MiniAppWindow,

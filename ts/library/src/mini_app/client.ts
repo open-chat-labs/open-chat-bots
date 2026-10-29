@@ -14,7 +14,10 @@
 //   game, then the latest state again, with the same `seq`, now with or without their own part;
 // - a player's page sends `{ kind: "mini_app_token_request" }` when its token is running out, or
 //   its bot refused it with a 401, and OpenChat answers `{ kind: "mini_app_token", token }`;
-// - OpenChat sends `{ kind: "set_dark_mode", dark_mode }` when the user's theme changes.
+// - OpenChat sends `{ kind: "set_dark_mode", dark_mode }` when the user's theme changes;
+// - a player's page sends `{ kind: "mini_app_start" }` to ask to start the game, eg. from a Start
+//   button, and OpenChat answers `{ kind: "mini_app_start_result", accepted, message }`, once the
+//   bot has started the game or refused to.
 //
 // Nothing here lets the app join or leave a game: only OpenChat's own buttons do.
 
@@ -34,8 +37,17 @@ export type MiniAppState<Shared = unknown, Private = unknown> = {
     private?: Private;
 };
 
+/**
+ * OpenChat's answer to a player asking to start the game. A refusal's `message` is the bot's, eg.
+ * "Needs 2 players", or why OpenChat couldn't start it.
+ */
+export type MiniAppStartResult = { accepted: boolean; message?: string };
+
 /** What the app sends OpenChat */
-export type MiniAppToOpenChat = { kind: "mini_app_ready" } | { kind: "mini_app_token_request" };
+export type MiniAppToOpenChat =
+    | { kind: "mini_app_ready" }
+    | { kind: "mini_app_token_request" }
+    | { kind: "mini_app_start" };
 
 /** What OpenChat sends the app */
 export type OpenChatToMiniApp =
@@ -49,7 +61,8 @@ export type OpenChatToMiniApp =
       }
     | { kind: "mini_app_token"; token: string }
     | { kind: "mini_app_state"; seq: number; shared: unknown; private?: unknown }
-    | { kind: "set_dark_mode"; dark_mode: boolean };
+    | { kind: "set_dark_mode"; dark_mode: boolean }
+    | ({ kind: "mini_app_start_result" } & MiniAppStartResult);
 
 type Initialise = Extract<OpenChatToMiniApp, { kind: "initialise_mini_app" }>;
 type StateMessage = Extract<OpenChatToMiniApp, { kind: "mini_app_state" }>;
@@ -67,7 +80,7 @@ export interface MiniAppWindow {
 }
 
 export type ConnectOptions = {
-    /** How long to wait for OpenChat to initialise the app, or send a new token. 10s by default. */
+    /** How long to wait for OpenChat to initialise the app, or answer a request. 10s by default. */
     timeoutMs?: number;
     /** How long before a player's token expires to ask for a new one. A minute by default. */
     refreshBeforeExpiryMs?: number;
@@ -154,6 +167,12 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
     #tokenRequest?: {
         promise: Promise<string>;
         resolve: (token: string) => void;
+        reject: (error: Error) => void;
+        timer: ReturnType<typeof setTimeout>;
+    };
+    #startRequest?: {
+        promise: Promise<MiniAppStartResult>;
+        resolve: (result: MiniAppStartResult) => void;
         reject: (error: Error) => void;
         timer: ReturnType<typeof setTimeout>;
     };
@@ -268,6 +287,36 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
     }
 
     /**
+     * Asks OpenChat to start the game, eg. as the player pressed the app's Start button. OpenChat
+     * asks the bot, which starts the game, with the players it chooses, or refuses. Resolves with
+     * the answer, or a refusal if OpenChat doesn't answer in time. A start made while one is
+     * waiting shares it. Rejects for a spectator.
+     */
+    start(): Promise<MiniAppStartResult> {
+        if (this.#closed) {
+            return Promise.reject(new Error("The client is closed"));
+        }
+        if (this.#role !== "player") {
+            return Promise.reject(new Error("Only a player can start the game"));
+        }
+        if (this.#startRequest === undefined) {
+            let resolve!: (result: MiniAppStartResult) => void;
+            let reject!: (error: Error) => void;
+            const promise = new Promise<MiniAppStartResult>((res, rej) => {
+                resolve = res;
+                reject = rej;
+            });
+            const timer = setTimeout(() => {
+                this.#startRequest = undefined;
+                resolve({ accepted: false, message: "OpenChat didn't answer" });
+            }, this.#timeoutMs);
+            this.#startRequest = { promise, resolve, reject, timer };
+            this.#post({ kind: "mini_app_start" });
+        }
+        return this.#startRequest.promise;
+    }
+
+    /**
      * `fetch`, with a player's token in the `x-oc-jwt` header for a request to the bot's server, on
      * the app's own origin, eg. "api/move". A spectator has no token, and nothing elsewhere, eg. an
      * avatar's URL, gets it. If the bot answers a player with a 401, it asks OpenChat for a new
@@ -291,12 +340,17 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
         return send();
     }
 
-    /** Stops listening to OpenChat, and rejects a token request still waiting */
+    /** Stops listening to OpenChat, and rejects a token request or a start still waiting */
     close(): void {
         this.#closed = true;
         this.#window.removeEventListener("message", this.#onMessage);
         clearTimeout(this.#refreshTimer);
         this.#rejectTokenRequest(new Error("The client is closed"));
+        if (this.#startRequest !== undefined) {
+            clearTimeout(this.#startRequest.timer);
+            this.#startRequest.reject(new Error("The client is closed"));
+            this.#startRequest = undefined;
+        }
         this.#roleListeners.clear();
         this.#stateListeners.clear();
         this.#darkModeListeners.clear();
@@ -348,6 +402,16 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
                 break;
             case "set_dark_mode":
                 this.#setDarkMode(message.dark_mode);
+                break;
+            case "mini_app_start_result":
+                if (this.#startRequest !== undefined) {
+                    clearTimeout(this.#startRequest.timer);
+                    this.#startRequest.resolve({
+                        accepted: message.accepted,
+                        message: message.message,
+                    });
+                    this.#startRequest = undefined;
+                }
                 break;
         }
     }
@@ -480,6 +544,14 @@ function openChatMessage(data: unknown): OpenChatToMiniApp | undefined {
         case "set_dark_mode":
             return typeof message.dark_mode === "boolean"
                 ? { kind: "set_dark_mode", dark_mode: message.dark_mode }
+                : undefined;
+        case "mini_app_start_result":
+            return typeof message.accepted === "boolean"
+                ? {
+                      kind: "mini_app_start_result",
+                      accepted: message.accepted,
+                      message: typeof message.message === "string" ? message.message : undefined,
+                  }
                 : undefined;
         default:
             return undefined;

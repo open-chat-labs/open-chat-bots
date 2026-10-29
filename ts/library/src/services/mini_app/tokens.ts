@@ -6,6 +6,7 @@ import { miniAppGame, type ApiMiniAppGame } from "../../mapping";
 export const CLAIM_TYPE_MINI_APP_PLAYER = "MiniAppPlayer";
 export const CLAIM_TYPE_MINI_APP_JOIN = "MiniAppJoin";
 export const CLAIM_TYPE_MINI_APP_LEAVE = "MiniAppLeave";
+export const CLAIM_TYPE_MINI_APP_START = "MiniAppStart";
 
 /** The header the service's calls, and a player's app, send their token in */
 export const MINI_APP_TOKEN_HEADER = "x-oc-jwt";
@@ -70,10 +71,20 @@ export class MiniAppTokens {
 
     /**
      * The service's `POST <endpoint>/mini_app/join`: a user asks to join a game, which the bot
-     * answers with a `MiniAppJoinResponse` within 5 seconds
+     * answers with a `MiniAppJoinResponse` within 5 seconds. They aren't playing until the service
+     * adds them, after the answer, so don't count them as a player until the bot's asked to start.
      */
     verifyJoin(header: MiniAppTokenHeader, now: number = Date.now()): MiniAppPlayerClaims {
         return this.#verify(header, CLAIM_TYPE_MINI_APP_JOIN, now);
+    }
+
+    /**
+     * The service's `POST <endpoint>/mini_app/start`: a player asks to start a game, which the bot
+     * answers within 5 seconds with `acceptMiniAppStart`, with the game's first state, or
+     * `refuseMiniAppStart`
+     */
+    verifyStart(header: MiniAppTokenHeader, now: number = Date.now()): MiniAppPlayerClaims {
+        return this.#verify(header, CLAIM_TYPE_MINI_APP_START, now);
     }
 
     /**

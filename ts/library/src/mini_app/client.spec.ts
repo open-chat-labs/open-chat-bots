@@ -382,6 +382,73 @@ describe("MiniAppClient's token", () => {
     });
 });
 
+describe("MiniAppClient.start", () => {
+    test("asks OpenChat, at its origin, and resolves with its answer", async () => {
+        const [client, win] = await connected();
+
+        const started = client.start();
+        expect(win.posted.at(-1)).toEqual({
+            message: { kind: "mini_app_start" },
+            targetOrigin: OPENCHAT,
+        });
+        // Not from anywhere else, nor without an answer
+        win.send(
+            { kind: "mini_app_start_result", accepted: true },
+            { origin: "https://x.example" },
+        );
+        win.send({ kind: "mini_app_start_result", message: "?" });
+        win.send({ kind: "mini_app_start_result", accepted: false, message: "Needs 2 players" });
+
+        expect(await started).toEqual({ accepted: false, message: "Needs 2 players" });
+
+        const again = client.start();
+        win.send({ kind: "mini_app_start_result", accepted: true, message: null });
+        expect(await again).toEqual({ accepted: true, message: undefined });
+    });
+
+    test("shares a start that's waiting", async () => {
+        const [client, win] = await connected();
+
+        const first = client.start();
+        const second = client.start();
+        win.send({ kind: "mini_app_start_result", accepted: true });
+
+        expect(second).toBe(first);
+        expect(win.kinds().filter((k) => k === "mini_app_start")).toHaveLength(1);
+        expect(await first).toEqual({ accepted: true, message: undefined });
+    });
+
+    test("is refused if OpenChat doesn't answer in time, and asked again next time", async () => {
+        const [client, win] = await connected("player", { timeoutMs: 1000 });
+
+        const started = client.start();
+        vi.advanceTimersByTime(1000);
+
+        expect(await started).toEqual({ accepted: false, message: "OpenChat didn't answer" });
+        // A late answer is ignored
+        win.send({ kind: "mini_app_start_result", accepted: true });
+        client.start();
+        expect(win.kinds().filter((k) => k === "mini_app_start")).toHaveLength(2);
+    });
+
+    test("is only a player's", async () => {
+        const [client, win] = await connected("spectator");
+
+        await expect(client.start()).rejects.toThrow("Only a player can start the game");
+        expect(win.kinds()).not.toContain("mini_app_start");
+    });
+
+    test("is rejected when the client closes", async () => {
+        const [client] = await connected();
+        const started = client.start();
+
+        client.close();
+
+        await expect(started).rejects.toThrow("closed");
+        await expect(client.start()).rejects.toThrow("closed");
+    });
+});
+
 describe("MiniAppClient", () => {
     test("follows the user's theme", async () => {
         const [client, win] = await connected();
