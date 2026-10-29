@@ -404,12 +404,13 @@ export class BotClient {
      * game from the moment its card exists, and `sendMessage` refuses one. The token is for the
      * chat the client would send a message in, a command's or an autonomous one, with the same
      * options: `channelId` names the channel for a client in a community's scope, `thread` the
-     * thread to post in, and `messageId` the card's message id, if the bot chooses one. A command's
-     * token fixes the message id, which `messageId` must then match; an autonomous card's is picked
-     * here, at random, unless the bot gives one, as OpenChat can't pick one in a query. The token
-     * lasts an hour, and posting it twice posts one card, so a bot which got no answer posts it
-     * again. It needs the MiniApp permission. Rejects, with OpenChat's error, if the bot isn't given
-     * one, eg. as it isn't installed in the chat.
+     * thread to post in, and `messageId` the card's message id, if the bot chooses one. A chat
+     * command's token fixes the message id, which `messageId` must then match; otherwise, for an
+     * autonomous card or a community command's, it's picked here, at random, unless the bot gives
+     * one, as OpenChat can't pick one in a query. The token lasts an hour, and posting it twice
+     * posts one card, so a bot which got no answer posts it again. It needs the MiniApp permission.
+     * Rejects, with OpenChat's error, if the bot isn't given one, eg. as it isn't installed in the
+     * chat.
      */
     async miniAppPostToken(
         options: { channelId?: bigint; thread?: number; messageId?: bigint } = {},
@@ -417,12 +418,13 @@ export class BotClient {
         if (!this.#actionContext.hasMessagePermission("MiniApp")) {
             throw new Error("Not authorized: the bot lacks the MiniApp permission here");
         }
-        const autonomous = this.#actionContext.jwt === undefined;
+        // Only a chat command's token carries a message id
+        const fixed = this.#actionContext.messageId !== undefined;
         return this.#botService.miniAppPostToken(
             this.#actionContext.chatContext(options.channelId),
             {
                 ...options,
-                messageId: options.messageId ?? (autonomous ? random64() : undefined),
+                messageId: options.messageId ?? (fixed ? undefined : random64()),
             },
         );
     }

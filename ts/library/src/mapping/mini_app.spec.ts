@@ -522,7 +522,7 @@ describe("BotClient.miniAppPostToken", () => {
         expect(ids[0]).not.toBe(ids[1]);
     });
 
-    test("sends a command's token, whose message id the card takes", async () => {
+    test("leaves the message id to a chat command's token", async () => {
         const calls = stubQuery();
 
         await client(command(granted("MiniApp"))).miniAppPostToken();
@@ -535,19 +535,34 @@ describe("BotClient.miniAppPostToken", () => {
         });
     });
 
-    test("names the channel, in a community's scope", async () => {
+    test("names the channel, in a community's scope, and picks the message id", async () => {
         const calls = stubQuery();
         const autonomous = ActionContext.inAutonomousContext(
             new CommunityActionScope(new CommunityIdentifier(COMMUNITY)),
             "aaaaa-aa",
         );
+        // A community's command has no message id in its token, unlike a chat's
+        const command = new ActionContext(
+            "aaaaa-aa",
+            new CommunityActionScope(new CommunityIdentifier(COMMUNITY)),
+            granted("MiniApp"),
+            undefined,
+            undefined,
+            undefined,
+            "a.command.jwt",
+        );
 
         await client(autonomous).miniAppPostToken({ channelId: 7n });
+        await client(command).miniAppPostToken({ channelId: 7n });
 
         expect(calls[0].args.chat_context).toEqual({
             Autonomous: { Channel: [bytes(COMMUNITY), 7n] },
         });
-        expect(calls[0].args.channel_id).toBe(7n);
+        expect(calls[1].args.chat_context).toEqual({ Command: "a.command.jwt" });
+        for (const { args } of calls) {
+            expect(args.channel_id).toBe(7n);
+            expect(typeof args.message_id).toBe("bigint");
+        }
     });
 
     test("refuses without the MiniApp permission, asking for nothing", async () => {

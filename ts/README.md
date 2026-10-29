@@ -304,7 +304,7 @@ exists: `sendMessage` refuses a card. `client.miniAppPostToken()` asks the Local
 token to post one card in the chat the client would send a message in, a command's or an autonomous
 one, with the same options, `{ channelId, thread, messageId }`: the channel for a client in a
 community's scope, the thread, and the card's message id, which the SDK picks unless the bot chooses
-one (a command's token fixes it). The token lasts an hour, and needs the `MiniApp` message
+one, or a chat command's token fixes it. The token lasts an hour, and needs the `MiniApp` message
 permission, so a command which posts a card asks for it. A card can't be posted in a direct chat,
 and its text, image, player limit and spectators never change. `createMiniAppMessage` uploads the
 optional image (`{ data, mimeType, width, height }`) first, as `createImageMessage` does;
