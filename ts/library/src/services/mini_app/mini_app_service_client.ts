@@ -12,6 +12,9 @@ import {
 // A bot token lasts an hour, and is fetched again this long before it expires
 const REFRESH_BEFORE_EXPIRY_MS = 5 * 60 * 1000;
 
+// The `claim_type` of a post token, which the LocalUserIndex signs, as it does a command's
+const CLAIM_TYPE_MINI_APP_POST = "MiniAppPost";
+
 /** What went wrong with a call to the MiniApp service, by the status it answered with */
 export type MiniAppServiceErrorKind =
     // 400: eg. a post token that's invalid or expired, a card OpenChat refused, eg. as the bot isn't
@@ -82,14 +85,15 @@ export class MiniAppServiceClient {
      *
      * Posting the same token again posts nothing new, and resolves with the same game, so a bot
      * which got no answer, eg. an `unavailable` error, posts it again with the same token. The game
-     * is in the token, so an invalid token is refused without calling the service.
+     * is in the token, `miniAppGameFromPostToken`, so a token that isn't a post token is refused
+     * without calling the service.
      */
     async post(
         token: string,
         card: MiniAppMessage | MiniAppCard,
         options: { blockLevelMarkdown?: boolean; repliesTo?: number } = {},
     ): Promise<MiniAppGame> {
-        const game = postTokenGame(token);
+        const game = miniAppGameFromPostToken(token);
         const message = card instanceof MiniAppMessage ? card : undefined;
         const body: ApiMiniAppPostArgs = {
             token,
@@ -193,12 +197,22 @@ function refreshAt(token: string): number {
     return exp === undefined ? 0 : exp * 1000 - REFRESH_BEFORE_EXPIRY_MS;
 }
 
-// The game a post token is for, which the LocalUserIndex fixed when it signed the token, so the bot
-// knows it before the card is posted. Read, not verified: the service verifies the token.
-function postTokenGame(token: string): MiniAppGame {
+/**
+ * The game a post token, from `BotClient.miniAppPostToken`, is for, which the LocalUserIndex fixed
+ * when it signed the token. So the bot knows the game before the card is posted, eg. to key it
+ * before a join can arrive. Read, not verified: the service verifies the token when the card is
+ * posted. Throws if `token` isn't a JWT, or is another kind of token.
+ */
+export function miniAppGameFromPostToken(token: string): MiniAppGame {
+    const claims = jwt.decode(token);
+    if (typeof claims !== "object" || claims === null) {
+        throw new Error("Not a MiniApp post token: not a JWT");
+    }
+    if (claims.claim_type !== CLAIM_TYPE_MINI_APP_POST) {
+        throw new Error(`Not a MiniApp post token: a ${claims.claim_type} token`);
+    }
     try {
-        const claims = jwt.decode(token) as { game: ApiMiniAppGame };
-        return miniAppGame(claims.game);
+        return miniAppGame((claims as { game: ApiMiniAppGame }).game);
     } catch (err) {
         throw new Error(`Not a MiniApp post token: ${err}`);
     }

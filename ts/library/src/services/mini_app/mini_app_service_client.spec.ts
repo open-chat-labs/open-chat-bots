@@ -2,7 +2,11 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { ChannelIdentifier, GroupChatIdentifier } from "../../domain/identifiers";
 import { MiniAppMessage } from "../../domain/message";
 import { COMMUNITY, GAME_JSON, GROUP, NOW, USER, postToken } from "../../utils/test_tokens";
-import { MiniAppServiceClient, MiniAppServiceError } from "./mini_app_service_client";
+import {
+    MiniAppServiceClient,
+    MiniAppServiceError,
+    miniAppGameFromPostToken,
+} from "./mini_app_service_client";
 
 const URL = "https://mini-apps.example.com";
 const ALICE = USER;
@@ -213,6 +217,26 @@ describe("MiniAppServiceClient.post", () => {
             expect(error).toBeInstanceOf(MiniAppServiceError);
             expect(error).toMatchObject({ kind, status, message });
         }
+    });
+});
+
+describe("miniAppGameFromPostToken", () => {
+    test("reads the game from a post token, as the LocalUserIndex writes one", () => {
+        expect(miniAppGameFromPostToken(postToken())).toEqual(GAME);
+        expect(
+            miniAppGameFromPostToken(
+                postToken(`{"chat":{"Group":"${GROUP}"},"thread":null,"message_id":"5"}`),
+            ),
+        ).toEqual({ chat: new GroupChatIdentifier(GROUP), thread: undefined, messageId: 5n });
+    });
+
+    test("refuses another kind of token, or what isn't one", () => {
+        expect(() => miniAppGameFromPostToken(botToken(NOW))).toThrow(
+            "Not a MiniApp post token: a MiniAppBot token",
+        );
+        expect(() => miniAppGameFromPostToken("not a token")).toThrow(
+            "Not a MiniApp post token: not a JWT",
+        );
     });
 });
 

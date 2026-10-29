@@ -1,6 +1,7 @@
 export {
     MiniAppServiceClient,
     MiniAppServiceError,
+    miniAppGameFromPostToken,
     type MiniAppServiceErrorKind,
 } from "./mini_app_service_client";
 export {

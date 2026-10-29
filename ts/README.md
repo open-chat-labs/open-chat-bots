@@ -309,7 +309,8 @@ card can't be posted in a direct chat, and its text, image, player limit and spe
 change. `createMiniAppMessage` uploads the optional image (`{ data, mimeType, width, height }`)
 first, as `createImageMessage` does; `setBlockLevelMarkdown` and `setRepliesTo` apply. Posting the
 same token again posts nothing new and gives the same game, so a bot which got no answer, eg. an
-`unavailable` error, posts again with the same token.
+`unavailable` error, posts again with the same token. `miniAppGameFromPostToken(token)` gives the
+game before the card is posted, eg. so the bot can key it before a join can arrive.
 
 A `MiniAppGame` is `{ chat, thread?, messageId }`. `miniAppGameKey` gives a key that's unique across
 chats and threads. The service client sends the bot's token, from the LocalUserIndex's
