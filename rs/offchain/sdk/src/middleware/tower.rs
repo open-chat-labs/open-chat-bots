@@ -12,9 +12,10 @@ impl OpenChatJwt {
     }
 }
 
-/// Takes the `x-oc-jwt` header, which OpenChat sends with each command (`/execute_command`) and a
-/// bot's MiniApp sends with each call to its server, into an [`OpenChatJwt`] extension for the
-/// route's handler, which verifies it. A request without one is refused with a 401.
+/// Takes the `x-oc-jwt` header into an [`OpenChatJwt`] extension for the route's handler, which
+/// verifies it. OpenChat sends it with each command (`/execute_command`), the MiniApp service with
+/// its calls (`/mini_app/join` and `/mini_app/leave`), and a player's app with each request to the
+/// bot. A request without one is refused with a 401.
 #[derive(Clone)]
 pub struct ExtractJwtLayer {
     header_name: HeaderName,

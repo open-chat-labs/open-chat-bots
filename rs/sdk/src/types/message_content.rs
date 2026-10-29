@@ -1,12 +1,11 @@
 use super::{
     CanisterId, Chat, CompletedCryptoTransaction, CryptoTransaction, MessageId, MessageIndex,
-    Milliseconds, NnsNeuronId, OptionUpdate, ProposalId, SnsNeuronId, TimestampMillis, UserId,
-    VideoCallType,
+    Milliseconds, NnsNeuronId, ProposalId, SnsNeuronId, TimestampMillis, UserId, VideoCallType,
 };
 use crate::utils::{serialize_large_uint, serialize_principal_as_bytes, tolerant_enum};
 use ic_principal::Principal;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum MessageContentInitial {
@@ -325,48 +324,30 @@ pub struct PriceChartSource {
     pub url: String,
 }
 
-/// A bot's card for an app it hosts, eg. a game. OpenChat shows the text, under the image if it has
-/// one, with the players, whose move it is or the result, and an Open button, which opens the bot's
-/// app, served by the bot at `/app` under its endpoint, in a frame. Everything else the app shows,
-/// eg. a board and buttons, is the bot's own page.
+/// A bot's card for a game, or another app, it hosts. OpenChat shows the text, under the image if it
+/// has one, with the players, whose turn it is or the result, and buttons to join, leave and open the
+/// game. Opening it shows the bot's app, served by the bot at `/app` under its endpoint, in a frame.
 ///
 /// Its text, image, player limit and whether others can watch are set when it's posted and never
-/// change: OpenChat refuses an edit of it. Its status, players, whose move it is and the result are
-/// the bot's to keep up to date, with `Client::update_mini_app`, until the game is finished.
+/// change. Its status is written only by OpenChat's MiniApp service: the players the game starts
+/// with, who joined through the service and were accepted by the bot, whose turn it is, and then its
+/// result. The bot tells the service how its game goes, and the service updates the card.
 ///
 /// Only a bot installed in the chat can send one, finalised, and it needs
-/// `MessagePermission::MiniApp`. It can't be sent in a direct chat, nor forwarded, as the bot knows its app's state by the card's
-/// message id.
+/// `MessagePermission::MiniApp`. It can't be sent in a direct chat, nor forwarded or edited.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MiniAppContent {
-    /// Markdown, eg. "**Tic-tac-toe** · tap Open to play", of 1 to 2,000 characters. It's the
-    /// message's text in notifications, previews and search.
+    /// Markdown, eg. "**Uno** · 2 to 4 players", of 1 to 2,000 characters. It's the message's text
+    /// in notifications, previews and search.
     pub text: String,
     /// Shown above the text, eg. the game's artwork
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub image: Option<MiniAppImage>,
     /// The most who can play, 1 to 100, if there's a limit, so the card can show eg. "2 of 4"
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_players: Option<u32>,
-    /// Whether members who aren't playing can open the app once the game has started
-    #[serde(default)]
+    /// Whether people who aren't playing can watch: members, and anyone who can see a public chat
     pub spectators: bool,
-    /// How many members who aren't playing have the app open, as the bot reports it, so that they
-    /// stay anonymous. It's 0 unless `spectators` is set.
-    #[serde(default)]
-    pub spectator_count: u32,
-    #[serde(default)]
+    /// Open when the bot posts it, after which only the MiniApp service changes it
     pub status: MiniAppStatus,
-    /// The members playing, in the bot's order, at most `max_players` (or 100), each once. The bot
-    /// itself can be one.
-    #[serde(default)]
-    pub players: Vec<UserId>,
-    /// The players whose move it is, if the game has turns
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub waiting_for: Option<Vec<UserId>>,
-    /// eg. "Bob won", of 1 to 200 characters, once the game is finished
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub result: Option<String>,
 }
 
 /// A card's image, which the bot uploads to OpenChat's storage first, as for an image message, eg.
@@ -381,60 +362,65 @@ pub struct MiniAppImage {
     pub blob_reference: BlobReference,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+/// In the order a game goes through them, which it only ever moves forward through
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum MiniAppStatus {
-    /// Taking players
-    #[default]
+    /// Taking players. Who's joined so far is shown live by the MiniApp service, not stored here.
     Open,
     /// Being played
-    Active,
+    Active(MiniAppActive),
     /// Over, after which the card never changes
-    Finished,
+    Finished(MiniAppFinished),
 }
 
-/// What `Client::update_mini_app` changes on a card. Whatever isn't set stays as it was.
-///
-/// ```ignore
-/// // Bob joins, and the game starts with Alice to move
-/// let update = MiniAppUpdate::default()
-///     .with_players(vec![alice, bob])
-///     .with_status(MiniAppStatus::Active)
-///     .with_waiting_for(Some(vec![alice]));
-/// ```
-#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
-pub struct MiniAppUpdate {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub status: Option<MiniAppStatus>,
-    /// Replaces the players
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub players: Option<Vec<UserId>>,
-    /// How many members who aren't playing have the app open
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub spectator_count: Option<u32>,
-    #[serde(default, skip_serializing_if = "OptionUpdate::is_no_change")]
-    pub waiting_for: OptionUpdate<Vec<UserId>>,
-    #[serde(default, skip_serializing_if = "OptionUpdate::is_no_change")]
-    pub result: OptionUpdate<String>,
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MiniAppActive {
+    /// Who the game started with, in the order they joined
+    pub players: Vec<UserId>,
+    /// The players whose turn it is, or no one in particular, eg. in a game without turns
+    pub waiting_for: Vec<UserId>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MiniAppFinished {
+    /// Who the game started with, or no one if it never started
+    pub players: Vec<UserId>,
+    /// eg. "Bob won", or none if the game was abandoned
+    pub result: Option<String>,
+}
+
+impl MiniAppStatus {
+    pub fn players(&self) -> &[UserId] {
+        match self {
+            MiniAppStatus::Open => &[],
+            MiniAppStatus::Active(active) => &active.players,
+            MiniAppStatus::Finished(finished) => &finished.players,
+        }
+    }
+
+    pub fn result(&self) -> Option<&str> {
+        match self {
+            MiniAppStatus::Finished(finished) => finished.result.as_deref(),
+            _ => None,
+        }
+    }
 }
 
 impl MiniAppContent {
     pub const MAX_TEXT_CHARS: usize = 2_000;
     pub const MAX_PLAYERS: usize = 100;
+    /// The longest result the MiniApp service takes, to write to the card when the game finishes
     pub const MAX_RESULT_CHARS: usize = 200;
 
-    /// A card without an image, open, with no players yet, which only the players can open once the
-    /// game has started
+    /// A card without an image, open, with no limit on players, which only the players can open
+    /// once the game has started
     pub fn new(text: impl Into<String>) -> Self {
         MiniAppContent {
             text: text.into(),
             image: None,
             max_players: None,
             spectators: false,
-            spectator_count: 0,
             status: MiniAppStatus::Open,
-            players: Vec::new(),
-            waiting_for: None,
-            result: None,
         }
     }
 
@@ -449,21 +435,18 @@ impl MiniAppContent {
         self
     }
 
-    /// Whether members who aren't playing can open the app once the game has started
+    /// Whether people who aren't playing can watch
     pub fn with_spectators(mut self, spectators: bool) -> Self {
         self.spectators = spectators;
         self
     }
 
-    /// The players when the card is posted, eg. the member who ran the command
-    pub fn with_players(mut self, players: Vec<UserId>) -> Self {
-        self.players = players;
-        self
-    }
-
-    /// Checks the card as OpenChat does, so that a mistake shows up before it's sent. The errors
-    /// are those OpenChat gives.
+    /// Checks the card as OpenChat does when a bot posts it, so that a mistake shows up before it's
+    /// sent. The errors are those OpenChat gives.
     pub fn validate(&self) -> Result<(), String> {
+        if self.status != MiniAppStatus::Open {
+            return Err("A game is posted open".to_string());
+        }
         check_chars("text", &self.text, Self::MAX_TEXT_CHARS)?;
         if let Some(image) = &self.image {
             image.validate()?;
@@ -477,52 +460,9 @@ impl MiniAppContent {
                 Self::MAX_PLAYERS
             ));
         }
-        let limit = self
-            .max_players
-            .map_or(Self::MAX_PLAYERS, |max| max as usize);
-        if self.players.len() > limit {
-            return Err(format!("This game has at most {limit} players"));
-        }
-        if self.players.iter().collect::<HashSet<_>>().len() < self.players.len() {
-            return Err("A player is listed twice".to_string());
-        }
-        if self.spectator_count > 0 && !self.spectators {
-            return Err("Only a game open to spectators has any".to_string());
-        }
-        if let Some(waiting_for) = &self.waiting_for {
-            if waiting_for
-                .iter()
-                .any(|user_id| !self.players.contains(user_id))
-            {
-                return Err("Only players can be waited for".to_string());
-            }
-            if waiting_for.iter().collect::<HashSet<_>>().len() < waiting_for.len() {
-                return Err("A player is waited for twice".to_string());
-            }
-        }
-        if let Some(result) = &self.result {
-            if self.status != MiniAppStatus::Finished {
-                return Err("Only a finished game has a result".to_string());
-            }
-            check_chars("result", result, Self::MAX_RESULT_CHARS)?;
-        }
+        // OpenChat's other checks are of the players, whose turn it is and the result, which an
+        // open card has none of
         Ok(())
-    }
-
-    /// The card as OpenChat leaves it after `update`, eg. to `validate` an update before sending it.
-    /// OpenChat also refuses any update of a finished card.
-    pub fn apply(&mut self, update: MiniAppUpdate) {
-        if let Some(status) = update.status {
-            self.status = status;
-        }
-        if let Some(players) = update.players {
-            self.players = players;
-        }
-        if let Some(spectator_count) = update.spectator_count {
-            self.spectator_count = spectator_count;
-        }
-        self.waiting_for = update.waiting_for.apply_to(self.waiting_for.take());
-        self.result = update.result.apply_to(self.result.take());
     }
 }
 
@@ -540,46 +480,6 @@ impl MiniAppImage {
             return Err("The image's mime type must be an image's".to_string());
         }
         Ok(())
-    }
-}
-
-impl MiniAppUpdate {
-    pub fn with_status(mut self, status: MiniAppStatus) -> Self {
-        self.status = Some(status);
-        self
-    }
-
-    /// Replaces the players
-    pub fn with_players(mut self, players: Vec<UserId>) -> Self {
-        self.players = Some(players);
-        self
-    }
-
-    /// How many members who aren't playing have the app open, which only a card open to
-    /// spectators can have
-    pub fn with_spectator_count(mut self, spectator_count: u32) -> Self {
-        self.spectator_count = Some(spectator_count);
-        self
-    }
-
-    /// Whose move it is, or `None` for no one's
-    pub fn with_waiting_for(mut self, waiting_for: Option<Vec<UserId>>) -> Self {
-        self.waiting_for = waiting_for.map_or(OptionUpdate::SetToNone, OptionUpdate::SetToSome);
-        self
-    }
-
-    /// The game's result, eg. "Bob won", which only a finished game can have
-    pub fn with_result(mut self, result: impl Into<String>) -> Self {
-        self.result = OptionUpdate::SetToSome(result.into());
-        self
-    }
-
-    /// Finishes the game with its result, and waits for no one
-    pub fn finished(result: impl Into<String>) -> Self {
-        MiniAppUpdate::default()
-            .with_status(MiniAppStatus::Finished)
-            .with_waiting_for(None)
-            .with_result(result)
     }
 }
 
@@ -1172,85 +1072,127 @@ mod tests {
         }
     }
 
-    #[test]
-    fn a_mini_app_a_bot_sends_reads_back_as_one() {
-        for image in [None, Some(mini_app_image())] {
-            let mut card = MiniAppContent::new("**Tic-tac-toe** · tap Open to play");
-            card.image = image.clone();
-
-            let bytes = msgpack::serialize_then_unwrap(MessageContentInitial::MiniApp(card));
-            let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
-
-            let MessageContent::MiniApp(card) = &content else {
-                panic!("Expected a mini app, got {content:?}");
-            };
-            assert_eq!(card.text, "**Tic-tac-toe** · tap Open to play");
-            assert_eq!(card.image, image);
-            assert_eq!(content.text(), Some("**Tic-tac-toe** · tap Open to play"));
-        }
-    }
-
     fn user(byte: u8) -> UserId {
         Principal::from_slice(&[byte]).into()
     }
 
-    use serde::de::IgnoredAny;
-    use std::collections::BTreeMap;
+    // A card in each status, as the bot receives it in events
+    fn mini_app_statuses() -> [MiniAppStatus; 4] {
+        [
+            MiniAppStatus::Open,
+            MiniAppStatus::Active(MiniAppActive {
+                players: vec![user(1), user(2)],
+                waiting_for: vec![user(2)],
+            }),
+            MiniAppStatus::Finished(MiniAppFinished {
+                players: vec![user(1), user(2)],
+                result: Some("Bob won".to_string()),
+            }),
+            MiniAppStatus::Finished(MiniAppFinished {
+                players: Vec::new(),
+                result: None,
+            }),
+        ]
+    }
 
-    // As OpenChat's `types::MessageContent` encodes one, which is how bots receive it in events
+    #[test]
+    fn a_mini_app_reads_back_as_it_was_written() {
+        for image in [None, Some(mini_app_image())] {
+            for status in mini_app_statuses() {
+                let mut card = MiniAppContent::new("**Uno** · 2 to 4 players")
+                    .with_max_players(4)
+                    .with_spectators(true);
+                card.image = image.clone();
+                card.status = status;
+
+                let bytes = msgpack::serialize_then_unwrap(MessageContent::MiniApp(card.clone()));
+                let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
+                assert_eq!(content.text(), Some("**Uno** · 2 to 4 players"));
+                assert!(matches!(&content, MessageContent::MiniApp(c) if *c == card));
+
+                let bytes =
+                    msgpack::serialize_then_unwrap(MessageContentInitial::MiniApp(card.clone()));
+                let content: MessageContentInitial = msgpack::deserialize_then_unwrap(&bytes);
+                assert!(matches!(&content, MessageContentInitial::MiniApp(c) if *c == card));
+
+                // In JSON too, where a user id is its text. An image's blob reference is written as
+                // bytes, which only msgpack reads back.
+                if card.image.is_none() {
+                    let json = serde_json::to_string(&card).unwrap();
+                    assert_eq!(serde_json::from_str::<MiniAppContent>(&json).unwrap(), card);
+                }
+            }
+        }
+    }
+
+    // As OpenChat's `types::MessageContent` encodes one, which is how bots receive it in events: every
+    // field, with a `None` as nil
     #[test]
     fn a_mini_app_decodes_as_openchat_encodes_it() {
         #[derive(Serialize)]
         struct OpenChatMiniApp {
             text: String,
-            #[serde(skip_serializing_if = "Option::is_none")]
             image: Option<MiniAppImage>,
-            #[serde(skip_serializing_if = "Option::is_none")]
             max_players: Option<u32>,
             spectators: bool,
-            spectator_count: u32,
-            status: MiniAppStatus,
-            players: Vec<UserId>,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            waiting_for: Option<Vec<UserId>>,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            result: Option<String>,
+            status: OpenChatStatus,
+        }
+        #[derive(Serialize)]
+        enum OpenChatStatus {
+            Open,
+            Active {
+                players: Vec<UserId>,
+                waiting_for: Vec<UserId>,
+            },
+            Finished {
+                players: Vec<UserId>,
+                result: Option<String>,
+            },
         }
         #[derive(Serialize)]
         enum OpenChatContent {
             MiniApp(OpenChatMiniApp),
         }
 
-        let bytes = msgpack::serialize_then_unwrap(OpenChatContent::MiniApp(OpenChatMiniApp {
-            text: "**Uno** · 2 to 4 players".to_string(),
-            image: Some(mini_app_image()),
-            max_players: Some(4),
-            spectators: true,
-            spectator_count: 3,
-            status: MiniAppStatus::Finished,
-            players: vec![user(1), user(2)],
-            waiting_for: Some(vec![user(2)]),
-            result: Some("Bob won".to_string()),
-        }));
-        let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
-
-        let MessageContent::MiniApp(card) = content else {
-            panic!("Expected a mini app, got {content:?}");
-        };
-        assert_eq!(
-            card,
-            MiniAppContent {
+        let statuses = [
+            OpenChatStatus::Open,
+            OpenChatStatus::Active {
+                players: vec![user(1), user(2)],
+                waiting_for: vec![user(2)],
+            },
+            OpenChatStatus::Finished {
+                players: vec![user(1), user(2)],
+                result: Some("Bob won".to_string()),
+            },
+            OpenChatStatus::Finished {
+                players: Vec::new(),
+                result: None,
+            },
+        ];
+        for (status, expected) in statuses.into_iter().zip(mini_app_statuses()) {
+            let bytes = msgpack::serialize_then_unwrap(OpenChatContent::MiniApp(OpenChatMiniApp {
                 text: "**Uno** · 2 to 4 players".to_string(),
                 image: Some(mini_app_image()),
                 max_players: Some(4),
                 spectators: true,
-                spectator_count: 3,
-                status: MiniAppStatus::Finished,
-                players: vec![user(1), user(2)],
-                waiting_for: Some(vec![user(2)]),
-                result: Some("Bob won".to_string()),
-            }
-        );
+                status,
+            }));
+            let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
+
+            let MessageContent::MiniApp(card) = content else {
+                panic!("Expected a mini app, got {content:?}");
+            };
+            assert_eq!(
+                card,
+                MiniAppContent {
+                    text: "**Uno** · 2 to 4 players".to_string(),
+                    image: Some(mini_app_image()),
+                    max_players: Some(4),
+                    spectators: true,
+                    status: expected,
+                }
+            );
+        }
 
         // With nothing optional set
         let bytes = msgpack::serialize_then_unwrap(OpenChatContent::MiniApp(OpenChatMiniApp {
@@ -1258,49 +1200,44 @@ mod tests {
             image: None,
             max_players: None,
             spectators: false,
-            spectator_count: 0,
-            status: MiniAppStatus::Open,
-            players: Vec::new(),
-            waiting_for: None,
-            result: None,
+            status: OpenChatStatus::Open,
         }));
         let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
         assert!(matches!(content, MessageContent::MiniApp(c) if c == MiniAppContent::new("x")));
     }
 
-    // OpenChat needs the status, players and whether others can watch, and takes a missing option
-    // as none
+    // OpenChat needs every field but the image and player limit, and reads a nil as none
     #[test]
-    fn a_mini_app_is_sent_with_the_fields_openchat_needs() {
-        let keys = |card: MiniAppContent| -> Vec<String> {
-            let bytes = msgpack::serialize_then_unwrap(MessageContentInitial::MiniApp(card));
-            let value: HashMap<String, BTreeMap<String, IgnoredAny>> =
-                msgpack::deserialize_then_unwrap(&bytes);
-            value["MiniApp"].keys().cloned().collect()
-        };
+    fn a_mini_app_is_sent_with_every_field() {
+        let bytes = msgpack::serialize_then_unwrap(MessageContentInitial::MiniApp(
+            MiniAppContent::new("x").with_spectators(true),
+        ));
 
         assert_eq!(
-            keys(MiniAppContent::new("x")),
-            ["players", "spectator_count", "spectators", "status", "text"]
+            msgpack::deserialize_then_unwrap::<serde_json::Value>(&bytes),
+            serde_json::json!({
+                "MiniApp": {
+                    "text": "x",
+                    "image": null,
+                    "max_players": null,
+                    "spectators": true,
+                    "status": "Open",
+                }
+            })
         );
-        assert_eq!(
-            keys(
-                MiniAppContent::new("x")
-                    .with_image(mini_app_image())
-                    .with_max_players(2)
-                    .with_spectators(true)
-                    .with_players(vec![user(1)])
-            ),
-            [
-                "image",
-                "max_players",
-                "players",
-                "spectator_count",
-                "spectators",
-                "status",
-                "text"
-            ]
-        );
+    }
+
+    #[test]
+    fn a_mini_app_s_status_gives_its_players_and_result() {
+        let [open, active, finished, abandoned] = mini_app_statuses();
+
+        assert!(open.players().is_empty());
+        assert_eq!(active.players(), [user(1), user(2)]);
+        assert_eq!(finished.players(), [user(1), user(2)]);
+        assert_eq!(finished.result(), Some("Bob won"));
+        for status in [open, active, abandoned] {
+            assert_eq!(status.result(), None);
+        }
     }
 
     #[test]
@@ -1316,7 +1253,10 @@ mod tests {
             " \n".to_string(),
             "x".repeat(MiniAppContent::MAX_TEXT_CHARS + 1),
         ] {
-            assert!(MiniAppContent::new(text).validate().is_err());
+            assert_eq!(
+                MiniAppContent::new(text).validate(),
+                Err("The text must have 1 to 2000 characters".to_string())
+            );
         }
     }
 
@@ -1350,154 +1290,28 @@ mod tests {
     }
 
     #[test]
-    fn a_mini_app_s_players_are_checked_as_openchat_checks_them() {
-        let card = || MiniAppContent::new("x").with_players(vec![user(1), user(2)]);
-        let error = |card: MiniAppContent| card.validate().unwrap_err();
-
-        assert_eq!(card().validate(), Ok(()));
-        assert_eq!(card().with_max_players(2).validate(), Ok(()));
-        assert_eq!(
-            MiniAppContent::new("x")
-                .with_players((0..100).map(user).collect())
-                .validate(),
-            Ok(())
-        );
-
+    fn a_mini_app_has_1_to_100_players_at_most() {
+        for max in [1, 100] {
+            assert_eq!(
+                MiniAppContent::new("x").with_max_players(max).validate(),
+                Ok(())
+            );
+        }
         for max in [0, 101] {
             assert_eq!(
-                error(MiniAppContent::new("x").with_max_players(max)),
-                "A game has 1 to 100 players at most"
+                MiniAppContent::new("x").with_max_players(max).validate(),
+                Err("A game has 1 to 100 players at most".to_string())
             );
         }
-        assert_eq!(
-            error(card().with_max_players(1)),
-            "This game has at most 1 players"
-        );
-        assert_eq!(
-            error(MiniAppContent::new("x").with_players((0..=100).map(user).collect())),
-            "This game has at most 100 players"
-        );
-        assert_eq!(
-            error(MiniAppContent::new("x").with_players(vec![user(1), user(1)])),
-            "A player is listed twice"
-        );
-
-        let mut waiting = card();
-        waiting.waiting_for = Some(vec![user(3)]);
-        assert_eq!(error(waiting), "Only players can be waited for");
-
-        let mut waiting = card();
-        waiting.waiting_for = Some(vec![user(1), user(1)]);
-        assert_eq!(error(waiting), "A player is waited for twice");
     }
 
+    // Only the MiniApp service writes a card's status
     #[test]
-    fn only_a_mini_app_open_to_spectators_has_any() {
-        let mut card = MiniAppContent::new("x");
-        card.spectator_count = 2;
-        assert_eq!(
-            card.validate(),
-            Err("Only a game open to spectators has any".to_string())
-        );
-
-        card.spectators = true;
-        assert_eq!(card.validate(), Ok(()));
-
-        card.apply(MiniAppUpdate::default().with_spectator_count(5));
-        assert_eq!(card.spectator_count, 5);
-        card.apply(MiniAppUpdate::default());
-        assert_eq!(card.spectator_count, 5);
-    }
-
-    #[test]
-    fn only_a_finished_mini_app_has_a_result_of_1_to_200_characters() {
-        let with_result = |status, result: &str| {
+    fn a_mini_app_is_posted_open() {
+        for status in mini_app_statuses().into_iter().skip(1) {
             let mut card = MiniAppContent::new("x");
             card.status = status;
-            card.result = Some(result.to_string());
-            card.validate()
-        };
-
-        assert_eq!(with_result(MiniAppStatus::Finished, "Bob won"), Ok(()));
-        assert_eq!(
-            with_result(MiniAppStatus::Finished, &"x".repeat(200)),
-            Ok(())
-        );
-        for status in [MiniAppStatus::Open, MiniAppStatus::Active] {
-            assert_eq!(
-                with_result(status, "Bob won"),
-                Err("Only a finished game has a result".to_string())
-            );
+            assert_eq!(card.validate(), Err("A game is posted open".to_string()));
         }
-        for result in [" ".to_string(), "x".repeat(201)] {
-            assert_eq!(
-                with_result(MiniAppStatus::Finished, &result),
-                Err("The result must have 1 to 200 characters".to_string())
-            );
-        }
-    }
-
-    #[test]
-    fn an_update_changes_only_what_it_sets() {
-        let mut card = MiniAppContent::new("x").with_players(vec![user(1)]);
-        card.waiting_for = Some(vec![user(1)]);
-
-        card.apply(MiniAppUpdate::default());
-        assert_eq!(card.players, [user(1)]);
-        assert_eq!(card.waiting_for, Some(vec![user(1)]));
-
-        card.apply(
-            MiniAppUpdate::default()
-                .with_players(vec![user(1), user(2)])
-                .with_status(MiniAppStatus::Active)
-                .with_waiting_for(Some(vec![user(2)])),
-        );
-        assert_eq!(card.status, MiniAppStatus::Active);
-        assert_eq!(card.players, [user(1), user(2)]);
-        assert_eq!(card.waiting_for, Some(vec![user(2)]));
-        assert_eq!(card.validate(), Ok(()));
-
-        card.apply(MiniAppUpdate::finished("Bob won"));
-        assert_eq!(card.status, MiniAppStatus::Finished);
-        assert_eq!(card.waiting_for, None);
-        assert_eq!(card.result.as_deref(), Some("Bob won"));
-        assert_eq!(card.players, [user(1), user(2)]);
-        assert_eq!(card.validate(), Ok(()));
-    }
-
-    // As OpenChat's `MiniAppUpdate` reads it: what isn't set is left out, which it takes as no change
-    #[test]
-    fn an_update_is_sent_with_only_what_it_sets() {
-        let value = |update: MiniAppUpdate| {
-            let bytes = msgpack::serialize_then_unwrap(&update);
-            let round_trip: MiniAppUpdate = msgpack::deserialize_then_unwrap(&bytes);
-            assert_eq!(round_trip, update);
-            msgpack::deserialize_then_unwrap::<serde_json::Value>(&bytes)
-        };
-
-        assert_eq!(value(MiniAppUpdate::default()), serde_json::json!({}));
-        assert_eq!(
-            value(MiniAppUpdate::finished("Bob won")),
-            serde_json::json!({
-                "status": "Finished",
-                "waiting_for": "SetToNone",
-                "result": { "SetToSome": "Bob won" },
-            })
-        );
-        assert_eq!(
-            value(MiniAppUpdate::default().with_spectator_count(3)),
-            serde_json::json!({ "spectator_count": 3 })
-        );
-
-        // A user id is sent as its principal's bytes, which JSON can't hold
-        let update = MiniAppUpdate::default().with_waiting_for(Some(vec![user(1)]));
-        let bytes = msgpack::serialize_then_unwrap(&update);
-        let sent: BTreeMap<String, BTreeMap<String, Vec<IgnoredAny>>> =
-            msgpack::deserialize_then_unwrap(&bytes);
-        assert_eq!(sent["waiting_for"]["SetToSome"].len(), 1);
-        assert_eq!(
-            msgpack::deserialize_then_unwrap::<MiniAppUpdate>(&bytes),
-            update
-        );
     }
 }

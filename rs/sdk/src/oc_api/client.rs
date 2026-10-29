@@ -6,7 +6,7 @@ use crate::oc_api::client::members::MembersBuilder;
 use crate::oc_api::client::remove_user::RemoveUserBuilder;
 use crate::types::{
     ActionContext, AutonomousContext, BridgedUserId, CanisterId, ChannelId, ChatRole,
-    MessageContentInitial, MessageId, MiniAppUpdate, Reaction, TextContent, UserId,
+    MessageContentInitial, MessageId, Reaction, TextContent, UserId,
 };
 use add_reaction::AddReactionBuilder;
 #[cfg(feature = "bridge")]
@@ -23,10 +23,10 @@ use delete_messages::DeleteMessagesBuilder;
 use edit_message::EditMessageBuilder;
 use installation_events::InstallationEventsBuilder;
 use invite_users::InviteUsersBuilder;
+use mini_app_token::MiniAppTokenBuilder;
 use send_message::SendMessageBuilder;
 use std::collections::HashSet;
 use std::sync::Arc;
-use update_mini_app::UpdateMiniAppBuilder;
 pub use upload::UploadError;
 
 mod add_reaction;
@@ -45,9 +45,9 @@ mod edit_message;
 mod installation_events;
 mod invite_users;
 mod members;
+mod mini_app_token;
 mod remove_user;
 mod send_message;
-mod update_mini_app;
 mod upload;
 
 pub struct ClientFactory<R> {
@@ -148,20 +148,6 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
     pub fn send_text_message(&self, text: String) -> SendMessageBuilder<'_, R, C> {
         self.send_message(MessageContentInitial::Text(TextContent { text }))
     }
-
-    /// Changes what the bot's MiniApp card, `message_id`, shows as its game goes on: its status,
-    /// players, whose move it is and the result. As for deleting its own messages, any installed
-    /// bot can with a command's context, while autonomously, eg. with a `BotMessageSession`'s
-    /// `autonomous_context()`, the bot must be installed to act autonomously: its definition has an
-    /// `autonomous_config`, even with no permissions, which the owner granted when installing it. A
-    /// card in a thread needs `in_thread`, unless the context is a command's in that thread.
-    pub fn update_mini_app(
-        &self,
-        message_id: MessageId,
-        update: MiniAppUpdate,
-    ) -> UpdateMiniAppBuilder<'_, R, C> {
-        UpdateMiniAppBuilder::new(self, message_id, update)
-    }
 }
 
 // A bot edits its messages autonomously, as OpenChat refuses an edit made with a command's context
@@ -203,5 +189,14 @@ impl<R: Runtime> Client<R, CanisterId> {
     #[cfg(feature = "bridge")]
     pub fn unlink_bridged_user(&self, user: BridgedUserId) -> UnlinkBridgedUserBuilder<'_, R> {
         UnlinkBridgedUserBuilder::new(self, user)
+    }
+}
+
+// Calls to a LocalUserIndex, whose id is the client's context, eg. a command's `api_gateway`
+impl<R: Runtime> Client<R, CanisterId> {
+    /// A token which says which bot is calling OpenChat's MiniApp service, valid for an hour. Any
+    /// LocalUserIndex gives one. The offchain SDK's `MiniAppServiceClient` gets and refreshes it.
+    pub fn mini_app_token(&self) -> MiniAppTokenBuilder<'_, R> {
+        MiniAppTokenBuilder::new(self)
     }
 }

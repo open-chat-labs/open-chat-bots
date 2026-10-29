@@ -308,148 +308,136 @@ client
 
 ## MiniApp cards
 
-A bot can host an app, eg. a game, which members of a chat open from a card the bot posts there.
-The card is markdown text, with an optional image, the game's players, whose move it is and its
-result, and an Open button, all of which OpenChat draws. Its text, image, player limit and whether
-others can watch never change: OpenChat refuses an edit of it. Its status, players, whose move it is
-and its result are the bot's to [keep up to date](#keeping-the-card-up-to-date). Everything
-interactive, eg. a lobby, a board and buttons, is the bot's own web page, which OpenChat shows in a
-sandboxed frame.
+A bot can host a game, or another app, which people open from a card the bot posts in a group or
+channel. OpenChat draws the card: its markdown text, an optional image, the players, whose turn it
+is or the result, and buttons to join, leave and open the game. The game itself is the bot's own
+web page, which OpenChat shows in a sandboxed frame.
 
-### Posting a card
+OpenChat's MiniApp service sits between the website and the bot. Only it records who joins, asking
+the bot to accept each player, and only it writes the card's status, from what the bot tells it.
+A bot can take players off a game, but never put them on. The service's API is HTTPS, so the
+offchain SDK's `mini_app` module has its client. The whole protocol is in OpenChat's
+`backend/docs/mini_app_service_protocol.md`.
+
+### 1. Posting a card
 
 ```rust
-let card = MiniAppContent::new("**Tic-tac-toe** · tap Open to play")
-    .with_max_players(2)
-    // Whether members who aren't playing can open the app once the game has started
-    .with_spectators(true)
-    // eg. the member who ran the command
-    .with_players(vec![initiator]);
+let card = MiniAppContent::new("**Uno** · 2 to 4 players")
+    .with_max_players(4)
+    // Whether people who aren't playing can watch
+    .with_spectators(true);
 
-client
+let response = client
     .send_message(MessageContentInitial::MiniApp(card))
     .execute_async()
     .await;
 ```
 
-- Only bots installed in the chat can post one, and they need `MessagePermission::MiniApp`, eg. in
-  the command's `permissions`.
-- `MiniAppContent::validate` checks the card as OpenChat does, with its errors: the text has 1 to
-  2,000 characters, `max_players` is 1 to 100, the players are at most that many (or 100), each
-  listed once, only a card open to spectators has a `spectator_count`, only players are waited for,
-  each once, and only a finished game has a result, of 1 to 200 characters.
-- A card must be sent finalised, as `send_message` sends messages by default, or OpenChat refuses
-  it.
-- It can't be posted in a direct chat, nor forwarded, so a bot should set its definition's
-  `restricted_locations` to communities and groups.
+- The bot needs `MessagePermission::MiniApp`, eg. in the command's `permissions`.
+- `MiniAppContent::validate` checks the card as OpenChat does, with its errors: it's open, its text
+  has 1 to 2,000 characters, and `max_players` is 1 to 100.
+- A card must be sent finalised, as `send_message` sends messages by default. It can't be posted in
+  a direct chat, nor forwarded or edited, so set the definition's `restricted_locations` to
+  communities and groups.
 
-A card can have an image, shown above the text, eg. the game's artwork. Upload it to OpenChat's
-storage first, as for an image message, so that it's scanned like any image and deleted with the
-card. `Client::upload_mini_app_image` reads a PNG's size, and `upload_mini_app_image_of_size` takes
-any image with the size you give. OpenChat refuses an image without a width and a height, or
-without an image's mime type.
+A card can have an image above its text, eg. the game's artwork. Upload it to OpenChat's storage
+first, so that it's scanned like any image and deleted with the card: `Client::upload_mini_app_image`
+reads a PNG's size, and `upload_mini_app_image_of_size` takes any image with the size you give.
 
 ```rust
 let image = client
     .upload_mini_app_image(mainnet_storage_index_canister_id(), png, image::ImageFormat::Png)
     .await?;
-
-client
-    .send_message(MessageContentInitial::MiniApp(
-        MiniAppContent::new("**Tic-tac-toe** · tap Open to play").with_image(image),
-    ))
-    .execute_async()
-    .await;
+let card = MiniAppContent::new("**Uno** · 2 to 4 players").with_image(image);
 ```
 
-### Keeping the card up to date
+### 2. Registering the game
 
-As the game goes on, the bot updates the card with `Client::update_mini_app(message_id,
-MiniAppUpdate)`, which calls the LocalUserIndex's `bot_update_mini_app`. Whatever the update doesn't
-set stays as it was:
-
-- `with_players(..)` as players join or leave, replacing the list. They must be members of the
-  chat, or the bot itself.
-- `with_status(MiniAppStatus::Active)` when the game starts.
-- `with_waiting_for(Some(vec![player]))` each turn, so the card shows whose move it is, or `None`.
-- `with_spectator_count(n)`, for a card open to spectators, as members who aren't playing open and
-  close the app. The bot counts them itself, so they stay anonymous, eg. the users who've called
-  its API in the last minute without playing. Send it only when it changes, and not too often.
-- `MiniAppUpdate::finished("Bob won")` at the end: status `Finished`, waiting for no one, and the
-  result. A finished card never changes again.
-
-Only the bot which posted the card can update it, as for deleting its own messages:
-
-- With a command's context, eg. straight after posting the card, any installed bot can.
-- Autonomously, eg. from its app's API or a background task, the bot must be installed to act
-  autonomously: its definition has an `autonomous_config`, even with no permissions, and the
-  owner granted it when installing the bot.
-
-From its app's API, with the user's session:
+Sending a card returns a `mini_app_registration`, valid for an hour. Registering the game with it
+lets people join, and gives the `MiniAppGame` the service names it by: its chat, thread and message
+id.
 
 ```rust
-oc_client_factory
-    .build(session.autonomous_context())
-    .update_mini_app(session.message_id, MiniAppUpdate::default().with_players(players))
-    .in_thread(session.thread)
-    .execute_async()
-    .await;
+// Any LocalUserIndex gives the bot its token for the service, eg. the command's `api_gateway`
+let mini_apps = MiniAppServiceClient::new(service_url, oc_client_factory.build(api_gateway));
+
+if let Ok(send_message::Response::Success(result)) = response
+    && let Some(registration) = result.mini_app_registration
+{
+    let game = mini_apps.register(&registration).await?;
+}
 ```
 
-`MiniAppContent::apply(update)` gives the card as OpenChat leaves it, so a bot keeping its own copy
-can `validate` an update before sending it.
+The client gets the bot's token with `Client::mini_app_token`, keeps it for its hour, and gets a new
+one when it's about to expire or the service refuses it.
 
-### Serving the app
+### 3. Answering join and leave
 
-OpenChat opens the bot's endpoint, with any trailing slash removed, followed by `/app`, eg.
-`https://tictactoe.example.com/app`. That page talks to OpenChat, its parent window, with
-`postMessage`, each message a JSON object with a `kind`:
-
-| From | Message | When |
-| --- | --- | --- |
-| app | `{ kind: "mini_app_ready" }` | Once the app is listening, to `window.parent` with target origin `"*"`. It carries nothing secret. |
-| OpenChat | `{ kind: "initialise_mini_app", token, dark_mode, locale }` | In answer. Accept it only from `window.parent` (`event.source === window.parent`), and send everything after it to its `event.origin`. |
-| app | `{ kind: "mini_app_token_request" }` | When the token is about to expire, or the bot's server refused it with a 401 |
-| OpenChat | `{ kind: "mini_app_token", token }` | In answer, with a new token |
-| OpenChat | `{ kind: "set_dark_mode", dark_mode }` | When the user's theme changes |
-
-The TypeScript SDK's browser entry, `@open-ic/openchat-botclient-ts/mini_app`, does the app's side
-of this, with `connectToOpenChat()`. The app calls the bot's server with the token in the `x-oc-jwt`
-header, which `ExtractJwtLayer` takes, as it does for commands.
-
-### The session token
-
-OpenChat gives the app a `BotMessageSession` token for the user and the card, once it has checked
-the user is a member of the chat. It's signed with the key OpenChat signs commands with, and is valid
-for 15 minutes. It only vouches for who the user is: OpenChat's bot endpoints refuse it.
+The service calls the bot at `POST <endpoint>/mini_app/join` and `/mini_app/leave`, with no body
+and a token in `x-oc-jwt`, which `ExtractJwtLayer` takes. A `MiniAppVerifier` checks it, with the
+service's public key and the bot's user id, and gives the user and the game:
 
 ```rust
-let session = BotMessageSession::parse(&jwt, &oc_public_key, bot_id, now)?;
+let verifier = MiniAppVerifier::new(mini_apps.public_key().await?, bot_id);
 
-// A message id is only unique within its chat and thread, so key the app's state by all three
-let game = games.get(&session.card());
-let player = session.user_id;
+// POST /mini_app/join, answered within 5 seconds
+let claims = verifier.join(&jwt)?;
+let answer = if seats_left(&claims.game) {
+    JoinResponse::accept()
+} else {
+    JoinResponse::refuse("Seats are taken")
+};
+
+// POST /mini_app/leave: take `claims.user_id` off the game, and answer 200 even if they weren't on it
+let claims = verifier.leave(&jwt)?;
 ```
 
-`parse` checks the signature, that it's a `BotMessageSession` token, that it's for this bot, and that
-it hasn't expired (`TokenError::Expired`, to answer with a 401). Checking the bot matters, as
-otherwise one bot's server could replay a user's token to another bot. `bot_id` is the user id
-OpenChat gave the bot when it was registered, not its principal: an offchain bot can fetch it with
-`installation_events().size(0)` on the UserIndex, and a canister bot is told it when it's
-registered.
+- `bot_id` is the user id OpenChat gave the bot when it was registered, not its principal: fetch it
+  with `installation_events().size(0)` on the UserIndex.
+- If the service can't add a player the bot accepted, as the game started or filled up meanwhile,
+  it tells the bot they left.
 
-To post in the chat, eg. a game's result as a message of its own, the bot acts autonomously, with a
-client built from `session.autonomous_context()`, so it needs that permission in its
-`autonomous_config`, eg. `MessagePermission::Text`:
+### 4. Updating the game
 
 ```rust
-oc_client_factory
-    .build(session.autonomous_context())
-    .send_message(MessageContentInitial::from_text(result))
-    .in_thread(session.thread)
-    .execute_async()
-    .await;
+mini_apps
+    .update(
+        GameUpdate::new(game)
+            .with_status(GameStatus::Active)
+            .with_waiting_for(vec![alice])
+            .with_state(GameState { seq: 1, shared, private }),
+    )
+    .await?;
 ```
+
+Whatever an update doesn't set stays as it was:
+
+- `with_status`: it only moves forward, Open → Active → Finished, or Open → Finished. Active closes
+  joining, and the card records the players then.
+- `with_waiting_for`: whose turn it is now, players, each once, or none for no one in particular.
+- `with_result("Bob won")`: at most 200 characters, only with Finished.
+- `with_removed`: takes players off the game.
+- `with_state`: goes to everyone with the game open, `shared` to all, and each player's `private`
+  part only to them. `seq` must increase. Include a format version, so that an app left open from an
+  older release knows to reload. An update is at most 64 KB.
+
+### 5. Serving the app
+
+OpenChat opens `<endpoint>/app` in a sandboxed frame and talks to it with `postMessage`. It tells the
+app whether the user is a player or a spectator, gives a player their token, and passes on the
+game's state as it changes. The browser side of this is in the TypeScript SDK, at
+`@open-ic/openchat-botclient-ts/mini_app`.
+
+### 6. Verifying players
+
+A player's app sends its player token in `x-oc-jwt` with each request to the bot:
+
+```rust
+let claims = verifier.player(&jwt)?;
+// A token outlives a removal by up to an hour, so check they're still playing
+```
+
+Spectators never reach the bot: the service passes them the shared state.
 
 ### No wagering
 

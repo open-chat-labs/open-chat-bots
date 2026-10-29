@@ -2886,14 +2886,17 @@ dependencies = [
 name = "oc_bots_sdk_offchain"
 version = "0.1.0"
 dependencies = [
+ "ct-codecs",
  "futures",
  "http 1.2.0",
  "ic-agent",
  "oc_bots_sdk",
+ "p256 0.13.2",
  "regex",
  "reqwest",
  "rmp-serde",
  "serde",
+ "serde_json",
  "tokio",
  "tower",
  "url",

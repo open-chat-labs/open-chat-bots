@@ -22,11 +22,11 @@ pub mod invite_users;
 #[cfg(feature = "bridge")]
 pub mod link_bridged_user;
 pub mod members;
+pub mod mini_app_token;
 pub mod remove_user;
 pub mod send_message;
 #[cfg(feature = "bridge")]
 pub mod unlink_bridged_user;
-pub mod update_mini_app;
 pub mod upload_chunk;
 
 pub trait ActionDef {
