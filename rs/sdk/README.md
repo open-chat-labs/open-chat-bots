@@ -412,19 +412,26 @@ at `POST <endpoint>/mini_app/start`, with a token in `x-oc-jwt`. The bot starts 
 ```rust
 // POST /mini_app/start, answered within 5 seconds
 let claims = verifier.start(&jwt)?;
-let answer = if accepted.len() >= 2 {
-    StartResponse::accept(accepted, vec![first], GameState { seq: 1, shared, private })
+let answer = if players.len() >= 2 {
+    // `seq` is above any state the bot has already sent, eg. a lobby's
+    StartResponse::accept(players, vec![first], GameState { seq, shared, private })
 } else {
     StartResponse::refuse("Needs 2 players")
 };
 ```
 
-- The players are who the game starts with, in any order. Each must be playing, or have a join the
-  bot accepted and is still answering. Anyone playing whom the bot leaves out is taken off.
-- Answer with the game's first state, rather than calling `update`: the service holds the game
-  while it asks, so an update would wait until the start timed out.
-- If the service couldn't save the start, the player can ask again, so answer a start of a game the
-  bot has already started as it did the first time.
+- The players are who the game starts with, in any order. Each should be playing, or have a join
+  the bot accepted and is still answering, which then succeeds. Anyone else isn't added, and the
+  bot's told they left, eg. a player whose leave hadn't reached it yet. Anyone playing whom the bot
+  leaves out is taken off.
+- The state's `seq` must be above any state the bot has already sent.
+- The service holds the game until the bot answers. So answer with the game's first state rather
+  than calling `update`, and don't let the answer wait on any `update` of the game, eg. one made
+  while answering a join, as it would wait until the start timed out.
+- An answer which is invalid in itself fails the start: a player listed twice, more than the
+  game's limit, waiting for someone it doesn't list, or a state that isn't newer.
+- If a start fails, eg. it timed out or the service couldn't save it, the player can ask again. So
+  answer a start of a game the bot has already started with its players as they are now.
 - Starting closes joining, and the card records the players.
 
 ### 5. Updating the game

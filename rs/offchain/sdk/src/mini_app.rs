@@ -381,11 +381,15 @@ pub struct StartResponse {
 
 impl StartResponse {
     /// Starts the game, which closes joining, and the card records its players:
-    /// - `players`, in any order, each playing, or with a join the bot accepted and is still
-    ///   answering, which then succeeds. Anyone playing whom the bot leaves out is taken off.
+    /// - `players`, in any order. Each should be playing, or have a join the bot accepted and is
+    ///   still answering, which then succeeds. Anyone else isn't added, and the bot's told they
+    ///   left, eg. a player whose leave hadn't reached it yet. Anyone playing whom the bot leaves
+    ///   out is taken off.
     /// - `waiting_for`, whose turn it is first, as in [`GameUpdate::with_waiting_for`].
-    /// - `state`, the game's first state, as the service holds the game while it asks, so an
-    ///   update sent meanwhile would wait until the start timed out.
+    /// - `state`, the game's first state, whose `seq` is above any state the bot has already sent.
+    ///
+    /// An answer which is invalid in itself fails the start: a player listed twice, more than the
+    /// game's limit, waiting for someone it doesn't list, or a state that isn't newer.
     pub fn accept(players: Vec<UserId>, waiting_for: Vec<UserId>, state: GameState) -> Self {
         StartResponse {
             accepted: true,
@@ -436,10 +440,12 @@ impl MiniAppVerifier {
     }
 
     /// The service's `POST <endpoint>/mini_app/start`: the user, a player, asks to start the game.
-    /// Answer with a [`StartResponse`], within 5 seconds, with the game's first state, rather than
-    /// calling [`MiniAppServiceClient::update`], as the service holds the game while it asks. If
-    /// the service couldn't save the start, the player can ask again, so answer a start of a game
-    /// the bot has already started as it did the first time.
+    /// Answer with a [`StartResponse`], within 5 seconds. The service holds the game until the bot
+    /// answers, so answer with the game's first state rather than calling
+    /// [`MiniAppServiceClient::update`], and don't let the answer wait on any update of the game,
+    /// eg. one made while answering a join, as it would wait until the start timed out. If a start
+    /// fails, eg. it timed out or the service couldn't save it, the player can ask again, so answer
+    /// a start of a game the bot has already started with its players as they are now.
     pub fn start(&self, x_oc_jwt: &str) -> Result<MiniAppPlayerClaims, TokenError> {
         self.verify(x_oc_jwt, MiniAppTokenType::Start)
     }
