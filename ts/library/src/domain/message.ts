@@ -337,21 +337,27 @@ export function validateMiniAppText(text: string): string | undefined {
 }
 
 /**
- * Checks a MiniApp card's image as OpenChat does: it has a width and a height, and an image's mime
- * type. Returns the error OpenChat would give, or undefined if it's valid.
+ * Checks a MiniApp card's image as OpenChat does: it has a width and a height, each a whole number
+ * of pixels which fits a u32, and an image's mime type. Returns the error OpenChat would give, or
+ * undefined if it's valid.
  */
 export function validateMiniAppImage(
     width: number,
     height: number,
     mimeType: string,
 ): string | undefined {
-    if (!(width > 0) || !(height > 0)) {
+    if (!isU32Size(width) || !isU32Size(height)) {
         return "The image must have a width and a height";
     }
     if (!mimeType.startsWith("image/")) {
         return "The image's mime type must be an image's";
     }
     return undefined;
+}
+
+// 1 to 2^32 - 1, as OpenChat holds a width or height as a u32 and refuses 0
+function isU32Size(value: number): boolean {
+    return Number.isInteger(value) && value >= 1 && value <= 0xffff_ffff;
 }
 
 export type PollDuration = "oneHour" | "oneDay" | "oneWeek";

@@ -8,7 +8,7 @@ const REFRESH_BEFORE_EXPIRY_MS = 5 * 60 * 1000;
 /** What went wrong with a call to the MiniApp service, by the status it answered with */
 export type MiniAppServiceErrorKind =
     // 400: eg. a status moving back, a result without "finished", or waiting for someone who isn't
-    // playing, or an invalid registration
+    // playing, or an invalid registration. Or 415 or 422: a body the service can't read.
     | "invalid"
     // 401: the bot token was refused, even after fetching a new one
     | "unauthorized"
@@ -20,13 +20,14 @@ export type MiniAppServiceErrorKind =
     | "finished"
     // 413: the update is over 64 KB
     | "too_large"
-    // Anything else, eg. the service couldn't read or save the game, so try again
+    // Anything else, eg. the service couldn't read or save the game, or couldn't be reached, so
+    // try again
     | "unavailable";
 
 export class MiniAppServiceError extends Error {
     constructor(
         public readonly kind: MiniAppServiceErrorKind,
-        /** The HTTP status the service answered with */
+        /** The HTTP status the service answered with, or 0 if it couldn't be reached */
         public readonly status: number,
         message: string,
     ) {
@@ -86,7 +87,7 @@ export class MiniAppServiceClient {
      */
     publicKey(): Promise<string> {
         if (this.#publicKey === undefined) {
-            const fetching = this.#fetch(`${this.#url}/public_key`).then(async (response) => {
+            const fetching = this.#send(`${this.#url}/public_key`).then(async (response) => {
                 if (!response.ok) {
                     throw await serviceError(response);
                 }
@@ -116,11 +117,24 @@ export class MiniAppServiceClient {
     }
 
     #post(path: string, body: string, token: string): Promise<Response> {
-        return this.#fetch(`${this.#url}${path}`, {
+        return this.#send(`${this.#url}${path}`, {
             method: "POST",
             headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
             body,
         });
+    }
+
+    // So that every error is a MiniAppServiceError, a network failure too
+    async #send(url: string, init?: RequestInit): Promise<Response> {
+        try {
+            return await this.#fetch(url, init);
+        } catch (err) {
+            throw new MiniAppServiceError(
+                "unavailable",
+                0,
+                `The service couldn't be reached: ${err}`,
+            );
+        }
     }
 
     // The bot token, fetched again if it's about to expire or the service refused it. Calls made
@@ -176,6 +190,8 @@ async function serviceError(response: Response): Promise<MiniAppServiceError> {
 function errorKind(status: number): MiniAppServiceErrorKind {
     switch (status) {
         case 400:
+        case 415:
+        case 422:
             return "invalid";
         case 401:
             return "unauthorized";

@@ -47,7 +47,8 @@ export type MiniAppTokenHeader = string | string[] | null | undefined;
  * 4. that it hasn't expired.
  *
  * `botId` is the user id OpenChat gave the bot when it was registered, which isn't its principal.
- * `BotClientFactory.botId()` fetches it.
+ * `BotClientFactory.botId()` fetches it, once OpenChat has registered the bot, so make this on
+ * first use rather than at startup.
  */
 export class MiniAppTokens {
     #publicKey: string;

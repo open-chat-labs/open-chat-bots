@@ -115,8 +115,9 @@ export class BotClientFactory {
     /**
      * A client for OpenChat's MiniApp service, at `url`, for the bot's games. It gets the bot's
      * token for the service from the LocalUserIndex `apiGateway`, which can be any of them, as they
-     * all know every bot, eg. an installation's `apiGateway`. Keep the client, as it keeps the
-     * token for its hour.
+     * all know every bot, eg. a command's, `client.apiGateway`, or an installation's. Making it
+     * calls nothing, and it fetches the token when it's first used. Keep the client, as it keeps
+     * the token for its hour.
      */
     createMiniAppServiceClient(url: string, apiGateway: string): MiniAppServiceClient {
         const gateway = new BotGatewayClient(apiGateway, this.#agent, this.env);

@@ -270,9 +270,18 @@ own buttons: nothing lets an app join or leave for its user. The whole protocol 
 `backend/docs/mini_app_service_protocol.md`.
 
 ```ts
-// Keep these. `apiGateway` is any LocalUserIndex, eg. an installation's.
+// `apiGateway` is any LocalUserIndex, as every one knows every bot, eg. a command's,
+// `client.apiGateway`, or an installation's, which the bot can keep in its config. Making the
+// client calls nothing: it fetches the bot's token when it's first used.
 const miniApps = factory.createMiniAppServiceClient(MINI_APP_SERVICE_URL, apiGateway);
-const tokens = new MiniAppTokens(await miniApps.publicKey(), await factory.botId());
+
+// Made on first use, not at startup: OpenChat registers a bot by fetching its definition from its
+// running endpoint, and `factory.botId()` fails until it has. The service's public key and the
+// bot's id are each fetched once and kept.
+let tokens: MiniAppTokens | undefined;
+async function miniAppTokens(): Promise<MiniAppTokens> {
+    return (tokens ??= new MiniAppTokens(await miniApps.publicKey(), await factory.botId()));
+}
 ```
 
 ### 1. Post a card
@@ -311,16 +320,17 @@ The service calls `POST <endpoint>/mini_app/join` and `/mini_app/leave`, with no
 token in `x-oc-jwt`:
 
 ```ts
-app.post("/mini_app/join", (req, res) => {
-    const { game, userId } = tokens.verifyJoin(req.headers["x-oc-jwt"]); // throws a TokenError
+app.post("/mini_app/join", async (req, res) => {
+    // Throws a TokenError
+    const { game, userId } = (await miniAppTokens()).verifyJoin(req.headers["x-oc-jwt"]);
     const response: MiniAppJoinResponse = addPlayer(game, userId)
         ? { accepted: true }
         : { accepted: false, message: "Seats are taken" };
     res.json(response);
 });
 
-app.post("/mini_app/leave", (req, res) => {
-    const { game, userId } = tokens.verifyLeave(req.headers["x-oc-jwt"]);
+app.post("/mini_app/leave", async (req, res) => {
+    const { game, userId } = (await miniAppTokens()).verifyLeave(req.headers["x-oc-jwt"]);
     removePlayer(game, userId); // 200 even if they weren't playing
     res.json({});
 });
@@ -345,8 +355,10 @@ Whatever's undefined stays as it is. The status only moves forward, from open to
 finished, and a result only comes with finished. `remove: [userId]` takes players off, but a bot
 can never put them on. `seq` must go up, `shared` goes to everyone, spectators included, and each
 `private` part only to its player. Put a format version in the state, so an app left open from an
-older release knows to reload. A state is at most 64 KB. Errors are `MiniAppServiceError`s, whose
-`kind` says what went wrong, eg. `finished` or `unknown_game`.
+older release knows to reload. An update, with its state, is at most 64 KB. The service's errors
+are `MiniAppServiceError`s, whose `kind` says what went wrong, eg. `finished`, `unknown_game`, or
+`unavailable` when it couldn't be reached. Failing to get the bot's token from the LocalUserIndex
+gives that call's error.
 
 ### 5. Serve `/app`, using the browser client
 
@@ -366,15 +378,17 @@ openChat.onDarkModeChange(setTheme);
 await openChat.fetch("api/move", { method: "POST", body: JSON.stringify(move) });
 ```
 
-It takes messages only from the window it's framed in, drops a state whose `seq` isn't above the
-last one's, and asks OpenChat for a new player token before the current one expires. It also has
-`userId`, `token`, `darkMode`, `locale`, `refreshToken()` and `close()`. Serve the page as static,
-cacheable files, as it's the only thing spectators fetch from the bot.
+It takes messages only from the window it's framed in, and drops a state whose `seq` is below the
+last one's. When the user's role changes, eg. as they join, OpenChat initialises the app again and
+re-sends the latest state, with the same `seq`, which replaces the one the app has. It asks OpenChat
+for a new player token before the current one expires, and sends it only with requests to the app's
+own origin. It also has `userId`, `token`, `darkMode`, `locale`, `refreshToken()` and `close()`.
+Serve the page as static, cacheable files, as it's the only thing spectators fetch from the bot.
 
 ### 6. Verify player tokens on the app's requests
 
 ```ts
-const { game, userId } = tokens.verifyPlayer(req.headers["x-oc-jwt"]);
+const { game, userId } = (await miniAppTokens()).verifyPlayer(req.headers["x-oc-jwt"]);
 if (!isPlayer(game, userId)) return res.status(403).end();
 ```
 

@@ -47,7 +47,7 @@ export type MiniAppGameStatus = MiniAppStatus["kind"];
 
 /**
  * A bot's update to one of its games, for `MiniAppServiceClient.update`. Whatever's undefined stays
- * as it is.
+ * as it is. The whole update, with its state and every player's part of it, is at most 64 KB.
  */
 export type MiniAppGameUpdate = {
     game: MiniAppGame;
@@ -71,10 +71,9 @@ export type MiniAppGameUpdate = {
 /**
  * A game's state, which the service relays to everyone with the game open. Everyone sees `shared`,
  * spectators included, while each player sees only their own part of `private`, which is keyed by
- * user id. `seq` must go up with each state, as the service, and the app, drop a state whose `seq`
- * isn't above the last one's. Put a format version in it, so that an app left open from an older
- * release knows to reload, and the last move, so that the app can animate it. It's at most 64 KB,
- * with every player's part.
+ * user id. `seq` must go up with each state, as the service drops a state whose `seq` isn't above
+ * the last one's. Put a format version in it, so that an app left open from an older release knows
+ * to reload, and the last move, so that the app can animate it.
  */
 export type MiniAppGameState = {
     seq: number;

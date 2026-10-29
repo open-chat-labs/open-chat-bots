@@ -11,6 +11,8 @@ import {
 } from "./index";
 
 const OPENCHAT = "https://oc.app";
+// Where the bot serves the app
+const APP = "https://uno.example.com/app";
 const NOW = 1_800_000_000_000;
 const USER = "rdmx6-jaaaa-aaaaa-aaadq-cai";
 
@@ -24,6 +26,7 @@ function token(seconds: number): string {
 // The page's window, framed by OpenChat's
 class FakeWindow implements MiniAppWindow {
     readonly posted: { message: MiniAppToOpenChat; targetOrigin: string }[] = [];
+    readonly location = { href: APP };
     readonly parent = {
         postMessage: (message: MiniAppToOpenChat, targetOrigin: string) => {
             this.posted.push({ message, targetOrigin });
@@ -200,19 +203,31 @@ describe("MiniAppClient's state", () => {
         expect(client.state).toEqual({ seq: 4, shared: { seq: 4 }, private: undefined });
     });
 
-    test("drops a state whose seq isn't above the last one's", async () => {
+    test("drops a state whose seq is below the last one's", async () => {
         const [client, win] = await connected("spectator");
         const seqs: number[] = [];
         client.onStateChange((s) => seqs.push(s.seq));
 
         win.send(state(5));
-        // Twice, and out of order
-        win.send(state(5));
+        // Out of order
         win.send(state(4));
         win.send(state(6));
 
         expect(seqs).toEqual([5, 6]);
         expect(client.state?.seq).toBe(6);
+    });
+
+    // As OpenChat sends the latest state again when the user's role changes
+    test("is replaced by one with the same seq, eg. with the player's own part", async () => {
+        const [client, win] = await connected();
+        const states: MiniAppState[] = [];
+        client.onStateChange((s) => states.push(s));
+
+        win.send(state(5));
+        win.send(state(5, { hand: [1] }));
+
+        expect(states).toHaveLength(2);
+        expect(client.state).toEqual({ seq: 5, shared: { seq: 5 }, private: { hand: [1] } });
     });
 
     test("ignores states from anything but OpenChat's window and origin, or which can't be read", async () => {
@@ -226,20 +241,38 @@ describe("MiniAppClient's state", () => {
     });
 });
 
-describe("MiniAppClient, initialised again", () => {
-    test("takes the user's new role, and the next state, even with the same seq", async () => {
-        const [client, win] = await connected("spectator");
-        const roles: MiniAppRole[] = [];
-        client.onRoleChange((role) => roles.push(role));
-        win.send(state(7));
+describe("MiniAppClient, initialised again as the user's role changes", () => {
+    test("takes the user's new role, with the state re-sent before or after it", async () => {
+        for (const stateFirst of [true, false]) {
+            const [client, win] = await connected("spectator");
+            const roles: MiniAppRole[] = [];
+            client.onRoleChange((role) => roles.push(role));
+            win.send(state(7));
 
-        // They joined the game, so get their own part of the state
-        initialise(win, { role: "player" });
+            // They joined the game, so get their own part of the state
+            if (stateFirst) win.send(state(7, { hand: [1] }));
+            initialise(win, { role: "player" });
+            if (!stateFirst) win.send(state(7, { hand: [1] }));
+
+            expect(roles).toEqual(["player"]);
+            expect(client.token).toBe(token(3600));
+            expect(client.state).toEqual({ seq: 7, shared: { seq: 7 }, private: { hand: [1] } });
+        }
+    });
+
+    test("clears the player's own part of the state when they become a spectator", async () => {
+        const [client, win] = await connected();
         win.send(state(7, { hand: [1] }));
+        const states: MiniAppState[] = [];
+        client.onStateChange((s) => states.push(s));
 
-        expect(roles).toEqual(["player"]);
-        expect(client.token).toBe(token(3600));
-        expect(client.state).toEqual({ seq: 7, shared: { seq: 7 }, private: { hand: [1] } });
+        initialise(win, { role: "spectator" });
+
+        expect(client.state).toEqual({ seq: 7, shared: { seq: 7 }, private: undefined });
+        expect(states).toEqual([client.state]);
+        // And takes the same state again, as OpenChat re-sends it
+        win.send(state(7));
+        expect(states).toHaveLength(2);
     });
 
     test("drops a player's token when they become a spectator", async () => {
@@ -316,6 +349,26 @@ describe("MiniAppClient's token", () => {
         expect(win.kinds().filter((k) => k === "mini_app_token_request")).toHaveLength(2);
     });
 
+    test("is asked for again later if OpenChat doesn't answer", async () => {
+        const [client, win] = await connected("player", { timeoutMs: 1000 });
+        const requests = () => win.kinds().filter((k) => k === "mini_app_token_request").length;
+
+        vi.advanceTimersByTime(3_540_000);
+        expect(requests()).toBe(1);
+        // No answer within the timeout, then 30 seconds before the next try
+        vi.advanceTimersByTime(1000);
+        await vi.waitFor(() => expect(requests()).toBe(1));
+        vi.advanceTimersByTime(29_999);
+        expect(requests()).toBe(1);
+        vi.advanceTimersByTime(1);
+        expect(requests()).toBe(2);
+
+        win.send({ kind: "mini_app_token", token: token(7200) });
+        expect(client.token).toBe(token(7200));
+        vi.advanceTimersByTime(60_000);
+        expect(requests()).toBe(2);
+    });
+
     test("isn't asked for again and again when it looks expired already", async () => {
         const win = new FakeWindow();
         const connecting = connectToOpenChat({ window: win });
@@ -385,6 +438,28 @@ describe("MiniAppClient", () => {
 
         expect((await response).status).toBe(401);
         expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
+    test("fetch sends the token only to the app's own origin", async () => {
+        const sent: { url: string; token: string | null }[] = [];
+        const fetch = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+            sent.push({ url: String(input), token: new Headers(init?.headers).get("x-oc-jwt") });
+            return new Response("", { status: 401 });
+        });
+        const [client, win] = await connected("player", { fetch });
+
+        await client.fetch("https://avatars.example.com/alice.png");
+        await client.fetch(new URL("https://uno.example.com.evil.example/api"));
+        await client.fetch("//avatars.example.com/bob.png");
+        // Nor is a new token asked for when somewhere else answers with a 401
+        expect(win.kinds()).not.toContain("mini_app_token_request");
+
+        const toBot = client.fetch("https://uno.example.com/api/board");
+        await vi.waitFor(() => expect(win.kinds()).toContain("mini_app_token_request"));
+        win.send({ kind: "mini_app_token", token: "new" });
+        await toBot;
+
+        expect(sent.map((s) => s.token)).toEqual([null, null, null, token(3600), "new"]);
     });
 
     test("fetch sends a spectator's requests without a token", async () => {

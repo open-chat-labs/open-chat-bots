@@ -93,6 +93,9 @@ describe("MiniAppServiceClient.update", () => {
     test("maps the service's errors", async () => {
         const errors: [number, string, string][] = [
             [400, "invalid", "A game's status only moves forward"],
+            // axum's answers to a body that isn't JSON, or doesn't fit
+            [415, "invalid", "Expected request with `Content-Type: application/json`"],
+            [422, "invalid", "Failed to deserialize the JSON body into the target type"],
             [403, "not_bots_game", "Another bot's game"],
             [404, "unknown_game", "Unknown game"],
             [409, "finished", "The game has finished"],
@@ -100,7 +103,9 @@ describe("MiniAppServiceClient.update", () => {
             [503, "unavailable", "Unavailable"],
         ];
         for (const [status, kind, message] of errors) {
-            const body = status === 413 ? message : JSON.stringify({ error: message });
+            const body = [413, 415, 422].includes(status)
+                ? message
+                : JSON.stringify({ error: message });
             const { fetch } = service([status, body]);
 
             const error = await client(fetch)
@@ -109,6 +114,19 @@ describe("MiniAppServiceClient.update", () => {
 
             expect(error).toBeInstanceOf(MiniAppServiceError);
             expect(error).toMatchObject({ kind, status, message });
+        }
+
+        // And when the service can't be reached, as every error is a MiniAppServiceError
+        const unreachable = vi.fn(async () => {
+            throw new TypeError("fetch failed");
+        });
+        const { client: miniApps } = client(unreachable);
+        for (const call of [() => miniApps.update({ game: GAME }), () => miniApps.publicKey()]) {
+            const error = await call().catch((err) => err);
+
+            expect(error).toBeInstanceOf(MiniAppServiceError);
+            expect(error).toMatchObject({ kind: "unavailable", status: 0 });
+            expect(error.message).toContain("fetch failed");
         }
     });
 });

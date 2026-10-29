@@ -61,9 +61,14 @@ export class BotClient {
         return this.#actionContext.apiGateway;
     }
 
+    // The canister which holds the chat, or the community, for a community's scope, eg. to upload
+    // a message's file for
     #extractCanisterFromChat() {
         if (this.scope.isChatScope()) {
             return this.scope.chat.canisterId();
+        }
+        if (this.scope.isCommunityScope()) {
+            return this.scope.communityId.canisterId();
         }
         return "";
     }
@@ -270,6 +275,11 @@ export class BotClient {
 
     public get messageId(): bigint | undefined {
         return this.#actionContext.messageId;
+    }
+
+    /** The LocalUserIndex the client calls OpenChat through */
+    public get apiGateway(): string {
+        return this.#actionContext.apiGateway;
     }
 
     public stringArg(name: string): string | undefined {

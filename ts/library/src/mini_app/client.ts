@@ -10,6 +10,8 @@
 //   and after it takes messages only from, and sends them only to, its origin;
 // - OpenChat sends `{ kind: "mini_app_state", seq, shared, private }` with the game's latest state,
 //   and each one after it. Only a player gets `private`, their own part;
+// - OpenChat sends `initialise_mini_app` again when the user's role changes, eg. as they joined the
+//   game, then the latest state again, with the same `seq`, now with or without their own part;
 // - a player's page sends `{ kind: "mini_app_token_request" }` when its token is running out, or
 //   its bot refused it with a 401, and OpenChat answers `{ kind: "mini_app_token", token }`;
 // - OpenChat sends `{ kind: "set_dark_mode", dark_mode }` when the user's theme changes.
@@ -58,6 +60,8 @@ export type MiniAppMessageEvent = { data: unknown; origin: string; source: unkno
 /** The parts of `window` the client uses */
 export interface MiniAppWindow {
     readonly parent: { postMessage(message: MiniAppToOpenChat, targetOrigin: string): void };
+    // The app's own URL, which its requests to the bot are on the origin of
+    readonly location: { readonly href: string };
     addEventListener(type: "message", listener: (event: MiniAppMessageEvent) => void): void;
     removeEventListener(type: "message", listener: (event: MiniAppMessageEvent) => void): void;
 }
@@ -140,7 +144,7 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
     #userId: string;
     #token?: string;
     #state?: MiniAppState<Shared, Private>;
-    // The seq of the last state taken, at or below which a state is dropped
+    // The seq of the last state taken, below which a state is dropped
     #seq?: number;
     #darkMode: boolean;
     #locale: string;
@@ -264,21 +268,23 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
     }
 
     /**
-     * `fetch`, to the bot's server, with a player's token in the `x-oc-jwt` header, or no token for
-     * a spectator. If the bot answers a player with a 401, it asks OpenChat for a new token and
-     * tries once more, so give it a body it can send twice, eg. a string.
+     * `fetch`, with a player's token in the `x-oc-jwt` header for a request to the bot's server, on
+     * the app's own origin, eg. "api/move". A spectator has no token, and nothing elsewhere, eg. an
+     * avatar's URL, gets it. If the bot answers a player with a 401, it asks OpenChat for a new
+     * token and tries once more, so give it a body it can send twice, eg. a string.
      */
     async fetch(input: string | URL, init: RequestInit = {}): Promise<Response> {
+        const toBot = this.#isAppOrigin(input);
         const send = () => {
             const headers = new Headers(init.headers);
-            if (this.#token !== undefined) {
+            if (toBot && this.#token !== undefined) {
                 headers.set(MINI_APP_TOKEN_HEADER, this.#token);
             }
             return (this.#fetch ?? fetch)(input, { ...init, headers });
         };
 
         const response = await send();
-        if (response.status !== 401 || this.#token === undefined) {
+        if (response.status !== 401 || !toBot || this.#token === undefined) {
             return response;
         }
         await this.refreshToken();
@@ -307,16 +313,19 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
     #receive(message: OpenChatToMiniApp) {
         switch (message.kind) {
             case "initialise_mini_app": {
-                // A new start, eg. as the user joined or left the game: the next state is taken
-                // even if it's the one the app has, as its private part will differ
+                // Again, as the user's role changed, eg. as they joined the game
                 const roleChanged = message.role !== this.#role;
                 this.#role = message.role;
                 this.#userId = message.user_id;
                 this.#locale = message.locale;
-                this.#seq = undefined;
                 this.#setToken(message.token);
                 if (roleChanged) {
                     this.#roleListeners.notify(message.role);
+                }
+                // A spectator doesn't keep the part of the state they had as a player
+                if (message.role === "spectator" && this.#state?.private !== undefined) {
+                    this.#state = { ...this.#state, private: undefined };
+                    this.#stateListeners.notify(this.#state);
                 }
                 this.#setDarkMode(message.dark_mode);
                 break;
@@ -325,8 +334,10 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
                 this.#setToken(message.token);
                 break;
             case "mini_app_state":
-                // A state can arrive twice, or out of order
-                if (this.#seq !== undefined && message.seq <= this.#seq) return;
+                // A state can arrive out of order. One with the same seq replaces the current one,
+                // as OpenChat sends the latest again when the user's role changes, with or without
+                // their own part.
+                if (this.#seq !== undefined && message.seq < this.#seq) return;
                 this.#seq = message.seq;
                 this.#state = {
                     seq: message.seq,
@@ -371,13 +382,30 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
         clearTimeout(this.#refreshTimer);
         const expiry = this.#token === undefined ? undefined : tokenExpiry(this.#token);
         if (expiry === undefined) return;
-        const delay = Math.max(
-            MIN_REFRESH_DELAY_MS,
-            expiry - this.#refreshBeforeExpiryMs - Date.now(),
+        this.#refreshIn(
+            Math.max(MIN_REFRESH_DELAY_MS, expiry - this.#refreshBeforeExpiryMs - Date.now()),
         );
+    }
+
+    #refreshIn(delay: number) {
         this.#refreshTimer = setTimeout(() => {
-            this.refreshToken().catch(() => undefined);
+            this.refreshToken().catch(() => {
+                // OpenChat didn't answer, so ask again a little later, while the user's a player
+                if (!this.#closed && this.#token !== undefined) {
+                    this.#refreshIn(MIN_REFRESH_DELAY_MS);
+                }
+            });
         }, delay);
+    }
+
+    // Whether a request is to the app's own origin, and so to the bot's server
+    #isAppOrigin(input: string | URL): boolean {
+        try {
+            const app = new URL(this.#window.location.href);
+            return new URL(input, app).origin === app.origin;
+        } catch {
+            return false;
+        }
     }
 
     #post(message: MiniAppToOpenChat) {

@@ -223,10 +223,15 @@ describe("validateMiniAppImage", () => {
         expect(validateMiniAppImage(1, 1, "image/webp")).toBeUndefined();
         expect(new MiniAppMessage(TEXT, IMAGE).validate()).toBeUndefined();
 
+        expect(validateMiniAppImage(2 ** 32 - 1, 2 ** 32 - 1, "image/png")).toBeUndefined();
         for (const [width, height] of [
             [0, 10],
             [10, 0],
             [NaN, 10],
+            // Whole numbers which fit a u32, as OpenChat holds them
+            [1.5, 10],
+            [10, 2 ** 32],
+            [-1, 10],
         ]) {
             expect(validateMiniAppImage(width, height, "image/png")).toBe(
                 "The image must have a width and a height",
@@ -365,6 +370,24 @@ describe("BotClient.createMiniAppMessage", () => {
             image: IMAGE,
             ...OPEN,
         });
+    });
+
+    // eg. a bot installed in a community, posting in one of its channels autonomously
+    test("uploads the image for the community, in a community's scope", async () => {
+        const upload = stubUpload();
+        const context = ActionContext.inAutonomousContext(
+            new CommunityActionScope(new CommunityIdentifier(COMMUNITY)),
+            "aaaaa-aa",
+        );
+        const data = new Uint8Array([1]);
+
+        const message = await new BotClient({} as HttpAgent, config, context).createMiniAppMessage(
+            TEXT,
+            { data, mimeType: "image/png", width: 640, height: 360 },
+        );
+
+        expect(upload).toHaveBeenCalledWith([COMMUNITY], "image/png", data);
+        expect(message.setChannelId<MiniAppMessage>(7n).validate()).toBeUndefined();
     });
 
     test("uploads nothing for a card without an image", async () => {
