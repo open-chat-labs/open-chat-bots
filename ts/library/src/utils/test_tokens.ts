@@ -44,6 +44,14 @@ export const NOW = 1_800_000_000_000;
 
 export const GAME_JSON = `{"chat":{"Channel":["${COMMUNITY}",7]},"thread":3,"message_id":"18446744073709551615"}`;
 
+// A post token, as the LocalUserIndex writes one: the bot may post one card, for `game`. The SDK
+// reads only its game; the service verifies it.
+export function postToken(game: string = GAME_JSON): string {
+    return sign(
+        `{"exp":${NOW / 1000 + 3600},"claim_type":"MiniAppPost","bot":"${BOT_ID}","bot_endpoint":"https://uno.example.com","bot_api_gateway":"${API_GATEWAY}","game":${game},"initiator":"Autonomous"}`,
+    );
+}
+
 export type PlayerClaimsOptions = {
     claimType?: string;
     bot?: string;

@@ -2,7 +2,16 @@ import crypto from "crypto";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { BadRequestError } from "../utils/badrequest";
 import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
-import { API_GATEWAY, BOT_ID, GROUP, USER, publicKeyPem, sign } from "../utils/test_tokens";
+import {
+    API_GATEWAY,
+    BOT_ID,
+    GAME_JSON,
+    GROUP,
+    USER,
+    postToken,
+    publicKeyPem,
+    sign,
+} from "../utils/test_tokens";
 import { BotClientFactory } from "./client_factory";
 import { GlobalClient } from "./global_client";
 
@@ -43,7 +52,7 @@ describe("BotClientFactory.createClientFromCommandJwt", () => {
 
     // All of OpenChat's tokens are signed with the same key
     test("refuses a token for another purpose", () => {
-        for (const claimType of ["StartVideoCall", "MiniAppRegistration", "MiniAppBot"]) {
+        for (const claimType of ["StartVideoCall", "MiniAppPost", "MiniAppBot"]) {
             expect(() => factory().createClientFromCommandJwt(commandToken(claimType))).toThrow(
                 BadRequestError,
             );
@@ -105,15 +114,11 @@ describe("BotClientFactory.createMiniAppServiceClient", () => {
         const query = stubQuery({ Success: "bot.token" });
         const fetch = vi
             .spyOn(globalThis, "fetch")
-            .mockResolvedValue(new Response("{}", { status: 200 }));
-        const game = { chat: { Group: GROUP }, thread: null, message_id: "1" };
-        const registration = sign(
-            `{"exp":1,"claim_type":"MiniAppRegistration","game":${JSON.stringify(game)}}`,
-        );
+            .mockResolvedValue(new Response(`{"game":${GAME_JSON}}`, { status: 200 }));
 
         await factory()
             .createMiniAppServiceClient("https://mini-apps.example.com/", API_GATEWAY)
-            .register(registration);
+            .post(postToken(), { text: "**Uno**", spectators: false });
 
         expect(query).toHaveBeenCalledWith(
             "bot_mini_app_token",
@@ -123,7 +128,7 @@ describe("BotClientFactory.createMiniAppServiceClient", () => {
             expect.anything(),
         );
         const [url, init] = fetch.mock.calls[0];
-        expect(url).toBe("https://mini-apps.example.com/bot/register");
+        expect(url).toBe("https://mini-apps.example.com/bot/post");
         expect(new Headers(init?.headers).get("authorization")).toBe("Bearer bot.token");
     });
 

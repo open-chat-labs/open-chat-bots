@@ -263,12 +263,13 @@ OpenChat draws the card: markdown text, an optional image, the players, whose tu
 result, and buttons to join, open or watch. Everything else, eg. the board, is the bot's own page,
 `<endpoint>/app`, which OpenChat shows in a sandboxed frame.
 
-OpenChat's MiniApp service sits between OpenChat's website and the bot. It tracks who's joined each
-game, is the only thing that writes a card's status, and relays the game's state to its players and
-spectators, so spectators never reach the bot. Joining and leaving only happen through OpenChat's
-own buttons: nothing lets an app join or leave for its user. A player starts a game through
-OpenChat too, so the card records exactly who it started with: the app asks, and the bot decides.
-The whole protocol is in open-chat's `backend/docs/mini_app_service_protocol.md`.
+OpenChat's MiniApp service sits between OpenChat's website and the bot. It posts every card, as the
+bot, tracks who's joined each game, is the only thing that writes a card's status, and relays the
+game's state to its players and spectators, so spectators never reach the bot. Joining and leaving
+only happen through OpenChat's own buttons: nothing lets an app join or leave for its user. A player
+starts a game through OpenChat too, so the card records exactly who it started with: the app asks,
+and the bot decides. The whole protocol is in open-chat's
+`backend/docs/mini_app_service_protocol.md`.
 
 ```ts
 // `apiGateway` is any LocalUserIndex, as every one knows every bot, eg. a command's,
@@ -293,29 +294,29 @@ const card = (await client.createMiniAppMessage("**Uno** · 2 to 4 players", ima
     // Whether people who aren't playing can watch
     .setSpectators(true);
 const invalid = card.validate(); // as OpenChat checks it, with its errors
-const sent = await client.sendMessage(card);
+const token = await client.miniAppPostToken();
+const game = await miniApps.post(token, card);
+games.set(miniAppGameKey(game), newGame());
 ```
 
-It needs the `MiniApp` message permission, can't be posted in a direct chat, and must be sent
-finalised, as messages are by default. Its text, image, player limit and spectators never change.
-`createMiniAppMessage` uploads the optional image (`{ data, mimeType, width, height }`) first, as
-`createImageMessage` does.
-
-### 2. Register it with the service
-
-```ts
-if (sent.kind === "success" && sent.miniAppRegistration !== undefined) {
-    const game = await miniApps.register(sent.miniAppRegistration);
-    games.set(miniAppGameKey(game), newGame());
-}
-```
+The service posts every card, as the bot, so that it knows each game from the moment its card
+exists: `sendMessage` refuses a card. `client.miniAppPostToken()` asks the LocalUserIndex for a
+token to post one card in the chat the client would send a message in, a command's or an autonomous
+one, with the same options, `{ channelId, thread, messageId }`: the channel for a client in a
+community's scope, the thread, and the card's message id if the bot chooses one. The token lasts an
+hour, and needs the `MiniApp` message permission, so a command which posts a card asks for it. A
+card can't be posted in a direct chat, and its text, image, player limit and spectators never
+change. `createMiniAppMessage` uploads the optional image (`{ data, mimeType, width, height }`)
+first, as `createImageMessage` does; `setBlockLevelMarkdown` and `setRepliesTo` apply. Posting the
+same token again posts nothing new and gives the same game, so a bot which got no answer, eg. an
+`unavailable` error, posts again with the same token.
 
 A `MiniAppGame` is `{ chat, thread?, messageId }`. `miniAppGameKey` gives a key that's unique across
 chats and threads. The service client sends the bot's token, from the LocalUserIndex's
 `bot_mini_app_token`, keeps it for its hour, and fetches a new one before it expires or if the
 service refuses it.
 
-### 3. Answer join and leave
+### 2. Answer join and leave
 
 The service calls `POST <endpoint>/mini_app/join` and `/mini_app/leave`, with no body and its
 token in `x-oc-jwt`:
@@ -343,7 +344,7 @@ after the answer, so don't count them as a player until the bot's asked to start
 come while it's still answering. Answer a `TokenError` with a 401. Each method checks the
 signature, the kind of token, that it's for this bot and that it hasn't expired.
 
-### 4. Start the game
+### 3. Start the game
 
 A player asks to start, eg. with the app's Start button, and the service calls
 `POST <endpoint>/mini_app/start`, with no body and a token in `x-oc-jwt`:
@@ -384,7 +385,7 @@ Answer within 5 seconds.
 
 Once the game starts, the service writes its players to the card, and closes joining.
 
-### 5. Publish state, whose turn it is and the result
+### 4. Publish state, whose turn it is and the result
 
 ```ts
 await miniApps.update({
@@ -404,7 +405,7 @@ service's errors are `MiniAppServiceError`s, whose `kind` says what went wrong, 
 `unknown_game`, or `unavailable` when it couldn't be reached. Failing to get the bot's token from
 the LocalUserIndex gives that call's error.
 
-### 6. Serve `/app`, using the browser client
+### 5. Serve `/app`, using the browser client
 
 The SDK's browser entry, `@open-ic/openchat-botclient-ts/mini_app`, has no Node dependencies:
 
@@ -435,7 +436,7 @@ for a new player token before the current one expires, and sends it only with re
 own origin. It also has `userId`, `token`, `darkMode`, `locale`, `refreshToken()` and `close()`.
 Serve the page as static, cacheable files, as it's the only thing spectators fetch from the bot.
 
-### 7. Verify player tokens on the app's requests
+### 6. Verify player tokens on the app's requests
 
 ```ts
 const { game, userId } = (await miniAppTokens()).verifyPlayer(req.headers["x-oc-jwt"]);

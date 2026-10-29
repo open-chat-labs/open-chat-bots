@@ -25,9 +25,9 @@ import {
     BotMessageContent as ApiBotMessageContent,
     MessageContent as ApiMessageContent,
     LocalUserIndexBotEditMessageArgs,
-    LocalUserIndexBotSendMessageResponse,
+    LocalUserIndexBotMiniAppPostTokenArgs,
 } from "../typebox/typebox";
-import { apiMiniAppGame, messageContent, miniAppGame, sendMessageResponse } from "./index";
+import { apiMiniAppCard, apiMiniAppGame, messageContent, miniAppGame } from "./index";
 
 const Packer = new Packr({
     useRecords: false,
@@ -172,32 +172,17 @@ describe("MiniApp cards", () => {
         expect(new Permissions({ message: 1 << 10 }).hasMessagePermission("MiniApp")).toBe(false);
     });
 
-    test("come back from sending with the registration for the MiniApp service", () => {
-        const success = {
-            message_id: 18446744073709551615n,
-            event_index: 10,
-            message_index: 4,
-            timestamp: 1_800_000_000_000n,
-        };
-        const response = (result: object) =>
-            MsgpackCanisterAgent.processMsgpackResponse(
-                MsgpackCanisterAgent.bufferToArrayBuffer(Packer.pack({ Success: result })),
-                sendMessageResponse,
-                LocalUserIndexBotSendMessageResponse,
-            );
-        vi.spyOn(console, "log").mockImplementation(() => undefined);
+    test("are written for the service to post, with the blob id as a decimal string", () => {
+        const message = new MiniAppMessage(TEXT, IMAGE).setMaxPlayers(2).setSpectators(true);
 
-        expect(response({ ...success, mini_app_registration: "registration.token" })).toEqual({
-            kind: "success",
-            messageId: 18446744073709551615n,
-            eventIndex: 10,
-            messageIndex: 4,
-            timestamp: 1_800_000_000_000n,
-            expiresAt: undefined,
-            miniAppRegistration: "registration.token",
-        });
-        // Any other message has none
-        expect(response(success)).toMatchObject({ miniAppRegistration: undefined });
+        expect(message.card).toEqual({ text: TEXT, image: IMAGE, maxPlayers: 2, spectators: true });
+        expect(JSON.stringify(apiMiniAppCard(message.card))).toBe(
+            `{"text":"${TEXT}","image":{"width":640,"height":360,"mime_type":"image/png","blob_reference":{"canister_id":"${BUCKET}","blob_id":"340282366920938463463374607431768211455"}},"max_players":2,"spectators":true}`,
+        );
+        // Leaving out what the card hasn't
+        expect(JSON.stringify(apiMiniAppCard(new MiniAppMessage(TEXT).card))).toBe(
+            `{"text":"${TEXT}","spectators":false}`,
+        );
     });
 });
 
@@ -445,6 +430,126 @@ describe("BotClient.createMiniAppMessage", () => {
             }),
         ).rejects.toThrow("The image's mime type must be an image's");
         expect(upload).not.toHaveBeenCalled();
+    });
+});
+
+describe("BotClient.miniAppPostToken", () => {
+    const config: BotClientConfig = {
+        openStorageCanisterId: "aaaaa-aa",
+        icHost: "https://icp-api.io",
+        identityPrivateKey: "not-used",
+        openchatPublicKey: "not-used",
+        autoFetchOgPreviews: false,
+    };
+
+    // The LocalUserIndex, answering `response` to the bot's query, keeping what it was asked
+    function stubQuery(response: unknown = { Success: "post.token" }) {
+        const calls: { method: string; args: LocalUserIndexBotMiniAppPostTokenArgs }[] = [];
+        vi.spyOn(
+            MsgpackCanisterAgent.prototype as unknown as {
+                executeMsgpackQuery: (...args: unknown[]) => Promise<unknown>;
+            },
+            "executeMsgpackQuery",
+        ).mockImplementation((method: unknown, args: unknown, mapper: unknown) => {
+            calls.push({
+                method: method as string,
+                args: args as LocalUserIndexBotMiniAppPostTokenArgs,
+            });
+            return Promise.resolve((mapper as (resp: unknown) => unknown)(response));
+        });
+        return calls;
+    }
+
+    function client(context: ActionContext) {
+        return new BotClient({} as HttpAgent, config, context);
+    }
+
+    function command(permissions: Permissions) {
+        return new ActionContext(
+            "aaaaa-aa",
+            new ChatActionScope(new GroupChatIdentifier(GROUP)),
+            permissions,
+            undefined,
+            1n,
+            undefined,
+            "a.command.jwt",
+        );
+    }
+
+    function granted(...message: ("MiniApp" | "Text")[]) {
+        return new Permissions(Permissions.encodePermissions({ community: [], chat: [], message }));
+    }
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    test("asks the LocalUserIndex for a token for the chat, as a message would be sent", async () => {
+        const calls = stubQuery();
+        const autonomous = ActionContext.inAutonomousContext(
+            new ChatActionScope(new GroupChatIdentifier(GROUP)),
+            "aaaaa-aa",
+        );
+
+        const token = await client(autonomous).miniAppPostToken({ thread: 3, messageId: 5n });
+
+        expect(token).toBe("post.token");
+        expect(calls).toHaveLength(1);
+        const [{ method, args }] = calls;
+        expect(method).toBe("bot_mini_app_post_token");
+        // Valid as OpenChat's args, as the agent checks them before sending
+        expect(Value.Check(LocalUserIndexBotMiniAppPostTokenArgs, args)).toBe(true);
+        expect(args).toEqual({
+            chat_context: { Autonomous: { Group: bytes(GROUP) } },
+            channel_id: undefined,
+            thread: 3,
+            message_id: 5n,
+        });
+    });
+
+    test("sends a command's token, whose message id the card takes", async () => {
+        const calls = stubQuery();
+
+        await client(command(granted("MiniApp"))).miniAppPostToken();
+
+        expect(calls[0].args).toEqual({
+            chat_context: { Command: "a.command.jwt" },
+            channel_id: undefined,
+            thread: undefined,
+            message_id: undefined,
+        });
+    });
+
+    test("names the channel, in a community's scope", async () => {
+        const calls = stubQuery();
+        const autonomous = ActionContext.inAutonomousContext(
+            new CommunityActionScope(new CommunityIdentifier(COMMUNITY)),
+            "aaaaa-aa",
+        );
+
+        await client(autonomous).miniAppPostToken({ channelId: 7n });
+
+        expect(calls[0].args.chat_context).toEqual({
+            Autonomous: { Channel: [bytes(COMMUNITY), 7n] },
+        });
+        expect(calls[0].args.channel_id).toBe(7n);
+    });
+
+    test("refuses without the MiniApp permission, asking for nothing", async () => {
+        const calls = stubQuery();
+
+        await expect(client(command(granted("Text"))).miniAppPostToken()).rejects.toThrow(
+            "MiniApp permission",
+        );
+        expect(calls).toHaveLength(0);
+    });
+
+    test("rejects with OpenChat's error when the bot isn't given one", async () => {
+        stubQuery({ Error: [207, "Bot not found"] });
+
+        await expect(client(command(granted("MiniApp"))).miniAppPostToken()).rejects.toThrow(
+            "Unable to get a MiniApp post token: 207 Bot not found",
+        );
     });
 });
 

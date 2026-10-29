@@ -21,6 +21,7 @@ import { random64 } from "../utils/rng";
 import type { BotChatContext } from "./bot";
 import type { BlobReference } from "./data";
 import type { MiniAppContent, MiniAppImage, PriceChartContent } from "./event";
+import type { MiniAppCard } from "./mini_app";
 import type { MessagePermission } from "./permissions";
 
 type FileMessageContent = { File: FileContent };
@@ -104,6 +105,16 @@ export abstract class Message {
     /** The text of this message, if it is a text message. Used to find links to preview. */
     public get text(): string | undefined {
         return "Text" in this.content ? this.content.Text.text : undefined;
+    }
+
+    /** Whether the text is rendered with block level markdown, eg. headings and lists */
+    public get blockLevelMarkdown(): boolean {
+        return this.#blockLevelMarkdown;
+    }
+
+    /** The event index of the message this one replies to, if any */
+    public get repliesTo(): number | undefined {
+        return this.#repliesTo;
     }
 
     setMessageId<T extends Message>(messageId?: bigint): T {
@@ -252,8 +263,11 @@ export const MINI_APP_MAX_PLAYERS = 100;
  * OpenChat draws. They open the bot's app, which the bot serves at `/app` under its endpoint, in a
  * frame. The text, image, player limit and whether others can watch never change, and only
  * OpenChat's MiniApp service writes the card's status, so a card is posted open. It needs the
- * MiniApp permission, and can't be sent in a direct chat. Check it with `validate` before sending
- * it. Sending it gives the `miniAppRegistration` to register its game with the service.
+ * MiniApp permission, and can't be posted in a direct chat. Check it with `validate` before posting
+ * it, through the service, with `MiniAppServiceClient.post` and a token from
+ * `BotClient.miniAppPostToken`: the service posts every card, so that it knows each game from the
+ * moment its card exists, and `sendMessage` refuses one. `setBlockLevelMarkdown` and `setRepliesTo`
+ * apply to the post; the message's other settings don't.
  *
  * Upload the image first, as `BotClient.createMiniAppMessage` does, so that it's scanned like any
  * image and deleted with the card.
@@ -291,6 +305,12 @@ export class MiniAppMessage extends Message {
     setSpectators(spectators: boolean): MiniAppMessage {
         this.#miniApp.spectators = spectators;
         return this;
+    }
+
+    /** The card, as `MiniAppServiceClient.post` takes it */
+    get card(): MiniAppCard {
+        const { text, image, maxPlayers, spectators } = miniAppContent(this.#miniApp);
+        return { text, image, maxPlayers, spectators };
     }
 
     /** Why OpenChat would refuse this card, with the error it gives, or undefined if it's valid */

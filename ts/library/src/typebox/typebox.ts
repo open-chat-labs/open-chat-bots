@@ -3105,7 +3105,6 @@ export const LocalUserIndexBotSendMessageSuccessResult = /* @__PURE__ */ Type.Ob
     message_index: MessageIndex,
     timestamp: Type.BigInt(),
     expires_at: Type.Optional(Type.BigInt()),
-    mini_app_registration: Type.Optional(Type.String()),
 });
 
 export type LocalUserIndexBotMiniAppTokenResponse = Static<
@@ -9338,6 +9337,28 @@ export const LocalUserIndexBotSendMessageArgs = /* @__PURE__ */ Type.Object({
     og_previews: Type.Optional(Type.Array(OgPreview)),
     bridged_from: Type.Optional(BridgedUser),
 });
+
+export type LocalUserIndexBotMiniAppPostTokenArgs = Static<
+    typeof LocalUserIndexBotMiniAppPostTokenArgs
+>;
+export const LocalUserIndexBotMiniAppPostTokenArgs = /* @__PURE__ */ Type.Object({
+    chat_context: BotChatContext,
+    channel_id: Type.Optional(ChannelId),
+    thread: Type.Optional(MessageIndex),
+    message_id: Type.Optional(MessageId),
+});
+
+export type LocalUserIndexBotMiniAppPostTokenResponse = Static<
+    typeof LocalUserIndexBotMiniAppPostTokenResponse
+>;
+export const LocalUserIndexBotMiniAppPostTokenResponse = /* @__PURE__ */ Type.Union([
+    Type.Object({
+        Success: Type.String(),
+    }),
+    Type.Object({
+        Error: OCError,
+    }),
+]);
 
 export type ProposalsBotSubmitProposalArgs = Static<typeof ProposalsBotSubmitProposalArgs>;
 export const ProposalsBotSubmitProposalArgs = /* @__PURE__ */ Type.Object({

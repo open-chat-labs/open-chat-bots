@@ -60,6 +60,8 @@ import {
     LocalUserIndexBotDeleteMessagesArgs as BotDeleteMessagesArgs,
     LocalUserIndexBotEditMessageArgs as BotEditMessageArgs,
     LocalUserIndexBotMembersArgs as BotMemberArgs,
+    LocalUserIndexBotMiniAppPostTokenArgs as BotMiniAppPostTokenArgs,
+    LocalUserIndexBotMiniAppPostTokenResponse as BotMiniAppPostTokenResponse,
     LocalUserIndexBotMiniAppTokenResponse as BotMiniAppTokenResponse,
     LocalUserIndexBotSendMessageArgs as BotSendMessageArgs,
     LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
@@ -315,6 +317,36 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
         }
         if ("InternalError" in resp) {
             throw new Error(`Unable to get a MiniApp bot token: ${resp.InternalError}`);
+        }
+        return resp.Success;
+    }
+
+    // A token to post one MiniApp card through OpenChat's MiniApp service, for the chat the bot
+    // would send a message in, with the same options: the channel for a community's command, the
+    // thread, and the message id if the bot chose one
+    async miniAppPostToken(
+        ctx: BotChatContext,
+        options: { channelId?: bigint; thread?: number; messageId?: bigint },
+    ): Promise<string> {
+        const resp = await this.executeMsgpackQuery(
+            "bot_mini_app_post_token",
+            {
+                chat_context: apiBotChatContext(ctx),
+                channel_id: options.channelId,
+                thread: options.thread,
+                message_id: options.messageId,
+            },
+            (resp) => resp,
+            BotMiniAppPostTokenArgs,
+            BotMiniAppPostTokenResponse,
+        ).catch((err) => {
+            console.error("Call to bot_mini_app_post_token failed with: ", JSON.stringify(err));
+            throw err;
+        });
+        // Thrown here, not in the mapper, so that a refusal isn't retried as a failed call would be
+        if ("Error" in resp) {
+            const [code, message] = resp.Error;
+            throw new Error(`Unable to get a MiniApp post token: ${code} ${message ?? ""}`.trim());
         }
         return resp.Success;
     }

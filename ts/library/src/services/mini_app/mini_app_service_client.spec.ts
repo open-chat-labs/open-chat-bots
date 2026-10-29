@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { ChannelIdentifier, GroupChatIdentifier } from "../../domain/identifiers";
-import { COMMUNITY, GAME_JSON, GROUP, NOW, USER, sign } from "../../utils/test_tokens";
+import { MiniAppMessage } from "../../domain/message";
+import { COMMUNITY, GAME_JSON, GROUP, NOW, USER, postToken } from "../../utils/test_tokens";
 import { MiniAppServiceClient, MiniAppServiceError } from "./mini_app_service_client";
 
 const URL = "https://mini-apps.example.com";
 const ALICE = USER;
 const BOB = "qhbym-qaaaa-aaaaa-aaafq-cai";
+const BUCKET = "rturd-qaaaa-aaaaf-aabaq-cai";
+const TEXT = "**Uno** · 2 to 4 players";
 
 const GAME = {
     chat: new ChannelIdentifier(COMMUNITY, 7n),
@@ -131,33 +134,85 @@ describe("MiniAppServiceClient.update", () => {
     });
 });
 
-describe("MiniAppServiceClient.register", () => {
-    test("registers the game, and resolves with it, as the registration names it", async () => {
-        const { fetch, sent } = service();
-        const registration = sign(
-            `{"exp":${NOW / 1000 + 3600},"claim_type":"MiniAppRegistration","bot":"b","bot_endpoint":"https://uno.example.com","bot_api_gateway":"g","game":${GAME_JSON},"max_players":4,"spectators":true}`,
-        );
+describe("MiniAppServiceClient.post", () => {
+    const token = postToken();
+    const posted: [number, string] = [200, `{"game":${GAME_JSON}}`];
+    const plain = { text: TEXT, spectators: false };
 
-        const game = await client(fetch).client.register(registration);
+    test("posts the card as the service reads it, and resolves with the token's game", async () => {
+        const { fetch, sent } = service(posted, posted, posted);
+        const { client: miniApps } = client(fetch);
+        const card = new MiniAppMessage(TEXT, {
+            width: 600,
+            height: 400,
+            mimeType: "image/png",
+            blobReference: { canisterId: BUCKET, blobId: 340282366920938463463374607431768211455n },
+        })
+            .setMaxPlayers(4)
+            .setSpectators(true)
+            .setBlockLevelMarkdown<MiniAppMessage>(true)
+            .setRepliesTo<MiniAppMessage>(12);
 
-        expect(game).toEqual(GAME);
-        expect(sent).toEqual([
-            {
-                url: `${URL}/bot/register`,
-                method: "POST",
-                authorization: `Bearer ${botToken(NOW)}`,
-                body: JSON.stringify({ registration }),
-            },
+        expect(await miniApps.post(token, card)).toEqual(GAME);
+        // Or the card's content, leaving out what it hasn't
+        expect(await miniApps.post(token, plain)).toEqual(GAME);
+        // The options win over the message's own settings
+        expect(
+            await miniApps.post(token, card, { blockLevelMarkdown: false, repliesTo: 3 }),
+        ).toEqual(GAME);
+
+        expect(sent.map((s) => [s.method, s.url, s.authorization])).toEqual([
+            ["POST", `${URL}/bot/post`, `Bearer ${botToken(NOW)}`],
+            ["POST", `${URL}/bot/post`, `Bearer ${botToken(NOW)}`],
+            ["POST", `${URL}/bot/post`, `Bearer ${botToken(NOW)}`],
         ]);
+        // The blob id is a decimal string, as the message id is
+        expect(sent[0].body).toBe(
+            `{"token":"${token}","card":{"text":"${TEXT}","image":{"width":600,"height":400,"mime_type":"image/png","blob_reference":{"canister_id":"${BUCKET}","blob_id":"340282366920938463463374607431768211455"}},"max_players":4,"spectators":true},"block_level_markdown":true,"replies_to":12}`,
+        );
+        expect(sent[1].body).toBe(
+            `{"token":"${token}","card":{"text":"${TEXT}","spectators":false},"block_level_markdown":false,"replies_to":null}`,
+        );
+        expect(sent[2].body).toContain(`"block_level_markdown":false,"replies_to":3}`);
     });
 
-    test("refuses what isn't a registration, without calling the service", async () => {
+    test("posts the same token again, eg. after no answer, for the same game", async () => {
+        const { fetch, sent } = service([503, '{"error":"Unavailable"}'], posted);
+        const { client: miniApps } = client(fetch);
+
+        await expect(miniApps.post(token, plain)).rejects.toMatchObject({ kind: "unavailable" });
+        expect(await miniApps.post(token, plain)).toEqual(GAME);
+
+        expect(sent).toHaveLength(2);
+        expect(sent[1].body).toBe(sent[0].body);
+    });
+
+    test("refuses what isn't a post token, without calling the service", async () => {
         const { fetch } = service();
 
-        await expect(client(fetch).client.register("not a token")).rejects.toThrow(
-            "Not a MiniApp registration",
+        await expect(client(fetch).client.post("not a token", plain)).rejects.toThrow(
+            "Not a MiniApp post token",
         );
         expect(fetch).not.toHaveBeenCalled();
+    });
+
+    test("maps the service's errors", async () => {
+        const errors: [number, string, string][] = [
+            [400, "invalid", "The bot isn't installed in the chat"],
+            [403, "not_bots_game", "Another bot's token"],
+            [409, "finished", "The game has finished"],
+            [503, "unavailable", "Couldn't reach OpenChat"],
+        ];
+        for (const [status, kind, message] of errors) {
+            const { fetch } = service([status, JSON.stringify({ error: message })]);
+
+            const error = await client(fetch)
+                .client.post(token, plain)
+                .catch((err) => err);
+
+            expect(error).toBeInstanceOf(MiniAppServiceError);
+            expect(error).toMatchObject({ kind, status, message });
+        }
     });
 });
 

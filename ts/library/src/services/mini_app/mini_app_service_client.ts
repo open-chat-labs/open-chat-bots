@@ -1,27 +1,36 @@
 import jwt from "jsonwebtoken";
-import type { MiniAppGame, MiniAppGameUpdate } from "../../domain/mini_app";
-import { apiMiniAppGameUpdate, miniAppGame, type ApiMiniAppGame } from "../../mapping";
+import { MiniAppMessage } from "../../domain/message";
+import type { MiniAppCard, MiniAppGame, MiniAppGameUpdate } from "../../domain/mini_app";
+import {
+    apiMiniAppCard,
+    apiMiniAppGameUpdate,
+    miniAppGame,
+    type ApiMiniAppGame,
+    type ApiMiniAppPostArgs,
+} from "../../mapping";
 
 // A bot token lasts an hour, and is fetched again this long before it expires
 const REFRESH_BEFORE_EXPIRY_MS = 5 * 60 * 1000;
 
 /** What went wrong with a call to the MiniApp service, by the status it answered with */
 export type MiniAppServiceErrorKind =
-    // 400: eg. a status moving back, a result without "finished", or waiting for someone who isn't
-    // playing, or an invalid registration. Or 415 or 422: a body the service can't read.
+    // 400: eg. a post token that's invalid or expired, a card OpenChat refused, eg. as the bot isn't
+    // installed in the chat or lacks the MiniApp permission, a status moving back, a result without
+    // "finished", or waiting for someone who isn't playing. Or 415 or 422: a body the service can't
+    // read.
     | "invalid"
     // 401: the bot token was refused, even after fetching a new one
     | "unauthorized"
-    // 403: the game is another bot's
+    // 403: the game, or the post token, is another bot's
     | "not_bots_game"
-    // 404: the service doesn't know the game, eg. as it was never registered
+    // 404: the service doesn't know the game, eg. as its card hasn't been posted
     | "unknown_game"
-    // 409: the game has finished, so it never changes
+    // 409: the game has finished, so it never changes, and its card isn't posted again
     | "finished"
     // 413: the update is over 64 KB
     | "too_large"
-    // Anything else, eg. the service couldn't read or save the game, or couldn't be reached, so
-    // try again
+    // Anything else, eg. the service couldn't reach OpenChat, or read or save the game, or couldn't
+    // be reached itself, so try again: a post with the same token
     | "unavailable";
 
 export class MiniAppServiceError extends Error {
@@ -37,8 +46,8 @@ export class MiniAppServiceError extends Error {
 }
 
 /**
- * A client for OpenChat's MiniApp service's bot API: registering the games the bot posts, and
- * updating them. Every call carries the bot's token, from a LocalUserIndex's `bot_mini_app_token`,
+ * A client for OpenChat's MiniApp service's bot API: posting the bot's cards, and updating their
+ * games. Every call carries the bot's token, from a LocalUserIndex's `bot_mini_app_token`,
  * which it keeps for its hour, fetching a new one shortly before it expires, or when the service
  * refuses it. Make one with `BotClientFactory.createMiniAppServiceClient`, and keep it.
  */
@@ -63,13 +72,33 @@ export class MiniAppServiceClient {
     }
 
     /**
-     * Registers a game the bot has just posted, with the `miniAppRegistration` sending its card
-     * gave, so that people can join it. Registering a game again does nothing. Resolves with the
-     * game, as the registration names it.
+     * Posts a MiniApp card as the bot, with a token from `BotClient.miniAppPostToken`, and
+     * resolves with its game once the card is in the chat. The service posts every card, so that it
+     * knows each game from the moment its card exists: `sendMessage` refuses one. `card` is from
+     * `BotClient.createMiniAppMessage`, which uploads its image, or a `MiniAppMessage`'s `card`.
+     * Its text is rendered with block level markdown if `blockLevelMarkdown`, and it replies to the
+     * message at the event index `repliesTo`, if any; a `MiniAppMessage`'s own settings are the
+     * defaults. A token is for one card, and lasts an hour.
+     *
+     * Posting the same token again posts nothing new, and resolves with the same game, so a bot
+     * which got no answer, eg. an `unavailable` error, posts it again with the same token. The game
+     * is in the token, so an invalid token is refused without calling the service.
      */
-    async register(registration: string): Promise<MiniAppGame> {
-        const game = registrationGame(registration);
-        await this.#call("/bot/register", { registration });
+    async post(
+        token: string,
+        card: MiniAppMessage | MiniAppCard,
+        options: { blockLevelMarkdown?: boolean; repliesTo?: number } = {},
+    ): Promise<MiniAppGame> {
+        const game = postTokenGame(token);
+        const message = card instanceof MiniAppMessage ? card : undefined;
+        const body: ApiMiniAppPostArgs = {
+            token,
+            card: apiMiniAppCard(message?.card ?? (card as MiniAppCard)),
+            block_level_markdown:
+                options.blockLevelMarkdown ?? message?.blockLevelMarkdown ?? false,
+            replies_to: options.repliesTo ?? message?.repliesTo ?? null,
+        };
+        await this.#call("/bot/post", body);
         return game;
     }
 
@@ -164,13 +193,14 @@ function refreshAt(token: string): number {
     return exp === undefined ? 0 : exp * 1000 - REFRESH_BEFORE_EXPIRY_MS;
 }
 
-// The game a registration names. The service verifies the registration.
-function registrationGame(registration: string): MiniAppGame {
+// The game a post token is for, which the LocalUserIndex fixed when it signed the token, so the bot
+// knows it before the card is posted. Read, not verified: the service verifies the token.
+function postTokenGame(token: string): MiniAppGame {
     try {
-        const claims = jwt.decode(registration) as { game: ApiMiniAppGame };
+        const claims = jwt.decode(token) as { game: ApiMiniAppGame };
         return miniAppGame(claims.game);
     } catch (err) {
-        throw new Error(`Not a MiniApp registration: ${err}`);
+        throw new Error(`Not a MiniApp post token: ${err}`);
     }
 }
 

@@ -91,7 +91,7 @@ export class BotClientFactory {
         try {
             const decoded = jwt.verify(token, publicKey, { algorithms: ["ES256"] });
             // All of OpenChat's tokens are signed with the same key, so a token for another
-            // purpose, eg. a MiniApp registration, must not be taken for a command's
+            // purpose, eg. a MiniApp post token, must not be taken for a command's
             if (
                 typeof decoded !== "string" &&
                 decoded.claim_type === CLAIM_TYPE_BOT_ACTION_BY_COMMAND

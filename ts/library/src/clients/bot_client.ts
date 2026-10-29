@@ -397,6 +397,30 @@ export class BotClient {
         }).setContextMessageId<MiniAppMessage>(this.messageId);
     }
 
+    /**
+     * A token to post one MiniApp card through OpenChat's MiniApp service, with
+     * `MiniAppServiceClient.post`. The service posts every card, as the bot, so that it knows each
+     * game from the moment its card exists, and `sendMessage` refuses one. The token is for the
+     * chat the client would send a message in, a command's or an autonomous one, with the same
+     * options: `channelId` names the channel for a client in a community's scope, `thread` the
+     * thread to post in, and `messageId` the card's message id, if the bot chooses one, which must
+     * be the command's if the command's token has one; otherwise OpenChat picks it. It lasts an
+     * hour, and posting it twice posts one card, so a bot which got no answer posts it again. It
+     * needs the MiniApp permission. Rejects, with OpenChat's error, if the bot isn't given one, eg.
+     * as it isn't installed in the chat.
+     */
+    async miniAppPostToken(
+        options: { channelId?: bigint; thread?: number; messageId?: bigint } = {},
+    ): Promise<string> {
+        if (!this.#actionContext.hasMessagePermission("MiniApp")) {
+            throw new Error("Not authorized: the bot lacks the MiniApp permission here");
+        }
+        return this.#botService.miniAppPostToken(
+            this.#actionContext.chatContext(options.channelId),
+            options,
+        );
+    }
+
     createImageMessage(
         imageData: Uint8Array,
         mimeType: string,

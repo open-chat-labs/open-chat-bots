@@ -142,9 +142,6 @@ export type SendMessageSuccess = {
     messageIndex: number;
     timestamp: bigint;
     expiresAt?: bigint;
-    // For a MiniApp card, the token which registers its game with OpenChat's MiniApp service, with
-    // `MiniAppServiceClient.register`
-    miniAppRegistration?: string;
 };
 
 export type UserSummaryResponse = UserSummarySuccess | UserNotFound | OCError;

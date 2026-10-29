@@ -1,6 +1,8 @@
 // A bot's games, as OpenChat's MiniApp service knows them. The service sits between OpenChat's
-// website and the bot: it tracks who's joined each game, is the only thing that writes a game's
-// card, and relays the game's state to its players and spectators. See `MiniAppServiceClient`.
+// website and the bot: it posts every card, tracks who's joined each game, is the only thing that
+// writes a card's status, and relays the game's state to its players and spectators. See
+// `MiniAppServiceClient`.
+import type { MiniAppContent } from "./event";
 import type { ChannelIdentifier, GroupChatIdentifier } from "./identifiers";
 
 /** A game, which is played from one of the bot's MiniApp cards */
@@ -11,6 +13,13 @@ export type MiniAppGame = {
     /** The card's message id */
     messageId: bigint;
 };
+
+/**
+ * A card as a bot posts it, through the service, with `MiniAppServiceClient.post`: a
+ * `MiniAppContent` without its status, as the service posts a card open. It's a `MiniAppMessage`'s
+ * `card`, which `BotClient.createMiniAppMessage` makes, uploading its image.
+ */
+export type MiniAppCard = Omit<MiniAppContent, "kind" | "status">;
 
 /**
  * A key for a game which is unique across chats and threads, eg. for a `Map`. A message id alone

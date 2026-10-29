@@ -55,6 +55,7 @@ import {
     type MessagePermissions,
     type MessageReminderContent,
     type MessageReminderCreatedContent,
+    type MiniAppCard,
     type MiniAppContent,
     type MiniAppGame,
     type MiniAppGameUpdate,
@@ -325,7 +326,6 @@ export function sendMessageResponse(api: BotSendMessageResponse): SendMessageRes
         messageIndex: success.message_index,
         timestamp: success.timestamp,
         expiresAt: nullish(success.expires_at),
-        miniAppRegistration: nullish(success.mini_app_registration),
     }));
 }
 
@@ -2229,6 +2229,48 @@ export function apiMiniAppGame(domain: MiniAppGame): ApiMiniAppGame {
         message_id: domain.messageId.toString(),
     };
 }
+
+// A card as the MiniApp service's `POST /bot/post` takes it, in JSON: the content the bot posts,
+// without a status, as the service posts it open. Ids are text, and the blob id a decimal string, as
+// the message id is.
+export type ApiMiniAppCard = {
+    text: string;
+    image?: {
+        width: number;
+        height: number;
+        mime_type: string;
+        blob_reference: { canister_id: string; blob_id: string };
+    };
+    max_players?: number;
+    spectators: boolean;
+};
+
+// What the card leaves undefined, JSON leaves out
+export function apiMiniAppCard(domain: MiniAppCard): ApiMiniAppCard {
+    return {
+        text: domain.text,
+        image: apiOptional(domain.image, (image) => ({
+            width: image.width,
+            height: image.height,
+            mime_type: image.mimeType,
+            blob_reference: {
+                canister_id: image.blobReference.canisterId,
+                blob_id: image.blobReference.blobId.toString(),
+            },
+        })),
+        max_players: domain.maxPlayers,
+        spectators: domain.spectators,
+    };
+}
+
+// The body of the MiniApp service's `POST /bot/post`: a token from the LocalUserIndex's
+// `bot_mini_app_post_token`, and the card as the bot would send it
+export type ApiMiniAppPostArgs = {
+    token: string;
+    card: ApiMiniAppCard;
+    block_level_markdown: boolean;
+    replies_to: number | null;
+};
 
 // The body of the MiniApp service's `POST /bot/update`, in which every field but `game` is optional
 export type ApiMiniAppGameUpdate = {
