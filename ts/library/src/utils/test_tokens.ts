@@ -1,5 +1,5 @@
-// For the SDK's own tests: tokens signed as OpenChat signs them, with ES256, by P-256 keys which
-// stand in for OpenChat's
+// For the SDK's own tests: tokens signed as OpenChat, and its MiniApp service, sign them, with
+// ES256, by P-256 keys which stand in for theirs
 import crypto from "crypto";
 
 function newKey(): crypto.KeyObject {
@@ -8,7 +8,7 @@ function newKey(): crypto.KeyObject {
 
 export const signingKey = newKey();
 
-// Not OpenChat's
+// Not theirs
 export const otherSigningKey = newKey();
 
 export function publicKeyPem(key: crypto.KeyObject = signingKey): string {
@@ -42,30 +42,27 @@ export const OTHER_BOT = "qhbym-qaaaa-aaaaa-aaafq-cai";
 
 export const NOW = 1_800_000_000_000;
 
-export type SessionClaimsOptions = {
+export const GAME_JSON = `{"chat":{"Channel":["${COMMUNITY}",7]},"thread":3,"message_id":"18446744073709551615"}`;
+
+export type PlayerClaimsOptions = {
     claimType?: string;
     bot?: string;
     expSeconds?: number;
-    chat?: string;
-    thread?: number | null;
-    messageId?: string;
-    meta?: string;
+    game?: string;
 };
 
-// As OpenChat writes the claims: ids as text, the message id as a string, and each None as null
-export function sessionClaimsJson(options: SessionClaimsOptions = {}): string {
+// The claims of one of the MiniApp service's tokens, as it writes them: ids as text, the message id
+// as a string, and no thread as null
+export function playerClaimsJson(options: PlayerClaimsOptions = {}): string {
     const {
-        claimType = "BotMessageSession",
+        claimType = "MiniAppPlayer",
         bot = BOT_ID,
-        expSeconds = NOW / 1000 + 900,
-        chat = `{"Channel":["${COMMUNITY}",7]}`,
-        thread = 3,
-        messageId = "18446744073709551615",
-        meta = `{"timezone":"Europe/London","language":"fr"}`,
+        expSeconds = NOW / 1000 + 3600,
+        game = GAME_JSON,
     } = options;
-    return `{"exp":${expSeconds},"claim_type":"${claimType}","bot_api_gateway":"${API_GATEWAY}","bot":"${bot}","chat":${chat},"thread":${thread},"message_id":"${messageId}","user_id":"${USER}","meta":${meta}}`;
+    return `{"exp":${expSeconds},"claim_type":"${claimType}","bot":"${bot}","game":${game},"user_id":"${USER}"}`;
 }
 
-export function sessionToken(options: SessionClaimsOptions = {}): string {
-    return sign(sessionClaimsJson(options));
+export function playerToken(options: PlayerClaimsOptions = {}, key?: crypto.KeyObject): string {
+    return sign(playerClaimsJson(options), key);
 }

@@ -4,6 +4,8 @@ import jwt from "jsonwebtoken";
 import type { ActionScope, BotClientConfig, RawCommandJwt } from "../domain";
 import { ActionContext } from "../domain/action_context";
 import { Permissions } from "../domain/permissions";
+import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
+import { MiniAppServiceClient } from "../services/mini_app";
 import { BadRequestError } from "../utils/badrequest";
 import { DEFAULT_PREVIEW_PROXY_URL } from "../utils/linkPreviews";
 import { BotClient } from "./bot_client";
@@ -89,7 +91,7 @@ export class BotClientFactory {
         try {
             const decoded = jwt.verify(token, publicKey, { algorithms: ["ES256"] });
             // All of OpenChat's tokens are signed with the same key, so a token for another
-            // purpose, eg. a MiniApp's session, must not be taken for a command's
+            // purpose, eg. a MiniApp registration, must not be taken for a command's
             if (
                 typeof decoded !== "string" &&
                 decoded.claim_type === CLAIM_TYPE_BOT_ACTION_BY_COMMAND
@@ -111,12 +113,23 @@ export class BotClientFactory {
     }
 
     /**
+     * A client for OpenChat's MiniApp service, at `url`, for the bot's games. It gets the bot's
+     * token for the service from the LocalUserIndex `apiGateway`, which can be any of them, as they
+     * all know every bot, eg. an installation's `apiGateway`. Keep the client, as it keeps the
+     * token for its hour.
+     */
+    createMiniAppServiceClient(url: string, apiGateway: string): MiniAppServiceClient {
+        const gateway = new BotGatewayClient(apiGateway, this.#agent, this.env);
+        return new MiniAppServiceClient(url, () => gateway.miniAppBotToken());
+    }
+
+    /**
      * The user id OpenChat gave the bot when it was registered, which is the `bot` in its tokens,
-     * eg. to pass to `BotMessageSession.parse`. It isn't the bot's principal. It's fetched from the
-     * UserIndex when first asked for, rather than at startup, as a bot is usually started before
-     * it's registered, and kept once found. A failed lookup is tried again next time. It asks the
-     * UserIndex in `userIndexCanisterId`, which defaults to OpenChat's on mainnet, so set that for
-     * any other environment.
+     * eg. to verify the MiniApp service's with `MiniAppTokens`. It isn't the bot's principal. It's
+     * fetched from the UserIndex when first asked for, rather than at startup, as a bot is usually
+     * started before it's registered, and kept once found. A failed lookup is tried again next
+     * time. It asks the UserIndex in `userIndexCanisterId`, which defaults to OpenChat's on
+     * mainnet, so set that for any other environment.
      */
     botId(): Promise<string> {
         if (this.#botId === undefined) {

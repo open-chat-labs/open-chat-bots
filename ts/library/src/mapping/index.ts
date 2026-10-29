@@ -56,8 +56,10 @@ import {
     type MessageReminderContent,
     type MessageReminderCreatedContent,
     type MiniAppContent,
+    type MiniAppGame,
+    type MiniAppGameStatus,
+    type MiniAppGameUpdate,
     type MiniAppStatus,
-    type MiniAppUpdate,
     type P2PSwapContent,
     type P2PSwapStatus,
     type PendingCryptocurrencyTransfer,
@@ -168,7 +170,6 @@ import {
     type MessageReminderCreatedContent as ApiMessageReminderCreatedContent,
     type MiniAppContent as ApiMiniAppContent,
     type MiniAppStatus as ApiMiniAppStatus,
-    type MiniAppUpdate as ApiMiniAppUpdate,
     type OCError as ApiOCError,
     type P2PSwapContent as ApiP2PSwapContent,
     type P2PSwapStatus as ApiP2PSwapStatus,
@@ -325,6 +326,7 @@ export function sendMessageResponse(api: BotSendMessageResponse): SendMessageRes
         messageIndex: success.message_index,
         timestamp: success.timestamp,
         expiresAt: nullish(success.expires_at),
+        miniAppRegistration: nullish(success.mini_app_registration),
     }));
 }
 
@@ -2129,11 +2131,7 @@ export function miniAppContent(value: ApiMiniAppContent): MiniAppContent {
         })),
         maxPlayers: optional(value.max_players, identity),
         spectators: value.spectators,
-        spectatorCount: value.spectator_count,
         status: miniAppStatus(value.status),
-        players: value.players.map(principalBytesToString),
-        waitingFor: optional(value.waiting_for, (users) => users.map(principalBytesToString)),
-        result: optional(value.result, identity),
     };
 }
 
@@ -2148,26 +2146,114 @@ export function apiMiniAppContent(domain: Omit<MiniAppContent, "kind">): ApiMini
         })),
         max_players: apiOptional(domain.maxPlayers, identity),
         spectators: domain.spectators,
-        spectator_count: domain.spectatorCount,
         status: apiMiniAppStatus(domain.status),
-        players: domain.players.map(principalStringToBytes),
-        waiting_for: apiOptional(domain.waitingFor, (users) => users.map(principalStringToBytes)),
-        result: apiOptional(domain.result, identity),
     };
 }
 
 function miniAppStatus(value: ApiMiniAppStatus): MiniAppStatus {
-    switch (value) {
-        case "Open":
-            return "open";
-        case "Active":
-            return "active";
-        case "Finished":
-            return "finished";
+    if (value === "Open") {
+        return { kind: "open" };
     }
+    if ("Active" in value) {
+        return {
+            kind: "active",
+            players: value.Active.players.map(principalBytesToString),
+            waitingFor: value.Active.waiting_for.map(principalBytesToString),
+        };
+    }
+    if ("Finished" in value) {
+        return {
+            kind: "finished",
+            players: value.Finished.players.map(principalBytesToString),
+            result: optional(value.Finished.result, identity),
+        };
+    }
+    throw new UnsupportedValueError("Unexpected ApiMiniAppStatus type received", value);
 }
 
 function apiMiniAppStatus(domain: MiniAppStatus): ApiMiniAppStatus {
+    switch (domain.kind) {
+        case "open":
+            return "Open";
+        case "active":
+            return {
+                Active: {
+                    players: domain.players.map(principalStringToBytes),
+                    waiting_for: domain.waitingFor.map(principalStringToBytes),
+                },
+            };
+        case "finished":
+            return {
+                Finished: {
+                    players: domain.players.map(principalStringToBytes),
+                    result: domain.result,
+                },
+            };
+    }
+}
+
+// A game as the MiniApp service writes it, in JSON, as are its tokens' claims: ids as text, a
+// channel id and a thread as numbers, no thread as null, and the message id as a decimal string,
+// as it doesn't fit a JavaScript number
+export type ApiMiniAppGame = {
+    chat: { Group: string } | { Channel: [string, number] };
+    thread: number | null;
+    message_id: string;
+};
+
+export function miniAppGame(value: ApiMiniAppGame): MiniAppGame {
+    return {
+        chat: miniAppGameChat(value.chat),
+        thread: optional(value.thread, identity),
+        messageId: BigInt(value.message_id),
+    };
+}
+
+function miniAppGameChat(value: ApiMiniAppGame["chat"]): MiniAppGame["chat"] {
+    if ("Group" in value) {
+        return new GroupChatIdentifier(value.Group);
+    }
+    if ("Channel" in value) {
+        const [communityId, channelId] = value.Channel;
+        return new ChannelIdentifier(communityId, BigInt(channelId));
+    }
+    throw new UnsupportedValueError("Unexpected MiniApp game chat received", value);
+}
+
+export function apiMiniAppGame(domain: MiniAppGame): ApiMiniAppGame {
+    return {
+        chat:
+            domain.chat.kind === "group_chat"
+                ? { Group: domain.chat.groupId }
+                : { Channel: [domain.chat.communityId, Number(domain.chat.channelId)] },
+        thread: domain.thread ?? null,
+        message_id: domain.messageId.toString(),
+    };
+}
+
+// The body of the MiniApp service's `POST /bot/update`, in which every field but `game` is optional
+export type ApiMiniAppGameUpdate = {
+    game: ApiMiniAppGame;
+    status?: "Open" | "Active" | "Finished";
+    waiting_for?: string[];
+    result?: string;
+    remove?: string[];
+    state?: { seq: number; shared: unknown; private?: Record<string, unknown> };
+};
+
+// What the update leaves undefined, JSON leaves out, so the service keeps it as it is
+export function apiMiniAppGameUpdate(domain: MiniAppGameUpdate): ApiMiniAppGameUpdate {
+    return {
+        game: apiMiniAppGame(domain.game),
+        status: apiOptional(domain.status, apiMiniAppGameStatus),
+        waiting_for: domain.waitingFor,
+        result: domain.result,
+        remove: domain.remove,
+        state: domain.state,
+    };
+}
+
+function apiMiniAppGameStatus(domain: MiniAppGameStatus): "Open" | "Active" | "Finished" {
     switch (domain) {
         case "open":
             return "Open";
@@ -2176,28 +2262,6 @@ function apiMiniAppStatus(domain: MiniAppStatus): ApiMiniAppStatus {
         case "finished":
             return "Finished";
     }
-}
-
-export function apiMiniAppUpdate(domain: MiniAppUpdate): ApiMiniAppUpdate {
-    return {
-        status: apiOptional(domain.status, apiMiniAppStatus),
-        players: apiOptional(domain.players, (users) => users.map(principalStringToBytes)),
-        spectator_count: apiOptional(domain.spectatorCount, identity),
-        waiting_for: apiNullableUpdate(domain.waitingFor, (users) =>
-            users.map(principalStringToBytes),
-        ),
-        result: apiNullableUpdate(domain.result, identity),
-    };
-}
-
-// undefined is no change, null removes the value, and anything else sets it
-function apiNullableUpdate<A, B>(
-    domain: A | null | undefined,
-    mapper: (a: A) => B,
-): "NoChange" | "SetToNone" | { SetToSome: B } {
-    if (domain === undefined) return "NoChange";
-    if (domain === null) return "SetToNone";
-    return { SetToSome: mapper(domain) };
 }
 
 function videoCallParticipant(value: ApiCallParticipant): VideoCallParticipant {

@@ -3,6 +3,7 @@ export { BotClient } from "./clients/bot_client";
 export { BotClientFactory } from "./clients/client_factory";
 export * from "./domain";
 export * from "./services/bot_gateway";
+export * from "./services/mini_app";
 export {
     BotDefinition,
     type MemberType,

@@ -7,6 +7,8 @@ export {
     tokenExpiry,
     type ConnectOptions,
     type MiniAppMessageEvent,
+    type MiniAppRole,
+    type MiniAppState,
     type MiniAppToOpenChat,
     type MiniAppWindow,
     type OpenChatToMiniApp,

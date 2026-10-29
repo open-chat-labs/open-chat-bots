@@ -4,7 +4,6 @@ import {
     apiMiniAppContent,
     apiOptional,
     miniAppContent,
-    principalStringToBytes,
     apiPriceChartContent,
     identity,
 } from "../mapping";
@@ -21,7 +20,7 @@ import type {
 import { random64 } from "../utils/rng";
 import type { BotChatContext } from "./bot";
 import type { BlobReference } from "./data";
-import type { MiniAppContent, MiniAppImage, MiniAppUpdate, PriceChartContent } from "./event";
+import type { MiniAppContent, MiniAppImage, PriceChartContent } from "./event";
 import type { MessagePermission } from "./permissions";
 
 type FileMessageContent = { File: FileContent };
@@ -244,14 +243,17 @@ export class PriceChartMessage extends Message {
 /** The most characters a MiniApp card's text can have */
 export const MINI_APP_MAX_TEXT_CHARS = 2_000;
 
+/** The most players a game can have */
+export const MINI_APP_MAX_PLAYERS = 100;
+
 /**
- * A bot's card for an app it hosts, eg. a game: markdown text, under an optional image, with the
- * players, whose move it is or the result, and an Open button, all of which OpenChat draws. It
- * opens the bot's app, which the bot serves at `/app` under its endpoint, in a frame. The text,
- * image, player limit and whether others can watch never change, while the bot keeps the status,
- * players, whose move it is and the result up to date with `BotClient.updateMiniApp`. It needs the
+ * A bot's card for a game, or another app, it hosts: markdown text, under an optional image, with
+ * the players, whose turn it is or the result, and buttons to join, open or watch it, all of which
+ * OpenChat draws. They open the bot's app, which the bot serves at `/app` under its endpoint, in a
+ * frame. The text, image, player limit and whether others can watch never change, and only
+ * OpenChat's MiniApp service writes the card's status, so a card is posted open. It needs the
  * MiniApp permission, and can't be sent in a direct chat. Check it with `validate` before sending
- * it.
+ * it. Sending it gives the `miniAppRegistration` to register its game with the service.
  *
  * Upload the image first, as `BotClient.createMiniAppMessage` does, so that it's scanned like any
  * image and deleted with the card.
@@ -263,9 +265,7 @@ export class MiniAppMessage extends Message {
                 text,
                 image,
                 spectators: false,
-                spectatorCount: 0,
-                status: "open",
-                players: [],
+                status: { kind: "open" },
             }),
         });
     }
@@ -284,15 +284,12 @@ export class MiniAppMessage extends Message {
         return this;
     }
 
-    /** Whether members who aren't playing can open the app once the game has started */
+    /**
+     * Whether people who aren't playing can watch: members, and anyone who can see a public chat.
+     * They see only the game's shared state.
+     */
     setSpectators(spectators: boolean): MiniAppMessage {
         this.#miniApp.spectators = spectators;
-        return this;
-    }
-
-    /** The players' user ids when the card is posted, eg. the member who ran the command */
-    setPlayers(players: string[]): MiniAppMessage {
-        this.#miniApp.players = players.map(principalStringToBytes);
         return this;
     }
 
@@ -302,17 +299,17 @@ export class MiniAppMessage extends Message {
     }
 }
 
-/** The most players a card can have */
-export const MINI_APP_MAX_PLAYERS = 100;
-
-/** The most characters a finished card's result can have */
-export const MINI_APP_MAX_RESULT_CHARS = 200;
-
 /**
- * Checks a MiniApp card as OpenChat does: its text, its image, its player limit and players, whose
- * move it is and its result. Returns the error OpenChat would give, or undefined if it's valid.
+ * Checks a new MiniApp card as OpenChat does: it's open, as only the MiniApp service writes a
+ * card's status, and its text, its image and its player limit. Returns the error OpenChat would
+ * give, or undefined if it's valid.
  */
 export function validateMiniAppContent(content: Omit<MiniAppContent, "kind">): string | undefined {
+    // OpenChat's other checks are of the players, whose turn it is and the result, which an open
+    // card has none of
+    if (content.status.kind !== "open") {
+        return "A game is posted open";
+    }
     const textError = validateMiniAppText(content.text);
     if (textError !== undefined) return textError;
     if (content.image !== undefined) {
@@ -324,51 +321,7 @@ export function validateMiniAppContent(content: Omit<MiniAppContent, "kind">): s
     if (max !== undefined && !(Number.isInteger(max) && max >= 1 && max <= MINI_APP_MAX_PLAYERS)) {
         return `A game has 1 to ${MINI_APP_MAX_PLAYERS} players at most`;
     }
-    const limit = max ?? MINI_APP_MAX_PLAYERS;
-    if (content.players.length > limit) {
-        return `This game has at most ${limit} players`;
-    }
-    if (new Set(content.players).size < content.players.length) {
-        return "A player is listed twice";
-    }
-    if (content.spectatorCount > 0 && !content.spectators) {
-        return "Only a game open to spectators has any";
-    }
-    const waitingFor = content.waitingFor ?? [];
-    if (waitingFor.some((user) => !content.players.includes(user))) {
-        return "Only players can be waited for";
-    }
-    if (new Set(waitingFor).size < waitingFor.length) {
-        return "A player is waited for twice";
-    }
-    if (content.result !== undefined) {
-        if (content.status !== "finished") {
-            return "Only a finished game has a result";
-        }
-        if (!hasChars(content.result, MINI_APP_MAX_RESULT_CHARS)) {
-            return `The result must have 1 to ${MINI_APP_MAX_RESULT_CHARS} characters`;
-        }
-    }
     return undefined;
-}
-
-/**
- * The card as OpenChat leaves it after `update`, eg. to `validateMiniAppContent` an update before
- * sending it. OpenChat also refuses any update of a finished card.
- */
-export function applyMiniAppUpdate<T extends Omit<MiniAppContent, "kind">>(
-    content: T,
-    update: MiniAppUpdate,
-): T {
-    return {
-        ...content,
-        status: update.status ?? content.status,
-        players: update.players ?? content.players,
-        spectatorCount: update.spectatorCount ?? content.spectatorCount,
-        waitingFor:
-            update.waitingFor === undefined ? content.waitingFor : (update.waitingFor ?? undefined),
-        result: update.result === undefined ? content.result : (update.result ?? undefined),
-    };
 }
 
 /**
@@ -376,16 +329,11 @@ export function applyMiniAppUpdate<T extends Omit<MiniAppContent, "kind">>(
  * the error OpenChat would give, or undefined if it's valid.
  */
 export function validateMiniAppText(text: string): string | undefined {
-    if (!hasChars(text, MINI_APP_MAX_TEXT_CHARS)) {
+    // Counted in code points, as OpenChat counts Rust's chars
+    if (text.trim().length === 0 || [...text].length > MINI_APP_MAX_TEXT_CHARS) {
         return `The text must have 1 to ${MINI_APP_MAX_TEXT_CHARS} characters`;
     }
     return undefined;
-}
-
-// As OpenChat checks text: not blank, and at most `max` characters, counted in code points, as
-// OpenChat counts Rust's chars
-function hasChars(text: string, max: number): boolean {
-    return text.trim().length > 0 && [...text].length <= max;
 }
 
 /**

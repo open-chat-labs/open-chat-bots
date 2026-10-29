@@ -7,16 +7,16 @@ import { BotClient } from "../clients/bot_client";
 import type { BotClientConfig } from "../domain";
 import { ActionContext } from "../domain/action_context";
 import { ChannelIdentifier, CommunityIdentifier, GroupChatIdentifier } from "../domain/identifiers";
-import type { MiniAppContent } from "../domain/event";
+import type { MiniAppContent, MiniAppStatus } from "../domain/event";
 import {
     MINI_APP_MAX_TEXT_CHARS,
     MiniAppMessage,
     TextMessage,
-    applyMiniAppUpdate,
     validateMiniAppContent,
     validateMiniAppImage,
     validateMiniAppText,
 } from "../domain/message";
+import { miniAppGameKey } from "../domain/mini_app";
 import { Permissions } from "../domain/permissions";
 import { ChatActionScope, CommunityActionScope } from "../domain/scope";
 import { MsgpackCanisterAgent } from "../services/canisterAgent/msgpack";
@@ -25,9 +25,9 @@ import {
     BotMessageContent as ApiBotMessageContent,
     MessageContent as ApiMessageContent,
     LocalUserIndexBotEditMessageArgs,
-    LocalUserIndexBotUpdateMiniAppArgs,
+    LocalUserIndexBotSendMessageResponse,
 } from "../typebox/typebox";
-import { messageContent } from "./index";
+import { apiMiniAppGame, messageContent, miniAppGame, sendMessageResponse } from "./index";
 
 const Packer = new Packr({
     useRecords: false,
@@ -46,12 +46,10 @@ const BOB = "qhbym-qaaaa-aaaaa-aaafq-cai";
 const bytes = (id: string) => Principal.fromText(id).toUint8Array();
 
 // A new card, as OpenChat sends one and as `MiniAppMessage` makes one
-const OPEN_CARD = { spectators: false, spectator_count: 0, status: "Open", players: [] };
+const OPEN_CARD = { spectators: false, status: "Open" };
 const OPEN: Omit<MiniAppContent, "kind" | "text"> = {
     spectators: false,
-    spectatorCount: 0,
-    status: "open",
-    players: [],
+    status: { kind: "open" },
 };
 
 const IMAGE = {
@@ -61,74 +59,85 @@ const IMAGE = {
     blobReference: { canisterId: BUCKET, blobId: 340282366920938463463374607431768211455n },
 };
 
+// A card as OpenChat sends one from a chat, in msgpack, as the SDK reads it
+function read(card: object) {
+    const wire = Packer.pack({ MiniApp: { text: TEXT, ...card } });
+    return messageContent(Value.Parse(ApiMessageContent, Packer.unpack(wire)), SENDER);
+}
+
+// A card as the SDK sends it, after a round trip through msgpack, as OpenChat reads it
+function sent(message: MiniAppMessage) {
+    const content = Value.Parse(ApiBotMessageContent, message.toResponse().content);
+    return Packer.unpack(Packer.pack(content));
+}
+
 describe("MiniApp cards", () => {
-    test("are read from a chat as OpenChat sends them", () => {
-        const wire = Packer.pack({ MiniApp: { text: TEXT, ...OPEN_CARD } });
+    test("are read from a chat as OpenChat sends them, while open", () => {
+        expect(read(OPEN_CARD)).toEqual({ kind: "mini_app_content", text: TEXT, ...OPEN });
+    });
 
-        const api = Value.Parse(ApiMessageContent, Packer.unpack(wire));
+    test("are read with their players and whose turn it is, while active", () => {
+        const card = read({
+            max_players: 4,
+            spectators: true,
+            status: { Active: { players: [bytes(ALICE), bytes(BOB)], waiting_for: [bytes(BOB)] } },
+        });
 
-        expect(messageContent(api, SENDER)).toEqual({
+        expect(card).toEqual({
             kind: "mini_app_content",
             text: TEXT,
-            ...OPEN,
+            maxPlayers: 4,
+            spectators: true,
+            status: { kind: "active", players: [ALICE, BOB], waitingFor: [BOB] },
         });
     });
 
-    test("are read with everything OpenChat sends", () => {
+    test("are read with everything OpenChat sends, once finished", () => {
         // A u128 as a string, as OpenChat writes large ints, and principals as bytes
-        const wire = Packer.pack({
-            MiniApp: {
-                text: TEXT,
-                image: {
-                    width: 640,
-                    height: 360,
-                    mime_type: "image/png",
-                    blob_reference: {
-                        canister_id: bytes(BUCKET),
-                        blob_id: "340282366920938463463374607431768211455",
-                    },
+        const card = read({
+            image: {
+                width: 640,
+                height: 360,
+                mime_type: "image/png",
+                blob_reference: {
+                    canister_id: bytes(BUCKET),
+                    blob_id: "340282366920938463463374607431768211455",
                 },
-                max_players: 2,
-                spectators: true,
-                spectator_count: 3,
-                status: "Finished",
-                players: [bytes(ALICE), bytes(BOB)],
-                waiting_for: [bytes(BOB)],
-                result: "Bob won",
             },
+            max_players: 2,
+            spectators: true,
+            status: { Finished: { players: [bytes(ALICE), bytes(BOB)], result: "Bob won" } },
         });
 
-        const api = Value.Parse(ApiMessageContent, Packer.unpack(wire));
-
-        expect(messageContent(api, SENDER)).toEqual({
+        expect(card).toEqual({
             kind: "mini_app_content",
             text: TEXT,
             image: IMAGE,
             maxPlayers: 2,
             spectators: true,
-            spectatorCount: 3,
-            status: "finished",
-            players: [ALICE, BOB],
-            waitingFor: [BOB],
-            result: "Bob won",
+            status: { kind: "finished", players: [ALICE, BOB], result: "Bob won" },
         });
     });
 
-    test("are sent as OpenChat reads them, with the fields it needs", () => {
-        const message = new MiniAppMessage(TEXT);
-        const sent = Value.Parse(ApiBotMessageContent, message.toResponse().content);
+    test("are read finished without a result, or players, if the game was abandoned", () => {
+        expect(read({ spectators: false, status: { Finished: { players: [] } } })).toEqual({
+            kind: "mini_app_content",
+            text: TEXT,
+            spectators: false,
+            status: { kind: "finished", players: [], result: undefined },
+        });
+    });
 
-        expect(Packer.unpack(Packer.pack(sent))).toEqual({ MiniApp: { text: TEXT, ...OPEN_CARD } });
+    test("are sent open, as OpenChat reads them, with the fields it needs", () => {
+        const message = new MiniAppMessage(TEXT);
+
+        expect(sent(message)).toEqual({ MiniApp: { text: TEXT, ...OPEN_CARD } });
         expect(message.requiredMessagePermissions).toEqual(["MiniApp"]);
     });
 
-    test("are sent with their image, player limit, spectators and players", () => {
-        const message = new MiniAppMessage(TEXT, IMAGE)
-            .setMaxPlayers(2)
-            .setSpectators(true)
-            .setPlayers([ALICE]);
-        const sent = Value.Parse(ApiBotMessageContent, message.toResponse().content);
-        const wire = Packer.unpack(Packer.pack(sent));
+    test("are sent with their image, player limit and spectators", () => {
+        const message = new MiniAppMessage(TEXT, IMAGE).setMaxPlayers(2).setSpectators(true);
+        const wire = sent(message);
 
         // The u128 as a string and the bucket as principal bytes, as for an image message
         expect(wire.MiniApp.image.blob_reference.blob_id).toBe(
@@ -137,15 +146,14 @@ describe("MiniApp cards", () => {
         expect(Uint8Array.from(wire.MiniApp.image.blob_reference.canister_id)).toEqual(
             bytes(BUCKET),
         );
+        expect(wire.MiniApp).toMatchObject({ max_players: 2, spectators: true, status: "Open" });
         expect(messageContent(Value.Parse(ApiMessageContent, wire), SENDER)).toEqual({
             kind: "mini_app_content",
             text: TEXT,
             image: IMAGE,
             maxPlayers: 2,
             spectators: true,
-            spectatorCount: 0,
-            status: "open",
-            players: [ALICE],
+            status: { kind: "open" },
         });
         expect(message.validate()).toBeUndefined();
     });
@@ -163,6 +171,34 @@ describe("MiniApp cards", () => {
         expect(permissions.hasMessagePermission("VideoCall")).toBe(false);
         expect(new Permissions({ message: 1 << 10 }).hasMessagePermission("MiniApp")).toBe(false);
     });
+
+    test("come back from sending with the registration for the MiniApp service", () => {
+        const success = {
+            message_id: 18446744073709551615n,
+            event_index: 10,
+            message_index: 4,
+            timestamp: 1_800_000_000_000n,
+        };
+        const response = (result: object) =>
+            MsgpackCanisterAgent.processMsgpackResponse(
+                MsgpackCanisterAgent.bufferToArrayBuffer(Packer.pack({ Success: result })),
+                sendMessageResponse,
+                LocalUserIndexBotSendMessageResponse,
+            );
+        vi.spyOn(console, "log").mockImplementation(() => undefined);
+
+        expect(response({ ...success, mini_app_registration: "registration.token" })).toEqual({
+            kind: "success",
+            messageId: 18446744073709551615n,
+            eventIndex: 10,
+            messageIndex: 4,
+            timestamp: 1_800_000_000_000n,
+            expiresAt: undefined,
+            miniAppRegistration: "registration.token",
+        });
+        // Any other message has none
+        expect(response(success)).toMatchObject({ miniAppRegistration: undefined });
+    });
 });
 
 describe("validateMiniAppText", () => {
@@ -178,7 +214,7 @@ describe("validateMiniAppText", () => {
         for (const text of ["", " \n", "x".repeat(MINI_APP_MAX_TEXT_CHARS + 1)]) {
             expect(validateMiniAppText(text)).toBe("The text must have 1 to 2000 characters");
         }
-        expect(new MiniAppMessage(" ").validate()).toBeDefined();
+        expect(new MiniAppMessage(" ").validate()).toBe("The text must have 1 to 2000 characters");
     });
 });
 
@@ -209,25 +245,14 @@ describe("validateMiniAppImage", () => {
 
 describe("validateMiniAppContent", () => {
     const card = (change: Partial<MiniAppContent> = {}) => ({ text: TEXT, ...OPEN, ...change });
-    const players = (n: number) =>
-        Array.from({ length: n }, (_, i) =>
-            Principal.fromUint8Array(new Uint8Array([i, 1])).toText(),
-        );
 
-    test("passes a card within OpenChat's limits", () => {
+    test("passes a new card within OpenChat's limits", () => {
         expect(validateMiniAppContent(card())).toBeUndefined();
-        expect(
-            validateMiniAppContent(card({ maxPlayers: 2, players: [ALICE, BOB] })),
-        ).toBeUndefined();
-        expect(validateMiniAppContent(card({ players: players(100) }))).toBeUndefined();
-        expect(
-            validateMiniAppContent(
-                card({ status: "finished", players: [ALICE], result: "x".repeat(200) }),
-            ),
-        ).toBeUndefined();
-        expect(
-            validateMiniAppContent(card({ spectators: true, spectatorCount: 4 })),
-        ).toBeUndefined();
+        for (const maxPlayers of [1, 2, 100]) {
+            expect(validateMiniAppContent(card({ maxPlayers }))).toBeUndefined();
+        }
+        expect(validateMiniAppContent(card({ image: IMAGE, spectators: true }))).toBeUndefined();
+        expect(new MiniAppMessage(TEXT).setMaxPlayers(100).validate()).toBeUndefined();
     });
 
     test("refuses one beyond them, with OpenChat's errors", () => {
@@ -236,150 +261,63 @@ describe("validateMiniAppContent", () => {
         for (const maxPlayers of [0, 101, 1.5]) {
             expect(error({ maxPlayers })).toBe("A game has 1 to 100 players at most");
         }
-        expect(error({ maxPlayers: 1, players: [ALICE, BOB] })).toBe(
-            "This game has at most 1 players",
+        expect(new MiniAppMessage(TEXT).setMaxPlayers(0).validate()).toBe(
+            "A game has 1 to 100 players at most",
         );
-        expect(error({ players: players(101) })).toBe("This game has at most 100 players");
-        expect(error({ players: [ALICE, ALICE] })).toBe("A player is listed twice");
-        expect(error({ spectatorCount: 1 })).toBe("Only a game open to spectators has any");
-        expect(error({ players: [ALICE], waitingFor: [BOB] })).toBe(
-            "Only players can be waited for",
+        expect(error({ text: "" })).toBe("The text must have 1 to 2000 characters");
+        expect(error({ image: { ...IMAGE, mimeType: "text/plain" } })).toBe(
+            "The image's mime type must be an image's",
         );
-        expect(error({ players: [ALICE], waitingFor: [ALICE, ALICE] })).toBe(
-            "A player is waited for twice",
-        );
-        expect(error({ status: "active", result: "Bob won" })).toBe(
-            "Only a finished game has a result",
-        );
-        for (const result of [" ", "x".repeat(201)]) {
-            expect(error({ status: "finished", result })).toBe(
-                "The result must have 1 to 200 characters",
-            );
+    });
+
+    // Only the MiniApp service writes a card's status
+    test("refuses a card that isn't open", () => {
+        const statuses: MiniAppStatus[] = [
+            { kind: "active", players: [ALICE], waitingFor: [] },
+            { kind: "finished", players: [], result: "Bob won" },
+        ];
+        for (const status of statuses) {
+            expect(validateMiniAppContent(card({ status }))).toBe("A game is posted open");
         }
     });
 });
 
-describe("applyMiniAppUpdate", () => {
-    test("changes only what the update sets, and null removes", () => {
-        const card = { text: TEXT, ...OPEN, players: [ALICE], waitingFor: [ALICE] };
-
-        expect(applyMiniAppUpdate(card, {})).toEqual(card);
-        expect(
-            applyMiniAppUpdate(card, {
-                status: "active",
-                players: [ALICE, BOB],
-                waitingFor: [BOB],
-            }),
-        ).toEqual({ ...card, status: "active", players: [ALICE, BOB], waitingFor: [BOB] });
-        expect(
-            applyMiniAppUpdate(card, { status: "finished", waitingFor: null, result: "Alice won" }),
-        ).toEqual({ ...card, status: "finished", waitingFor: undefined, result: "Alice won" });
-    });
-});
-
-describe("BotClient.updateMiniApp", () => {
-    const config: BotClientConfig = {
-        openStorageCanisterId: "aaaaa-aa",
-        icHost: "https://icp-api.io",
-        identityPrivateKey: "not-used",
-        openchatPublicKey: "not-used",
-        autoFetchOgPreviews: false,
+describe("MiniApp games", () => {
+    const channelGame = {
+        chat: new ChannelIdentifier(COMMUNITY, 7n),
+        thread: 3,
+        messageId: 18446744073709551615n,
     };
+    const groupGame = { chat: new GroupChatIdentifier(GROUP), messageId: 5n };
 
-    function stubUpdate() {
-        const calls: { method: string; args: LocalUserIndexBotUpdateMiniAppArgs }[] = [];
-        vi.spyOn(
-            MsgpackCanisterAgent.prototype as unknown as {
-                executeMsgpackUpdate: (...args: unknown[]) => Promise<unknown>;
-            },
-            "executeMsgpackUpdate",
-        ).mockImplementation((method: unknown, args: unknown) => {
-            calls.push({
-                method: method as string,
-                args: args as LocalUserIndexBotUpdateMiniAppArgs,
-            });
-            return Promise.resolve({ kind: "success" });
-        });
-        return calls;
-    }
-
-    afterEach(() => {
-        vi.restoreAllMocks();
+    test("are written as the MiniApp service reads them", () => {
+        expect(JSON.stringify(apiMiniAppGame(channelGame))).toBe(
+            `{"chat":{"Channel":["${COMMUNITY}",7]},"thread":3,"message_id":"18446744073709551615"}`,
+        );
+        expect(JSON.stringify(apiMiniAppGame(groupGame))).toBe(
+            `{"chat":{"Group":"${GROUP}"},"thread":null,"message_id":"5"}`,
+        );
     });
 
-    test("updates the card autonomously, in its thread, sending only what changes", async () => {
-        const calls = stubUpdate();
-        const channel = new ChannelIdentifier(COMMUNITY, 7n);
-        const client = new BotClient(
-            {} as HttpAgent,
-            config,
-            ActionContext.inAutonomousContext(new ChatActionScope(channel), "aaaaa-aa"),
-        );
+    test("are read as the MiniApp service writes them", () => {
+        for (const game of [channelGame, groupGame]) {
+            const json = JSON.parse(JSON.stringify(apiMiniAppGame(game)));
 
-        const response = await client.updateMiniApp(
-            18446744073709551615n,
-            { status: "active", players: [ALICE, BOB], spectatorCount: 2, waitingFor: [ALICE] },
-            { thread: 12 },
-        );
-
-        expect(response).toEqual({ kind: "success" });
-        const [{ method, args }] = calls;
-        expect(method).toBe("bot_update_mini_app");
-        // Valid as OpenChat's args, as the agent checks them before sending
-        expect(Value.Check(LocalUserIndexBotUpdateMiniAppArgs, args)).toBe(true);
-        expect(args.chat_context).toEqual({
-            Autonomous: { Channel: [bytes(COMMUNITY), 7n] },
-        });
-        expect(args.thread).toBe(12);
-        expect(args.message_id).toBe(18446744073709551615n);
-        expect(args.update).toEqual({
-            status: "Active",
-            players: [bytes(ALICE), bytes(BOB)],
-            spectator_count: 2,
-            waiting_for: { SetToSome: [bytes(ALICE)] },
-            result: "NoChange",
-        });
+            expect(miniAppGame(json)).toEqual({ thread: undefined, ...game });
+        }
     });
 
-    test("finishes a card, and removes whose move it is", async () => {
-        const calls = stubUpdate();
-        const client = new BotClient(
-            {} as HttpAgent,
-            config,
-            ActionContext.inAutonomousContext(
-                new ChatActionScope(new GroupChatIdentifier(GROUP)),
-                "aaaaa-aa",
-            ),
-        );
+    test("have a key unique across chats and threads", () => {
+        const keys = [
+            channelGame,
+            { ...channelGame, thread: undefined },
+            { ...channelGame, chat: new ChannelIdentifier(COMMUNITY, 8n) },
+            { ...channelGame, chat: new GroupChatIdentifier(COMMUNITY) },
+            { ...channelGame, messageId: 1n },
+        ].map(miniAppGameKey);
 
-        await client.updateMiniApp(5n, { status: "finished", waitingFor: null, result: "Bob won" });
-
-        expect(calls[0].args.thread).toBeUndefined();
-        expect(calls[0].args.update).toEqual({
-            status: "Finished",
-            waiting_for: "SetToNone",
-            result: { SetToSome: "Bob won" },
-        });
-    });
-
-    test("updates with a command's context, in the command's thread", async () => {
-        const calls = stubUpdate();
-        const command = new ActionContext(
-            "aaaaa-aa",
-            new ChatActionScope(new GroupChatIdentifier(GROUP)),
-            undefined,
-            undefined,
-            1n,
-            4,
-            "a.command.jwt",
-        );
-
-        await new BotClient({} as HttpAgent, config, command).updateMiniApp(1n, {
-            players: [ALICE],
-        });
-
-        expect(calls[0].args.chat_context).toEqual({ Command: "a.command.jwt" });
-        expect(calls[0].args.thread).toBe(4);
+        expect(new Set(keys).size).toBe(keys.length);
+        expect(miniAppGameKey({ ...channelGame })).toBe(miniAppGameKey(channelGame));
     });
 });
 

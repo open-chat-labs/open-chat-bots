@@ -1,15 +1,8 @@
 import crypto from "crypto";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { BadRequestError } from "../utils/badrequest";
-import {
-    API_GATEWAY,
-    BOT_ID,
-    GROUP,
-    USER,
-    publicKeyPem,
-    sessionToken,
-    sign,
-} from "../utils/test_tokens";
+import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
+import { API_GATEWAY, BOT_ID, GROUP, USER, publicKeyPem, sign } from "../utils/test_tokens";
 import { BotClientFactory } from "./client_factory";
 import { GlobalClient } from "./global_client";
 
@@ -50,8 +43,10 @@ describe("BotClientFactory.createClientFromCommandJwt", () => {
 
     // All of OpenChat's tokens are signed with the same key
     test("refuses a token for another purpose", () => {
-        for (const token of [commandToken("StartVideoCall"), sessionToken()]) {
-            expect(() => factory().createClientFromCommandJwt(token)).toThrow(BadRequestError);
+        for (const claimType of ["StartVideoCall", "MiniAppRegistration", "MiniAppBot"]) {
+            expect(() => factory().createClientFromCommandJwt(commandToken(claimType))).toThrow(
+                BadRequestError,
+            );
         }
     });
 });
@@ -89,5 +84,54 @@ describe("BotClientFactory.botId", () => {
             expect.anything(),
             expect.anything(),
         );
+    });
+});
+
+describe("BotClientFactory.createMiniAppServiceClient", () => {
+    function stubQuery(response: unknown) {
+        return vi
+            .spyOn(
+                BotGatewayClient.prototype as unknown as {
+                    executeMsgpackQuery: (...args: unknown[]) => Promise<unknown>;
+                },
+                "executeMsgpackQuery",
+            )
+            .mockImplementation((_method, _args, mapper) =>
+                Promise.resolve((mapper as (resp: unknown) => unknown)(response)),
+            );
+    }
+
+    test("calls the service with the bot token from the LocalUserIndex", async () => {
+        const query = stubQuery({ Success: "bot.token" });
+        const fetch = vi
+            .spyOn(globalThis, "fetch")
+            .mockResolvedValue(new Response("{}", { status: 200 }));
+        const game = { chat: { Group: GROUP }, thread: null, message_id: "1" };
+        const registration = sign(
+            `{"exp":1,"claim_type":"MiniAppRegistration","game":${JSON.stringify(game)}}`,
+        );
+
+        await factory()
+            .createMiniAppServiceClient("https://mini-apps.example.com/", API_GATEWAY)
+            .register(registration);
+
+        expect(query).toHaveBeenCalledWith(
+            "bot_mini_app_token",
+            {},
+            expect.anything(),
+            expect.anything(),
+            expect.anything(),
+        );
+        const [url, init] = fetch.mock.calls[0];
+        expect(url).toBe("https://mini-apps.example.com/bot/register");
+        expect(new Headers(init?.headers).get("authorization")).toBe("Bearer bot.token");
+    });
+
+    test("fails if the LocalUserIndex refuses the bot a token", async () => {
+        stubQuery("NotAuthorized");
+
+        await expect(
+            new BotGatewayClient(API_GATEWAY, {} as never, {} as never).miniAppBotToken(),
+        ).rejects.toThrow("NotAuthorized");
     });
 });

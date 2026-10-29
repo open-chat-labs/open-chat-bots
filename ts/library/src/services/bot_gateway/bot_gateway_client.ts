@@ -16,7 +16,6 @@ import type {
     DeleteChannelResponse,
     MembersResponse,
     Message,
-    MiniAppUpdate,
     PermissionRole,
     SendMessageResponse,
     UnitResult,
@@ -28,7 +27,6 @@ import {
     apiChatEventsCriteria,
     apiCommunityEventsCriteria,
     apiGroupRole,
-    apiMiniAppUpdate,
     changeRoleResponse,
     chatEventsResponse,
     chatSummaryResponse,
@@ -61,10 +59,11 @@ import {
     UnitResult as BotDeleteChannelResponse,
     LocalUserIndexBotDeleteMessagesArgs as BotDeleteMessagesArgs,
     LocalUserIndexBotEditMessageArgs as BotEditMessageArgs,
-    LocalUserIndexBotUpdateMiniAppArgs as BotUpdateMiniAppArgs,
     LocalUserIndexBotMembersArgs as BotMemberArgs,
+    LocalUserIndexBotMiniAppTokenResponse as BotMiniAppTokenResponse,
     LocalUserIndexBotSendMessageArgs as BotSendMessageArgs,
     LocalUserIndexBotSendMessageResponse as BotSendMessageResponse,
+    Empty,
     MemberType,
     OgPreview,
 } from "../../typebox/typebox";
@@ -133,30 +132,6 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
             ApiUnitResult,
         ).catch((err) => {
             console.error("Call to bot_edit_message failed with: ", JSON.stringify(err));
-            throw err;
-        });
-    }
-
-    // A bot updates its own MiniApp card, with a command's context or autonomously
-    updateMiniApp(
-        ctx: BotChatContext,
-        thread: number | undefined,
-        messageId: bigint,
-        update: MiniAppUpdate,
-    ): Promise<UnitResult> {
-        return this.executeMsgpackUpdate(
-            "bot_update_mini_app",
-            {
-                chat_context: apiBotChatContext(ctx),
-                thread,
-                message_id: messageId,
-                update: apiMiniAppUpdate(update),
-            },
-            unitResult,
-            BotUpdateMiniAppArgs,
-            ApiUnitResult,
-        ).catch((err) => {
-            console.error("Call to bot_update_mini_app failed with: ", JSON.stringify(err));
             throw err;
         });
     }
@@ -319,5 +294,28 @@ export class BotGatewayClient extends MsgpackCanisterAgent {
             console.error("Call to bot_community_events failed with: ", JSON.stringify(err));
             throw err;
         });
+    }
+
+    // A token, lasting an hour, which says which bot is calling OpenChat's MiniApp service. Any
+    // LocalUserIndex gives one, as they all know every bot.
+    async miniAppBotToken(): Promise<string> {
+        const resp = await this.executeMsgpackQuery(
+            "bot_mini_app_token",
+            {},
+            (resp) => resp,
+            Empty,
+            BotMiniAppTokenResponse,
+        ).catch((err) => {
+            console.error("Call to bot_mini_app_token failed with: ", JSON.stringify(err));
+            throw err;
+        });
+        // Thrown here, not in the mapper, so that a refusal isn't retried as a failed call would be
+        if (resp === "NotAuthorized") {
+            throw new Error("Unable to get a MiniApp bot token: NotAuthorized");
+        }
+        if ("InternalError" in resp) {
+            throw new Error(`Unable to get a MiniApp bot token: ${resp.InternalError}`);
+        }
+        return resp.Success;
     }
 }

@@ -27,7 +27,6 @@ import {
     type DeleteChannelResponse,
     type MembersResponse,
     type Message,
-    type MiniAppUpdate,
     type PermissionRole,
     type PriceChartContent,
     type SendMessageResponse,
@@ -187,39 +186,6 @@ export class BotClient {
             .then((resp) => {
                 if (resp.kind !== "success") {
                     console.error("OpenChat botClient.editMessage failed with: ", resp);
-                }
-                return resp;
-            });
-    }
-
-    /**
-     * Changes what the bot's MiniApp card, `messageId`, shows as its game goes on: its status,
-     * players, whose move it is and the result. Whatever `update` leaves undefined stays as it was.
-     * As for deleting its own messages, any installed bot can with a command's context, while
-     * autonomously, eg. with a client from
-     * `createClientInAutonomouseContext(session.scope, session.apiGateway)`, the bot must be
-     * installed to act autonomously: its definition has an `autonomous_config`, even with no
-     * permissions, which the owner granted when installing it. The players must be members of the
-     * chat, or the bot itself, and a finished card can't change.
-     *
-     * `thread` is the card's thread, which defaults to the command's. `channelId` is the card's
-     * channel, for a client in a community's scope.
-     */
-    public updateMiniApp(
-        messageId: bigint,
-        update: MiniAppUpdate,
-        options: { thread?: number; channelId?: bigint } = {},
-    ): Promise<UnitResult> {
-        return this.#botService
-            .updateMiniApp(
-                this.#actionContext.chatContext(options.channelId),
-                options.thread ?? this.#actionContext.thread,
-                messageId,
-                update,
-            )
-            .then((resp) => {
-                if (resp.kind !== "success") {
-                    console.error("OpenChat botClient.updateMiniApp failed with: ", resp);
                 }
                 return resp;
             });
@@ -393,8 +359,8 @@ export class BotClient {
     }
 
     /**
-     * A MiniApp card, whose Open button opens the bot's app. See `MiniAppMessage`. Its optional
-     * image, shown above the text, is uploaded to OpenChat's storage first, as for
+     * A MiniApp card for a game, whose buttons open the bot's app. See `MiniAppMessage`. Its
+     * optional image, shown above the text, is uploaded to OpenChat's storage first, as for
      * `createImageMessage`, so that it's scanned like any image and deleted with the card. An image
      * OpenChat would refuse, without a width and a height or an image's mime type, isn't uploaded,
      * and the promise rejects.

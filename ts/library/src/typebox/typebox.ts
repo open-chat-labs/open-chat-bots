@@ -3105,7 +3105,21 @@ export const LocalUserIndexBotSendMessageSuccessResult = /* @__PURE__ */ Type.Ob
     message_index: MessageIndex,
     timestamp: Type.BigInt(),
     expires_at: Type.Optional(Type.BigInt()),
+    mini_app_registration: Type.Optional(Type.String()),
 });
+
+export type LocalUserIndexBotMiniAppTokenResponse = Static<
+    typeof LocalUserIndexBotMiniAppTokenResponse
+>;
+export const LocalUserIndexBotMiniAppTokenResponse = /* @__PURE__ */ Type.Union([
+    Type.Object({
+        Success: Type.String(),
+    }),
+    Type.Literal("NotAuthorized"),
+    Type.Object({
+        InternalError: Type.String(),
+    }),
+]);
 
 export type LocalUserIndexPayForPremiumItemArgs = Static<
     typeof LocalUserIndexPayForPremiumItemArgs
@@ -6654,33 +6668,28 @@ export const CommunityOrGroup = /* @__PURE__ */ Type.Union([
     }),
 ]);
 
+export type MiniAppActive = Static<typeof MiniAppActive>;
+export const MiniAppActive = /* @__PURE__ */ Type.Object({
+    players: Type.Array(UserId),
+    waiting_for: Type.Array(UserId),
+});
+
+export type MiniAppFinished = Static<typeof MiniAppFinished>;
+export const MiniAppFinished = /* @__PURE__ */ Type.Object({
+    players: Type.Array(UserId),
+    result: Type.Optional(Type.String()),
+});
+
 export type MiniAppStatus = Static<typeof MiniAppStatus>;
 export const MiniAppStatus = /* @__PURE__ */ Type.Union([
     Type.Literal("Open"),
-    Type.Literal("Active"),
-    Type.Literal("Finished"),
+    Type.Object({
+        Active: MiniAppActive,
+    }),
+    Type.Object({
+        Finished: MiniAppFinished,
+    }),
 ]);
-
-export type OptionUpdateUserIds = Static<typeof OptionUpdateUserIds>;
-export const OptionUpdateUserIds = /* @__PURE__ */ Type.Union(
-    [
-        Type.Literal("NoChange"),
-        Type.Literal("SetToNone"),
-        Type.Object({
-            SetToSome: Type.Array(UserId),
-        }),
-    ],
-    { default: "NoChange" },
-);
-
-export type MiniAppUpdate = Static<typeof MiniAppUpdate>;
-export const MiniAppUpdate = /* @__PURE__ */ Type.Object({
-    status: Type.Optional(MiniAppStatus),
-    players: Type.Optional(Type.Array(UserId)),
-    spectator_count: Type.Optional(Type.Number()),
-    waiting_for: OptionUpdateUserIds,
-    result: OptionUpdateString,
-});
 
 export type MiniAppImage = Static<typeof MiniAppImage>;
 export const MiniAppImage = /* @__PURE__ */ Type.Object({
@@ -6696,11 +6705,7 @@ export const MiniAppContent = /* @__PURE__ */ Type.Object({
     image: Type.Optional(MiniAppImage),
     max_players: Type.Optional(Type.Number()),
     spectators: Type.Boolean(),
-    spectator_count: Type.Number(),
     status: MiniAppStatus,
-    players: Type.Array(UserId),
-    waiting_for: Type.Optional(Type.Array(UserId)),
-    result: Type.Optional(Type.String()),
 });
 
 export type PriceChartContent = Static<typeof PriceChartContent>;
@@ -9299,14 +9304,6 @@ export const LocalUserIndexBotEditMessageArgs = /* @__PURE__ */ Type.Object({
     content: BotMessageContent,
     block_level_markdown: Type.Boolean(),
     og_previews: Type.Optional(Type.Array(OgPreview)),
-});
-
-export type LocalUserIndexBotUpdateMiniAppArgs = Static<typeof LocalUserIndexBotUpdateMiniAppArgs>;
-export const LocalUserIndexBotUpdateMiniAppArgs = /* @__PURE__ */ Type.Object({
-    chat_context: BotChatContext,
-    thread: Type.Optional(MessageIndex),
-    message_id: MessageId,
-    update: MiniAppUpdate,
 });
 
 export type LocalUserIndexAccessTokenV2Args = Static<typeof LocalUserIndexAccessTokenV2Args>;

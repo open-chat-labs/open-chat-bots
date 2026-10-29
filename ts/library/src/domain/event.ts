@@ -885,50 +885,50 @@ export type PriceChartSource = {
     url: string;
 };
 
-// A bot's card for an app it hosts, eg. a game. OpenChat shows the text, under the image if it has
-// one, with the players, whose move it is or the result, and an Open button, which opens the bot's
-// app, served by the bot at `/app` under its endpoint, in a frame. Its text, image, player limit and
-// whether others can watch never change: OpenChat refuses an edit of it. Its status, players, whose
-// move it is and the result are the bot's to keep up to date, with `BotClient.updateMiniApp`, until
-// the game is finished. Only a bot installed in the chat can send one, needing the MiniApp
-// permission, and it can't be sent in a direct chat nor forwarded. See `MiniAppMessage`.
+// A bot's card for a game, or another app, it hosts. OpenChat shows the text, under the image if it
+// has one, with the game's players, whose turn it is or its result, and buttons to join, open or
+// watch it, which open the bot's app, served by the bot at `/app` under its endpoint, in a frame.
+// Its text, image, player limit and whether others can watch are set when it's posted and never
+// change. Its status is written only by OpenChat's MiniApp service: the players the game starts
+// with, who joined through OpenChat and were accepted by the bot, whose turn it is, and then its
+// result. Only a bot installed in the chat can send one, needing the MiniApp permission, and it
+// can't be sent in a direct chat nor forwarded. See `MiniAppMessage`.
 export type MiniAppContent = {
     kind: "mini_app_content";
-    // Markdown, eg. "**Tic-tac-toe** · tap Open to play", of 1 to 2,000 characters. It's the
-    // message's text in notifications, previews and search.
+    // Markdown, eg. "**Uno** · 2 to 4 players", of 1 to 2,000 characters. It's the message's text
+    // in notifications, previews and search.
     text: string;
     // Shown above the text, eg. the game's artwork
     image?: MiniAppImage;
     // The most who can play, 1 to 100, if there's a limit, so the card can show eg. "2 of 4"
     maxPlayers?: number;
-    // Whether members who aren't playing can open the app once the game has started
+    // Whether people who aren't playing can watch: members, and anyone who can see a public chat
     spectators: boolean;
-    // How many members who aren't playing have the app open, as the bot reports it, so that they
-    // stay anonymous. It's 0 unless `spectators` is set.
-    spectatorCount: number;
     status: MiniAppStatus;
-    // The user ids of the members playing, in the bot's order, at most `maxPlayers` (or 100), each
-    // once. The bot itself can be one.
-    players: string[];
-    // The players whose move it is, if the game has turns
-    waitingFor?: string[];
-    // eg. "Bob won", of 1 to 200 characters, once the game is finished
-    result?: string;
 };
 
-// Taking players, being played, or over, after which the card never changes
-export type MiniAppStatus = "open" | "active" | "finished";
+// Taking players, being played, or over, after which the card never changes. A game only moves
+// forward through them.
+export type MiniAppStatus = MiniAppOpen | MiniAppActive | MiniAppFinished;
 
-// What `BotClient.updateMiniApp` changes on a card. Whatever's undefined stays as it was, and a
-// `waitingFor` or `result` of null removes it.
-export type MiniAppUpdate = {
-    status?: MiniAppStatus;
-    // Replaces the players
-    players?: string[];
-    // How many members who aren't playing have the app open
-    spectatorCount?: number;
-    waitingFor?: string[] | null;
-    result?: string | null;
+export type MiniAppOpen = {
+    kind: "open";
+};
+
+export type MiniAppActive = {
+    kind: "active";
+    // The user ids of those the game started with, in the order they joined
+    players: string[];
+    // The players whose turn it is, or no one in particular, eg. in a game without turns
+    waitingFor: string[];
+};
+
+export type MiniAppFinished = {
+    kind: "finished";
+    // Those the game started with, or no one if it never started
+    players: string[];
+    // eg. "Bob won", or none if the game was abandoned
+    result?: string;
 };
 
 // A card's image, which the bot uploads to OpenChat's storage first, as for an image message, so

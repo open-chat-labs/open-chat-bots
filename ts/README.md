@@ -258,150 +258,128 @@ a cycles cost on every send.
 
 ## MiniApp cards
 
-A bot can host an app, eg. a game, which members of a chat open from a card the bot posts there.
-The card is markdown text, with an optional image, the game's players, whose move it is and its
-result, and an Open button, all of which OpenChat draws. Its text, image, player limit and whether
-others can watch never change: OpenChat refuses an edit of it. Its status, players, spectator count,
-whose move it is and its result are the bot's to [keep up to date](#keeping-the-card-up-to-date).
-Everything interactive, eg. a lobby, a board and buttons, is the bot's own web page, which OpenChat
-shows in a sandboxed frame.
+A bot can host a game, or another app, which people open from a card the bot posts in a chat.
+OpenChat draws the card: markdown text, an optional image, the players, whose turn it is or the
+result, and buttons to join, open or watch. Everything else, eg. the board, is the bot's own page,
+`<endpoint>/app`, which OpenChat shows in a sandboxed frame.
 
-### Posting a card
+OpenChat's MiniApp service sits between OpenChat's website and the bot. It tracks who's joined each
+game, is the only thing that writes a card's status, and relays the game's state to its players and
+spectators, so spectators never reach the bot. Joining and leaving only happen through OpenChat's
+own buttons: nothing lets an app join or leave for its user. The whole protocol is in open-chat's
+`backend/docs/mini_app_service_protocol.md`.
 
 ```ts
-const card = (await client.createMiniAppMessage("**Tic-tac-toe** · tap Open to play"))
-    .setMaxPlayers(2)
-    // Whether members who aren't playing can open the app once the game has started
-    .setSpectators(true)
-    // eg. the member who ran the command
-    .setPlayers([client.initiator!]);
-const invalid = card.validate(); // as OpenChat checks it, with its errors
-await client.sendMessage(card);
+// Keep these. `apiGateway` is any LocalUserIndex, eg. an installation's.
+const miniApps = factory.createMiniAppServiceClient(MINI_APP_SERVICE_URL, apiGateway);
+const tokens = new MiniAppTokens(await miniApps.publicKey(), await factory.botId());
 ```
 
-Only bots installed in the chat can post one, and they need the `MiniApp` message permission, eg.
-in the command's `permissions`. It can't be posted in a direct chat, nor forwarded.
-`validateMiniAppContent` checks a card as OpenChat does: the text has 1 to 2,000 characters,
-`maxPlayers` is 1 to 100, the players are at most that many (or 100), each listed once, only a card
-open to spectators has a `spectatorCount`, only players are waited for, each once, and only a
-finished game has a result, of 1 to 200 characters. A card must be sent finalised, as messages are
-by default, or OpenChat refuses it.
-
-A card can have an image, shown above the text, eg. the game's artwork. `createMiniAppMessage`
-uploads it to OpenChat's storage first, as `createImageMessage` does, so that it's scanned like any
-image and deleted with the card. OpenChat refuses an image without a width and a height, or without
-an image's mime type, so `createMiniAppMessage` rejects one before uploading it:
+### 1. Post a card
 
 ```ts
-const card = await client.createMiniAppMessage("**Tic-tac-toe** · tap Open to play", {
-    data: png, // a Uint8Array
-    mimeType: "image/png",
-    width: 640,
-    height: 360,
+const card = (await client.createMiniAppMessage("**Uno** · 2 to 4 players", image))
+    .setMaxPlayers(4)
+    // Whether people who aren't playing can watch
+    .setSpectators(true);
+const invalid = card.validate(); // as OpenChat checks it, with its errors
+const sent = await client.sendMessage(card);
+```
+
+It needs the `MiniApp` message permission, can't be posted in a direct chat, and must be sent
+finalised, as messages are by default. Its text, image, player limit and spectators never change.
+`createMiniAppMessage` uploads the optional image (`{ data, mimeType, width, height }`) first, as
+`createImageMessage` does.
+
+### 2. Register it with the service
+
+```ts
+if (sent.kind === "success" && sent.miniAppRegistration !== undefined) {
+    const game = await miniApps.register(sent.miniAppRegistration);
+    games.set(miniAppGameKey(game), newGame());
+}
+```
+
+A `MiniAppGame` is `{ chat, thread?, messageId }`. `miniAppGameKey` gives a key that's unique across
+chats and threads. The service client sends the bot's token, from the LocalUserIndex's
+`bot_mini_app_token`, keeps it for its hour, and fetches a new one before it expires or if the
+service refuses it.
+
+### 3. Answer join and leave
+
+The service calls `POST <endpoint>/mini_app/join` and `/mini_app/leave`, with no body and its
+token in `x-oc-jwt`:
+
+```ts
+app.post("/mini_app/join", (req, res) => {
+    const { game, userId } = tokens.verifyJoin(req.headers["x-oc-jwt"]); // throws a TokenError
+    const response: MiniAppJoinResponse = addPlayer(game, userId)
+        ? { accepted: true }
+        : { accepted: false, message: "Seats are taken" };
+    res.json(response);
+});
+
+app.post("/mini_app/leave", (req, res) => {
+    const { game, userId } = tokens.verifyLeave(req.headers["x-oc-jwt"]);
+    removePlayer(game, userId); // 200 even if they weren't playing
+    res.json({});
 });
 ```
 
-### Keeping the card up to date
+Answer a join within 5 seconds. Answer a `TokenError` with a 401. Each method checks the
+signature, the kind of token, that it's for this bot and that it hasn't expired.
 
-As the game goes on, the bot updates the card with `client.updateMiniApp(messageId, update)`, which
-calls the LocalUserIndex's `bot_update_mini_app`. Whatever the update leaves undefined stays as it
-was, and `null` removes `waitingFor` or `result`:
-
-- `players` as players join or leave, replacing the list. They must be members of the chat, or the
-  bot itself.
-- `status: "active"` when the game starts.
-- `waitingFor: [player]` each turn, so the card shows whose move it is, or `null`.
-- `spectatorCount`, for a card open to spectators, as members who aren't playing open and close
-  the app. The bot counts them itself, so they stay anonymous, eg. the users who've called its API
-  in the last minute without playing. Send it only when it changes, and not too often.
-- `{ status: "finished", waitingFor: null, result: "Bob won" }` at the end. A finished card never
-  changes again.
-
-Only the bot which posted the card can update it, as for deleting its own messages:
-
-- With a command's context, eg. straight after posting the card, any installed bot can.
-- Autonomously, eg. from its app's API or a background task, the bot must be installed to act
-  autonomously: its definition has an `autonomous_config`, even with no permissions, and the owner
-  granted it when installing the bot.
-
-From its app's API, with the user's session:
+### 4. Publish state, status, whose turn it is and the result
 
 ```ts
-await factory
-    .createClientInAutonomouseContext(session.scope, session.apiGateway)
-    .updateMiniApp(session.messageId, { players }, { thread: session.thread });
+await miniApps.update({
+    game,
+    status: "active", // closes joining; the service writes the players to the card
+    waitingFor: [nextPlayer], // or [] for no one in particular
+    state: { seq: ++seq, shared: { version: 1, board, lastMove }, private: { [userId]: { hand } } },
+});
+await miniApps.update({ game, status: "finished", result: "Bob won" });
 ```
 
-`applyMiniAppUpdate(card, update)` gives the card as OpenChat leaves it, so a bot keeping its own
-copy can `validateMiniAppContent` an update before sending it.
+Whatever's undefined stays as it is. The status only moves forward, from open to active to
+finished, and a result only comes with finished. `remove: [userId]` takes players off, but a bot
+can never put them on. `seq` must go up, `shared` goes to everyone, spectators included, and each
+`private` part only to its player. Put a format version in the state, so an app left open from an
+older release knows to reload. A state is at most 64 KB. Errors are `MiniAppServiceError`s, whose
+`kind` says what went wrong, eg. `finished` or `unknown_game`.
 
-### The app
+### 5. Serve `/app`, using the browser client
 
-OpenChat opens the bot's endpoint, with any trailing slash removed, followed by `/app`, eg.
-`https://tictactoe.example.com/app`. That page talks to OpenChat, its parent window, with
-`postMessage`:
-
-| From | Message | When |
-| --- | --- | --- |
-| app | `{ kind: "mini_app_ready" }` | Once the app is listening, to `window.parent` with target origin `"*"`. It carries nothing secret. |
-| OpenChat | `{ kind: "initialise_mini_app", token, dark_mode, locale }` | In answer. Accept it only from `window.parent`, and send everything after it to its `event.origin`. |
-| app | `{ kind: "mini_app_token_request" }` | When the token is about to expire, or the bot's server refused it with a 401 |
-| OpenChat | `{ kind: "mini_app_token", token }` | In answer, with a new token |
-| OpenChat | `{ kind: "set_dark_mode", dark_mode }` | When the user's theme changes |
-
-The SDK's browser entry, `@open-ic/openchat-botclient-ts/mini_app`, which has no Node
-dependencies, does the app's side of this:
+The SDK's browser entry, `@open-ic/openchat-botclient-ts/mini_app`, has no Node dependencies:
 
 ```ts
 import { connectToOpenChat } from "@open-ic/openchat-botclient-ts/mini_app";
 
-// Sends mini_app_ready, and resolves once OpenChat has sent the token
-const openChat = await connectToOpenChat();
-
-setTheme(openChat.darkMode);
+const openChat = await connectToOpenChat<Board, Hand>();
+// The role is "player" or "spectator", and the state undefined until the first one comes
+render(openChat.role, openChat.state);
+openChat.onStateChange((state) => render(openChat.role, state));
+openChat.onRoleChange((role) => render(role, openChat.state));
 openChat.onDarkModeChange(setTheme);
 
-// With the token in the `x-oc-jwt` header. On a 401 it asks OpenChat for a new token and tries
-// once more.
-const presses = await (await openChat.fetch("api/presses")).json();
+// A player's request to the bot, with their token in `x-oc-jwt`. A spectator has no token.
+await openChat.fetch("api/move", { method: "POST", body: JSON.stringify(move) });
 ```
 
-- `connectToOpenChat({ openChatOrigins?, timeoutMs?, refreshBeforeExpiryMs? })` rejects outside a
-  frame, or if OpenChat doesn't answer within `timeoutMs` (10 seconds).
-- `token()` is the current token. The client asks for a new one a minute before it expires.
-- `refreshToken()` asks OpenChat for a new token now, and resolves with it, or rejects if OpenChat
-  doesn't answer in time.
-- `darkMode`, `locale` and `onDarkModeChange(callback)`, which returns a function to stop it.
-- `close()` stops listening.
+It takes messages only from the window it's framed in, drops a state whose `seq` isn't above the
+last one's, and asks OpenChat for a new player token before the current one expires. It also has
+`userId`, `token`, `darkMode`, `locale`, `refreshToken()` and `close()`. Serve the page as static,
+cacheable files, as it's the only thing spectators fetch from the bot.
 
-### The session token
-
-OpenChat gives the app a `BotMessageSession` token for the user and the card, once it has checked
-the user is a member of the chat. It's signed with the key OpenChat signs commands with, and is valid
-for 15 minutes. It only vouches for who the user is: OpenChat's bot endpoints refuse it. The bot's
-server verifies it:
+### 6. Verify player tokens on the app's requests
 
 ```ts
-const botId = await factory.botId(); // the user id OpenChat gave the bot, not its principal
-
-try {
-    const session = BotMessageSession.parse(req.headers["x-oc-jwt"], openchatPublicKey, botId);
-    // A message id is only unique within its chat and thread, so key the app's state by all three
-    const game = games.get(session.cardKey);
-    const player = session.userId;
-} catch (err) {
-    if (err instanceof TokenError) res.status(401).send(err.message);
-}
+const { game, userId } = tokens.verifyPlayer(req.headers["x-oc-jwt"]);
+if (!isPlayer(game, userId)) return res.status(403).end();
 ```
 
-`parse` checks the signature, that it's a `BotMessageSession` token, that it's for this bot, and that
-it hasn't expired (a `TokenError` whose `kind` is `expired`). Checking the bot matters, as otherwise
-one bot's server could replay a user's token to another bot. `factory.botId()` asks the UserIndex,
-in `userIndexCanisterId`, once the bot is registered, and keeps it.
-
-To update the card, or post a message of its own in the chat, the bot acts autonomously, with
-`factory.createClientInAutonomouseContext(session.scope, session.apiGateway)`. A message needs the
-autonomous permission for its type, in the bot's autonomous config.
+A player token lasts an hour and outlives the player being removed, so check the bot's own player
+list on every request too.
 
 ### No wagering
 
