@@ -8,7 +8,7 @@ export const STATE_VERSION = 1;
 
 export const GAME_ID = "chess";
 
-/** Each side's time for the whole game, with no increment */
+/** Each side's time for the whole game unless set, with nothing added per move unless set */
 export const TIME_PER_SIDE_MS = 10 * 60 * 1000;
 
 export type Side = "white" | "black";
@@ -59,6 +59,10 @@ export type SharedState = {
     names: Record<string, string>;
     white: string | null;
     black: string | null;
+    /** The settings as they stand (`CHESS_SETTINGS`): who's White, the minutes, the increment */
+    settings: Record<string, number>;
+    /** Who ran `/play`, and can change the settings while the game is open */
+    host: string | null;
 } & Partial<Snapshot>;
 
 /**

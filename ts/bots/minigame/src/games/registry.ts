@@ -3,7 +3,8 @@
 // its rules under `games/`, its requests under `handlers/api.ts` and its view under `app/`.
 import type { MiniAppSize } from "@open-ic/openchat-botclient-ts";
 import { ChessGame, type ChessData } from "./chess/chess";
-import { GAME_ID as CHESS_ID, TIME_PER_SIDE_MS } from "./chess/types";
+import { CHESS_SETTINGS } from "./chess/settings";
+import { GAME_ID as CHESS_ID } from "./chess/types";
 import type { Game, GameKind } from "./game";
 import { Race2048, type RaceData } from "./race2048/race";
 import { RACE_SETTINGS } from "./race2048/settings";
@@ -75,15 +76,14 @@ export const CHESS: GameType = {
     id: CHESS_ID,
     title: "Chess",
     image: "app/chess.svg",
-    cardText:
-        `**Chess** · ${TIME_PER_SIDE_MS / 60_000} minutes each\n` +
-        "Two players, anyone can watch. A coin decides who's White.",
+    // One line, as the race's: the time and who's White are settings, shown in the lobby
+    cardText: "**Chess** · two players, anyone can watch",
     maxPlayers: 2,
     spectators: true,
-    settings: [],
+    settings: CHESS_SETTINGS,
     // A portrait frame: a clock each side of the board, with the moves under it
     appSize: { width: 440, height: 740 },
-    create: () => ChessGame.create(),
+    create: (_config, settings, host) => ChessGame.create({ settings, host }),
     fromJson: (data) => new ChessGame(data as ChessData),
 };
 

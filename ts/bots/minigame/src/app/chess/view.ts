@@ -16,6 +16,7 @@ import {
     type SharedState,
     type Side,
 } from "../../games/chess/types";
+import { CHESS_SETTINGS, WHITE_IS_HOST, WHITE_IS_OPPONENT } from "../../games/chess/settings";
 import type { BaseState, GameView, Lobby, ViewContext } from "../view";
 
 const LOW_TIME_MS = 20_000;
@@ -92,12 +93,26 @@ export const chessView: GameView = {
 
     lobby(state): Lobby {
         const s = state as SharedState;
+        const { white, minutes, increment } = s.settings;
+        const host = s.host === null ? undefined : (s.names[s.host] ?? shortId(s.host));
+        const whiteText =
+            white === WHITE_IS_HOST && host !== undefined
+                ? `<strong>${escape(host)}</strong> plays White`
+                : white === WHITE_IS_OPPONENT && host !== undefined
+                  ? `<strong>${escape(host)}</strong>'s opponent plays White`
+                  : "A coin decides who's White";
+        const time =
+            `<strong>${minutes} minute${minutes === 1 ? "" : "s"}</strong> each for the whole game` +
+            (increment > 0
+                ? `, with <strong>${increment} second${increment === 1 ? "" : "s"}</strong> added after each move`
+                : "");
         return {
-            blurb: `Two players, with <strong>ten minutes</strong> each for the whole game. A coin decides
-                who's White. The game ends on checkmate, a flag falling, resignation, or a draw:
-                agreed, stalemate, repetition, the fifty-move rule or bare material.`,
+            blurb: `Two players, with ${time}. ${whiteText}. The game ends on checkmate, a flag
+                falling, resignation, or a draw: agreed, stalemate, repetition, the fifty-move rule
+                or bare material.`,
             seats: s.players.map((id) => ({ id, name: s.names[id] ?? shortId(id) })),
             hint: "Start once you're both here. White moves first.",
+            settings: { specs: CHESS_SETTINGS, current: s.settings, host: s.host ?? undefined },
         };
     },
 

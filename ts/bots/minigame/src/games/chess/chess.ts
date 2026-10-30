@@ -1,7 +1,7 @@
-// A game of chess between two members of a chat, with ten minutes each on the clock, which everyone
-// else can watch. Two join; when a player starts the game a coin decides who's White, and White's
-// clock runs. The rules and the clocks are the `Match`'s; this knows who plays each side, and what
-// the card and the app are told.
+// A game of chess between two members of a chat, which everyone else can watch. Two join; when a
+// player starts the game, White is whoever the settings say, or a coin decides, and White's clock
+// runs, with each side's time and the increment from the settings. The rules and the clocks are the
+// `Match`'s; this knows who plays each side, and what the card and the app are told.
 import {
     jsonBytes,
     MAX_END_STATE_BYTES,
@@ -9,8 +9,9 @@ import {
     type Game,
     type Phase,
 } from "../game";
-import type { Settings } from "../settings";
+import { defaultSettings, type Settings } from "../settings";
 import { describe, Match, type MatchData } from "./match";
+import { CHESS_SETTINGS, WHITE_IS_HOST, WHITE_IS_OPPONENT } from "./settings";
 import {
     GAME_ID,
     STATE_VERSION,
@@ -30,11 +31,18 @@ export type ChessData = {
     finishedAt?: number;
     /** The board and the clocks, once the game has started */
     match?: MatchData;
+    /** The settings chosen, by id (`CHESS_SETTINGS`); the rest are the defaults */
+    settings?: Settings;
+    /** Who ran `/play`: the one who can change the settings, and "the host" in the `white` setting */
+    host?: string;
 };
 
 export type ChessOptions = {
     random?: () => number;
     now?: () => number;
+    /** The settings to start with, eg. from the command; any left out is its default */
+    settings?: Settings;
+    host?: string;
 };
 
 export class ChessGame implements Game {
@@ -55,7 +63,16 @@ export class ChessGame implements Game {
 
     static create(options: ChessOptions = {}): ChessGame {
         const now = options.now ?? Date.now;
-        return new ChessGame({ players: [], seq: 0, createdAt: now() }, options);
+        return new ChessGame(
+            {
+                players: [],
+                seq: 0,
+                createdAt: now(),
+                settings: options.settings,
+                host: options.host,
+            },
+            options,
+        );
     }
 
     get data(): ChessData {
@@ -135,14 +152,30 @@ export class ChessGame implements Game {
         return undefined;
     }
 
-    /** Starts the game between the two who've joined, a coin deciding who's White, who moves first */
+    /**
+     * Starts the game between the two who've joined. White, who moves first, is the host or their
+     * opponent if the settings say so and the host is playing; otherwise a coin decides.
+     */
     start(): string[] {
         if (this.#match === undefined && this.#data.players.length === 2) {
-            if (this.#random() < 0.5) {
+            const settings = this.settings();
+            const host = this.#data.host;
+            const hostFirst = host !== undefined && this.#data.players[0].id === host;
+            const hostPlays = host !== undefined && this.isSeated(host);
+            const reverse =
+                hostPlays && settings.white === WHITE_IS_HOST
+                    ? !hostFirst
+                    : hostPlays && settings.white === WHITE_IS_OPPONENT
+                      ? hostFirst
+                      : this.#random() < 0.5;
+            if (reverse) {
                 this.#data.players.reverse();
             }
             const now = this.#now();
-            this.#match = Match.create(now);
+            this.#match = Match.create(now, undefined, {
+                perSideMs: settings.minutes * 60_000,
+                incrementMs: settings.increment * 1000,
+            });
             this.#data.match = this.#match.data;
             this.#data.startedAt = now;
         }
@@ -156,16 +189,26 @@ export class ChessGame implements Game {
         return id === undefined ? [] : [id];
     }
 
-    /** When the side to move's flag falls, unless it moves first */
-    /** Chess has no settings: ten minutes each is fixed */
+    /** Every setting as it stands: the ones chosen over the defaults */
     settings(): Settings {
-        return {};
+        return { ...defaultSettings(CHESS_SETTINGS), ...this.#data.settings };
     }
 
-    configure(): ConfigureResult {
-        return { ok: false, error: "Chess has no settings" };
+    get host(): string | undefined {
+        return this.#data.host;
     }
 
+    /** Changes settings, which only the host can, and only before the game starts */
+    configure(userId: string, settings: Settings): ConfigureResult {
+        if (this.#match !== undefined) return { ok: false, error: "The game has started" };
+        if (userId !== this.#data.host) {
+            return { ok: false, error: "Only the host can change the settings" };
+        }
+        this.#data.settings = { ...this.#data.settings, ...settings };
+        return { ok: true };
+    }
+
+    /** When the side to move's flag falls, unless it moves first */
     deadline(): number | undefined {
         return this.#match?.deadline();
     }
@@ -236,6 +279,8 @@ export class ChessGame implements Game {
             names,
             white: this.white ?? null,
             black: this.black ?? null,
+            settings: this.settings(),
+            host: this.#data.host ?? null,
             ...this.#match?.snapshot(this.#now()),
         };
     }
