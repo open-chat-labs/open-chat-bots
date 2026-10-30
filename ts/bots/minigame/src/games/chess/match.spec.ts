@@ -141,7 +141,7 @@ describe("a game of chess", () => {
         const game = Match.create(START);
         expect(game.resign("black", START + 1000)).toBeUndefined();
         expect(game.ending).toEqual({ kind: "resignation", winner: "white" });
-        expect(game.snapshot(START).result).toBe("White won by resignation");
+        expect(game.snapshot(START).result).toBe("Black resigned");
         expect(game.resign("white", START + 2000)).toBe("The game has finished");
         // The clock stopped when the game ended
         expect(game.snapshot(START + 9000).clock.white_ms).toBe(TIME_PER_SIDE_MS - 1000);

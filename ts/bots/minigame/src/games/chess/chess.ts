@@ -1,5 +1,5 @@
 // A game of chess between two members of a chat, which everyone else can watch. Two join; when a
-// player starts the game, White is whoever the settings say, or a coin decides, and White's clock
+// player starts the game, White is whoever the settings say, or is chosen at random, and White's clock
 // runs, with each side's time and the increment from the settings. The rules and the clocks are the
 // `Match`'s; this knows who plays each side, and what the card and the app are told.
 import {
@@ -7,6 +7,7 @@ import {
     MAX_END_STATE_BYTES,
     type ConfigureResult,
     type Game,
+    type Host,
     type Phase,
 } from "../game";
 import { defaultSettings, type Settings } from "../settings";
@@ -35,6 +36,7 @@ export type ChessData = {
     settings?: Settings;
     /** Who ran `/play`: the one who can change the settings, and "the host" in the `white` setting */
     host?: string;
+    hostName?: string;
 };
 
 export type ChessOptions = {
@@ -42,7 +44,7 @@ export type ChessOptions = {
     now?: () => number;
     /** The settings to start with, eg. from the command; any left out is its default */
     settings?: Settings;
-    host?: string;
+    host?: Host;
 };
 
 export class ChessGame implements Game {
@@ -69,7 +71,8 @@ export class ChessGame implements Game {
                 seq: 0,
                 createdAt: now(),
                 settings: options.settings,
-                host: options.host,
+                host: options.host?.id,
+                hostName: options.host?.name,
             },
             options,
         );
@@ -154,7 +157,7 @@ export class ChessGame implements Game {
 
     /**
      * Starts the game between the two who've joined. White, who moves first, is the host or their
-     * opponent if the settings say so and the host is playing; otherwise a coin decides.
+     * opponent if the settings say so and the host is playing; otherwise it's random.
      */
     start(): string[] {
         if (this.#match === undefined && this.#data.players.length === 2) {
@@ -268,6 +271,10 @@ export class ChessGame implements Game {
 
     shared(): SharedState {
         const names: Record<string, string> = {};
+        // The host's name, so the lobby can say who's White before they've joined
+        if (this.#data.host !== undefined && this.#data.hostName !== undefined) {
+            names[this.#data.host] = this.#data.hostName;
+        }
         for (const p of this.#data.players) names[p.id] = p.name;
         const status =
             this.phase === "open" ? "Open" : this.phase === "active" ? "Active" : "Finished";

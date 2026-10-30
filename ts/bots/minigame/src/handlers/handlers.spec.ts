@@ -152,7 +152,7 @@ describe("the service's calls for a chess game", () => {
 
         const play = store.get(game)!.play;
         expect(play.phase).toBe("finished");
-        expect(play.result()).toBe("White won by abandonment");
+        expect(play.result()).toBe("Black left the game");
         expect(publish).toHaveBeenCalledTimes(1);
     });
 
@@ -223,7 +223,7 @@ describe("the app's requests for a chess game", () => {
         const resigned = await send(chessResign, other.deps, "bob");
         expect(resigned.body).toMatchObject({
             ok: true,
-            shared: { result: "White won by resignation" },
+            shared: { result: "Black resigned" },
         });
         expect(await send(chessResign, other.deps, "bob")).toEqual({
             status: 409,

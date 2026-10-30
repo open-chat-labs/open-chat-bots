@@ -5,7 +5,7 @@ import type { MiniAppSize } from "@open-ic/openchat-botclient-ts";
 import { ChessGame, type ChessData } from "./chess/chess";
 import { CHESS_SETTINGS } from "./chess/settings";
 import { GAME_ID as CHESS_ID } from "./chess/types";
-import type { Game, GameKind } from "./game";
+import type { Game, GameKind, Host } from "./game";
 import { Race2048, type RaceData } from "./race2048/race";
 import { RACE_SETTINGS } from "./race2048/settings";
 import { GAME_ID as RACE_ID, MAX_PLAYERS } from "./race2048/types";
@@ -50,7 +50,7 @@ export type GameType = {
      * A new game, as `/play` posts one, with the settings its parameters gave, each one of its
      * choices, and the host, the user who ran it
      */
-    create: (config: GameConfig, settings: Settings, host: string | undefined) => Game;
+    create: (config: GameConfig, settings: Settings, host: Host | undefined) => Game;
     /** A game from what the store wrote of it, `Game.toJson()` */
     fromJson: (data: unknown) => Game;
 };

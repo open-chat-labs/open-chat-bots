@@ -7,7 +7,7 @@ the card, a player starts the game, and it's played in the card, in the bot's ow
   wins, or the top score when 10 minutes are up. A player whose board gets stuck restarts on a fresh
   board, as often as they like, and everyone sees how many times;
 - **chess**: two players, which everyone else in the chat can watch, with ten minutes each on the
-  clock, nothing added per move, and a coin deciding who's White, unless the host sets otherwise.
+  clock, nothing added per move, and White chosen at random, unless the host sets otherwise.
   The rules are
   [chess.js](https://github.com/jhlywa/chess.js)'s (MIT): the game ends by itself on checkmate,
   stalemate, insufficient material, threefold repetition and the fifty-move rule, and otherwise by
@@ -36,13 +36,13 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    `POST /mini_app/join`, which looks the user's name up and gives them a seat: up to 10 in a race,
    two at chess ("This game is for two" after that, "The game has started" once it has). Leaving,
    `POST /mini_app/leave`, frees the seat before the start. After it, a race goes on without them;
-   a chess game can't, so it ends, the other player winning "by abandonment". The lobby's seats are
+   a chess game can't, so it ends, the result being that they "left the game". The lobby's seats are
    published as the game's state, so the page shows who's joined.
 3. **Starting**: a player presses Start in the page, OpenChat asks the bot at
    `POST /mini_app/start`, and the bot answers with the players, the first state and the game's
    settings, which the card keeps from then on and OpenChat hands to the app. A race deals
    everyone seated a board with two tiles, and it's everyone's turn at once. Chess needs two,
-   tosses a coin for White, lists the players White first, says it's waiting for White, and White's
+   picks White at random unless set, lists the players White first, says it's waiting for White, and White's
    clock runs.
 4. **Moves** go from the page straight to the bot, with the player's token in `x-oc-jwt`, which
    checks the game's own player list on every request and publishes the whole game's state through

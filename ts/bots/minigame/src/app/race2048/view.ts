@@ -94,7 +94,12 @@ export const raceView: GameView = {
                 Stuck? Restart on a fresh board and keep racing.`,
             seats: s.seats,
             hint: `Start when everyone has joined. Up to ${s.maxPlayers} can race.`,
-            settings: { specs: RACE_SETTINGS, current: s.settings, host: s.host },
+            settings: {
+                specs: RACE_SETTINGS,
+                current: s.settings,
+                host: s.host,
+                hostName: s.hostName,
+            },
         };
     },
 
@@ -393,24 +398,19 @@ function updateCard(
     const top = mine?.best ?? p.best;
     const dead = mine?.dead ?? p.dead;
     const won = mine?.won ?? p.won;
-    // The big board that isn't the viewer's own is the leader's
-    const leading = size === "main" && mine === undefined;
     card.name.innerHTML = `${escape(p.name)}${mine !== undefined ? " <em>(you)</em>" : ""}`;
+    // Only what's out of the ordinary is marked: the winner, and a board that's stuck
     card.status.innerHTML = won
         ? `<span class="chip winner">Winner</span>`
         : dead
           ? `<span class="chip stuck">Stuck</span>`
-          : shared.phase === "finished"
-            ? ""
-            : leading
-              ? `<span class="chip racing">Leading</span>`
-              : `<span class="chip racing">Racing</span>`;
-    // "Top" is the score that ranks a player, from any of their boards; "Now" is this board's
+          : "";
+    // "Top" is the score that ranks a player, from any of their boards; "Current" is this board's
     const restarts = p.restarts > 0 ? ` <span title="Restarts">↻ ${p.restarts}</span>` : "";
     card.stats.innerHTML =
         size === "main"
-            ? `<span>Top <strong>${top}</strong></span><span>Now <strong>${score}</strong></span>${restarts}`
-            : `<span>Top <strong>${top}</strong></span><span>Now ${score}${restarts}</span>`;
+            ? `<span>Top <strong>${top}</strong></span><span>Current <strong>${score}</strong></span>${restarts}`
+            : `<span>Top <strong>${top}</strong></span><span>Current ${score}${restarts}</span>`;
     card.view.update(board, hint);
     card.overlay.hidden = !(mine !== undefined && dead && shared.phase === "active");
 }

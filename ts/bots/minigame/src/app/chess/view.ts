@@ -95,24 +95,32 @@ export const chessView: GameView = {
         const s = state as SharedState;
         const { white, minutes, increment } = s.settings;
         const host = s.host === null ? undefined : (s.names[s.host] ?? shortId(s.host));
+        // The host is White, or their opponent is, only if the host plays: otherwise it's random
+        const hostPlays = s.host !== null && s.players.includes(s.host);
         const whiteText =
             white === WHITE_IS_HOST && host !== undefined
-                ? `<strong>${escape(host)}</strong> plays White`
+                ? `<strong>${escape(host)}</strong> plays as White${hostPlays ? "" : " if they join"}`
                 : white === WHITE_IS_OPPONENT && host !== undefined
-                  ? `<strong>${escape(host)}</strong>'s opponent plays White`
-                  : "A coin decides who's White";
-        const time =
-            `<strong>${minutes} minute${minutes === 1 ? "" : "s"}</strong> each for the whole game` +
-            (increment > 0
-                ? `, with <strong>${increment} second${increment === 1 ? "" : "s"}</strong> added after each move`
-                : "");
+                  ? `<strong>${escape(host)}</strong>'s opponent plays as White${hostPlays ? "" : " if they join"}`
+                  : "White chosen at random";
+        // One line of what's set, the increment only when there is one: people know the rules
+        const parts = [`<strong>${minutes} minute${minutes === 1 ? "" : "s"}</strong> each`];
+        if (increment > 0) {
+            parts.push(
+                `<strong>${increment} second${increment === 1 ? "" : "s"}</strong> added per move`,
+            );
+        }
+        parts.push(whiteText);
         return {
-            blurb: `Two players, with ${time}. ${whiteText}. The game ends on checkmate, a flag
-                falling, resignation, or a draw: agreed, stalemate, repetition, the fifty-move rule
-                or bare material.`,
+            blurb: `${parts.join(", ")}.`,
             seats: s.players.map((id) => ({ id, name: s.names[id] ?? shortId(id) })),
-            hint: "Start once you're both here. White moves first.",
-            settings: { specs: CHESS_SETTINGS, current: s.settings, host: s.host ?? undefined },
+            hint: "Start once you're both here.",
+            settings: {
+                specs: CHESS_SETTINGS,
+                current: s.settings,
+                host: s.host ?? undefined,
+                hostName: s.host === null ? undefined : s.names[s.host],
+            },
         };
     },
 

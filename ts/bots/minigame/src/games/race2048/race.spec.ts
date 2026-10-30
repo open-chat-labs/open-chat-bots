@@ -13,7 +13,12 @@ function clock(start = 1_000_000) {
 
 function started(names = ["alice", "bob"], settings?: Settings) {
     const time = clock();
-    const race = Race2048.create({ random: first2, now: time.now, settings, host: "alice" });
+    const race = Race2048.create({
+        random: first2,
+        now: time.now,
+        settings,
+        host: { id: "alice", name: "ALICE" },
+    });
     names.forEach((name) => race.takeSeat(name, name.toUpperCase()));
     race.start();
     return { race, time };
@@ -240,11 +245,18 @@ describe("time limit", () => {
 
 describe("settings", () => {
     it("are the defaults unless chosen, and the host changes them while the race is open", () => {
-        const race = Race2048.create({ settings: { target: 512 }, host: "alice" });
+        const race = Race2048.create({
+            settings: { target: 512 },
+            host: { id: "alice", name: "ALICE" },
+        });
         expect(race.settings()).toEqual({ target: 512, minutes: 10 });
         expect(race.target).toBe(512);
         expect(race.timeLimit).toBe(TIME_LIMIT_MS);
-        expect(race.shared()).toMatchObject({ settings: { target: 512, minutes: 10 }, host: "alice" });
+        expect(race.shared()).toMatchObject({
+            settings: { target: 512, minutes: 10 },
+            host: "alice",
+            hostName: "ALICE",
+        });
 
         expect(race.configure("bob", { minutes: 5 })).toEqual({
             ok: false,

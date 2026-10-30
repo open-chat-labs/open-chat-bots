@@ -30,7 +30,7 @@ export type PlayerView = {
     id: string;
     name: string;
     board: Board;
-    /** This board's score: "Now" on the cards */
+    /** This board's score: "Current" on the cards */
     score: number;
     /** The top score of any of their boards, "Top" on the cards, which ranks them and wins when the time's up */
     best: number;
@@ -53,6 +53,8 @@ export type SharedState = {
     settings: Settings;
     /** Who ran `/play`, and can change the settings while the race is open */
     host?: string;
+    /** The host's name, as they may not have joined */
+    hostName?: string;
     target: number;
     /** How long the race lasts from its start, in ms, before the top score wins */
     timeLimit: number;
