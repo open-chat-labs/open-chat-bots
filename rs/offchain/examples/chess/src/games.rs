@@ -161,6 +161,14 @@ impl Games {
         Ok((offer, game.change(now)))
     }
 
+    /// The game as it stands before it starts, so everyone with it open sees who's joined, or
+    /// nothing if it's started
+    pub fn lobby(&self, game: MiniAppGame, now: TimestampMillis) -> Option<Change> {
+        let mut games = self.games.lock().unwrap();
+        let game = games.get_mut(&game)?;
+        game.play.is_none().then(|| game.change(now))
+    }
+
     /// Ends the game on time if the side to move's flag has fallen, giving the finished state if
     /// it did
     pub fn flag(&self, game: MiniAppGame, now: TimestampMillis) -> Option<Change> {
@@ -508,17 +516,27 @@ mod tests {
     }
 
     #[test]
-    fn an_open_game_s_state_has_no_board() {
+    fn an_open_game_s_state_lists_who_has_joined() {
         let games = Games::default();
+        assert!(games.lobby(game(1), START).is_none());
         games.join(game(1), user(1)).unwrap();
-        let mut game_state = games.games.lock().unwrap();
-        let change = game_state.get_mut(&game(1)).unwrap().change(START);
+        let change = games.lobby(game(1), START).unwrap();
 
         assert_eq!(
             change.state.shared,
             json!({ "status": "Open", "players": [user(1)], "white": null, "black": null })
         );
+        assert_eq!(change.state.seq, 1);
         assert_eq!(change.waiting_for, Vec::<UserId>::new());
+        assert_eq!(change.result, None);
         assert_eq!(change.deadline, None);
+        // The update carries only the state
+        let update = change.into_update(game(1));
+        assert_eq!(update.status, None);
+        assert_eq!(update.waiting_for, Some(Vec::new()));
+
+        games.join(game(1), user(2)).unwrap();
+        games.start(game(1), user(1), START, true).unwrap();
+        assert!(games.lobby(game(1), START).is_none());
     }
 }

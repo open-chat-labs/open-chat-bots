@@ -198,6 +198,7 @@
 
 const TOKEN_TIMEOUT_MS = 10000;
 const LOW_TIME_MS = 20000;
+const RESIGN_CONFIRM_MS = 4000;
 const FILES = "abcdefgh";
 const GLYPHS = { k: "♚", q: "♛", r: "♜", b: "♝", n: "♞", p: "♟" };
 
@@ -217,10 +218,12 @@ let promotion = null;
 let sending = false;
 // The token request OpenChat hasn't answered yet: { promise, resolve, reject, timer }
 let tokenRequest = null;
+// The timer during which a second tap on Resign resigns
+let resignArmed = null;
 
 const statusText = document.getElementById("status");
-const top = document.getElementById("top");
-const bottom = document.getElementById("bottom");
+const topPanel = document.getElementById("top");
+const bottomPanel = document.getElementById("bottom");
 const board = document.getElementById("board");
 const offerText = document.getElementById("offer");
 const controls = document.getElementById("controls");
@@ -237,8 +240,15 @@ startButton.addEventListener("click", () => {
   window.parent.postMessage({ kind: "mini_app_start" }, openChatOrigin);
 });
 drawButton.addEventListener("click", () => call("api/draw"));
+// Resigning takes two taps, a few seconds apart at most: the frame is sandboxed without dialogs
 resignButton.addEventListener("click", () => {
-  if (window.confirm("Resign the game?")) call("api/resign");
+  if (resignArmed === null) {
+    resignButton.textContent = "Tap again to resign";
+    resignArmed = setTimeout(disarmResign, RESIGN_CONFIRM_MS);
+  } else {
+    disarmResign();
+    call("api/resign");
+  }
 });
 for (const button of promotionDialog.querySelectorAll(".piece-choice")) {
   button.addEventListener("click", () => {
@@ -377,6 +387,12 @@ function sendMove(uci) {
   call("api/move", { move: uci });
 }
 
+function disarmResign() {
+  clearTimeout(resignArmed);
+  resignArmed = null;
+  resignButton.textContent = "Resign";
+}
+
 function showError(text) {
   errorText.textContent = text;
 }
@@ -498,13 +514,13 @@ function renderPlayers() {
   };
   const bottomColor = flipped() ? "black" : "white";
   const topColor = flipped() ? "white" : "black";
-  bottom.querySelector(".name").innerHTML = describe(bottomColor);
-  top.querySelector(".name").innerHTML = describe(topColor);
-  bottom.dataset.color = bottomColor;
-  top.dataset.color = topColor;
+  bottomPanel.querySelector(".name").innerHTML = describe(bottomColor);
+  topPanel.querySelector(".name").innerHTML = describe(topColor);
+  bottomPanel.dataset.color = bottomColor;
+  topPanel.dataset.color = topColor;
   const running = shared?.clock?.running ?? null;
-  bottom.classList.toggle("active", running === bottomColor);
-  top.classList.toggle("active", running === topColor);
+  bottomPanel.classList.toggle("active", running === bottomColor);
+  topPanel.classList.toggle("active", running === topColor);
 }
 
 function renderBoard() {
@@ -599,7 +615,7 @@ function formatClock(ms) {
 // What each side has left: the state's figure, less the time since it arrived for the side whose
 // clock is running
 function tickClocks() {
-  for (const panel of [top, bottom]) {
+  for (const panel of [topPanel, bottomPanel]) {
     const clockText = panel.querySelector(".clock");
     const clock = shared?.clock;
     if (!clock) {

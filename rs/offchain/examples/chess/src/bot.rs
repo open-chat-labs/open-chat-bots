@@ -56,6 +56,21 @@ impl Bot {
             .map_err(|error| format!("The MiniApp service didn't take the update: {error}"))
     }
 
+    /// Shows everyone with the game open who's joined, once the service has the bot's answer. It
+    /// can't wait for the service: the service holds the game while it asks the bot about a join,
+    /// so an update sent before the answer would wait for the join to time out.
+    pub fn publish_lobby(self: &Arc<Self>, game: MiniAppGame) {
+        let Some(change) = self.games.lobby(game, env::now()) else {
+            return;
+        };
+        let bot = self.clone();
+        tokio::spawn(async move {
+            if let Err(error) = bot.publish(game, change).await {
+                error!("Failed to send the players of {game:?}: {error}");
+            }
+        });
+    }
+
     /// Ends the game on time when the side to move's flag falls, unless it moves first. Called
     /// whenever a side's clock starts, so there's a task waiting for each deadline the game has
     /// had; one which wakes to find the game has moved on, or is over, does nothing.

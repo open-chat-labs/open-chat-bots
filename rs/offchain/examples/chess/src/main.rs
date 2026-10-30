@@ -212,9 +212,11 @@ mod tests {
     }
 
     struct TestBot {
-        // Kept here so that the runtime it holds is dropped outside `block_on`
-        state: Arc<AppState>,
+        // Dropped first, so that a task it still runs, eg. one sending the players who joined,
+        // lets go of the bot before `state` drops the bot, and the runtime the bot holds, outside
+        // of any async context
         runtime: tokio::runtime::Runtime,
+        state: Arc<AppState>,
     }
 
     impl TestBot {
@@ -351,7 +353,8 @@ mod tests {
         assert!(players.contains(&json!(id(6).to_string())));
         // White moves first
         assert_eq!(start["waiting_for"], json!([players[0]]));
-        assert_eq!(start["state"]["seq"], 1);
+        // Above the four lobby states, sent as players joined and left
+        assert_eq!(start["state"]["seq"], 5);
         assert_eq!(start["state"]["shared"]["status"], "Active");
         assert_eq!(start["state"]["shared"]["white"], players[0]);
         assert_eq!(start["state"]["shared"]["black"], players[1]);

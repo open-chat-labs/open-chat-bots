@@ -20,7 +20,10 @@ pub async fn join(
 
     Ok(Json(
         match state.bot.games.join(claims.game, claims.user_id) {
-            Ok(()) => JoinResponse::accept(),
+            Ok(()) => {
+                state.bot.publish_lobby(claims.game);
+                JoinResponse::accept()
+            }
             Err(message) => JoinResponse::refuse(message),
         },
     ))
@@ -59,6 +62,7 @@ pub async fn leave(
 ) -> Result<StatusCode, ApiError> {
     let claims = verified(&state, |verifier| verifier.leave(&jwt)).await?;
     state.bot.games.leave(claims.game, claims.user_id);
+    state.bot.publish_lobby(claims.game);
 
     Ok(StatusCode::OK)
 }
