@@ -178,6 +178,34 @@ button.link {
     box-shadow: var(--shadow);
 }
 
+.settings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin: 12px 0;
+}
+
+.settings label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.settings select {
+    font: inherit;
+    color: var(--fg);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 8px;
+}
+
+.small {
+    font-size: 13px;
+}
+
 .seats {
     list-style: none;
     padding: 0;

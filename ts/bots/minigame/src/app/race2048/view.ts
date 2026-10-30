@@ -16,6 +16,7 @@ import {
     type PlayerView,
     type SharedState,
 } from "../../games/race2048/types";
+import { RACE_SETTINGS } from "../../games/race2048/settings";
 import type { BaseState, GameView, Lobby, ViewContext } from "../view";
 import { BoardView } from "./board";
 
@@ -93,6 +94,7 @@ export const raceView: GameView = {
                 Stuck? Restart on a fresh board and keep racing.`,
             seats: s.seats,
             hint: `Start when everyone has joined. Up to ${s.maxPlayers} can race.`,
+            settings: { specs: RACE_SETTINGS, current: s.settings, host: s.host },
         };
     },
 

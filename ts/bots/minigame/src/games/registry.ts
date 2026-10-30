@@ -6,14 +6,14 @@ import { ChessGame, type ChessData } from "./chess/chess";
 import { GAME_ID as CHESS_ID, TIME_PER_SIDE_MS } from "./chess/types";
 import type { Game, GameKind } from "./game";
 import { Race2048, type RaceData } from "./race2048/race";
-import { GAME_ID as RACE_ID, MAX_PLAYERS, TARGET, TIME_LIMIT_MS } from "./race2048/types";
+import { RACE_SETTINGS } from "./race2048/settings";
+import { GAME_ID as RACE_ID, MAX_PLAYERS } from "./race2048/types";
+import type { SettingSpec, Settings } from "./settings";
 
 /** What a game can be made with, from the bot's config */
 export type GameConfig = {
-    /** The tile which wins a race, if not 2048 */
-    raceTarget?: number;
-    /** How long a race lasts, in ms, if not 10 minutes */
-    raceTimeLimit?: number;
+    /** A race's settings unless the command or the host sets them, eg. a quick race for a test */
+    raceSettings?: Settings;
 };
 
 export type GameType = {
@@ -36,12 +36,20 @@ export type GameType = {
     /** Whether people who aren't playing can watch */
     spectators: boolean;
     /**
+     * What can be set, each a choice among a few values with a default: `/play`'s parameters,
+     * and the host's form in the lobby. The page draws the form from the same declaration.
+     */
+    settings: readonly SettingSpec[];
+    /**
      * The size the page is laid out for, in CSS pixels. The card shows the page at that aspect
      * ratio, as wide as the card, so this is what it's drawn at unless the player goes full screen.
      */
     appSize: MiniAppSize;
-    /** A new game, as `/play` posts one */
-    create: (config: GameConfig) => Game;
+    /**
+     * A new game, as `/play` posts one, with the settings its parameters gave, each one of its
+     * choices, and the host, the user who ran it
+     */
+    create: (config: GameConfig, settings: Settings, host: string | undefined) => Game;
     /** A game from what the store wrote of it, `Game.toJson()` */
     fromJson: (data: unknown) => Game;
 };
@@ -50,16 +58,16 @@ export const RACE_2048: GameType = {
     id: RACE_ID,
     title: "2048 Race",
     image: "app/2048.svg",
-    cardText:
-        `**2048 Race** · up to ${MAX_PLAYERS} players\n` +
-        `Everyone gets a board. The first to make a ${TARGET} tile wins, or the top score ` +
-        `after ${TIME_LIMIT_MS / 60_000} minutes. Stuck? Restart on a fresh board and keep racing.`,
+    // One line, for where the card shows without its app: replies, previews, notifications. The
+    // rules and the settings are in the lobby, where the target and the time can change.
+    cardText: `**2048 Race** · up to ${MAX_PLAYERS} players`,
     maxPlayers: MAX_PLAYERS,
     spectators: true,
+    settings: RACE_SETTINGS,
     // A portrait frame: the lobby, or a player's board above a row of the others'
     appSize: { width: 480, height: 720 },
-    create: (config) =>
-        Race2048.create({ target: config.raceTarget, timeLimit: config.raceTimeLimit }),
+    create: (config, settings, host) =>
+        Race2048.create({ settings: { ...config.raceSettings, ...settings }, host }),
     fromJson: (data) => new Race2048(data as RaceData),
 };
 
@@ -72,6 +80,7 @@ export const CHESS: GameType = {
         "Two players, anyone can watch. A coin decides who's White.",
     maxPlayers: 2,
     spectators: true,
+    settings: [],
     // A portrait frame: a clock each side of the board, with the moves under it
     appSize: { width: 440, height: 740 },
     create: () => ChessGame.create(),

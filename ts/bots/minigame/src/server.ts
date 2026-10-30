@@ -78,8 +78,7 @@ const deps: Deps = {
         return serviceClient(store.apiGateway)!;
     },
     tokens: miniAppTokens,
-    raceTarget: config.raceTarget,
-    raceTimeLimit: config.raceTimeLimit,
+    raceSettings: config.raceSettings,
 };
 
 // A chess game that was running when the bot stopped: its clock skipped the time the bot was

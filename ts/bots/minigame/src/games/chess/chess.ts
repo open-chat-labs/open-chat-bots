@@ -2,7 +2,14 @@
 // else can watch. Two join; when a player starts the game a coin decides who's White, and White's
 // clock runs. The rules and the clocks are the `Match`'s; this knows who plays each side, and what
 // the card and the app are told.
-import { jsonBytes, MAX_END_STATE_BYTES, type Game, type Phase } from "../game";
+import {
+    jsonBytes,
+    MAX_END_STATE_BYTES,
+    type ConfigureResult,
+    type Game,
+    type Phase,
+} from "../game";
+import type { Settings } from "../settings";
 import { describe, Match, type MatchData } from "./match";
 import {
     GAME_ID,
@@ -150,6 +157,15 @@ export class ChessGame implements Game {
     }
 
     /** When the side to move's flag falls, unless it moves first */
+    /** Chess has no settings: ten minutes each is fixed */
+    settings(): Settings {
+        return {};
+    }
+
+    configure(): ConfigureResult {
+        return { ok: false, error: "Chess has no settings" };
+    }
+
     deadline(): number | undefined {
         return this.#match?.deadline();
     }

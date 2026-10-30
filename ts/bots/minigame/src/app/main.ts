@@ -9,7 +9,7 @@
 import { connectToOpenChat, type MiniAppClient } from "@open-ic/openchat-botclient-ts/mini_app";
 import { chessView } from "./chess/view";
 import { raceView } from "./race2048/view";
-import type { BaseState, GameView, ViewContext } from "./view";
+import type { BaseState, GameView, Lobby, Seat, ViewContext } from "./view";
 
 const VIEWS: readonly GameView[] = [raceView, chessView];
 
@@ -55,6 +55,12 @@ async function main() {
     // The keys are the view's, eg. the arrows, which only it may keep from scrolling the page
     window.addEventListener("keydown", (event) => {
         if (view?.onKey(event) === true) event.preventDefault();
+    });
+    // The host's settings form in the lobby
+    root.addEventListener("change", (event) => {
+        const select = event.target as HTMLSelectElement;
+        if (select.dataset.setting === undefined) return;
+        void configure(select.dataset.setting, Number(select.value));
     });
     root.addEventListener("click", (event) => {
         const button = (event.target as HTMLElement).closest<HTMLElement>("[data-action]");
@@ -107,6 +113,22 @@ async function start() {
     }
     starting = false;
     render();
+}
+
+/** The host's change to a setting, which comes back to everyone in the next state */
+async function configure(id: string, value: number) {
+    if (oc === undefined || oc.role !== "player") return;
+    try {
+        const response = await oc.fetch("/api/settings", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ [id]: value }),
+        });
+        const result = (await response.json()) as { ok: boolean; error?: string };
+        if (!result.ok) showNotice(result.error ?? "The setting wasn't changed");
+    } catch {
+        showNotice("Couldn't reach the game");
+    }
 }
 
 function showNotice(text: string) {
@@ -187,9 +209,32 @@ function lobby(info: ReturnType<GameView["lobby"]> | undefined): string {
     return `<section class="lobby">
         <h2>Waiting to start</h2>
         ${info === undefined ? "" : `<p class="muted">${info.blurb}</p>`}
+        ${info?.settings === undefined ? "" : settingsForm(info.settings, info.seats, player)}
         ${names}
         ${action}
     </section>`;
+}
+
+/** The host's form for the game's settings; everyone else sees who can change them */
+function settingsForm(settings: NonNullable<Lobby["settings"]>, seats: Seat[], player: boolean) {
+    const { specs, current, host } = settings;
+    if (host === undefined || host !== oc?.userId || !player) {
+        const name = seats.find((s) => s.id === host)?.name;
+        const what = specs.map((spec) => spec.label.toLowerCase()).join(" and the ");
+        return `<p class="muted small">${name === undefined ? "The host" : escape(name)} can change the ${what}.</p>`;
+    }
+    const fields = specs.map((spec) => {
+        const value = current[spec.id] ?? spec.default;
+        // A value set outside the choices, eg. for a test, is shown as it is
+        const choices = spec.choices.some((c) => c.value === value)
+            ? spec.choices
+            : [{ value, label: String(value) }, ...spec.choices];
+        const options = choices
+            .map((c) => `<option value="${c.value}" ${c.value === value ? "selected" : ""}>${escape(c.label)}</option>`)
+            .join("");
+        return `<label><span>${escape(spec.label)}</span><select data-setting="${spec.id}">${options}</select></label>`;
+    });
+    return `<div class="settings">${fields.join("")}</div>`;
 }
 
 function escape(text: string): string {

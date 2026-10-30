@@ -100,11 +100,15 @@ export async function start(req: Request, res: Response, deps: Deps): Promise<vo
     // sweep, which looks at every game's clock each second.
     const players = play.start();
     deps.store.save();
+    // The settings go with the start, for the card to keep: fixed from here on. A game with none
+    // sends none.
+    const settings = play.settings();
     res.json(
         acceptMiniAppStart({
             players,
             waitingFor: play.waitingFor(),
             state: { seq: play.nextSeq(), shared: play.shared() },
+            settings: Object.keys(settings).length === 0 ? undefined : settings,
         }),
     );
 }

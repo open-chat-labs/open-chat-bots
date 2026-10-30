@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { Settings } from "../settings";
 import { duration, Race2048 } from "./race";
 import { MAX_PLAYERS, STATE_VERSION, TARGET, TIME_LIMIT_MS } from "./types";
 
@@ -10,9 +11,9 @@ function clock(start = 1_000_000) {
     return { now: () => now, tick: (ms: number) => (now += ms) };
 }
 
-function started(names = ["alice", "bob"], timeLimit?: number) {
+function started(names = ["alice", "bob"], settings?: Settings) {
     const time = clock();
-    const race = Race2048.create({ random: first2, now: time.now, timeLimit });
+    const race = Race2048.create({ random: first2, now: time.now, settings, host: "alice" });
     names.forEach((name) => race.takeSeat(name, name.toUpperCase()));
     race.start();
     return { race, time };
@@ -222,9 +223,10 @@ describe("time limit", () => {
     });
 
     it("a move or restart after the time is up ends the race instead", () => {
-        const { race, time } = started(undefined, 60_000);
+        const { race, time } = started(undefined, { minutes: 1 });
         expect(race.timeLimit).toBe(60_000);
         expect(race.shared()).toMatchObject({
+            settings: { target: TARGET, minutes: 1 },
             timeLimit: 60_000,
             endsAt: race.data.startedAt! + 60_000,
         });
@@ -233,6 +235,32 @@ describe("time limit", () => {
         expect(race.phase).toBe("finished");
         expect(race.data.ended).toBe("time");
         expect(race.result()).toBe("Time's up after 1m 0s: ALICE won with 0 points");
+    });
+});
+
+describe("settings", () => {
+    it("are the defaults unless chosen, and the host changes them while the race is open", () => {
+        const race = Race2048.create({ settings: { target: 512 }, host: "alice" });
+        expect(race.settings()).toEqual({ target: 512, minutes: 10 });
+        expect(race.target).toBe(512);
+        expect(race.timeLimit).toBe(TIME_LIMIT_MS);
+        expect(race.shared()).toMatchObject({ settings: { target: 512, minutes: 10 }, host: "alice" });
+
+        expect(race.configure("bob", { minutes: 5 })).toEqual({
+            ok: false,
+            error: "Only the host can change the settings",
+        });
+        expect(race.configure("alice", { minutes: 5 })).toEqual({ ok: true });
+        expect(race.settings()).toEqual({ target: 512, minutes: 5 });
+        expect(race.timeLimit).toBe(5 * 60_000);
+
+        race.takeSeat("alice", "ALICE");
+        race.start();
+        expect(race.configure("alice", { target: 256 })).toEqual({
+            ok: false,
+            error: "The race has started",
+        });
+        expect(race.target).toBe(512);
     });
 });
 

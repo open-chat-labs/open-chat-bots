@@ -1,8 +1,11 @@
 // What every game the bot hosts looks like to the store, the handlers, the sweep and the publisher:
 // who's in it, how it starts, whose turn it is, whether its clock has run out, and what everyone
 // sees. A game's own moves are its own, under `handlers/api.ts`.
+import type { Settings } from "./settings";
 
 export type GameKind = "2048" | "chess";
+
+export type ConfigureResult = { ok: true } | { ok: false; error: string };
 
 export type Phase = "open" | "active" | "finished";
 
@@ -28,6 +31,17 @@ export interface Game {
      * a game which can't go on without them ends. Whether the game changed.
      */
     leave(userId: string): boolean;
+    /**
+     * The game's settings as they stand, by id (the registry's `settings` declares them): the
+     * ones chosen over the defaults. Empty for a game with none. Sent with the start, so the card
+     * keeps them.
+     */
+    settings(): Settings;
+    /**
+     * Changes settings the registry declares, which only the host, who ran `/play`, can, and only
+     * before the game starts. The handler has checked each is one of its choices.
+     */
+    configure(userId: string, settings: Settings): ConfigureResult;
     /** Why the game can't start yet, or undefined when it can */
     cannotStart(): string | undefined;
     /**

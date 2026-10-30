@@ -1,6 +1,7 @@
 // The 2048 race's shared state, as the bot publishes it through the MiniApp service and the app
 // reads it. Everything is shared: a race is more fun when everyone sees every board, and nothing
 // in it is secret, so there's no private part.
+import type { Settings } from "../settings";
 import type { Board, Direction } from "./engine";
 
 /** Bumped when the shape changes, so an app left open from an older release knows to reload */
@@ -48,6 +49,10 @@ export type SharedState = {
     version: typeof STATE_VERSION;
     game: typeof GAME_ID;
     phase: Phase;
+    /** The settings as they stand, by id (`RACE_SETTINGS`): the target tile and the minutes */
+    settings: Settings;
+    /** Who ran `/play`, and can change the settings while the race is open */
+    host?: string;
     target: number;
     /** How long the race lasts from its start, in ms, before the top score wins */
     timeLimit: number;
