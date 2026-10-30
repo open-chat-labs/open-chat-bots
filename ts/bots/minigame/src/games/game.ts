@@ -7,6 +7,9 @@ export type GameKind = "2048" | "chess";
 
 export type ConfigureResult = { ok: true } | { ok: false; error: string };
 
+/** Who ran `/play`, with their name, as the lobby names them before they've joined */
+export type Host = { id: string; name: string };
+
 export type Phase = "open" | "active" | "finished";
 
 export interface Game {

@@ -53,6 +53,8 @@ export type SharedState = {
     settings: Settings;
     /** Who ran `/play`, and can change the settings while the race is open */
     host?: string;
+    /** The host's name, as they may not have joined */
+    hostName?: string;
     target: number;
     /** How long the race lasts from its start, in ms, before the top score wins */
     timeLimit: number;

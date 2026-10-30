@@ -20,8 +20,9 @@ export type Lobby = {
     settings?: {
         specs: readonly SettingSpec[];
         current: Settings;
-        /** Who may change them, the user who ran `/play` */
+        /** Who may change them, the user who ran `/play`, and their name */
         host: string | undefined;
+        hostName?: string;
     };
 };
 

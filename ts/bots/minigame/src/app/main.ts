@@ -217,9 +217,9 @@ function lobby(info: ReturnType<GameView["lobby"]> | undefined): string {
 
 /** The host's form for the game's settings; everyone else sees who can change them */
 function settingsForm(settings: NonNullable<Lobby["settings"]>, seats: Seat[], player: boolean) {
-    const { specs, current, host } = settings;
+    const { specs, current, host, hostName } = settings;
     if (host === undefined || host !== oc?.userId || !player) {
-        const name = seats.find((s) => s.id === host)?.name;
+        const name = hostName ?? seats.find((s) => s.id === host)?.name;
         const what = specs.map((spec) => spec.label.toLowerCase()).join(" and the ");
         return `<p class="muted small">${name === undefined ? "The host" : escape(name)} can change the ${what}.</p>`;
     }

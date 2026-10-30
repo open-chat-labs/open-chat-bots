@@ -82,9 +82,15 @@ async function play(client: BotClient, res: Response, deps: Deps): Promise<void>
     const token = await client.miniAppPostToken();
     // Known before it's posted: the service may forward a join before the bot hears its answer
     const miniAppGame = miniAppGameFromPostToken(token);
+    // The host, named now, as the lobby says who can change the settings before they've joined
+    const initiator = client.initiator;
+    const host =
+        initiator === undefined
+            ? undefined
+            : { id: initiator, name: await deps.names.lookup(initiator) };
     deps.store.create(
         miniAppGame,
-        game.create({ raceSettings: deps.raceSettings }, parsed.settings, client.initiator),
+        game.create({ raceSettings: deps.raceSettings }, parsed.settings, host),
     );
     try {
         await post(miniApps, token, card);

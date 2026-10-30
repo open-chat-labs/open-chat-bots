@@ -22,11 +22,16 @@ function started(firstIsWhite = true) {
 
 describe("settings", () => {
     it("are the defaults unless chosen, and only the host changes them, before the start", () => {
-        const game = ChessGame.create({ settings: { minutes: 5 }, host: "alice" });
+        const game = ChessGame.create({
+            settings: { minutes: 5 },
+            host: { id: "alice", name: "Alice" },
+        });
         expect(game.settings()).toEqual({ white: 0, minutes: 5, increment: 0 });
+        // The host's name is known before they've joined
         expect(game.shared()).toMatchObject({
             settings: { white: 0, minutes: 5, increment: 0 },
             host: "alice",
+            names: { alice: "Alice" },
         });
         expect(game.configure("bob", { increment: 2 })).toEqual({
             ok: false,
@@ -68,7 +73,11 @@ describe("settings", () => {
     it("lets the host choose who's White, when the host is playing; otherwise the coin does", () => {
         const host = (white: number, hostJoinsFirst: boolean, hostPlays = true) => {
             // The coin would make the second to join White
-            const game = ChessGame.create({ random: () => 0.1, settings: { white }, host: "host" });
+            const game = ChessGame.create({
+                random: () => 0.1,
+                settings: { white },
+                host: { id: "host", name: "Host" },
+            });
             const order = hostJoinsFirst ? ["host", "other"] : ["other", "host"];
             for (const id of hostPlays ? order : ["other", "third"]) game.join(id, id);
             game.start();

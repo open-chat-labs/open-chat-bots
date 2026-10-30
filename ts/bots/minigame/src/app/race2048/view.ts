@@ -94,7 +94,12 @@ export const raceView: GameView = {
                 Stuck? Restart on a fresh board and keep racing.`,
             seats: s.seats,
             hint: `Start when everyone has joined. Up to ${s.maxPlayers} can race.`,
-            settings: { specs: RACE_SETTINGS, current: s.settings, host: s.host },
+            settings: {
+                specs: RACE_SETTINGS,
+                current: s.settings,
+                host: s.host,
+                hostName: s.hostName,
+            },
         };
     },
 
