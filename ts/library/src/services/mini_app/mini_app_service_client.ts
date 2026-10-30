@@ -78,8 +78,9 @@ export class MiniAppServiceClient {
      * Posts a MiniApp card as the bot, with a token from `BotClient.miniAppPostToken`, and
      * resolves with its game once the card is in the chat. The service posts every card, so that it
      * knows each game from the moment its card exists: `sendMessage` refuses one. `card` is from
-     * `BotClient.createMiniAppMessage`, which uploads its image, or a `MiniAppMessage`'s `card`.
-     * Its text is rendered with block level markdown if `blockLevelMarkdown`, and it replies to the
+     * `BotClient.createMiniAppMessage`, or a `MiniAppMessage`'s `card`: its text, the name of one
+     * of the bot's apps, its player limit, whether others can watch, and its app's size. Its text
+     * is rendered with block level markdown if `blockLevelMarkdown`, and it replies to the
      * message at the event index `repliesTo`, if any; a `MiniAppMessage`'s own settings are the
      * defaults. A token is for one card, and lasts an hour.
      *
@@ -108,8 +109,10 @@ export class MiniAppServiceClient {
 
     /**
      * Updates one of the bot's games: whose turn it is, its players (only to take some off) and its
-     * state, or ends it, with its result. The service writes the card and relays the state. A
-     * player starts a game, which the bot answers at `POST <endpoint>/mini_app/start`.
+     * state, or ends it, with its result and, as any JSON of at most 16 KB, its end state, which
+     * OpenChat writes to the card and hands to the bot's app, so the card shows how the game ended.
+     * The service writes the card and relays the state. A player starts a game, which the bot
+     * answers at `POST <endpoint>/mini_app/start`.
      */
     async update(update: MiniAppGameUpdate): Promise<void> {
         await this.#call("/bot/update", apiMiniAppGameUpdate(update));

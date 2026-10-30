@@ -63,15 +63,20 @@ class FakeWindow implements MiniAppWindow {
     }
 }
 
-function initialise(win: FakeWindow, change: { role?: MiniAppRole; seconds?: number } = {}) {
-    const { role = "player", seconds = 3600 } = change;
+function initialise(
+    win: FakeWindow,
+    change: { role?: MiniAppRole; seconds?: number; finished?: boolean } = {},
+) {
+    const { role = "player", seconds = 3600, finished } = change;
     win.send({
         kind: "initialise_mini_app",
         role,
         user_id: USER,
-        token: role === "player" ? token(seconds) : undefined,
+        // A finished game's players get no token
+        token: role === "player" && !finished ? token(seconds) : undefined,
         dark_mode: true,
         locale: "fr",
+        ...(finished === undefined ? {} : { finished }),
     });
 }
 
@@ -238,6 +243,98 @@ describe("MiniAppClient's state", () => {
         win.send({ kind: "mini_app_state", seq: "3", shared: {} });
 
         expect(client.state).toBeUndefined();
+    });
+});
+
+describe("MiniAppClient, on a finished game", () => {
+    const END_STATE = { version: 1, board: "XOXOXO..X", winner: "X" };
+
+    test("is finished from the start, without a token, and takes the end state OpenChat sends next", async () => {
+        const win = new FakeWindow();
+        const connecting = connectToOpenChat<unknown, unknown, typeof END_STATE>({ window: win });
+        // One of the game's players, back to see how it ended
+        initialise(win, { role: "player", finished: true });
+        const client = await connecting;
+        const ended: unknown[] = [];
+        client.onEndState((state) => ended.push(state));
+
+        expect(client.finished).toBe(true);
+        expect(client.role).toBe("player");
+        expect(client.token).toBeUndefined();
+        expect(client.endState).toBeUndefined();
+
+        win.send({ kind: "mini_app_end_state", state: END_STATE });
+
+        expect(client.endState).toEqual(END_STATE);
+        expect(ended).toEqual([END_STATE]);
+        expect(client.state).toBeUndefined();
+        // No token to refresh, so none is asked for
+        vi.advanceTimersByTime(3600_000);
+        expect(win.kinds()).toEqual(["mini_app_ready"]);
+    });
+
+    test("isn't finished unless OpenChat says so", async () => {
+        const [client] = await connected();
+        expect(client.finished).toBe(false);
+        expect(client.endState).toBeUndefined();
+    });
+
+    test("finishes while open, when the card gets its end state", async () => {
+        const [client, win] = await connected();
+        win.send(state(7));
+        const ended: unknown[] = [];
+        const stop = client.onEndState((s) => ended.push(s));
+
+        // Any JSON value, null included
+        win.send({ kind: "mini_app_end_state", state: null });
+
+        expect(client.finished).toBe(true);
+        expect(client.endState).toBeNull();
+        expect(ended).toEqual([null]);
+        // The player's token is dropped: OpenChat answers no more requests for one, nor a start
+        expect(client.token).toBeUndefined();
+        const before = win.kinds().length;
+        vi.advanceTimersByTime(3600_000);
+        expect(win.kinds().length).toBe(before);
+        await expect(client.refreshToken()).rejects.toThrow("The game is over");
+        await expect(client.start()).resolves.toEqual({
+            accepted: false,
+            message: "The game is over",
+        });
+        expect(win.kinds().length).toBe(before);
+        // The last state stays, eg. for the app to animate from
+        expect(client.state).toEqual({ seq: 7, shared: { seq: 7 }, private: undefined });
+
+        stop();
+        win.send({ kind: "mini_app_end_state", state: END_STATE });
+        expect(ended).toEqual([null]);
+        expect(client.endState).toEqual(END_STATE);
+    });
+
+    test("ignores an end state without a state, or from anything but OpenChat", async () => {
+        const [client, win] = await connected();
+        const ended: unknown[] = [];
+        client.onEndState((s) => ended.push(s));
+
+        win.send({ kind: "mini_app_end_state" });
+        win.send({ kind: "mini_app_end_state", state: END_STATE }, { origin: "https://evil.com" });
+        win.send({ kind: "mini_app_end_state", state: END_STATE }, { source: {} });
+
+        expect(client.finished).toBe(false);
+        expect(client.endState).toBeUndefined();
+        expect(ended).toEqual([]);
+    });
+
+    test("stops telling the app of an end state once closed", async () => {
+        const [client, win] = await connected();
+        const ended: unknown[] = [];
+        client.onEndState((s) => ended.push(s));
+
+        client.close();
+        win.send({ kind: "mini_app_end_state", state: END_STATE });
+
+        expect(ended).toEqual([]);
+        expect(client.finished).toBe(false);
     });
 });
 

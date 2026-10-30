@@ -5,13 +5,19 @@
 // The page and OpenChat, the window it's framed in, talk with `postMessage`:
 // - the page sends `{ kind: "mini_app_ready" }` once it's listening, to any origin, as it carries
 //   nothing secret;
-// - OpenChat answers `{ kind: "initialise_mini_app", role, user_id, token, dark_mode, locale }`,
-//   where only a player gets a `token`. The page accepts it only from the window it's framed in,
-//   and after it takes messages only from, and sends them only to, its origin;
+// - OpenChat answers `{ kind: "initialise_mini_app", role, user_id, token, dark_mode, locale,
+//   finished }`, where only a player gets a `token`. The page accepts it only from the window it's
+//   framed in, and after it takes messages only from, and sends them only to, its origin;
 // - OpenChat sends `{ kind: "mini_app_state", seq, shared, private }` with the game's latest state,
 //   and each one after it. Only a player gets `private`, their own part;
 // - OpenChat sends `initialise_mini_app` again when the user's role changes, eg. as they joined the
 //   game, then the latest state again, with the same `seq`, now with or without their own part;
+// - when the game is over, and its card holds how it ended, `initialise_mini_app` has `finished`
+//   true: there's no token, `role` is "player" if the user was one of the game's players and
+//   "spectator" otherwise, and no state follows. Instead OpenChat sends
+//   `{ kind: "mini_app_end_state", state }`, the end state the bot ended the game with, as parsed
+//   JSON, which the page shows its end view from. OpenChat also sends it to a page that's open as
+//   its game finishes and the card gets its end state, and no state comes after it;
 // - a player's page sends `{ kind: "mini_app_token_request" }` when its token is running out, or
 //   its bot refused it with a 401, and OpenChat answers `{ kind: "mini_app_token", token }`;
 // - OpenChat sends `{ kind: "set_dark_mode", dark_mode }` when the user's theme changes;
@@ -58,9 +64,14 @@ export type OpenChatToMiniApp =
           token?: string;
           dark_mode: boolean;
           locale: string;
+          // Whether the game is over, with how it ended in its card: then there's no token, and
+          // `mini_app_end_state` follows in place of any state
+          finished: boolean;
       }
     | { kind: "mini_app_token"; token: string }
     | { kind: "mini_app_state"; seq: number; shared: unknown; private?: unknown }
+    // The end state the bot ended the game with, as parsed JSON
+    | { kind: "mini_app_end_state"; state: unknown }
     | { kind: "set_dark_mode"; dark_mode: boolean }
     | ({ kind: "mini_app_start_result" } & MiniAppStartResult);
 
@@ -99,20 +110,27 @@ const MIN_REFRESH_DELAY_MS = 30_000;
 /**
  * Connects the app to OpenChat: tells it the app is ready, and resolves once OpenChat has
  * initialised it. Rejects if the page isn't framed, or OpenChat doesn't answer in time. `Shared`
- * and `Private` are the shapes of the bot's state.
+ * and `Private` are the shapes of the bot's state, and `EndState` of the end state it ends a game
+ * with.
+ *
+ * When the game is over, and its card holds how it ended, the client is `finished` from the start:
+ * no state comes, and there's no token, so the app shows its end view from `endState`, which
+ * OpenChat sends right after initialising it (`onEndState`). A game that finishes while the app is
+ * open gets its end state the same way, and no state after it.
  *
  * ```ts
- * const openChat = await connectToOpenChat<Board, Hand>();
+ * const openChat = await connectToOpenChat<Board, Hand, Replay>();
  * render(openChat.state);
  * openChat.onStateChange(render);
+ * openChat.onEndState(renderReplay);
  *
  * // A player's move, with their token in the `x-oc-jwt` header
  * await openChat.fetch("api/move", { method: "POST", body: JSON.stringify(move) });
  * ```
  */
-export function connectToOpenChat<Shared = unknown, Private = unknown>(
+export function connectToOpenChat<Shared = unknown, Private = unknown, EndState = unknown>(
     options: ConnectOptions = {},
-): Promise<MiniAppClient<Shared, Private>> {
+): Promise<MiniAppClient<Shared, Private, EndState>> {
     const win = options.window ?? (globalThis as unknown as { window?: MiniAppWindow }).window;
     if (win === undefined) {
         return Promise.reject(new Error("connectToOpenChat runs in the app's page, in a browser"));
@@ -151,7 +169,7 @@ export function connectToOpenChat<Shared = unknown, Private = unknown>(
 }
 
 /** The app's connection to OpenChat, from `connectToOpenChat` */
-export class MiniAppClient<Shared = unknown, Private = unknown> {
+export class MiniAppClient<Shared = unknown, Private = unknown, EndState = unknown> {
     #window: MiniAppWindow;
     #role: MiniAppRole;
     #userId: string;
@@ -159,10 +177,13 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
     #state?: MiniAppState<Shared, Private>;
     // The seq of the last state taken, below which a state is dropped
     #seq?: number;
+    #finished: boolean;
+    #endState?: EndState;
     #darkMode: boolean;
     #locale: string;
     #roleListeners = new Listeners<MiniAppRole>();
     #stateListeners = new Listeners<MiniAppState<Shared, Private>>();
+    #endStateListeners = new Listeners<EndState>();
     #darkModeListeners = new Listeners<boolean>();
     #tokenRequest?: {
         promise: Promise<string>;
@@ -193,6 +214,7 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
         this.#window = window;
         this.#role = initialise.role;
         this.#userId = initialise.user_id;
+        this.#finished = initialise.finished;
         this.#darkMode = initialise.dark_mode;
         this.#locale = initialise.locale;
         this.#timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -224,9 +246,29 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
         return this.#token;
     }
 
-    /** The game's latest state, or undefined until OpenChat sends one */
+    /**
+     * The game's latest state, or undefined until OpenChat sends one. A game that was over when the
+     * app opened gets none: see `endState`.
+     */
     get state(): MiniAppState<Shared, Private> | undefined {
         return this.#state;
+    }
+
+    /**
+     * Whether the game is over, with how it ended in its card. Then there's no token, `role` is
+     * "player" if the user was one of the game's players, and no state comes: the app shows its end
+     * view from `endState`.
+     */
+    get finished(): boolean {
+        return this.#finished;
+    }
+
+    /**
+     * How the game ended, as the bot's end state, or undefined until OpenChat sends it: right after
+     * initialising an app opened on a finished game, or as the game finishes while the app is open.
+     */
+    get endState(): EndState | undefined {
+        return this.#endState;
     }
 
     /** Whether the user has OpenChat's dark theme on */
@@ -252,6 +294,14 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
         return this.#stateListeners.add(callback);
     }
 
+    /**
+     * Calls `callback` with the game's end state when OpenChat sends it, by when the client is
+     * `finished`. Returns a function which stops it.
+     */
+    onEndState(callback: (state: EndState) => void): () => void {
+        return this.#endStateListeners.add(callback);
+    }
+
     /** Calls `callback` whenever the user's theme changes. Returns a function which stops it. */
     onDarkModeChange(callback: (darkMode: boolean) => void): () => void {
         return this.#darkModeListeners.add(callback);
@@ -265,6 +315,9 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
     refreshToken(): Promise<string> {
         if (this.#closed) {
             return Promise.reject(new Error("The client is closed"));
+        }
+        if (this.#finished) {
+            return Promise.reject(new Error("The game is over"));
         }
         if (this.#token === undefined) {
             return Promise.reject(new Error("Only a player has a token"));
@@ -295,6 +348,9 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
     start(): Promise<MiniAppStartResult> {
         if (this.#closed) {
             return Promise.reject(new Error("The client is closed"));
+        }
+        if (this.#finished) {
+            return Promise.resolve({ accepted: false, message: "The game is over" });
         }
         if (this.#role !== "player") {
             return Promise.reject(new Error("Only a player can start the game"));
@@ -353,6 +409,7 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
         }
         this.#roleListeners.clear();
         this.#stateListeners.clear();
+        this.#endStateListeners.clear();
         this.#darkModeListeners.clear();
     }
 
@@ -372,6 +429,9 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
                 this.#role = message.role;
                 this.#userId = message.user_id;
                 this.#locale = message.locale;
+                if (message.finished) {
+                    this.#finished = true;
+                }
                 this.#setToken(message.token);
                 if (roleChanged) {
                     this.#roleListeners.notify(message.role);
@@ -399,6 +459,14 @@ export class MiniAppClient<Shared = unknown, Private = unknown> {
                     private: message.private as Private | undefined,
                 };
                 this.#stateListeners.notify(this.#state);
+                break;
+            case "mini_app_end_state":
+                // The game is over, so no state comes after this, and a player's token is no
+                // longer any use: OpenChat answers no more token requests or starts
+                this.#finished = true;
+                this.#setToken(undefined);
+                this.#endState = message.state as EndState;
+                this.#endStateListeners.notify(this.#endState);
                 break;
             case "set_dark_mode":
                 this.#setDarkMode(message.dark_mode);
@@ -516,7 +584,8 @@ function openChatMessage(data: unknown): OpenChatToMiniApp | undefined {
     const message = data as Record<string, unknown>;
     switch (message.kind) {
         case "initialise_mini_app":
-            // The theme and language fall back to light and English
+            // The theme and language fall back to light and English, and a game is live unless
+            // OpenChat says it's finished
             return (message.role === "player" || message.role === "spectator") &&
                 typeof message.user_id === "string"
                 ? {
@@ -526,6 +595,7 @@ function openChatMessage(data: unknown): OpenChatToMiniApp | undefined {
                       token: typeof message.token === "string" ? message.token : undefined,
                       dark_mode: message.dark_mode === true,
                       locale: typeof message.locale === "string" ? message.locale : "en",
+                      finished: message.finished === true,
                   }
                 : undefined;
         case "mini_app_token":
@@ -540,6 +610,11 @@ function openChatMessage(data: unknown): OpenChatToMiniApp | undefined {
                       shared: message.shared,
                       private: message.private ?? undefined,
                   }
+                : undefined;
+        case "mini_app_end_state":
+            // Any JSON value, null included, but it must be there
+            return "state" in message
+                ? { kind: "mini_app_end_state", state: message.state }
                 : undefined;
         case "set_dark_mode":
             return typeof message.dark_mode === "boolean"

@@ -120,6 +120,7 @@ describe("BotClientFactory.createMiniAppServiceClient", () => {
             .createMiniAppServiceClient("https://mini-apps.example.com/", API_GATEWAY)
             .post(postToken(), {
                 text: "**Uno**",
+                app: "uno",
                 spectators: false,
                 appSize: { width: 440, height: 740 },
             });

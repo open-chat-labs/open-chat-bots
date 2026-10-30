@@ -20,7 +20,7 @@ import type {
 import { random64 } from "../utils/rng";
 import type { BotChatContext } from "./bot";
 import type { BlobReference } from "./data";
-import type { MiniAppContent, MiniAppImage, PriceChartContent, MiniAppSize } from "./event";
+import type { MiniAppContent, PriceChartContent, MiniAppSize } from "./event";
 import type { MiniAppCard } from "./mini_app";
 import type { MessagePermission } from "./permissions";
 
@@ -254,35 +254,38 @@ export class PriceChartMessage extends Message {
 /** The most characters a MiniApp card's text can have */
 export const MINI_APP_MAX_TEXT_CHARS = 2_000;
 
+/** The most characters an app's name, in the bot's definition and on its cards, can have */
+export const MINI_APP_MAX_APP_NAME_CHARS = 50;
+
 /** The most players a game can have */
 export const MINI_APP_MAX_PLAYERS = 100;
 
 /**
- * A bot's card for a game, or another app, it hosts: markdown text, under an optional image, with
- * the players, whose turn it is or the result, and buttons to join, open or watch it, all of which
- * OpenChat draws. They open the bot's app, which the bot serves at `/app` under its endpoint, in a
- * frame. The text, image, player limit and whether others can watch never change, and only
- * OpenChat's MiniApp service writes the card's status, so a card is posted open. It needs the
- * MiniApp permission, and can't be posted in a direct chat. Check it with `validate` before posting
- * it, through the service, with `MiniAppServiceClient.post` and a token from
- * `BotClient.miniAppPostToken`: the service posts every card, so that it knows each game from the
- * moment its card exists, and `sendMessage` refuses one. `setBlockLevelMarkdown` and `setRepliesTo`
- * apply to the post; the message's other settings don't.
- *
- * Upload the image first, as `BotClient.createMiniAppMessage` does, so that it's scanned like any
- * image and deleted with the card.
+ * A bot's card for a game, or another app, it hosts: markdown text, with the players, whose turn it
+ * is or the result, and buttons to join, open or watch it, all of which OpenChat draws. They open
+ * the bot's app, which the bot serves at `/app` under its endpoint, in a frame. The card names one
+ * of the apps in the bot's definition, `BotDefinition.mini_apps`, whose image the frame shows
+ * whenever there's no app to show: before it loads, to someone who can't open the game, and once
+ * the game is over without an end state. The text, app, player limit and whether others can watch
+ * never change, and only OpenChat's MiniApp service writes the card's status, so a card is posted
+ * open. It needs the MiniApp permission, and can't be posted in a direct chat. Check it with
+ * `validate` before posting it, through the service, with `MiniAppServiceClient.post` and a token
+ * from `BotClient.miniAppPostToken`: the service posts every card, so that it knows each game from
+ * the moment its card exists, and `sendMessage` refuses one. `setBlockLevelMarkdown` and
+ * `setRepliesTo` apply to the post; the message's other settings don't.
  */
 export class MiniAppMessage extends Message {
     /**
-     * `appSize` is what the app's laid out for, in CSS pixels: the card shows the app at that
-     * aspect ratio, sized before it loads. Each is 1 to 10,000, and neither more than three times
-     * the other.
+     * `app` is the name of one of the bot's apps in its definition, eg. "chess": OpenChat refuses
+     * a card whose app isn't there. `appSize` is what the app's laid out for, in CSS pixels: the
+     * card shows the app at that aspect ratio, sized before it loads. Each is 1 to 10,000, and
+     * neither more than three times the other.
      */
-    constructor(text: string, appSize: MiniAppSize, image?: MiniAppImage) {
+    constructor(app: string, text: string, appSize: MiniAppSize) {
         super({
             MiniApp: apiMiniAppContent({
                 text,
-                image,
+                app,
                 spectators: false,
                 appSize,
                 status: { kind: "open" },
@@ -315,8 +318,8 @@ export class MiniAppMessage extends Message {
 
     /** The card, as `MiniAppServiceClient.post` takes it */
     get card(): MiniAppCard {
-        const { text, image, maxPlayers, spectators, appSize } = miniAppContent(this.#miniApp);
-        return { text, image, maxPlayers, spectators, appSize };
+        const { text, app, maxPlayers, spectators, appSize } = miniAppContent(this.#miniApp);
+        return { text, app, maxPlayers, spectators, appSize };
     }
 
     /** Why OpenChat would refuse this card, with the error it gives, or undefined if it's valid */
@@ -327,8 +330,9 @@ export class MiniAppMessage extends Message {
 
 /**
  * Checks a new MiniApp card as OpenChat does: it's open, as only the MiniApp service writes a
- * card's status, and its text, its image and its player limit. Returns the error OpenChat would
- * give, or undefined if it's valid.
+ * card's status, and its text, its app's name, its player limit and its app's size. Whether the app
+ * is in the bot's definition is only checked by OpenChat. Returns the error OpenChat would give, or
+ * undefined if it's valid.
  */
 export function validateMiniAppContent(content: Omit<MiniAppContent, "kind">): string | undefined {
     // OpenChat's other checks are of the players, whose turn it is and the result, which an open
@@ -338,11 +342,8 @@ export function validateMiniAppContent(content: Omit<MiniAppContent, "kind">): s
     }
     const textError = validateMiniAppText(content.text);
     if (textError !== undefined) return textError;
-    if (content.image !== undefined) {
-        const { width, height, mimeType } = content.image;
-        const imageError = validateMiniAppImage(width, height, mimeType);
-        if (imageError !== undefined) return imageError;
-    }
+    const appError = validateMiniAppAppName(content.app);
+    if (appError !== undefined) return appError;
     const max = content.maxPlayers;
     if (max !== undefined && !(Number.isInteger(max) && max >= 1 && max <= MINI_APP_MAX_PLAYERS)) {
         return `A game has 1 to ${MINI_APP_MAX_PLAYERS} players at most`;
@@ -371,35 +372,24 @@ export function validateMiniAppSize(width: number, height: number): string | und
  * the error OpenChat would give, or undefined if it's valid.
  */
 export function validateMiniAppText(text: string): string | undefined {
-    // Counted in code points, as OpenChat counts Rust's chars
-    if (text.trim().length === 0 || [...text].length > MINI_APP_MAX_TEXT_CHARS) {
-        return `The text must have 1 to ${MINI_APP_MAX_TEXT_CHARS} characters`;
-    }
-    return undefined;
+    return checkChars("text", text, MINI_APP_MAX_TEXT_CHARS);
 }
 
 /**
- * Checks a MiniApp card's image as OpenChat does: it has a width and a height, each a whole number
- * of pixels which fits a u32, and an image's mime type. Returns the error OpenChat would give, or
- * undefined if it's valid.
+ * Checks the name of a card's app as OpenChat does: not blank, and at most 50 characters. Returns
+ * the error OpenChat would give, or undefined if it's valid. Whether the bot's definition has an
+ * app of that name is only checked by OpenChat.
  */
-export function validateMiniAppImage(
-    width: number,
-    height: number,
-    mimeType: string,
-): string | undefined {
-    if (!isU32Size(width) || !isU32Size(height)) {
-        return "The image must have a width and a height";
-    }
-    if (!mimeType.startsWith("image/")) {
-        return "The image's mime type must be an image's";
-    }
-    return undefined;
+export function validateMiniAppAppName(app: string): string | undefined {
+    return checkChars("app", app, MINI_APP_MAX_APP_NAME_CHARS);
 }
 
-// 1 to 2^32 - 1, as OpenChat holds a width or height as a u32 and refuses 0
-function isU32Size(value: number): boolean {
-    return Number.isInteger(value) && value >= 1 && value <= 0xffff_ffff;
+// Not blank, and at most `max` characters, counted in code points, as OpenChat counts Rust's chars
+function checkChars(field: string, value: string, max: number): string | undefined {
+    if (value.trim().length === 0 || [...value].length > max) {
+        return `The ${field} must have 1 to ${max} characters`;
+    }
+    return undefined;
 }
 
 export type PollDuration = "oneHour" | "oneDay" | "oneWeek";

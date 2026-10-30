@@ -11,8 +11,8 @@ import {
 const URL = "https://mini-apps.example.com";
 const ALICE = USER;
 const BOB = "qhbym-qaaaa-aaaaa-aaafq-cai";
-const BUCKET = "rturd-qaaaa-aaaaf-aabaq-cai";
 const TEXT = "**Uno** · 2 to 4 players";
+const APP = "uno";
 
 const GAME = {
     chat: new ChannelIdentifier(COMMUNITY, 7n),
@@ -81,8 +81,16 @@ describe("MiniAppServiceClient.update", () => {
             waitingFor: [],
             state: { seq: 13, shared: null },
         });
+        // With how it ended, as any JSON, which OpenChat writes to the card for the app to show
+        await miniApps.update({
+            game: GAME,
+            status: "finished",
+            result: "Alice won",
+            endState: { version: 1, board: "XOXOXO..X", moves: [4, 0, 8] },
+        });
 
         expect(sent.map((s) => [s.method, s.url])).toEqual([
+            ["POST", `${URL}/bot/update`],
             ["POST", `${URL}/bot/update`],
             ["POST", `${URL}/bot/update`],
             ["POST", `${URL}/bot/update`],
@@ -94,6 +102,9 @@ describe("MiniAppServiceClient.update", () => {
         // An empty waiting_for is sent, as it's no one in particular
         expect(sent[2].body).toBe(
             `{"game":{"chat":{"Group":"${GROUP}"},"thread":null,"message_id":"5"},"waiting_for":[],"state":{"seq":13,"shared":null}}`,
+        );
+        expect(sent[3].body).toBe(
+            `{"game":${GAME_JSON},"status":"Finished","result":"Alice won","end_state":{"version":1,"board":"XOXOXO..X","moves":[4,0,8]}}`,
         );
     });
 
@@ -141,24 +152,12 @@ describe("MiniAppServiceClient.update", () => {
 describe("MiniAppServiceClient.post", () => {
     const token = postToken();
     const posted: [number, string] = [200, `{"game":${GAME_JSON}}`];
-    const plain = { text: TEXT, spectators: false, appSize: { width: 440, height: 740 } };
+    const plain = { text: TEXT, app: APP, spectators: false, appSize: { width: 440, height: 740 } };
 
     test("posts the card as the service reads it, and resolves with the token's game", async () => {
         const { fetch, sent } = service(posted, posted, posted);
         const { client: miniApps } = client(fetch);
-        const card = new MiniAppMessage(
-            TEXT,
-            { width: 440, height: 740 },
-            {
-                width: 600,
-                height: 400,
-                mimeType: "image/png",
-                blobReference: {
-                    canisterId: BUCKET,
-                    blobId: 340282366920938463463374607431768211455n,
-                },
-            },
-        )
+        const card = new MiniAppMessage(APP, TEXT, { width: 440, height: 740 })
             .setMaxPlayers(4)
             .setSpectators(true)
             .setBlockLevelMarkdown<MiniAppMessage>(true)
@@ -177,12 +176,11 @@ describe("MiniAppServiceClient.post", () => {
             ["POST", `${URL}/bot/post`, `Bearer ${botToken(NOW)}`],
             ["POST", `${URL}/bot/post`, `Bearer ${botToken(NOW)}`],
         ]);
-        // The blob id is a decimal string, as the message id is
         expect(sent[0].body).toBe(
-            `{"token":"${token}","card":{"text":"${TEXT}","image":{"width":600,"height":400,"mime_type":"image/png","blob_reference":{"canister_id":"${BUCKET}","blob_id":"340282366920938463463374607431768211455"}},"max_players":4,"spectators":true,"app_size":{"width":440,"height":740}},"block_level_markdown":true,"replies_to":12}`,
+            `{"token":"${token}","card":{"text":"${TEXT}","app":"${APP}","max_players":4,"spectators":true,"app_size":{"width":440,"height":740}},"block_level_markdown":true,"replies_to":12}`,
         );
         expect(sent[1].body).toBe(
-            `{"token":"${token}","card":{"text":"${TEXT}","spectators":false,"app_size":{"width":440,"height":740}},"block_level_markdown":false,"replies_to":null}`,
+            `{"token":"${token}","card":{"text":"${TEXT}","app":"${APP}","spectators":false,"app_size":{"width":440,"height":740}},"block_level_markdown":false,"replies_to":null}`,
         );
         expect(sent[2].body).toContain(`"block_level_markdown":false,"replies_to":3}`);
     });
