@@ -1,0 +1,31 @@
+{
+    "name": "@open-ic/minigame-bot",
+    "version": "1.0.0",
+    "private": true,
+    "description": "MiniGameBot: games played from MiniApp cards in OpenChat chats. The first is a 2048 race.",
+    "main": "dist/server/server.js",
+    "scripts": {
+        "build": "tsc -p tsconfig.json && vite build",
+        "build:app": "vite build",
+        "check": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.app.json",
+        "dev": "vite build && tsx watch src/server.ts",
+        "start": "node dist/server/server.js",
+        "test": "vitest run"
+    },
+    "license": "ISC",
+    "dependencies": {
+        "@open-ic/openchat-botclient-ts": "../../library",
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.5",
+        "express": "^4.21.1"
+    },
+    "devDependencies": {
+        "@types/cors": "^2.8.17",
+        "@types/express": "^4.17.21",
+        "@types/node": "^22.10.5",
+        "tsx": "^4.19.2",
+        "typescript": "^5.7.3",
+        "vite": "^6.0.5",
+        "vitest": "^3.0.6"
+    }
+}
