@@ -291,6 +291,17 @@ describe("MiniAppClient, on a finished game", () => {
         expect(client.finished).toBe(true);
         expect(client.endState).toBeNull();
         expect(ended).toEqual([null]);
+        // The player's token is dropped: OpenChat answers no more requests for one, nor a start
+        expect(client.token).toBeUndefined();
+        const before = win.kinds().length;
+        vi.advanceTimersByTime(3600_000);
+        expect(win.kinds().length).toBe(before);
+        await expect(client.refreshToken()).rejects.toThrow("The game is over");
+        await expect(client.start()).resolves.toEqual({
+            accepted: false,
+            message: "The game is over",
+        });
+        expect(win.kinds().length).toBe(before);
         // The last state stays, eg. for the app to animate from
         expect(client.state).toEqual({ seq: 7, shared: { seq: 7 }, private: undefined });
 

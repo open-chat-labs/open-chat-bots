@@ -316,6 +316,9 @@ export class MiniAppClient<Shared = unknown, Private = unknown, EndState = unkno
         if (this.#closed) {
             return Promise.reject(new Error("The client is closed"));
         }
+        if (this.#finished) {
+            return Promise.reject(new Error("The game is over"));
+        }
         if (this.#token === undefined) {
             return Promise.reject(new Error("Only a player has a token"));
         }
@@ -345,6 +348,9 @@ export class MiniAppClient<Shared = unknown, Private = unknown, EndState = unkno
     start(): Promise<MiniAppStartResult> {
         if (this.#closed) {
             return Promise.reject(new Error("The client is closed"));
+        }
+        if (this.#finished) {
+            return Promise.resolve({ accepted: false, message: "The game is over" });
         }
         if (this.#role !== "player") {
             return Promise.reject(new Error("Only a player can start the game"));
@@ -455,8 +461,10 @@ export class MiniAppClient<Shared = unknown, Private = unknown, EndState = unkno
                 this.#stateListeners.notify(this.#state);
                 break;
             case "mini_app_end_state":
-                // The game is over, so no state comes after this
+                // The game is over, so no state comes after this, and a player's token is no
+                // longer any use: OpenChat answers no more token requests or starts
                 this.#finished = true;
+                this.#setToken(undefined);
                 this.#endState = message.state as EndState;
                 this.#endStateListeners.notify(this.#endState);
                 break;

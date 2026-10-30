@@ -129,8 +129,8 @@ export type MiniAppGameUpdate = {
     /** eg. "Bob won", of 1 to 200 characters, only with "finished" */
     result?: string;
     /**
-     * How the game ended, as any JSON value the bot chooses, eg. the final position and the moves,
-     * of at most 16 KB serialized, only with "finished". OpenChat writes it to the card and hands
+     * How the game ended, as any JSON value but null the bot chooses, eg. the final position and
+     * the moves, of at most 16 KB serialized, only with "finished" (null is no end state). OpenChat writes it to the card and hands
      * it to the bot's app, in the card and to any app open as the game finishes, which shows its
      * end view from it. A finished card without one shows the app's image and the result instead.
      */

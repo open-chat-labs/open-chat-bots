@@ -29,10 +29,10 @@ For an example of this you can refer to [the middleware](./examples/other/src/mi
 
 ```typescript
 const factory = new BotClientFactory({
-  openchatPublicKey: process.env.OC_PUBLIC!,
-  icHost: process.env.IC_HOST!,
-  identityPrivateKey: process.env.IDENTITY_PRIVATE!,
-  openStorageCanisterId: process.env.STORAGE_INDEX_CANISTER!,
+    openchatPublicKey: process.env.OC_PUBLIC!,
+    icHost: process.env.IC_HOST!,
+    identityPrivateKey: process.env.IDENTITY_PRIVATE!,
+    openStorageCanisterId: process.env.STORAGE_INDEX_CANISTER!,
 });
 ```
 
@@ -105,7 +105,7 @@ Your bots schema definition is used to express what arguments a command requires
 ```typescript
 const album = client.stringArg("album");
 if (album === undefined) {
-  res.status(400).send(argumentsInvalid());
+    res.status(400).send(argumentsInvalid());
 }
 ```
 
@@ -122,13 +122,8 @@ It's likely that our bot will have some async work to do before interacting with
 We can either create a text message and send it to OpenChat in one go using the `sendTextMessage` method or we can create the message and send it in two steps using `createTextMessage` and passing the result to `sendMessage`. In this case we want to send the message both to the OpenChat backend and return it to the OpenChat frontend so we create the message explicitly to avoid creating the same message twice.
 
 ```typescript
-const placeholder = await client.createTextMessage(
-  false,
-  "Searching Spotify ..."
-);
-client
-  .sendMessage(placeholder)
-  .catch((err) => console.error("sendTextMessage failed with: ", err));
+const placeholder = await client.createTextMessage(false, "Searching Spotify ...");
+client.sendMessage(placeholder).catch((err) => console.error("sendTextMessage failed with: ", err));
 ```
 
 The first parameter to the `createTextMessage` method is a `finalised` flag to tell OpenChat whether this is the final message associated with this command. Since it is just a placeholder, the finalised flag is set to false.
@@ -155,8 +150,8 @@ Once we have done our work and achieved some result, it is likely that we will w
 
 ```typescript
 client
-  .sendTextMessage(true, url)
-  .catch((err) => console.error("sendTextMessage failed with: ", err));
+    .sendTextMessage(true, url)
+    .catch((err) => console.error("sendTextMessage failed with: ", err));
 ```
 
 Note that in this case we are creating and sending the message all in one method call since we do not need to re-use the message created and we are setting the `finalised` flag to true since this is the final message that we expect to send to OpenChat for this command execution.
@@ -188,19 +183,19 @@ chats only asks the preview service once.
 ### Supplying previews yourself
 
 ```typescript
-const message = (await client.createTextMessage("check this out https://example.com")).setOgPreviews([
-  { url: "https://example.com", title: "Example", description: "An example" },
-]);
+const message = (
+    await client.createTextMessage("check this out https://example.com")
+).setOgPreviews([{ url: "https://example.com", title: "Example", description: "An example" }]);
 await client.sendMessage(message);
 ```
 
 The field is tri-state:
 
-| `setOgPreviews` | behaviour |
-| --- | --- |
-| not called | previews are fetched automatically (unless disabled - see below) |
-| called with a non-empty list | that list is sent as-is, nothing is fetched |
-| called with `[]` | no previews are sent, nothing is fetched |
+| `setOgPreviews`              | behaviour                                                        |
+| ---------------------------- | ---------------------------------------------------------------- |
+| not called                   | previews are fetched automatically (unless disabled - see below) |
+| called with a non-empty list | that list is sent as-is, nothing is fetched                      |
+| called with `[]`             | no previews are sent, nothing is fetched                         |
 
 So passing `[]` is how you suppress previews for one particular message. Anything you set
 explicitly always wins over the automatic lookup.
@@ -251,7 +246,7 @@ previews that you set explicitly.
 
 ### Other SDKs
 
-The Rust and Motoko SDKs support the same `og_previews` field, but only the *offchain* targets
+The Rust and Motoko SDKs support the same `og_previews` field, but only the _offchain_ targets
 fetch automatically. In-canister bots (`oc_bots_sdk_canister`, the Motoko SDK) are pass-through
 only, because scraping a link from a canister would mean a consensus-replicated http outcall and
 a cycles cost on every send.
@@ -276,7 +271,9 @@ const definition: BotDefinition = {
 
 OpenChat shows the app's image in the card's frame box whenever there's no app to show: before the
 app loads, to someone who can't open the game, and once the game is over without an end state, with
-the result over it. It refuses a card whose app isn't in the bot's definition.
+the result over it. It refuses a card whose app isn't in the bot's definition as OpenChat holds it,
+the one fetched when the bot was registered or last updated: after adding or renaming an app, update
+the bot's registration in OpenChat, or every post is refused until then.
 
 OpenChat's MiniApp service sits between OpenChat's website and the bot. It posts every card, as the
 bot, tracks who's joined each game, is the only thing that writes a card's status, and relays the
@@ -305,7 +302,12 @@ async function miniAppTokens(): Promise<MiniAppTokens> {
 
 ```ts
 // The app, as the bot's definition names it, the text, and what the app's laid out for, in CSS pixels
-const card = (await client.createMiniAppMessage("uno", "**Uno** · 2 to 4 players", { width: 440, height: 740 }))
+const card = (
+    await client.createMiniAppMessage("uno", "**Uno** · 2 to 4 players", {
+        width: 440,
+        height: 740,
+    })
+)
     .setMaxPlayers(4)
     // Whether people who aren't playing can watch
     .setSpectators(true);

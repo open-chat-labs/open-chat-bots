@@ -9227,6 +9227,7 @@ export const UserIndexBotUpdatesBotDetails = /* @__PURE__ */ Type.Object({
     last_updated: Type.BigInt(),
     registration_status: BotRegistrationStatus,
     restricted_locations: Type.Optional(Type.Array(BotInstallationLocationType)),
+    mini_apps: Type.Optional(Type.Array(MiniAppDefinition)),
 });
 
 export type UserIndexUsersResult = Static<typeof UserIndexUsersResult>;
