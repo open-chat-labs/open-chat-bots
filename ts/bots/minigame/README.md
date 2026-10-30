@@ -31,7 +31,8 @@ it and adds the new tile.
 5. **Winning**: the first move that makes a 2048 tile ends the race, and so does the clock: the
    bot checks every second, and before every move, whether a race's 10 minutes are up, and then
    the top score wins: a player's best from any of their boards, as a restart doesn't lose it, ties
-   going to the higher current score, then the higher tile, then the fewer restarts. The bot
+   going to the higher score now, then the higher tile, then the fewer restarts. The cards show both,
+   as "Top" and "Now". The bot
    publishes the final state with `status: "finished"` and the result, eg. "Alice reached 2048 in
    2m 15s" or "Time's up after 10m 0s: Alice won with 5,432 points", which the card shows.
 

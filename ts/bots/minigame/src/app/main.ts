@@ -439,11 +439,11 @@ function updateCard(
             : leading
               ? `<span class="chip racing">Leading</span>`
               : `<span class="chip racing">Racing</span>`;
-    // The top score ranks a player; the current one is this board's
+    // "Top" is the score that ranks a player, from any of their boards; "Now" is this board's
     const restarts = p.restarts > 0 ? ` <span title="Restarts">↻ ${p.restarts}</span>` : "";
     card.stats.innerHTML =
         size === "main"
-            ? `<span>Top <strong>${top}</strong></span><span>Current <strong>${score}</strong></span>${restarts}`
+            ? `<span>Top <strong>${top}</strong></span><span>Now <strong>${score}</strong></span>${restarts}`
             : `<span>Top <strong>${top}</strong></span><span>Now ${score}${restarts}</span>`;
     card.view.update(board, hint);
     card.overlay.hidden = !(mine !== undefined && dead && shared.phase === "active");

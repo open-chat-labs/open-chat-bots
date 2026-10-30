@@ -29,9 +29,9 @@ export type PlayerView = {
     id: string;
     name: string;
     board: Board;
-    /** The current board's score */
+    /** This board's score: "Now" on the cards */
     score: number;
-    /** The top score of any of their boards, which ranks them and wins when the time's up */
+    /** The top score of any of their boards, "Top" on the cards, which ranks them and wins when the time's up */
     best: number;
     /** Moves on the current board */
     moves: number;
