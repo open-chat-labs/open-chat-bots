@@ -68,7 +68,7 @@ didn't take the update. The state everyone sees is:
   "last_move": { "from": "g1", "to": "f3" } | null,
   "check": false,
   "legal_moves": ["b8a6", "b8c6", ...],
-  "clock": { "white_ms": 594000, "black_ms": 600000, "running": "black" | null },
+  "clock": { "at": 1761800000000, "white_ms": 594000, "black_ms": 600000, "running": "black" | null },
   "draw_offer": "white" | "black" | null,
   "result": "White won by checkmate" | null
 }

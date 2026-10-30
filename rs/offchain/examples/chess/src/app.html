@@ -209,8 +209,6 @@ let token = null;
 // The last state shown, so an older one arriving late doesn't replace it
 let lastSeq = -1;
 let shared = null;
-// When the last state arrived, by this page's clock, so the running clock can count down from it
-let receivedAt = 0;
 // The square of the piece picked up, if any, and a promotion waiting for its piece
 let selected = null;
 let promotion = null;
@@ -294,7 +292,6 @@ window.addEventListener("message", (event) => {
       if (typeof message.seq !== "number" || message.seq < lastSeq) return;
       lastSeq = message.seq;
       shared = message.shared;
-      receivedAt = Date.now();
       selected = null;
       render();
       break;
@@ -612,8 +609,9 @@ function formatClock(ms) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-// What each side has left: the state's figure, less the time since it arrived for the side whose
-// clock is running
+// What each side has left: the state's figure, less the time since the bot took it for the side whose
+// clock is running. A state can be old when it arrives, as the service sends the latest one to
+// whoever opens the game, so it's counted from the bot's time, taking the two clocks to agree.
 function tickClocks() {
   for (const panel of [topPanel, bottomPanel]) {
     const clockText = panel.querySelector(".clock");
@@ -625,7 +623,7 @@ function tickClocks() {
     }
     const color = panel.dataset.color;
     let ms = clock[`${color}_ms`];
-    if (clock.running === color) ms = Math.max(0, ms - (Date.now() - receivedAt));
+    if (clock.running === color) ms = Math.max(0, ms - Math.max(0, Date.now() - clock.at));
     clockText.textContent = formatClock(ms);
     clockText.classList.toggle("low", clock.running === color && ms < LOW_TIME_MS);
   }

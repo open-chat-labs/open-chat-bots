@@ -264,6 +264,7 @@ impl Match {
             check: self.position.is_check(),
             legal_moves,
             clock: ClockSnapshot {
+                at: now,
                 white_ms: self.time_left(Color::White, now),
                 black_ms: self.time_left(Color::Black, now),
                 running: (!self.is_over()).then(|| side(self.turn())),
@@ -298,6 +299,10 @@ pub struct LastMove {
 
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct ClockSnapshot {
+    /// When the snapshot was taken, by the bot's clock. The app counts the running side's clock down
+    /// from it, since a state can reach the app long after it was published: the service sends the
+    /// latest state to whoever opens the game.
+    pub at: TimestampMillis,
     /// What each side has left, at the time of the snapshot
     pub white_ms: u64,
     pub black_ms: u64,

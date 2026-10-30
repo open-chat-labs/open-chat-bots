@@ -510,7 +510,7 @@ mod tests {
         assert_eq!(change.waiting_for, Some(vec![user(1)]));
         assert_eq!(
             change.state.shared["clock"],
-            json!({ "white_ms": TIME_PER_SIDE_MS - 1000, "black_ms": TIME_PER_SIDE_MS - 2000, "running": "white" })
+            json!({ "at": START + 3000, "white_ms": TIME_PER_SIDE_MS - 1000, "black_ms": TIME_PER_SIDE_MS - 2000, "running": "white" })
         );
 
         // The update tells the service whose turn it is
