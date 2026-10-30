@@ -22,6 +22,8 @@ pub struct Args {
     pub thread: Option<MessageIndex>,
     pub message_id: Option<MessageId>,
     pub replies_to: Option<EventIndex>,
+    /// OpenChat refuses a MiniApp card here: the MiniApp service posts those, eg. with the offchain
+    /// SDK's `MiniAppServiceClient::post`
     pub content: MessageContentInitial,
     pub block_level_markdown: bool,
     pub finalised: bool,

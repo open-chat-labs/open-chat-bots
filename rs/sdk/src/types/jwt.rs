@@ -21,6 +21,9 @@ impl Display for TokenError {
     }
 }
 
+/// The `claim_type` of the token OpenChat gives a bot with each command
+pub const CLAIM_TYPE_BOT_ACTION_BY_COMMAND: &str = "BotActionByCommand";
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BotActionByCommandClaims {
     pub bot_api_gateway: CanisterId,

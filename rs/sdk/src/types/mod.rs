@@ -11,6 +11,7 @@ mod events;
 mod jwt;
 mod message_content;
 mod message_id;
+mod mini_app;
 mod permissions;
 
 pub use action_context::*;
@@ -26,4 +27,5 @@ pub use events::*;
 pub use jwt::*;
 pub use message_content::*;
 pub use message_id::*;
+pub use mini_app::*;
 pub use permissions::*;
