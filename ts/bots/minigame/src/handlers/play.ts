@@ -12,7 +12,6 @@ import {
 } from "@open-ic/openchat-botclient-ts";
 import type { Request, Response } from "express";
 import type { Deps } from "../deps";
-import { Race2048 } from "../games/race2048/race";
 import { gameType } from "../games/registry";
 
 const POST_ATTEMPTS = 3;
@@ -73,7 +72,7 @@ async function play(client: BotClient, res: Response, deps: Deps): Promise<void>
     const miniAppGame = miniAppGameFromPostToken(token);
     deps.store.create(
         miniAppGame,
-        Race2048.create({ target: deps.raceTarget, timeLimit: deps.raceTimeLimit }),
+        game.create({ raceTarget: deps.raceTarget, raceTimeLimit: deps.raceTimeLimit }),
     );
     try {
         await post(miniApps, token, card);
@@ -90,6 +89,8 @@ async function play(client: BotClient, res: Response, deps: Deps): Promise<void>
         return;
     }
     console.log(`Posted a ${game.id} game in ${client.chatScope.toString()}`);
+    // The empty lobby, so the page knows which game it's showing before anyone joins
+    deps.publisher.publish(miniAppGame);
     // The card is the command's message, so the command has nothing more to say
     res.json({});
 }

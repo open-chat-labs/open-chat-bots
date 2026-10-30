@@ -8,8 +8,9 @@ import { GAMES } from "./games/registry";
 export const definition = {
     description:
         "Play games with the people in your chat. `/play` posts a game card: join from the card, " +
-        "and the game opens in OpenChat. The first game is a 2048 race for up to 10 players, where " +
-        "the first to make a 2048 tile wins, or the top score after 10 minutes.",
+        "and the game opens in OpenChat. Race to 2048 with up to 10 players, where the first to " +
+        "make a 2048 tile wins, or the top score after 10 minutes, or play chess, two players with " +
+        "10 minutes each, which anyone in the chat can watch.",
     commands: [
         {
             name: "play",

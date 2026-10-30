@@ -5,7 +5,7 @@ import express, { type Express, type Request, type Response } from "express";
 import path from "node:path";
 import { definition } from "./definition";
 import type { Deps } from "./deps";
-import { move, restart } from "./handlers/api";
+import { chessDraw, chessMove, chessResign, raceMove, raceRestart } from "./handlers/api";
 import { join, leave, start } from "./handlers/miniApp";
 import { executeCommand } from "./handlers/play";
 
@@ -32,8 +32,11 @@ export function createApp(deps: Deps, appDir: string): Express {
     app.post("/mini_app/start", handle(start));
 
     // Players' apps, with a player token in a header
-    app.post("/api/2048/move", express.json(), handle(move));
-    app.post("/api/2048/restart", express.json(), handle(restart));
+    app.post("/api/2048/move", express.json(), handle(raceMove));
+    app.post("/api/2048/restart", express.json(), handle(raceRestart));
+    app.post("/api/chess/move", express.json(), handle(chessMove));
+    app.post("/api/chess/resign", express.json(), handle(chessResign));
+    app.post("/api/chess/draw", express.json(), handle(chessDraw));
 
     // The app, which OpenChat opens in a frame. Its files are static and cacheable: the page is
     // the only thing spectators fetch from the bot.

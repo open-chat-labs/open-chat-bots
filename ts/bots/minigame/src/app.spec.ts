@@ -30,8 +30,17 @@ describe("GET /bot_definition", () => {
         const response = await fetch(`${base}/bot_definition`);
         expect(response.status).toBe(200);
         const json = (await response.json()) as typeof definition;
-        expect(json.mini_apps).toEqual([{ name: "2048", image_url: "app/2048.svg" }]);
+        expect(json.mini_apps).toEqual([
+            { name: "2048", image_url: "app/2048.svg" },
+            { name: "chess", image_url: "app/chess.svg" },
+        ]);
         expect(json.mini_apps).toHaveLength(GAMES.length);
+        expect(json.description).toContain("chess");
+        // Both games are choices of `/play`
+        expect(json.commands[0].params[0].param_type.StringParam.choices).toEqual([
+            { name: "2048 Race", value: "2048" },
+            { name: "Chess", value: "chess" },
+        ]);
     });
 
     it("has each image where the server serves it from", () => {
@@ -54,6 +63,20 @@ describe("GET /app/2048.svg", () => {
         expect(body).toContain('viewBox="0 0 480 720"');
         expect(body).toContain("2048 Race");
         // Nothing fetched from elsewhere
+        expect(body).not.toMatch(/https?:\/\/(?!www\.w3\.org\/2000\/svg)/);
+        expect(body).not.toContain("<script");
+    });
+});
+
+describe("GET /app/chess.svg", () => {
+    it("serves the image as SVG, at the app's aspect ratio", async () => {
+        const response = await fetch(`${base}/app/chess.svg`);
+        expect(response.status).toBe(200);
+        expect(response.headers.get("content-type")).toMatch(/^image\/svg\+xml/);
+        expect(response.headers.get("cache-control")).toContain("max-age=3600");
+        const body = await response.text();
+        expect(body).toMatch(/^<svg\b/);
+        expect(body).toContain('viewBox="0 0 440 740"');
         expect(body).not.toMatch(/https?:\/\/(?!www\.w3\.org\/2000\/svg)/);
         expect(body).not.toContain("<script");
     });

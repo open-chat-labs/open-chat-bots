@@ -56,19 +56,23 @@ export class Publisher {
         }
         pending.inFlight = true;
         pending.again = false;
-        const { race } = entry;
-        const shared = race.shared();
+        const { play } = entry;
         const update: MiniAppGameUpdate = {
             game,
-            state: { seq: race.nextSeq(), shared },
+            state: { seq: play.nextSeq(), shared: play.shared() },
         };
-        if (race.phase === "finished") {
+        if (play.phase === "finished") {
             update.status = "finished";
-            update.result = race.result();
-            // The final shared state, with every board, the winner and the times, is how the race
-            // ended: OpenChat writes it to the card and hands it to the app, which shows the finished
-            // race from it. It's a few KB at most, well within the end state's 16 KB.
-            update.endState = shared;
+            update.result = play.result();
+            // How the game ended, if the game has it to give: OpenChat writes it to the card and
+            // hands it to the app, which shows the finished game from it
+            const endState = play.endState();
+            if (endState !== undefined) update.endState = endState;
+        } else {
+            // Whose turn it is, for the card, when the game has turns: the states go one at a time
+            // per game, in order, so the latest is never put back by an earlier one
+            const waitingFor = play.waitingFor();
+            if (waitingFor.length > 0) update.waitingFor = waitingFor;
         }
         this.store.save();
         let retry = false;

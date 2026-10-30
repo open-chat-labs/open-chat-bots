@@ -5,6 +5,7 @@
 //
 // The bot decides every move, so no one can forge a board. The race keeps its whole state in
 // `RaceData`, which the store writes to disk as it is.
+import type { Game } from "../game";
 import {
     canMove,
     isDirection,
@@ -75,7 +76,8 @@ export type RaceOptions = {
 
 export type SeatResult = "seated" | "already_seated" | "full" | "started";
 
-export class Race2048 {
+export class Race2048 implements Game {
+    readonly kind = "2048";
     readonly #data: RaceData;
     readonly #random: () => number;
     readonly #now: () => number;
@@ -115,6 +117,14 @@ export class Race2048 {
         return this.#data.phase;
     }
 
+    get createdAt(): number {
+        return this.#data.createdAt;
+    }
+
+    get finishedAt(): number | undefined {
+        return this.#data.finishedAt;
+    }
+
     get seats(): readonly Seat[] {
         return this.#data.seats;
     }
@@ -151,6 +161,24 @@ export class Race2048 {
         if (this.#data.seats.length >= MAX_PLAYERS) return "full";
         this.#data.seats.push({ id: userId, name });
         return "seated";
+    }
+
+    /** A seat, or why not: the race's own words for `takeSeat`'s refusals */
+    join(userId: string, name: string): string | undefined {
+        switch (this.takeSeat(userId, name)) {
+            case "seated":
+            case "already_seated":
+                return undefined;
+            case "full":
+                return `All ${MAX_PLAYERS} seats are taken`;
+            case "started":
+                return "The race has already started";
+        }
+    }
+
+    /** Someone who left before the start gives up their seat; a racer who leaves keeps racing */
+    leave(userId: string): boolean {
+        return this.leaveSeat(userId);
     }
 
     /** Takes a user's seat away, before the game starts. Nothing happens if they had none. */
@@ -211,6 +239,11 @@ export class Race2048 {
         d.phase = "finished";
         d.finishedAt = this.#now();
         return true;
+    }
+
+    /** A race: it's everyone's turn at once */
+    waitingFor(): string[] {
+        return [];
     }
 
     /** The next state's `seq`, above every state published before */
@@ -292,6 +325,18 @@ export class Race2048 {
             winner: d.winner,
             lastMove: d.lastMove === undefined ? undefined : { ...d.lastMove },
         };
+    }
+
+    /**
+     * How the race ended is its final shared state: every board, the winner and the times, which
+     * the app shows the finished race from. It's a few KB at most, well within the end state's 16 KB.
+     */
+    endState(): SharedState | undefined {
+        return this.#data.phase === "finished" ? this.shared() : undefined;
+    }
+
+    toJson(): RaceData {
+        return this.#data;
     }
 
     /**

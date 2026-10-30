@@ -11,7 +11,7 @@ import type { Deps } from "./deps";
 import { Names } from "./names";
 import { Publisher } from "./publisher";
 import { GameStore } from "./store";
-import { endRacesOutOfTime, SWEEP_EVERY_MS } from "./sweep";
+import { endGamesOutOfTime, SWEEP_EVERY_MS } from "./sweep";
 
 const PRUNE_EVERY_MS = 60 * 60 * 1000;
 
@@ -87,7 +87,7 @@ app.listen(config.port, () => {
     console.log(`MiniGameBot listening on port ${config.port}, with ${store.size} games`);
 });
 
-setInterval(() => endRacesOutOfTime(store, deps.publisher), SWEEP_EVERY_MS).unref();
+setInterval(() => endGamesOutOfTime(store, deps.publisher), SWEEP_EVERY_MS).unref();
 
 setInterval(() => {
     const dropped = store.prune();

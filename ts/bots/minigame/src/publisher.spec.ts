@@ -5,6 +5,7 @@ import {
     type MiniAppServiceClient,
 } from "@open-ic/openchat-botclient-ts";
 import { describe, expect, it, vi } from "vitest";
+import { ChessGame } from "./games/chess/chess";
 import { Race2048 } from "./games/race2048/race";
 import { TIME_LIMIT_MS } from "./games/race2048/types";
 import { Publisher } from "./publisher";
@@ -51,6 +52,7 @@ describe("publisher", () => {
         race.takeSeat("bob", "Bob");
         race.start();
         race.data.players[1].score = 5432;
+        race.data.players[1].best = 5432;
         now += TIME_LIMIT_MS;
         expect(race.endIfTimeUp()).toBe(true);
         store.create(game, race);
@@ -69,7 +71,44 @@ describe("publisher", () => {
         expect(shared.winner).toBe("bob");
         expect(shared.players).toHaveLength(2);
         expect(shared.finishedAt).toBe(now);
-        // Well within the end state's 16 KB, with every board
-        expect(JSON.stringify(update.endState).length).toBeLessThan(16 * 1024);
+        // Well within the end state's 16 KB, with every board: bytes, not UTF-16 units
+        expect(Buffer.byteLength(JSON.stringify(update.endState))).toBeLessThan(16 * 1024);
+    });
+
+    it("tells the card whose turn it is in a chess game, and ends it with the moves", async () => {
+        const { updates, store, publisher } = setUp();
+        const chess = ChessGame.create({ random: () => 0.9 });
+        chess.join("alice", "Alice");
+        chess.join("bob", "Bob");
+        store.create(game, chess);
+
+        // The lobby: no one's turn
+        publisher.publish(game);
+        await published(updates, 1);
+        expect(updates[0].waitingFor).toBeUndefined();
+
+        chess.start();
+        chess.move("alice", "e2e4");
+        publisher.publish(game);
+        await published(updates, 2);
+        expect(updates[1].waitingFor).toEqual(["bob"]);
+        expect(updates[1].status).toBeUndefined();
+        expect(updates[1].state?.shared).toMatchObject({ moves: ["e4"] });
+
+        chess.resign("bob");
+        publisher.publish(game);
+        await published(updates, 3);
+        expect(updates[2].waitingFor).toBeUndefined();
+        expect(updates[2].status).toBe("finished");
+        expect(updates[2].result).toBe("White won by resignation");
+        expect(updates[2].endState).toMatchObject({
+            version: 1,
+            game: "chess",
+            result: "White won by resignation",
+            white: "alice",
+            black: "bob",
+            moves: ["e4"],
+        });
+        expect((updates[2].endState as { fens: string[] }).fens).toHaveLength(2);
     });
 });
