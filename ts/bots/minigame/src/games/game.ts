@@ -65,6 +65,12 @@ export interface Game {
      * its state is published again.
      */
     resume(downMs: number): boolean;
+    /**
+     * How long the publisher waits to send a change, coalescing those that come meanwhile: a
+     * game with many players sends a big state, so less often. `PUBLISH_EVERY_MS` unless the
+     * game says otherwise.
+     */
+    publishEveryMs(): number;
     /** The next state's `seq`, above every state published before */
     nextSeq(): number;
     /** The state everyone sees, with a `version` and the `game`'s id */
@@ -81,6 +87,9 @@ export interface Game {
     /** The game's whole state, for the store to write; the registry's `fromJson` reads it back */
     toJson(): unknown;
 }
+
+/** How long the publisher waits to send a change, unless a game says otherwise */
+export const PUBLISH_EVERY_MS = 80;
 
 /** The most the service takes for how a game ended, serialized */
 export const MAX_END_STATE_BYTES = 16 * 1024;

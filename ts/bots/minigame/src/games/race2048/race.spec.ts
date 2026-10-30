@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Settings } from "../settings";
-import { duration, Race2048 } from "./race";
-import { MAX_PLAYERS, STATE_VERSION, TARGET, TIME_LIMIT_MS } from "./types";
+import { duration, publishEveryMs, Race2048 } from "./race";
+import { DEAD, MAX_PLAYERS, STATE_VERSION, TARGET, TIME_LIMIT_MS, WON } from "./types";
 
 // Spawns always put a 2 in the first empty cell
 const first2 = () => 0;
@@ -85,7 +85,7 @@ describe("moves", () => {
         expect(result.player.board.slice(0, 4)).toEqual([4, 2, 0, 0]);
         expect(result.player.score).toBe(4);
         expect(result.player.best).toBe(4);
-        expect(result.player.moves).toBe(1);
+        expect(race.data.players[0].moves).toBe(1);
         expect(result.player.rev).toBe(1);
         expect(race.data.lastMove).toEqual({ player: "alice", direction: "left" });
     });
@@ -96,7 +96,7 @@ describe("moves", () => {
         expect(result).toMatchObject({ ok: true, moved: false, gained: 0 });
         if (!result.ok) return;
         expect(result.player.board.filter((v) => v !== 0)).toHaveLength(2);
-        expect(result.player.moves).toBe(0);
+        expect(race.data.players[0].moves).toBe(0);
     });
 
     it("refuses a move from someone not racing, before the start, or with no direction", () => {
@@ -159,7 +159,7 @@ describe("moves", () => {
         expect(restarted.player.score).toBe(0);
         // The move that got stuck merged nothing, so the best is the score before it
         expect(restarted.player.best).toBe(48);
-        expect(restarted.player.moves).toBe(0);
+        expect(race.data.players[1].moves).toBe(0);
         expect(restarted.player.rev).toBe(2);
         expect(restarted.player.board.filter((v) => v !== 0)).toHaveLength(2);
     });
@@ -288,16 +288,76 @@ describe("shared state", () => {
             timeLimit: TIME_LIMIT_MS,
             maxPlayers: MAX_PLAYERS,
             seats: [{ id: "alice", name: "ALICE" }],
-            players: [],
+            racers: [],
         });
         race.start();
         const shared = race.shared();
         expect(shared.phase).toBe("active");
-        expect(shared.players).toHaveLength(1);
-        expect(shared.players[0]).toMatchObject({ id: "alice", name: "ALICE", dead: false });
-        // A copy, not the race's own board
-        shared.players[0].board[0] = 999;
-        expect(race.players[0].board[0]).not.toBe(999);
+        expect(shared.racers).toHaveLength(1);
+        // Packed: the board as hex digits, two 2s with `first2`, and a letter a number
+        expect(shared.racers[0]).toEqual({
+            i: "alice",
+            b: "1100000000000000",
+            s: 0,
+            t: 0,
+            r: 0,
+            v: 0,
+            f: 0,
+        });
+        // The names aren't in it: they never change once the race starts, so the app asks once
+        expect(shared.names).toBeUndefined();
+        expect(race.names()).toEqual({ alice: "ALICE" });
+    });
+
+    it("carries the key the app asks for the roster with, and flags a stuck or winning board", () => {
+        const { race } = started();
+        expect(race.shared().key).toBeUndefined();
+        const keyed = Race2048.create({ key: "group:abc/-/1" });
+        expect(keyed.shared().key).toBe("group:abc/-/1");
+        race.data.players[0].dead = true;
+        race.data.players[1].won = true;
+        expect(race.shared().racers.map((r) => r.f)).toEqual([DEAD, WON]);
+    });
+
+    it("ends with every racer's name, as the card keeps the end state on its own", () => {
+        const { race, time } = started(["alice", "bob"]);
+        expect(race.endState()).toBeUndefined();
+        time.tick(TIME_LIMIT_MS);
+        race.endIfTimeUp();
+        expect(race.endState()).toMatchObject({
+            phase: "finished",
+            names: { alice: "ALICE", bob: "BOB" },
+        });
+        // A hundred racers packed stay within the end state's 16 KB
+        const big = Race2048.create({ random: first2 });
+        for (let i = 0; i < MAX_PLAYERS; i++) {
+            big.takeSeat(`aaaaa-bbbbb-ccccc-ddddd-eee-${String(i).padStart(2, "0")}`, `Racer ${i}`);
+        }
+        big.start();
+        for (const p of big.data.players) {
+            p.board = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 2, 4, 8, 16];
+            p.score = 123456;
+            p.best = 123456;
+            p.restarts = 12;
+            p.rev = 1234;
+        }
+        big.data.phase = "finished";
+        big.data.finishedAt = big.data.startedAt;
+        const bytes = Buffer.byteLength(JSON.stringify(big.endState()));
+        expect(bytes).toBeLessThan(16 * 1024);
+        expect(bytes).toBeGreaterThan(8 * 1024);
+    });
+
+    it("publishes less often as the field grows", () => {
+        expect(publishEveryMs(1)).toBe(80);
+        expect(publishEveryMs(10)).toBe(80);
+        expect(publishEveryMs(11)).toBe(150);
+        expect(publishEveryMs(30)).toBe(150);
+        expect(publishEveryMs(31)).toBe(250);
+        expect(publishEveryMs(60)).toBe(250);
+        expect(publishEveryMs(100)).toBe(400);
+        const { race } = started(["alice", "bob"]);
+        expect(race.publishEveryMs()).toBe(80);
     });
 
     it("seq goes up with each state", () => {

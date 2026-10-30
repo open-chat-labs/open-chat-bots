@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { canMove, emptyBoard, maxTile, newBoard, slide, slideMoves, spawn, type Board } from "./engine";
+import {
+    canMove,
+    emptyBoard,
+    maxTile,
+    newBoard,
+    packBoard,
+    slide,
+    slideMoves,
+    spawn,
+    unpackBoard,
+    type Board,
+} from "./engine";
 
 // prettier-ignore
 const board = (...rows: number[][]): Board => rows.flat();
@@ -69,6 +80,23 @@ describe("slideMoves", () => {
         const { moved, moves } = slideMoves(board, "left");
         expect(moved).toBe(false);
         expect(moves).toEqual([{ from: 0, to: 0, merged: false }]);
+    });
+});
+
+describe("packBoard", () => {
+    it("writes a board as a hex digit per cell, the tile's power of two, and reads it back", () => {
+        const board = [...[0, 2, 4, 8], ...[16, 32, 64, 128], ...[256, 512, 1024, 2048], ...[4096, 0, 2, 32768]];
+        expect(packBoard(board)).toBe("0123456789abc01f");
+        expect(unpackBoard("0123456789abc01f")).toEqual(board);
+        expect(packBoard(emptyBoard())).toBe("0000000000000000");
+    });
+
+    it("refuses a tile a digit can't hold, or a board that isn't one", () => {
+        expect(() => packBoard([...emptyBoard().slice(1), 65536])).toThrow("can't be packed");
+        expect(() => packBoard([...emptyBoard().slice(1), 3])).toThrow("can't be packed");
+        expect(() => packBoard([2, 4])).toThrow("16 cells");
+        expect(() => unpackBoard("0123")).toThrow("isn't a packed board");
+        expect(() => unpackBoard("0123456789abcdeg")).toThrow("isn't a packed board");
     });
 });
 

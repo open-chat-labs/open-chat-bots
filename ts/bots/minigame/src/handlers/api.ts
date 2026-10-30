@@ -9,7 +9,7 @@ import type { ChessGame } from "../games/chess/chess";
 import type { ActionResponse } from "../games/chess/types";
 import type { Game, GameKind } from "../games/game";
 import type { Race2048 } from "../games/race2048/race";
-import type { MoveResponse } from "../games/race2048/types";
+import type { MoveResponse, RosterResponse } from "../games/race2048/types";
 import { gameType } from "../games/registry";
 import { parseSettings } from "../games/settings";
 
@@ -100,6 +100,23 @@ export async function settings(req: Request, res: Response, deps: Deps): Promise
     deps.store.save();
     deps.publisher.publish(game);
     res.json({ ok: true, settings: play.settings() });
+}
+
+/**
+ * `GET /api/2048/roster?game=<key>`: the racers' names by id, which the live state leaves out as
+ * they never change once the race starts. Anyone with the game open, watching included, asks
+ * once; the names are on the card and in the lobby anyway.
+ */
+export async function raceRoster(req: Request, res: Response, deps: Deps): Promise<void> {
+    const key = req.query.game;
+    const entry = typeof key === "string" ? deps.store.getByKey(key) : undefined;
+    if (entry === undefined || entry.play.kind !== "2048") {
+        res.status(404).json({ ok: false, error: "This game is over" });
+        return;
+    }
+    // Fixed once the race starts; a page in the lobby has the seats' names in the state anyway
+    res.setHeader("cache-control", entry.play.phase === "open" ? "no-store" : "private, max-age=3600");
+    res.json({ names: (entry.play as Race2048).names() } satisfies RosterResponse);
 }
 
 // The 2048 race: a move or a restart changes the board, unless the move moved nothing

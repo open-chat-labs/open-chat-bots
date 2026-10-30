@@ -22,10 +22,11 @@ const MAX_RETRIES = 5;
 export class Publisher {
     readonly #pending = new Map<string, Pending>();
 
+    /** `delayMs` overrides every game's own pace, eg. 0 in a test */
     constructor(
         private readonly miniApps: () => MiniAppServiceClient | undefined,
         private readonly store: GameStore,
-        private readonly delayMs: number = DELAY_MS,
+        private readonly delayMs?: number,
     ) {}
 
     /** Sends the game's latest state shortly. When it's finished, that ends the card too. */
@@ -38,10 +39,11 @@ export class Publisher {
             return;
         }
         if (pending.timer === undefined) {
+            const delay = this.delayMs ?? this.store.get(game)?.play.publishEveryMs() ?? DELAY_MS;
             pending.timer = setTimeout(() => {
                 pending.timer = undefined;
                 void this.#flush(game, pending);
-            }, this.delayMs);
+            }, delay);
         }
     }
 

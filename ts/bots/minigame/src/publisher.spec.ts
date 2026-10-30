@@ -90,11 +90,14 @@ describe("publisher", () => {
         expect(update.result).toBe("Time's up after 10m 0s: Bob won with 5,432 points");
         // The end state is the final shared state: every board, the winner and the times
         const shared = race.shared();
-        expect(update.endState).toEqual(shared);
+        expect(update.endState).toEqual({ ...shared, names: { alice: "Alice", bob: "Bob" } });
         expect(update.state?.shared).toEqual(shared);
         expect(shared.phase).toBe("finished");
         expect(shared.winner).toBe("bob");
-        expect(shared.players).toHaveLength(2);
+        expect(shared.racers).toHaveLength(2);
+        // The names, which the live state leaves out
+        expect(update.endState).toMatchObject({ names: { alice: "Alice", bob: "Bob" } });
+        expect(shared.names).toBeUndefined();
         expect(shared.finishedAt).toBe(now);
         // Well within the end state's 16 KB, with every board: bytes, not UTF-16 units
         expect(Buffer.byteLength(JSON.stringify(update.endState))).toBeLessThan(16 * 1024);

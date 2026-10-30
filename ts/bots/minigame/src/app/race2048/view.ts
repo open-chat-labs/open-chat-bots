@@ -2,23 +2,38 @@
 // the bot. A move is applied to the player's board as soon as it's made, with the bot's answer
 // confirming it and adding the new tile.
 //
-// The race's boards animate (`board.ts`), so their elements are kept and brought up to date, and
-// the rest of the race view with them.
+// The state carries the racers packed (`types.ts`), without their names, which the view asks the
+// bot for once per race: a race of a hundred is sent to everyone several times a second. The
+// race's boards animate (`board.ts`), so their elements are kept and brought up to date, and the
+// rest of the race view with them. With many racers only the top boards are drawn; the rest are
+// listed with their scores.
 //
-// Once the race is over, the bot's end state is its final shared state, so a finished race is drawn
-// the same way, from the end state: on connecting to a finished card, when no state comes at all,
-// and as the race finishes while the page is open. Nothing is sent to the bot after that.
-import { slide, type Board, type Direction } from "../../games/race2048/engine";
+// Once the race is over, the bot's end state is its final shared state with the names, so a
+// finished race is drawn the same way, from the end state: on connecting to a finished card, when
+// no state comes at all, and as the race finishes while the page is open. Nothing is sent to the
+// bot after that. An end state written by the first release, with the boards as arrays and the
+// names in it, is read too, as the card keeps it for good.
+import { slide, unpackBoard, type Board, type Direction } from "../../games/race2048/engine";
+import { RACE_SETTINGS } from "../../games/race2048/settings";
 import {
+    DEAD,
     GAME_ID,
     STATE_VERSION,
+    WON,
     type MoveResponse,
     type PlayerView,
+    type Racer,
+    type RosterResponse,
     type SharedState,
 } from "../../games/race2048/types";
-import { RACE_SETTINGS } from "../../games/race2048/settings";
 import type { BaseState, GameView, Lobby, ViewContext } from "../view";
 import { BoardView } from "./board";
+
+/** How many of the other racers' boards are drawn; the rest are listed with their scores */
+const TOP_BOARDS = 20;
+
+/** The race as the view draws it: the state with its racers unpacked and named */
+type Race = Omit<SharedState, "version" | "racers"> & { players: PlayerView[] };
 
 /** The player's own board, as last confirmed by the bot or predicted from a move */
 type Own = { board: Board; rev: number; score: number; best: number; dead: boolean; won: boolean };
@@ -31,6 +46,9 @@ let sending = false;
 let queued: Direction | undefined;
 // The frame only gets the keys once the player has clicked in it, as it's in the chat
 let focused = document.hasFocus();
+/** The racers' names by game key, from the bot, once the race has started */
+const rosters = new Map<string, Record<string, string>>();
+const rosterRequests = new Set<string>();
 
 const KEYS: Record<string, Direction> = {
     ArrowUp: "up",
@@ -104,24 +122,16 @@ export const raceView: GameView = {
     },
 
     renderLive(body, shared) {
-        syncOwn(shared as SharedState);
-        renderRace(body, shared as SharedState);
+        const race = unpack(shared as SharedState);
+        syncOwn(race);
+        renderRace(body, race);
     },
 
     renderEnd(body, endState) {
-        // The end state is the race's final shared state, so it's drawn the same way. Only one
-        // version of it has ever been written.
-        const shared = endState as Partial<SharedState> | null;
-        if (
-            shared === null ||
-            typeof shared !== "object" ||
-            shared.version !== STATE_VERSION ||
-            !Array.isArray(shared.players)
-        ) {
-            return false;
-        }
-        syncOwn(shared as SharedState);
-        renderRace(body, shared as SharedState);
+        const race = read(endState);
+        if (race === undefined) return false;
+        syncOwn(race);
+        renderRace(body, race);
         return true;
     },
 
@@ -148,19 +158,89 @@ export const raceView: GameView = {
     },
 };
 
+// The state as the view reads it
+
+/** The live state's racers unpacked, named from the end state, the roster, or the seats */
+function unpack(shared: SharedState): Race {
+    const names = shared.names ?? (shared.key === undefined ? undefined : rosters.get(shared.key));
+    if (names === undefined && shared.phase !== "open") fetchRoster(shared.key);
+    const seats = new Map(shared.seats.map((s) => [s.id, s.name]));
+    const { racers, ...rest } = shared;
+    return {
+        ...rest,
+        players: racers.map((r) => unpackRacer(r, names?.[r.i] ?? seats.get(r.i) ?? shortId(r.i))),
+    };
+}
+
+function unpackRacer(r: Racer, name: string): PlayerView {
+    return {
+        id: r.i,
+        name,
+        board: unpackBoard(r.b),
+        score: r.s,
+        best: r.t,
+        restarts: r.r,
+        rev: r.v,
+        dead: (r.f & DEAD) !== 0,
+        won: (r.f & WON) !== 0,
+    };
+}
+
 /**
- * The race as it is now: the end state once the race is over, which is its final shared state, or
- * the latest shared state, or nothing before the first one
+ * A race from an end state the card kept: this release's, or the first release's, whose boards
+ * were arrays and whose players carried their names. Undefined if it's neither.
  */
-function current(): SharedState | undefined {
+function read(state: unknown): Race | undefined {
+    if (state === null || typeof state !== "object") return undefined;
+    const s = state as Partial<SharedState> & { players?: unknown };
+    if (s.version === STATE_VERSION && Array.isArray(s.racers)) {
+        return unpack(s as SharedState);
+    }
+    if ((s.version as number) === 1 && Array.isArray(s.players)) {
+        const { players, ...rest } = s as Omit<SharedState, "racers"> & { players: PlayerView[] };
+        return { ...rest, players };
+    }
+    return undefined;
+}
+
+/** Asks the bot for the racers' names, once per race, and draws the page again with them */
+function fetchRoster(key: string | undefined) {
+    if (key === undefined || ctx === undefined || rosterRequests.has(key)) return;
+    rosterRequests.add(key);
+    void (async () => {
+        try {
+            const response = await ctx.oc.fetch(`/api/2048/roster?game=${encodeURIComponent(key)}`);
+            if (!response.ok) throw new Error(`${response.status}`);
+            const { names } = (await response.json()) as RosterResponse;
+            rosters.set(key, names);
+            ctx.render();
+        } catch {
+            // Asked again on a later state; the boards show meanwhile, with short ids
+            rosterRequests.delete(key);
+        }
+    })();
+}
+
+function shortId(id: string): string {
+    return id.slice(0, 5);
+}
+
+/**
+ * The race as it is now: the end state once the race is over, or the latest shared state, or
+ * nothing before the first one
+ */
+function current(): Race | undefined {
     const oc = ctx?.oc;
-    return (oc?.endState ?? oc?.state?.shared) as SharedState | undefined;
+    if (oc === undefined) return undefined;
+    if (oc.endState !== undefined) return read(oc.endState);
+    const shared = oc.state?.shared as SharedState | undefined;
+    return shared === undefined ? undefined : unpack(shared);
 }
 
 /** Takes the player's board from the shared state, unless a move is still being answered */
-function syncOwn(shared: SharedState | undefined) {
+function syncOwn(race: Race | undefined) {
     if (ctx === undefined) return;
-    const me = shared?.players.find((p) => p.id === ctx!.oc.userId);
+    const me = race?.players.find((p) => p.id === ctx!.oc.userId);
     if (me === undefined) {
         own = undefined;
     } else if (!sending && (own === undefined || me.rev >= own.rev)) {
@@ -176,8 +256,8 @@ function applyOwn(p: PlayerView) {
 function canMove(): boolean {
     const oc = ctx?.oc;
     if (oc === undefined || oc.role !== "player" || oc.finished) return false;
-    const shared = current();
-    if (shared === undefined || shared.phase !== "active") return false;
+    const race = current();
+    if (race === undefined || race.phase !== "active") return false;
     return own !== undefined && !own.dead && !own.won;
 }
 
@@ -268,18 +348,19 @@ type RaceDom = {
     controls: HTMLElement;
     others: HTMLElement;
     otherCards: Map<string, CardDom>;
+    standings: HTMLElement;
 };
 
 let raceDom: RaceDom | undefined;
 
-function renderRace(body: HTMLElement, shared: SharedState) {
+function renderRace(body: HTMLElement, race: Race) {
     const oc = ctx?.oc;
     const me = oc?.userId;
     const player = oc?.role === "player";
     // The player's own board is the big one, over the others' in a row, the top score first: a
     // player's best from any of their boards, which is what wins when the time's up. Someone
     // watching sees the leader's board as the big one.
-    const byScore = [...shared.players].sort(
+    const byScore = [...race.players].sort(
         (a, b) => b.best - a.best || b.score - a.score || a.name.localeCompare(b.name),
     );
     const main = byScore.find((p) => p.id === me) ?? byScore[0];
@@ -294,30 +375,32 @@ function renderRace(body: HTMLElement, shared: SharedState) {
     }
     const dom = raceDom;
 
-    const winner = byScore.find((p) => p.id === shared.winner);
-    dom.banner.hidden = shared.phase !== "finished";
-    dom.banner.innerHTML = shared.phase === "finished" ? ending(shared, winner, me) : "";
+    const winner = byScore.find((p) => p.id === race.winner);
+    dom.banner.hidden = race.phase !== "finished";
+    dom.banner.innerHTML = race.phase === "finished" ? ending(race, winner, me) : "";
 
     // The player's own board slides for their move; a board that moved in the shared state
     // slides when the last move was its player's, and the board is that move's
-    const lastMove = shared.lastMove;
+    const lastMove = race.lastMove;
     const hint = (p: PlayerView): Direction | undefined =>
         p.id === me ? ownMove : lastMove?.player === p.id ? lastMove.direction : undefined;
-    updateCard(dom.main, main, main.id === me ? own : undefined, shared, "main", hint(main));
+    updateCard(dom.main, main, main.id === me ? own : undefined, race, "main", hint(main));
 
-    dom.controls.hidden = !(player && shared.phase === "active" && oc?.finished !== true);
+    dom.controls.hidden = !(player && race.phase === "active" && oc?.finished !== true);
     renderHint();
 
+    // The top boards in the row, the rest as standings
     const others = byScore.filter((p) => p !== main);
+    const shown = others.slice(0, TOP_BOARDS);
     const seen = new Set<string>();
-    for (const p of others) {
+    for (const p of shown) {
         seen.add(p.id);
         let card = dom.otherCards.get(p.id);
         if (card === undefined) {
             card = buildCard(p, undefined, "small");
             dom.otherCards.set(p.id, card);
         }
-        updateCard(card, p, undefined, shared, "small", hint(p));
+        updateCard(card, p, undefined, race, "small", hint(p));
         // Appending in order sorts the row, moving only the cards whose place changed
         if (dom.others.children[seen.size - 1] !== card.el) {
             dom.others.append(card.el);
@@ -329,7 +412,18 @@ function renderRace(body: HTMLElement, shared: SharedState) {
             dom.otherCards.delete(id);
         }
     }
-    dom.others.hidden = others.length === 0;
+    dom.others.hidden = shown.length === 0;
+
+    const rest = others.slice(TOP_BOARDS);
+    dom.standings.hidden = rest.length === 0;
+    dom.standings.innerHTML = rest
+        .map((p) => {
+            const rank = byScore.indexOf(p) + 1;
+            const mark = p.won ? " · winner" : p.dead ? " · stuck" : "";
+            return `<li><span class="rank">${rank}</span> <span class="name">${escape(p.name)}</span>
+                <span class="scores">${p.best} <em>top</em> ${p.score} <em>now</em>${mark}</span></li>`;
+        })
+        .join("");
 }
 
 function buildRace(body: HTMLElement, main: PlayerView, mine: Own | undefined): RaceDom {
@@ -347,6 +441,7 @@ function buildRace(body: HTMLElement, main: PlayerView, mine: Own | undefined): 
                 <p class="muted"><span id="hint"></span> <button class="link" data-action="restart">Restart my board</button></p>
             </div>
             <section class="others" hidden></section>
+            <ol class="standings" hidden></ol>
         </div>`;
     const root = body.firstElementChild as HTMLElement;
     const card = buildCard(main, mine, "main");
@@ -359,6 +454,7 @@ function buildRace(body: HTMLElement, main: PlayerView, mine: Own | undefined): 
         controls: root.querySelector(".controls") as HTMLElement,
         others: root.querySelector(".others") as HTMLElement,
         otherCards: new Map(),
+        standings: root.querySelector(".standings") as HTMLElement,
     };
 }
 
@@ -389,7 +485,7 @@ function updateCard(
     card: CardDom,
     p: PlayerView,
     mine: Own | undefined,
-    shared: SharedState,
+    race: Race,
     size: "main" | "small",
     hint: Direction | undefined,
 ) {
@@ -412,7 +508,7 @@ function updateCard(
             ? `<span>Top <strong>${top}</strong></span><span>Current <strong>${score}</strong></span>${restarts}`
             : `<span>Top <strong>${top}</strong></span><span>Current ${score}${restarts}</span>`;
     card.view.update(board, hint);
-    card.overlay.hidden = !(mine !== undefined && dead && shared.phase === "active");
+    card.overlay.hidden = !(mine !== undefined && dead && race.phase === "active");
 }
 
 function hintText(): string {
@@ -429,30 +525,26 @@ function renderHint() {
 }
 
 /** How the race ended, for the banner */
-function ending(
-    shared: SharedState,
-    winner: PlayerView | undefined,
-    me: string | undefined,
-): string {
+function ending(race: Race, winner: PlayerView | undefined, me: string | undefined): string {
     if (winner === undefined) return "The race is over";
     const who = `<strong>${escape(winner.name)}</strong> ${winner.id === me ? "(you) " : ""}`;
-    if (shared.ended === "time") {
+    if (race.ended === "time") {
         return `Time's up! ${who}wins with the top score, ${winner.best.toLocaleString()}`;
     }
-    return `${who}reached ${shared.target} in ${elapsedText(shared)}`;
+    return `${who}reached ${race.target} in ${elapsedText(race)}`;
 }
 
 /** The time left while racing, or how long the race took once it's over */
-function clockText(shared: SharedState | undefined): string {
-    if (shared?.startedAt === undefined) return "";
-    if (shared.phase === "finished") return elapsedText(shared);
-    if (shared.endsAt === undefined) return elapsedText(shared);
-    return `${mmss(shared.endsAt - Date.now())} left`;
+function clockText(race: Race | undefined): string {
+    if (race?.startedAt === undefined) return "";
+    if (race.phase === "finished") return elapsedText(race);
+    if (race.endsAt === undefined) return elapsedText(race);
+    return `${mmss(race.endsAt - Date.now())} left`;
 }
 
-function elapsedText(shared: SharedState): string {
-    if (shared.startedAt === undefined) return "";
-    return mmss((shared.finishedAt ?? Date.now()) - shared.startedAt);
+function elapsedText(race: Race): string {
+    if (race.startedAt === undefined) return "";
+    return mmss((race.finishedAt ?? Date.now()) - race.startedAt);
 }
 
 function mmss(ms: number): string {
@@ -474,9 +566,9 @@ function limitText(ms: number): string {
 
 function renderClock() {
     const clock = document.getElementById("clock");
-    const shared = current();
-    if (clock !== null && shared?.phase === "active") {
-        clock.textContent = clockText(shared);
+    const race = current();
+    if (clock !== null && race?.phase === "active") {
+        clock.textContent = clockText(race);
     }
 }
 

@@ -124,3 +124,31 @@ export function canMove(board: Board): boolean {
 export function maxTile(board: Board): number {
     return board.reduce((max, value) => Math.max(max, value), 0);
 }
+
+/** A tile a packed board can hold: a hex digit's power of two */
+export const MAX_PACKED_TILE = 2 ** 15;
+
+/**
+ * A board as 16 hex digits, one per cell, each the tile's power of two, or 0 for an empty cell:
+ * 8 bytes, written out so a state stays readable. A race's tiles never pass its target, 4096 at
+ * most, so a digit always holds one.
+ */
+export function packBoard(board: Board): string {
+    if (board.length !== CELLS) throw new RangeError(`A board has ${CELLS} cells`);
+    return board
+        .map((value) => {
+            if (value === 0) return "0";
+            const exponent = Math.log2(value);
+            if (!Number.isInteger(exponent) || value > MAX_PACKED_TILE) {
+                throw new RangeError(`A tile of ${value} can't be packed`);
+            }
+            return exponent.toString(16);
+        })
+        .join("");
+}
+
+/** The board `packBoard` wrote */
+export function unpackBoard(packed: string): Board {
+    if (!/^[0-9a-f]{16}$/.test(packed)) throw new RangeError(`'${packed}' isn't a packed board`);
+    return [...packed].map((digit) => (digit === "0" ? 0 : 2 ** parseInt(digit, 16)));
+}

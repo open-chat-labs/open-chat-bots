@@ -2,6 +2,7 @@
 // verification stubbed: what each answers, and what it does to the game
 import {
     GroupChatIdentifier,
+    miniAppGameKey,
     type MiniAppGame,
     type MiniAppPlayerClaims,
     type MiniAppStartResponse,
@@ -15,7 +16,7 @@ import type { SharedState } from "../games/chess/types";
 import { Race2048 } from "../games/race2048/race";
 import type { MoveResponse, SharedState as RaceState } from "../games/race2048/types";
 import { GameStore } from "../store";
-import { chessDraw, chessMove, chessResign, raceMove, raceRestart } from "./api";
+import { chessDraw, chessMove, chessResign, raceMove, raceRestart, raceRoster } from "./api";
 import { join, leave, start } from "./miniApp";
 
 const game: MiniAppGame = { chat: new GroupChatIdentifier("aaaaa-aa"), messageId: 1n };
@@ -242,9 +243,30 @@ describe("the app's requests for a chess game", () => {
 
 describe("a race through the same handlers", () => {
     function race(store: GameStore): Race2048 {
-        const play = Race2048.create({ random: () => 0.5 });
+        const play = Race2048.create({ random: () => 0.5, key: miniAppGameKey(game) });
         store.create(game, play);
         return play;
+    }
+
+    /** `GET /api/2048/roster?game=<key>`, which has no token */
+    async function roster(deps: Deps, key: string): Promise<Answer> {
+        const answer: Answer = { status: 200, body: undefined };
+        const res = {
+            status(code: number) {
+                answer.status = code;
+                return res;
+            },
+            json(body: unknown) {
+                answer.body = body;
+            },
+            setHeader() {},
+        };
+        await raceRoster(
+            { headers: {}, query: { game: key } } as unknown as Request,
+            res as unknown as Response,
+            deps,
+        );
+        return answer;
     }
 
     /** A full board with nothing to merge, so no move to the left changes it */
@@ -272,10 +294,17 @@ describe("a race through the same handlers", () => {
         // Everyone's turn at once
         expect(started.waiting_for).toEqual([]);
         expect(started.state?.shared).toMatchObject({ phase: "active" });
-        expect((started.state?.shared as RaceState).players.map((p) => p.name)).toEqual([
-            "ALICE",
-            "BOB",
+        expect((started.state?.shared as RaceState).racers.map((r) => r.i)).toEqual([
+            "alice",
+            "bob",
         ]);
+        // The names come from the roster, by the key the state carries
+        const key = (started.state?.shared as RaceState).key!;
+        expect(await roster(deps, key)).toEqual({
+            status: 200,
+            body: { names: { alice: "ALICE", bob: "BOB" } },
+        });
+        expect((await roster(deps, "group:nope/-/1")).status).toBe(404);
         expect(await send(join, deps, "carol")).toEqual({
             status: 200,
             body: { accepted: false, message: "The race has already started" },
@@ -341,6 +370,6 @@ describe("a race through the same handlers", () => {
             player: { id: "bob", restarts: 1, rev: 1, score: 0 },
         });
         expect(publish).toHaveBeenCalledTimes(2);
-        expect((store.get(game)!.play.shared() as RaceState).players[1].restarts).toBe(1);
+        expect((store.get(game)!.play.shared() as RaceState).racers[1].r).toBe(1);
     });
 });

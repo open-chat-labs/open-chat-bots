@@ -5,6 +5,7 @@
 import {
     jsonBytes,
     MAX_END_STATE_BYTES,
+    PUBLISH_EVERY_MS,
     type ConfigureResult,
     type Game,
     type Host,
@@ -225,6 +226,10 @@ export class ChessGame implements Game {
     /** The side to move isn't charged for the time the bot was down */
     resume(downMs: number): boolean {
         return this.#match?.pause(downMs) ?? false;
+    }
+
+    publishEveryMs(): number {
+        return PUBLISH_EVERY_MS;
     }
 
     nextSeq(): number {
