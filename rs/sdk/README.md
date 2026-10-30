@@ -327,13 +327,12 @@ hands it to the service with the card. The service posts the card as the bot and
 together, and gives the `MiniAppGame` it names the game by: the card's chat, thread and message id.
 
 ```rust
-let card = MiniAppContent::new("**Uno** · 2 to 4 players")
+// The text, and what the app's laid out for, in CSS pixels: the card shows it at this aspect ratio,
+// sized before it loads
+let card = MiniAppContent::new("**Uno** · 2 to 4 players", 440, 740)
     .with_max_players(4)
     // Whether people who aren't playing can watch
-    .with_spectators(true)
-    // What the app's laid out for, in CSS pixels: the card shows it at this aspect ratio, sized
-    // before it loads
-    .with_app_size(440, 740);
+    .with_spectators(true);
 
 // Any LocalUserIndex gives the bot its token for the service, eg. the command's `api_gateway`
 let mini_apps = MiniAppServiceClient::new(service_url, oc_client_factory.build(api_gateway));
@@ -377,7 +376,7 @@ Upload it for each card, rather than reusing one upload, as deleting a card dele
 let image = client
     .upload_mini_app_image(mainnet_storage_index_canister_id(), png, image::ImageFormat::Png)
     .await?;
-let card = MiniAppContent::new("**Uno** · 2 to 4 players").with_image(image);
+let card = MiniAppContent::new("**Uno** · 2 to 4 players", 440, 740).with_image(image);
 ```
 
 The client gets the bot's token with `Client::mini_app_token`, keeps it for its hour, and gets a new

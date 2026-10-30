@@ -945,7 +945,7 @@ mod tests {
     }
 
     fn card() -> MiniAppContent {
-        MiniAppContent::new("**Uno** · 2 to 4 players")
+        MiniAppContent::new("**Uno** · 2 to 4 players", 440, 740)
             .with_max_players(4)
             .with_spectators(true)
             .with_image(MiniAppImage {
@@ -1021,7 +1021,7 @@ mod tests {
         ])
         .await;
         let client = client(url, vec![bot_token("a", 3600)]);
-        let card = MiniAppContent::new("x");
+        let card = MiniAppContent::new("x", 440, 740);
 
         assert_eq!(
             client.post("post-token", card.clone(), false, None).await,
@@ -1059,7 +1059,14 @@ mod tests {
         ])
         .await;
         let client = client(url, vec![bot_token("a", 3600)]);
-        let post = || client.post("post-token", MiniAppContent::new("x"), false, None);
+        let post = || {
+            client.post(
+                "post-token",
+                MiniAppContent::new("x", 440, 740),
+                false,
+                None,
+            )
+        };
 
         for expected in [
             MiniAppServiceError::Invalid("Invalid post token".to_string()),
