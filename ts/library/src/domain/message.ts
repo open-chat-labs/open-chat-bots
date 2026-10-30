@@ -20,7 +20,7 @@ import type {
 import { random64 } from "../utils/rng";
 import type { BotChatContext } from "./bot";
 import type { BlobReference } from "./data";
-import type { MiniAppContent, MiniAppImage, PriceChartContent } from "./event";
+import type { MiniAppContent, MiniAppImage, PriceChartContent, MiniAppSize } from "./event";
 import type { MiniAppCard } from "./mini_app";
 import type { MessagePermission } from "./permissions";
 
@@ -273,12 +273,18 @@ export const MINI_APP_MAX_PLAYERS = 100;
  * image and deleted with the card.
  */
 export class MiniAppMessage extends Message {
-    constructor(text: string, image?: MiniAppImage) {
+    /**
+     * `appSize` is what the app's laid out for, in CSS pixels: the card shows the app at that
+     * aspect ratio, sized before it loads. Each is 1 to 10,000, and neither more than three times
+     * the other.
+     */
+    constructor(text: string, appSize: MiniAppSize, image?: MiniAppImage) {
         super({
             MiniApp: apiMiniAppContent({
                 text,
                 image,
                 spectators: false,
+                appSize,
                 status: { kind: "open" },
             }),
         });
@@ -309,8 +315,8 @@ export class MiniAppMessage extends Message {
 
     /** The card, as `MiniAppServiceClient.post` takes it */
     get card(): MiniAppCard {
-        const { text, image, maxPlayers, spectators } = miniAppContent(this.#miniApp);
-        return { text, image, maxPlayers, spectators };
+        const { text, image, maxPlayers, spectators, appSize } = miniAppContent(this.#miniApp);
+        return { text, image, maxPlayers, spectators, appSize };
     }
 
     /** Why OpenChat would refuse this card, with the error it gives, or undefined if it's valid */
@@ -340,6 +346,22 @@ export function validateMiniAppContent(content: Omit<MiniAppContent, "kind">): s
     const max = content.maxPlayers;
     if (max !== undefined && !(Number.isInteger(max) && max >= 1 && max <= MINI_APP_MAX_PLAYERS)) {
         return `A game has 1 to ${MINI_APP_MAX_PLAYERS} players at most`;
+    }
+    return validateMiniAppSize(content.appSize.width, content.appSize.height);
+}
+
+/** An app's size is in pixels, no more than this each way, and no taller or wider than this ratio */
+export const MINI_APP_MAX_SIZE = 10_000;
+export const MINI_APP_MAX_SIZE_RATIO = 3;
+
+/** Why OpenChat would refuse an app's size, or undefined if it's fine */
+export function validateMiniAppSize(width: number, height: number): string | undefined {
+    const inRange = (n: number) => Number.isInteger(n) && n >= 1 && n <= MINI_APP_MAX_SIZE;
+    if (!inRange(width) || !inRange(height)) {
+        return `The app's size is 1 to ${MINI_APP_MAX_SIZE} pixels each way`;
+    }
+    if (width > height * MINI_APP_MAX_SIZE_RATIO || height > width * MINI_APP_MAX_SIZE_RATIO) {
+        return `The app's size is at most ${MINI_APP_MAX_SIZE_RATIO}:1 either way`;
     }
     return undefined;
 }
