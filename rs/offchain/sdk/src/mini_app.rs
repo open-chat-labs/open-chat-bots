@@ -12,7 +12,7 @@ use oc_bots_sdk::oc_api::actions::mini_app_token;
 use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::{
     CanisterId, EventIndex, Milliseconds, MiniAppContent, MiniAppGame, MiniAppPlayerClaims,
-    MiniAppTokenType, TimestampMillis, TokenError, UserId,
+    MiniAppSize, MiniAppTokenType, TimestampMillis, TokenError, UserId,
 };
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -94,6 +94,7 @@ impl<R: Runtime> MiniAppServiceClient<R> {
             #[serde(skip_serializing_if = "Option::is_none")]
             max_players: Option<u32>,
             spectators: bool,
+            app_size: MiniAppSize,
         }
         #[derive(Serialize)]
         struct Image {
@@ -127,6 +128,7 @@ impl<R: Runtime> MiniAppServiceClient<R> {
                 }),
                 max_players: card.max_players,
                 spectators: card.spectators,
+                app_size: card.app_size,
             },
             block_level_markdown,
             replies_to,
@@ -1003,6 +1005,7 @@ mod tests {
                     },
                     "max_players": 4,
                     "spectators": true,
+                    "app_size": { "width": 440, "height": 740 },
                 },
                 "block_level_markdown": true,
                 "replies_to": 3,
@@ -1040,7 +1043,7 @@ mod tests {
                 serde_json::from_str::<Value>(&request.body).unwrap(),
                 json!({
                     "token": "post-token",
-                    "card": { "text": "x", "spectators": false },
+                    "card": { "text": "x", "spectators": false, "app_size": { "width": 440, "height": 740 } },
                     "block_level_markdown": false,
                     "replies_to": null,
                 })
