@@ -45,8 +45,9 @@
     overflow: hidden;
   }
   /* The card gives the frame the app's aspect ratio, 440 by 740, and the board takes whatever height
-     the rows around it leave, so nothing's cut off and nothing's left empty */
-  main { max-width: 440px; height: 100%; margin: 0 auto; display: flex; flex-direction: column; }
+     the rows around it leave, so nothing's cut off. What's left over, when the board's as wide as the
+     frame, goes evenly above and below. */
+  main { max-width: 440px; height: 100%; margin: 0 auto; display: flex; flex-direction: column; justify-content: center; }
   #status { min-height: 1.4em; margin: 0 0 8px; text-align: center; font-weight: 600; }
   #offer { min-height: 1.4em; margin: 4px 0 0; text-align: center; color: var(--muted); font-size: 14px; }
   .player {
