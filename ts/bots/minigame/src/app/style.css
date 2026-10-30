@@ -1,0 +1,518 @@
+:root {
+    --bg: #faf8ef;
+    --fg: #3b3630;
+    --muted: #7a7267;
+    --panel: #ffffff;
+    --border: #e6e0d4;
+    --board: #bbada0;
+    --empty: #cdc1b4;
+    --accent: #e8704a;
+    --accent-fg: #ffffff;
+    --mine: #f2b179;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+    --bg: #1b1a19;
+    --fg: #ece7dd;
+    --muted: #a39b8f;
+    --panel: #26241f;
+    --border: #3a362f;
+    --board: #4e463b;
+    --empty: #5f564a;
+    --accent: #f08a5d;
+    --accent-fg: #1b1a19;
+    --mine: #c98b4b;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    color-scheme: dark;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* The page hides and shows its parts with the attribute, whatever their display */
+[hidden] {
+    display: none !important;
+}
+
+html,
+body {
+    margin: 0;
+    height: 100%;
+}
+
+body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family:
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        Roboto,
+        sans-serif;
+    font-size: 15px;
+    line-height: 1.4;
+    overscroll-behavior: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Fills the frame, so the lobby can sit in the middle of it */
+.app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
+    max-width: 920px;
+    margin: 0 auto;
+}
+
+.body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+h1 {
+    font-size: 20px;
+    margin: 0;
+}
+
+h2 {
+    font-size: 17px;
+    margin: 0 0 8px;
+}
+
+.clock {
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    font-size: 15px;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+.center {
+    text-align: center;
+}
+
+.notice {
+    text-align: center;
+    color: var(--muted);
+    padding: 32px 0;
+}
+
+.toast {
+    position: fixed;
+    z-index: 4;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--fg);
+    color: var(--bg);
+    padding: 8px 14px;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    max-width: calc(100% - 32px);
+}
+
+button {
+    font: inherit;
+    cursor: pointer;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--fg);
+    padding: 8px 14px;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+button.primary {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-color: transparent;
+    font-weight: 600;
+    padding: 10px 20px;
+}
+
+button.link {
+    border: none;
+    background: none;
+    padding: 0;
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+.lobby {
+    margin: auto 0;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+}
+
+.seats {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.seats li {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 12px;
+}
+
+.banner {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    text-align: center;
+    font-size: 16px;
+}
+
+/* The big board, the player's own or the leader's */
+.main {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* The other players' boards, in a row that scrolls sideways when there are many */
+.others {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 2px 2px 8px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    touch-action: pan-x;
+}
+
+.others .player {
+    flex: 0 0 120px;
+    padding: 8px;
+    scroll-snap-align: start;
+}
+
+.player.small header {
+    margin-bottom: 2px;
+}
+
+.player.small .name {
+    font-size: 13px;
+}
+
+.player.small .chip {
+    font-size: 9px;
+    padding: 1px 6px;
+}
+
+/* A small card's two scores go on two lines, as there's no room for both on one */
+.player.small .stats {
+    flex-direction: column;
+    gap: 0;
+    font-size: 11px;
+    line-height: 1.25;
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.player {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: var(--shadow);
+    min-width: 0;
+}
+
+.player.mine {
+    border-color: var(--mine);
+    box-shadow: 0 0 0 2px var(--mine);
+    /* swipes on it are moves, not scrolling */
+    touch-action: none;
+}
+
+.player header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.player .name {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.player .name em {
+    font-style: normal;
+    color: var(--muted);
+    font-weight: 400;
+}
+
+.chip {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-radius: 999px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+
+.chip.racing {
+    background: var(--bg);
+    color: var(--muted);
+}
+
+.chip.stuck {
+    background: #6d6d6d;
+    color: #fff;
+}
+
+.chip.winner {
+    background: #edc22e;
+    color: #3b3630;
+}
+
+.stats {
+    display: flex;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+}
+
+.stats strong {
+    color: var(--fg);
+}
+
+/*
+ * The board's cells and tiles are each 20% of the board wide, 4% apart, placed by --x and --y. A
+ * tile moves by a transition on its transform, and its inner pops when it's merged or new: the
+ * animations are Gabriele Cirulli's 2048's (MIT, https://github.com/gabrielecirulli/2048).
+ */
+.board {
+    position: relative;
+    background: var(--board);
+    border-radius: 8px;
+    aspect-ratio: 1;
+    container-type: inline-size;
+}
+
+.cell,
+.tile {
+    position: absolute;
+    width: 20cqw;
+    height: 20cqw;
+    left: 4cqw;
+    top: 4cqw;
+    transform: translate(calc(var(--x) * 24cqw), calc(var(--y) * 24cqw));
+}
+
+.cell {
+    border-radius: 6%;
+    background: var(--empty);
+}
+
+.tile {
+    transition: transform 100ms ease-in-out;
+    z-index: 1;
+}
+
+.tile-merged {
+    z-index: 2;
+}
+
+.tile-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 6%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 11cqw;
+    color: #776e65;
+    background: var(--empty);
+}
+
+/* A tile popping after a slide is kept from view until then (its delay and fill are set inline);
+   one appearing now isn't, so it's there even where animations are paused, eg. a hidden tab */
+.tile-new .tile-inner {
+    animation: appear 200ms ease;
+}
+
+.tile-merged .tile-inner {
+    animation: pop 200ms ease 100ms;
+    animation-fill-mode: backwards;
+}
+
+@keyframes appear {
+    0% {
+        opacity: 0;
+        transform: scale(0);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes pop {
+    0% {
+        transform: scale(0);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.t-2 {
+    background: #eee4da;
+}
+.t-4 {
+    background: #ede0c8;
+}
+.t-8 {
+    background: #f2b179;
+    color: #f9f6f2;
+}
+.t-16 {
+    background: #f59563;
+    color: #f9f6f2;
+}
+.t-32 {
+    background: #f67c5f;
+    color: #f9f6f2;
+}
+.t-64 {
+    background: #f65e3b;
+    color: #f9f6f2;
+}
+.t-128 {
+    background: #edcf72;
+    color: #f9f6f2;
+    font-size: 9cqw;
+}
+.t-256 {
+    background: #edcc61;
+    color: #f9f6f2;
+    font-size: 9cqw;
+}
+.t-512 {
+    background: #edc850;
+    color: #f9f6f2;
+    font-size: 9cqw;
+}
+.t-1024 {
+    background: #edc53f;
+    color: #f9f6f2;
+    font-size: 7.5cqw;
+}
+.t-2048 {
+    background: #edc22e;
+    color: #f9f6f2;
+    font-size: 7.5cqw;
+    box-shadow: 0 0 12px rgba(237, 194, 46, 0.7);
+}
+.t-big {
+    background: #3c3a32;
+    color: #f9f6f2;
+    font-size: 7.5cqw;
+}
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    border-radius: 8px;
+    background: rgba(238, 228, 218, 0.78);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #3b3630;
+    font-weight: 600;
+}
+
+.overlay p {
+    margin: 0;
+}
+
+.controls {
+    margin-top: 8px;
+    text-align: center;
+}
+
+.controls p {
+    margin: 0;
+}
+
+.dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 44px);
+    grid-template-rows: repeat(2, 44px);
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+.dpad button {
+    font-size: 20px;
+    padding: 0;
+}
+
+.dpad button[data-direction="up"] {
+    grid-column: 2;
+    grid-row: 1;
+}
+.dpad button[data-direction="left"] {
+    grid-column: 1;
+    grid-row: 2;
+}
+.dpad button[data-direction="down"] {
+    grid-column: 2;
+    grid-row: 2;
+}
+.dpad button[data-direction="right"] {
+    grid-column: 3;
+    grid-row: 2;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .dpad {
+        display: none;
+    }
+}
