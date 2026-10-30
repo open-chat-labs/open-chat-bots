@@ -12,19 +12,23 @@ import {
     isDirection,
     maxTile,
     newBoard,
+    packBoard,
     slide,
     spawn,
     type Board,
     type Direction,
 } from "./engine";
 import {
+    DEAD,
     GAME_ID,
     MAX_PLAYERS,
     STATE_VERSION,
     TARGET,
     TIME_LIMIT_MS,
+    WON,
     type Ending,
     type MoveResponse,
+    type Racer,
     type Phase,
     type PlayerView,
     type Seat,
@@ -54,6 +58,8 @@ export type RaceData = {
     /** Who ran `/play`: the one who can change the settings */
     host?: string;
     hostName?: string;
+    /** The game's key, which the app sends back to ask for the racers' names */
+    key?: string;
     seats: Seat[];
     players: PlayerData[];
     /** The `seq` of the last state published, which each state goes above */
@@ -74,7 +80,18 @@ export type RaceOptions = {
     /** The settings to start with, eg. from the command; any left out is its default */
     settings?: Settings;
     host?: Host;
+    /** The game's key (`miniAppGameKey`), for the app to ask for the roster */
+    key?: string;
 };
+
+/** How long the publisher waits between a race's states, by how many are racing: a bigger field
+ * is a bigger state, sent to more people, so less often. A player's own board doesn't wait on it. */
+export function publishEveryMs(players: number): number {
+    if (players <= 10) return 80;
+    if (players <= 30) return 150;
+    if (players <= 60) return 250;
+    return 400;
+}
 
 export type SeatResult = "seated" | "already_seated" | "full" | "started";
 
@@ -106,6 +123,7 @@ export class Race2048 implements Game {
                 settings: options.settings,
                 host: options.host?.id,
                 hostName: options.host?.name,
+                key: options.key,
             },
             options,
         );
@@ -274,9 +292,22 @@ export class Race2048 implements Game {
         return false;
     }
 
+    publishEveryMs(): number {
+        return publishEveryMs(this.#data.players.length);
+    }
+
     /** The next state's `seq`, above every state published before */
     nextSeq(): number {
         return ++this.#data.seq;
+    }
+
+    /** The racers' names by id, once started, or the seats' before: what the app asks for once */
+    names(): Record<string, string> {
+        const names: Record<string, string> = {};
+        for (const p of this.#data.phase === "open" ? this.#data.seats : this.#data.players) {
+            names[p.id] = p.name;
+        }
+        return names;
     }
 
     move(userId: string, direction: unknown): MoveResponse {
@@ -354,7 +385,8 @@ export class Race2048 implements Game {
             timeLimit: this.timeLimit,
             maxPlayers: MAX_PLAYERS,
             seats: d.seats.map((s) => ({ ...s })),
-            players: d.players.map(view),
+            key: d.key,
+            racers: d.players.map(pack),
             startedAt: d.startedAt,
             endsAt: d.endsAt,
             finishedAt: d.finishedAt,
@@ -365,11 +397,13 @@ export class Race2048 implements Game {
     }
 
     /**
-     * How the race ended is its final shared state: every board, the winner and the times, which
-     * the app shows the finished race from. It's a few KB at most, well within the end state's 16 KB.
+     * How the race ended is its final shared state with the racers' names, as the card keeps it
+     * on its own: every board, the winner and the times, which the app shows the finished race
+     * from. A hundred racers packed is about 11 KB, within the end state's 16 KB.
      */
     endState(): SharedState | undefined {
-        return this.#data.phase === "finished" ? this.shared() : undefined;
+        if (this.#data.phase !== "finished") return undefined;
+        return { ...this.shared(), names: this.names() };
     }
 
     toJson(): RaceData {
@@ -403,11 +437,23 @@ function view(p: PlayerData): PlayerView {
         board: p.board.slice(),
         score: p.score,
         best: p.best,
-        moves: p.moves,
         restarts: p.restarts,
         rev: p.rev,
         dead: p.dead,
         won: p.won,
+    };
+}
+
+/** A racer as the state carries one */
+function pack(p: PlayerData): Racer {
+    return {
+        i: p.id,
+        b: packBoard(p.board),
+        s: p.score,
+        t: p.best,
+        r: p.restarts,
+        v: p.rev,
+        f: (p.dead ? DEAD : 0) | (p.won ? WON : 0),
     };
 }
 

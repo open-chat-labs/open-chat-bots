@@ -1,11 +1,16 @@
 // The 2048 race's shared state, as the bot publishes it through the MiniApp service and the app
 // reads it. Everything is shared: a race is more fun when everyone sees every board, and nothing
 // in it is secret, so there's no private part.
+//
+// A race of a hundred is sent to everyone several times a second, so the racers are packed: a
+// board is 16 hex digits (`packBoard`), a racer's keys are a letter each, and the names are left
+// out of the live state, as they never change once the race starts: the app gets them once from
+// the bot (`GET /api/2048/roster`), and the end state, which the card keeps for good, carries them.
 import type { Settings } from "../settings";
 import type { Board, Direction } from "./engine";
 
 /** Bumped when the shape changes, so an app left open from an older release knows to reload */
-export const STATE_VERSION = 1;
+export const STATE_VERSION = 2;
 
 export const GAME_ID = "2048";
 
@@ -15,8 +20,8 @@ export const TARGET = 2048;
 /** How long a race lasts if nobody makes the target tile: then the top score of any board wins */
 export const TIME_LIMIT_MS = 10 * 60 * 1000;
 
-/** The most players: one big board over a row of the others' */
-export const MAX_PLAYERS = 10;
+/** The most players: what a card takes */
+export const MAX_PLAYERS = 100;
 
 export type Phase = "open" | "active" | "finished";
 
@@ -26,6 +31,7 @@ export type Ending = "target" | "time";
 /** Someone who joined, before the game starts */
 export type Seat = { id: string; name: string };
 
+/** A racer, as the app sees one: `Racer` unpacked, with their name */
 export type PlayerView = {
     id: string;
     name: string;
@@ -34,8 +40,6 @@ export type PlayerView = {
     score: number;
     /** The top score of any of their boards, "Top" on the cards, which ranks them and wins when the time's up */
     best: number;
-    /** Moves on the current board */
-    moves: number;
     /** How many times they started a fresh board */
     restarts: number;
     /** Goes up with every move and restart, so the app knows which board is the newer */
@@ -44,6 +48,26 @@ export type PlayerView = {
     dead: boolean;
     won: boolean;
 };
+
+/** A racer on the wire: their id, their board packed, and a letter a number */
+export type Racer = {
+    i: string;
+    /** `packBoard` of the board */
+    b: string;
+    /** The score, "Current" */
+    s: number;
+    /** The top score, "Top" */
+    t: number;
+    /** Restarts */
+    r: number;
+    /** Rev */
+    v: number;
+    /** Flags: `DEAD`, `WON` */
+    f: number;
+};
+
+export const DEAD = 1;
+export const WON = 2;
 
 export type SharedState = {
     version: typeof STATE_VERSION;
@@ -61,8 +85,12 @@ export type SharedState = {
     maxPlayers: number;
     /** Who's joined so far, while the game is open */
     seats: Seat[];
+    /** The game's key, with which the app asks the bot for the racers' names */
+    key?: string;
     /** Everyone racing, once it starts, in the order they joined */
-    players: PlayerView[];
+    racers: Racer[];
+    /** The racers' names by id: only in the end state, which has to stand on its own */
+    names?: Record<string, string>;
     startedAt?: number;
     /** When the race ends if nobody makes the target tile, once started */
     endsAt?: number;
@@ -85,3 +113,6 @@ export type MoveResponse =
           phase: Phase;
       }
     | { ok: false; error: string };
+
+/** The bot's answer to `GET /api/2048/roster?game=<key>`: the racers' names by id */
+export type RosterResponse = { names: Record<string, string> };

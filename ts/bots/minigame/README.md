@@ -3,7 +3,7 @@
 Games played from MiniApp cards in OpenChat chats. `/play <game>` posts a card; people join from
 the card, a player starts the game, and it's played in the card, in the bot's own page. Two games:
 
-- a **2048 race**: up to 10 players, each on their own board, and the first to make a 2048 tile
+- a **2048 race**: up to 100 players, each on their own board, and the first to make a 2048 tile
   wins, or the top score when 10 minutes are up. A player whose board gets stuck restarts on a fresh
   board, as often as they like, and everyone sees how many times;
 - **chess**: two players, which everyone else in the chat can watch, with ten minutes each on the
@@ -33,7 +33,7 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    declares its settings (`src/games/settings.ts`), which gives it the parameters, the check on a
    change, and the lobby's form.
 2. **Joining** goes through OpenChat's buttons on the card. The service asks the bot at
-   `POST /mini_app/join`, which looks the user's name up and gives them a seat: up to 10 in a race,
+   `POST /mini_app/join`, which looks the user's name up and gives them a seat: up to 100 in a race,
    two at chess ("This game is for two" after that, "The game has started" once it has). Leaving,
    `POST /mini_app/leave`, frees the seat before the start. After it, a race goes on without them;
    a chess game can't, so it ends, the result being that they "left the game". The lobby's seats are
@@ -137,6 +137,24 @@ down isn't charged to anyone: on loading, the side to move has what it had when 
 and the game's state is published again with the new deadline. A finished game is dropped after
 two hours, and one that never finished after a day, which is when the service ends a game that's
 had no update.
+
+## A race of a hundred
+
+A race's state goes to everyone with the game open on every change, so with a hundred racers it's
+kept small (`src/games/race2048/types.ts`):
+
+- a board is 16 hex digits, one per cell, each the tile's power of two (`packBoard`): 8 bytes
+  written out, which stays readable in a state dump and packs to raw bytes without a new layout;
+- a racer's keys are a letter each, and the move count and the names are left out: the names never
+  change once the race starts, so the page asks the bot once, `GET /api/2048/roster?game=<key>`,
+  with the key the state carries, and the end state, which the card keeps for good, carries them;
+- the publisher waits longer between states as the field grows (`publishEveryMs`): 80 ms up to ten
+  racers, 400 ms over sixty. A player's own board doesn't wait on it: it's predicted on the page and
+  confirmed by the bot's answer to the move.
+
+A hundred racers are about 7 KB a state, and the end state with their names about 11 KB, within the
+service's 16 KB. The page draws the top twenty boards and lists the rest with their scores. An end
+state written before this layout, with the boards as arrays, is still read.
 
 ## Adding a game
 

@@ -69,6 +69,11 @@ export class GameStore {
         return this.#games.get(miniAppGameKey(game));
     }
 
+    /** By the key `miniAppGameKey` gives, as a state carries it */
+    getByKey(key: string): GameEntry | undefined {
+        return this.#games.get(key);
+    }
+
     create(game: MiniAppGame, play: Game): GameEntry {
         const entry = { game, play };
         this.#games.set(miniAppGameKey(game), entry);

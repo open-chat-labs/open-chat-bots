@@ -280,6 +280,48 @@ button.link {
     overflow: hidden;
 }
 
+/* Racers beyond the top boards, as a list of scores */
+.standings {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 2px 12px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.standings li {
+    display: flex;
+    gap: 6px;
+    min-width: 0;
+}
+
+.standings .rank {
+    flex: 0 0 2em;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.standings .name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--fg);
+}
+
+.standings .scores {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.standings em {
+    font-style: normal;
+    font-size: 10px;
+}
+
 .player {
     background: var(--panel);
     border: 1px solid var(--border);

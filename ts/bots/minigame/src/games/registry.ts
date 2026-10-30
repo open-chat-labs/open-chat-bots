@@ -50,7 +50,7 @@ export type GameType = {
      * A new game, as `/play` posts one, with the settings its parameters gave, each one of its
      * choices, and the host, the user who ran it
      */
-    create: (config: GameConfig, settings: Settings, host: Host | undefined) => Game;
+    create: (config: GameConfig, settings: Settings, host: Host | undefined, key: string) => Game;
     /** A game from what the store wrote of it, `Game.toJson()` */
     fromJson: (data: unknown) => Game;
 };
@@ -67,8 +67,8 @@ export const RACE_2048: GameType = {
     settings: RACE_SETTINGS,
     // A portrait frame: the lobby, or a player's board above a row of the others'
     appSize: { width: 480, height: 720 },
-    create: (config, settings, host) =>
-        Race2048.create({ settings: { ...config.raceSettings, ...settings }, host }),
+    create: (config, settings, host, key) =>
+        Race2048.create({ settings: { ...config.raceSettings, ...settings }, host, key }),
     fromJson: (data) => new Race2048(data as RaceData),
 };
 
