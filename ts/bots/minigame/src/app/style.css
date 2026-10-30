@@ -327,11 +327,6 @@ button.link {
     white-space: nowrap;
 }
 
-.chip.racing {
-    background: var(--bg);
-    color: var(--muted);
-}
-
 .chip.stuck {
     background: #6d6d6d;
     color: #fff;
