@@ -415,7 +415,8 @@ export type MessageContent =
     | UserReferralCard
     | MemeFighterContent
     | VideoCallContent
-    | PriceChartContent;
+    | PriceChartContent
+    | MiniAppContent;
 
 export interface FileContent extends DataContent {
     kind: "file_content";
@@ -882,6 +883,62 @@ export type PriceChartSource = {
     name: string;
     // An https url
     url: string;
+};
+
+// A bot's card for a game, or another app, it hosts. OpenChat shows the text, under the image if it
+// has one, with the game's players, whose turn it is or its result, and buttons to join, open or
+// watch it, which open the bot's app, served by the bot at `/app` under its endpoint, in a frame.
+// Its text, image, player limit and whether others can watch are set when it's posted and never
+// change. Its status is written only by OpenChat's MiniApp service: the players the game starts
+// with, who joined through OpenChat and were accepted by the bot, whose turn it is, and then its
+// result. Only a bot installed in the chat can send one, needing the MiniApp permission, and it
+// can't be sent in a direct chat nor forwarded. See `MiniAppMessage`.
+export type MiniAppContent = {
+    kind: "mini_app_content";
+    // Markdown, eg. "**Uno** · 2 to 4 players", of 1 to 2,000 characters. It's the message's text
+    // in notifications, previews and search.
+    text: string;
+    // Shown above the text, eg. the game's artwork
+    image?: MiniAppImage;
+    // The most who can play, 1 to 100, if there's a limit, so the card can show eg. "2 of 4"
+    maxPlayers?: number;
+    // Whether people who aren't playing can watch: members, and anyone who can see a public chat
+    spectators: boolean;
+    status: MiniAppStatus;
+};
+
+// Taking players, being played, or over, after which the card never changes. A game only moves
+// forward through them.
+export type MiniAppStatus = MiniAppOpen | MiniAppActive | MiniAppFinished;
+
+export type MiniAppOpen = {
+    kind: "open";
+};
+
+export type MiniAppActive = {
+    kind: "active";
+    // The user ids of those the game started with, in the order they joined
+    players: string[];
+    // The players whose turn it is, or no one in particular, eg. in a game without turns
+    waitingFor: string[];
+};
+
+export type MiniAppFinished = {
+    kind: "finished";
+    // Those the game started with, or no one if it never started
+    players: string[];
+    // eg. "Bob won", or none if the game was abandoned
+    result?: string;
+};
+
+// A card's image, which the bot uploads to OpenChat's storage first, as for an image message, so
+// that it's scanned like any image and deleted with the card
+export type MiniAppImage = {
+    width: number;
+    height: number;
+    // eg. "image/png"
+    mimeType: string;
+    blobReference: BlobReference;
 };
 
 export type ChatEventsCriteria = ChatEventsPage | ChatEventsByIndex | ChatEventsWindow;

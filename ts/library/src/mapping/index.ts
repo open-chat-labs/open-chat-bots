@@ -55,6 +55,11 @@ import {
     type MessagePermissions,
     type MessageReminderContent,
     type MessageReminderCreatedContent,
+    type MiniAppCard,
+    type MiniAppContent,
+    type MiniAppGame,
+    type MiniAppGameUpdate,
+    type MiniAppStatus,
     type P2PSwapContent,
     type P2PSwapStatus,
     type PendingCryptocurrencyTransfer,
@@ -163,6 +168,8 @@ import {
     type MessagePermissions as ApiMessagePermissions,
     type MessageReminderContent as ApiMessageReminderContent,
     type MessageReminderCreatedContent as ApiMessageReminderCreatedContent,
+    type MiniAppContent as ApiMiniAppContent,
+    type MiniAppStatus as ApiMiniAppStatus,
     type OCError as ApiOCError,
     type P2PSwapContent as ApiP2PSwapContent,
     type P2PSwapStatus as ApiP2PSwapStatus,
@@ -1390,6 +1397,9 @@ export function messageContent(value: ApiMessageContent, sender: string): Messag
     if ("PriceChart" in value) {
         return priceChartContent(value.PriceChart);
     }
+    if ("MiniApp" in value) {
+        return miniAppContent(value.MiniApp);
+    }
     if ("ReportedMessage" in value) {
         return reportedMessage(value.ReportedMessage);
     }
@@ -2106,6 +2116,182 @@ function apiPriceChartToken(domain: PriceChartToken): ApiPriceChartToken {
         return { Ledger: principalStringToBytes(domain.ledger) };
     }
     return { Coin: domain.id };
+}
+
+export function miniAppContent(value: ApiMiniAppContent): MiniAppContent {
+    return {
+        kind: "mini_app_content",
+        text: value.text,
+        image: optional(value.image, (image) => ({
+            width: image.width,
+            height: image.height,
+            mimeType: image.mime_type,
+            blobReference: blobReference(image.blob_reference),
+        })),
+        maxPlayers: optional(value.max_players, identity),
+        spectators: value.spectators,
+        status: miniAppStatus(value.status),
+    };
+}
+
+export function apiMiniAppContent(domain: Omit<MiniAppContent, "kind">): ApiMiniAppContent {
+    return {
+        text: domain.text,
+        image: apiOptional(domain.image, (image) => ({
+            width: image.width,
+            height: image.height,
+            mime_type: image.mimeType,
+            blob_reference: apiBlobReference(image.blobReference),
+        })),
+        max_players: apiOptional(domain.maxPlayers, identity),
+        spectators: domain.spectators,
+        status: apiMiniAppStatus(domain.status),
+    };
+}
+
+function miniAppStatus(value: ApiMiniAppStatus): MiniAppStatus {
+    if (value === "Open") {
+        return { kind: "open" };
+    }
+    if ("Active" in value) {
+        return {
+            kind: "active",
+            players: value.Active.players.map(principalBytesToString),
+            waitingFor: value.Active.waiting_for.map(principalBytesToString),
+        };
+    }
+    if ("Finished" in value) {
+        return {
+            kind: "finished",
+            players: value.Finished.players.map(principalBytesToString),
+            result: optional(value.Finished.result, identity),
+        };
+    }
+    throw new UnsupportedValueError("Unexpected ApiMiniAppStatus type received", value);
+}
+
+function apiMiniAppStatus(domain: MiniAppStatus): ApiMiniAppStatus {
+    switch (domain.kind) {
+        case "open":
+            return "Open";
+        case "active":
+            return {
+                Active: {
+                    players: domain.players.map(principalStringToBytes),
+                    waiting_for: domain.waitingFor.map(principalStringToBytes),
+                },
+            };
+        case "finished":
+            return {
+                Finished: {
+                    players: domain.players.map(principalStringToBytes),
+                    result: domain.result,
+                },
+            };
+    }
+}
+
+// A game as the MiniApp service writes it, in JSON, as are its tokens' claims: ids as text, a
+// channel id and a thread as numbers, no thread as null, and the message id as a decimal string,
+// as it doesn't fit a JavaScript number
+export type ApiMiniAppGame = {
+    chat: { Group: string } | { Channel: [string, number] };
+    thread: number | null;
+    message_id: string;
+};
+
+export function miniAppGame(value: ApiMiniAppGame): MiniAppGame {
+    return {
+        chat: miniAppGameChat(value.chat),
+        thread: optional(value.thread, identity),
+        messageId: BigInt(value.message_id),
+    };
+}
+
+function miniAppGameChat(value: ApiMiniAppGame["chat"]): MiniAppGame["chat"] {
+    if ("Group" in value) {
+        return new GroupChatIdentifier(value.Group);
+    }
+    if ("Channel" in value) {
+        const [communityId, channelId] = value.Channel;
+        return new ChannelIdentifier(communityId, BigInt(channelId));
+    }
+    throw new UnsupportedValueError("Unexpected MiniApp game chat received", value);
+}
+
+export function apiMiniAppGame(domain: MiniAppGame): ApiMiniAppGame {
+    return {
+        chat:
+            domain.chat.kind === "group_chat"
+                ? { Group: domain.chat.groupId }
+                : { Channel: [domain.chat.communityId, Number(domain.chat.channelId)] },
+        thread: domain.thread ?? null,
+        message_id: domain.messageId.toString(),
+    };
+}
+
+// A card as the MiniApp service's `POST /bot/post` takes it, in JSON: the content the bot posts,
+// without a status, as the service posts it open. Ids are text, and the blob id a decimal string, as
+// the message id is.
+export type ApiMiniAppCard = {
+    text: string;
+    image?: {
+        width: number;
+        height: number;
+        mime_type: string;
+        blob_reference: { canister_id: string; blob_id: string };
+    };
+    max_players?: number;
+    spectators: boolean;
+};
+
+// What the card leaves undefined, JSON leaves out
+export function apiMiniAppCard(domain: MiniAppCard): ApiMiniAppCard {
+    return {
+        text: domain.text,
+        image: apiOptional(domain.image, (image) => ({
+            width: image.width,
+            height: image.height,
+            mime_type: image.mimeType,
+            blob_reference: {
+                canister_id: image.blobReference.canisterId,
+                blob_id: image.blobReference.blobId.toString(),
+            },
+        })),
+        max_players: domain.maxPlayers,
+        spectators: domain.spectators,
+    };
+}
+
+// The body of the MiniApp service's `POST /bot/post`: a token from the LocalUserIndex's
+// `bot_mini_app_post_token`, and the card as the bot would send it
+export type ApiMiniAppPostArgs = {
+    token: string;
+    card: ApiMiniAppCard;
+    block_level_markdown: boolean;
+    replies_to: number | null;
+};
+
+// The body of the MiniApp service's `POST /bot/update`, in which every field but `game` is optional
+export type ApiMiniAppGameUpdate = {
+    game: ApiMiniAppGame;
+    status?: "Finished";
+    waiting_for?: string[];
+    result?: string;
+    remove?: string[];
+    state?: { seq: number; shared: unknown; private?: Record<string, unknown> };
+};
+
+// What the update leaves undefined, JSON leaves out, so the service keeps it as it is
+export function apiMiniAppGameUpdate(domain: MiniAppGameUpdate): ApiMiniAppGameUpdate {
+    return {
+        game: apiMiniAppGame(domain.game),
+        status: domain.status === "finished" ? "Finished" : undefined,
+        waiting_for: domain.waitingFor,
+        result: domain.result,
+        remove: domain.remove,
+        state: domain.state,
+    };
 }
 
 function videoCallParticipant(value: ApiCallParticipant): VideoCallParticipant {

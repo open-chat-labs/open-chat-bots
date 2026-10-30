@@ -1,10 +1,30 @@
 {
     "name": "@open-ic/openchat-botclient-ts",
-    "version": "1.0.68",
+    "version": "1.0.69",
     "description": "A client library for OpenChat bots to interact with the OpenChat backend",
     "main": "lib/index.cjs",
     "module": "lib/index.mjs",
     "types": "lib/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./lib/index.d.ts",
+            "import": "./lib/index.mjs",
+            "require": "./lib/index.cjs"
+        },
+        "./mini_app": {
+            "types": "./lib/mini_app/index.d.ts",
+            "import": "./lib/mini_app.mjs",
+            "require": "./lib/mini_app.cjs"
+        },
+        "./package.json": "./package.json"
+    },
+    "typesVersions": {
+        "*": {
+            "mini_app": [
+                "lib/mini_app/index.d.ts"
+            ]
+        }
+    },
     "scripts": {
         "build": "rollup -c",
         "test": "vitest",

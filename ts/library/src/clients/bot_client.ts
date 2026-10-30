@@ -7,10 +7,12 @@ import {
     CommunityIdentifier,
     FileMessage,
     ImageMessage,
+    MiniAppMessage,
     OCErrorCode,
     PollMessage,
     PriceChartMessage,
     TextMessage,
+    validateMiniAppImage,
     type BotClientConfig,
     type BotInstallationEventsResponse,
     type ChangeRoleResponse,
@@ -38,6 +40,7 @@ import { BotGatewayClient } from "../services/bot_gateway/bot_gateway_client";
 import { DataClient } from "../services/data/data.client";
 import { BotCommand, BotCommandArg, MemberType, OgPreview } from "../typebox/typebox";
 import { DEFAULT_PREVIEW_PROXY_URL, fetchOgPreviewsForText } from "../utils/linkPreviews";
+import { random64 } from "../utils/rng";
 import { GlobalClient } from "./global_client";
 
 export class BotClient {
@@ -59,9 +62,14 @@ export class BotClient {
         return this.#actionContext.apiGateway;
     }
 
+    // The canister which holds the chat, or the community, for a community's scope, eg. to upload
+    // a message's file for
     #extractCanisterFromChat() {
         if (this.scope.isChatScope()) {
             return this.scope.chat.canisterId();
+        }
+        if (this.scope.isCommunityScope()) {
+            return this.scope.communityId.canisterId();
         }
         return "";
     }
@@ -142,6 +150,48 @@ export class BotClient {
             .then((resp) => {
                 if (resp.kind !== "success") {
                     console.error("OpenChat botClient.sendMessage failed with: ", resp);
+                }
+                return resp;
+            });
+    }
+
+    /**
+     * Changes the text, or caption, of one of the bot's own messages to `message`'s, which must be
+     * of the same type. OpenChat takes nothing else from the content, so an image stays the same
+     * image, and refuses an edit of a poll, a deleted message or a MiniApp card, which never
+     * changes. The message's thread (`setThread`), channel (`setChannelId`, for a client in a
+     * community's scope), block level markdown and link previews apply.
+     *
+     * A bot edits its messages autonomously, as OpenChat refuses an edit made with a command's
+     * token, so this needs a client from `createClientInAutonomouseContext` and the autonomous
+     * permission to send the content's type.
+     */
+    public async editMessage(messageId: bigint, message: Message): Promise<UnitResult> {
+        if (this.#actionContext.jwt !== undefined) {
+            return {
+                kind: "error",
+                code: OCErrorCode.InvalidRequest,
+                message: "Bots must edit their messages autonomously",
+            };
+        }
+        if (!this.#messagePermitted(message)) {
+            return {
+                kind: "error",
+                code: OCErrorCode.InitiatorNotAuthorized,
+                message: "Not authorized",
+            };
+        }
+        const ogPreviews = await this.#resolveOgPreviews(message);
+        return this.#botService
+            .editMessage(
+                this.#actionContext.chatContext(message.channelId),
+                messageId,
+                message,
+                ogPreviews,
+            )
+            .then((resp) => {
+                if (resp.kind !== "success") {
+                    console.error("OpenChat botClient.editMessage failed with: ", resp);
                 }
                 return resp;
             });
@@ -228,6 +278,11 @@ export class BotClient {
         return this.#actionContext.messageId;
     }
 
+    /** The LocalUserIndex the client calls OpenChat through */
+    public get apiGateway(): string {
+        return this.#actionContext.apiGateway;
+    }
+
     public stringArg(name: string): string | undefined {
         const arg = this.#namedArg(name);
         return arg !== undefined && "String" in arg.value ? arg.value.String : undefined;
@@ -312,6 +367,66 @@ export class BotClient {
 
     createPriceChartMessage(chart: Omit<PriceChartContent, "kind">): Promise<PriceChartMessage> {
         return Promise.resolve(new PriceChartMessage(chart).setContextMessageId(this.messageId));
+    }
+
+    /**
+     * A MiniApp card for a game, whose buttons open the bot's app. See `MiniAppMessage`. Its
+     * optional image, shown above the text, is uploaded to OpenChat's storage first, as for
+     * `createImageMessage`, so that it's scanned like any image and deleted with the card. An image
+     * OpenChat would refuse, without a width and a height or an image's mime type, isn't uploaded,
+     * and the promise rejects.
+     */
+    async createMiniAppMessage(
+        text: string,
+        image?: { data: Uint8Array; mimeType: string; width: number; height: number },
+    ): Promise<MiniAppMessage> {
+        if (image === undefined) {
+            return new MiniAppMessage(text).setContextMessageId<MiniAppMessage>(this.messageId);
+        }
+        const invalid = validateMiniAppImage(image.width, image.height, image.mimeType);
+        if (invalid !== undefined) {
+            throw new Error(invalid);
+        }
+        const dataClient = new DataClient(this.#agent, this.#env);
+        const canisterId = this.#extractCanisterFromChat();
+        const blobReference = await dataClient.uploadData([canisterId], image.mimeType, image.data);
+        return new MiniAppMessage(text, {
+            width: image.width,
+            height: image.height,
+            mimeType: image.mimeType,
+            blobReference,
+        }).setContextMessageId<MiniAppMessage>(this.messageId);
+    }
+
+    /**
+     * A token to post one MiniApp card through OpenChat's MiniApp service, with
+     * `MiniAppServiceClient.post`. The service posts every card, as the bot, so that it knows each
+     * game from the moment its card exists, and `sendMessage` refuses one. The token is for the
+     * chat the client would send a message in, a command's or an autonomous one, with the same
+     * options: `channelId` names the channel for a client in a community's scope, `thread` the
+     * thread to post in, and `messageId` the card's message id, if the bot chooses one. A chat
+     * command's token fixes the message id, which `messageId` must then match; otherwise, for an
+     * autonomous card or a community command's, it's picked here, at random, unless the bot gives
+     * one, as OpenChat can't pick one in a query. The token lasts an hour, and posting it twice
+     * posts one card, so a bot which got no answer posts it again. It needs the MiniApp permission.
+     * Rejects, with OpenChat's error, if the bot isn't given one, eg. as it isn't installed in the
+     * chat.
+     */
+    async miniAppPostToken(
+        options: { channelId?: bigint; thread?: number; messageId?: bigint } = {},
+    ): Promise<string> {
+        if (!this.#actionContext.hasMessagePermission("MiniApp")) {
+            throw new Error("Not authorized: the bot lacks the MiniApp permission here");
+        }
+        // Only a chat command's token carries a message id
+        const fixed = this.#actionContext.messageId !== undefined;
+        return this.#botService.miniAppPostToken(
+            this.#actionContext.chatContext(options.channelId),
+            {
+                ...options,
+                messageId: options.messageId ?? (fixed ? undefined : random64()),
+            },
+        );
     }
 
     createImageMessage(

@@ -256,6 +256,205 @@ fetch automatically. In-canister bots (`oc_bots_sdk_canister`, the Motoko SDK) a
 only, because scraping a link from a canister would mean a consensus-replicated http outcall and
 a cycles cost on every send.
 
+## MiniApp cards
+
+A bot can host a game, or another app, which people open from a card the bot posts in a chat.
+OpenChat draws the card: markdown text, an optional image, the players, whose turn it is or the
+result, and buttons to join, open or watch. Everything else, eg. the board, is the bot's own page,
+`<endpoint>/app`, which OpenChat shows in a sandboxed frame.
+
+OpenChat's MiniApp service sits between OpenChat's website and the bot. It posts every card, as the
+bot, tracks who's joined each game, is the only thing that writes a card's status, and relays the
+game's state to its players and spectators, so spectators never reach the bot. Joining and leaving
+only happen through OpenChat's own buttons: nothing lets an app join or leave for its user. A player
+starts a game through OpenChat too, so the card records exactly who it started with: the app asks,
+and the bot decides. The whole protocol is in open-chat's
+`backend/docs/mini_app_service_protocol.md`.
+
+```ts
+// `apiGateway` is any LocalUserIndex, as every one knows every bot, eg. a command's,
+// `client.apiGateway`, or an installation's, which the bot can keep in its config. Making the
+// client calls nothing: it fetches the bot's token when it's first used.
+const miniApps = factory.createMiniAppServiceClient(MINI_APP_SERVICE_URL, apiGateway);
+
+// Made on first use, not at startup: OpenChat registers a bot by fetching its definition from its
+// running endpoint, and `factory.botId()` fails until it has. The service's public key and the
+// bot's id are each fetched once and kept.
+let tokens: MiniAppTokens | undefined;
+async function miniAppTokens(): Promise<MiniAppTokens> {
+    return (tokens ??= new MiniAppTokens(await miniApps.publicKey(), await factory.botId()));
+}
+```
+
+### 1. Post a card
+
+```ts
+const card = (await client.createMiniAppMessage("**Uno** · 2 to 4 players", image))
+    .setMaxPlayers(4)
+    // Whether people who aren't playing can watch
+    .setSpectators(true);
+const invalid = card.validate(); // as OpenChat checks it, with its errors
+const token = await client.miniAppPostToken();
+const game = miniAppGameFromPostToken(token);
+games.set(miniAppGameKey(game), newGame());
+await miniApps.post(token, card);
+```
+
+The service posts every card, as the bot, so that it knows each game from the moment its card
+exists: `sendMessage` refuses a card. `client.miniAppPostToken()` asks the LocalUserIndex for a
+token to post one card in the chat the client would send a message in, a command's or an autonomous
+one, with the same options, `{ channelId, thread, messageId }`: the channel for a client in a
+community's scope, the thread, and the card's message id, which the SDK picks unless the bot chooses
+one, or a chat command's token fixes it. The token lasts an hour, and needs the `MiniApp` message
+permission, so a command which posts a card asks for it. A card can't be posted in a direct chat,
+and its text, image, player limit and spectators never change. `createMiniAppMessage` uploads the
+optional image (`{ data, mimeType, width, height }`) first, as `createImageMessage` does;
+`setBlockLevelMarkdown` and `setRepliesTo` apply. Posting the same token again posts nothing new and
+gives the same game, so a bot which got no answer, eg. an `unavailable` error, posts again with the
+same token. Key the game before posting, from `miniAppGameFromPostToken(token)`: the service may
+have posted the card and forwarded a join before the bot hears its answer, so the bot should know
+the game first.
+
+A `MiniAppGame` is `{ chat, thread?, messageId }`. `miniAppGameKey` gives a key that's unique across
+chats and threads. The service client sends the bot's token, from the LocalUserIndex's
+`bot_mini_app_token`, keeps it for its hour, and fetches a new one before it expires or if the
+service refuses it.
+
+### 2. Answer join and leave
+
+The service calls `POST <endpoint>/mini_app/join` and `/mini_app/leave`, with no body and its
+token in `x-oc-jwt`:
+
+```ts
+app.post("/mini_app/join", async (req, res) => {
+    // Throws a TokenError
+    const { game, userId } = (await miniAppTokens()).verifyJoin(req.headers["x-oc-jwt"]);
+    // A seat, as they aren't playing until the game starts
+    const response: MiniAppJoinResponse = takeSeat(game, userId)
+        ? { accepted: true }
+        : { accepted: false, message: "Seats are taken" };
+    res.json(response);
+});
+
+app.post("/mini_app/leave", async (req, res) => {
+    const { game, userId } = (await miniAppTokens()).verifyLeave(req.headers["x-oc-jwt"]);
+    leaveSeat(game, userId); // 200 even if they weren't playing
+    res.json({});
+});
+```
+
+Answer a join within 5 seconds. A user the bot accepts isn't playing until the service adds them,
+after the answer, so don't count them as a player until the bot's asked to start the game, which can
+come while it's still answering. Answer a `TokenError` with a 401. Each method checks the
+signature, the kind of token, that it's for this bot and that it hasn't expired.
+
+### 3. Start the game
+
+A player asks to start, eg. with the app's Start button, and the service calls
+`POST <endpoint>/mini_app/start`, with no body and a token in `x-oc-jwt`:
+
+```ts
+app.post("/mini_app/start", async (req, res) => {
+    const { game } = (await miniAppTokens()).verifyStart(req.headers["x-oc-jwt"]);
+    const g = games.get(miniAppGameKey(game));
+    if (g.firstState === undefined) {
+        if (g.seats.length < 2) return res.json(refuseMiniAppStart("Needs 2 players"));
+        // Dealt once, with a seq above any state sent before. A start that failed is asked again,
+        // and answered with the same first state.
+        g.firstState = g.deal();
+    }
+    res.json(
+        acceptMiniAppStart({
+            players: g.seats, // as they are now
+            waitingFor: [g.seats[0]],
+            state: g.firstState,
+        }),
+    );
+});
+```
+
+Answer within 5 seconds.
+
+- **The players** should each be playing, or have a join the bot's still answering. Anyone else
+  isn't added, and the bot's told they left, eg. a player whose leave hadn't reached it yet. Anyone
+  playing whom it leaves out is taken off.
+- **The first state** comes with the answer, with a `seq` above any state the bot has already
+  sent. The service holds the game while it asks, so don't call `miniApps.update`, and don't make
+  the answer wait on any update of the game, eg. one made while answering a join: it would wait
+  until the start timed out.
+- **An answer that's invalid in itself is refused:** a player listed twice, more than the game's
+  limit, waiting for someone it doesn't list, or a state that isn't newer.
+- **If a start fails,** eg. it timed out, the player can ask again. So a bot asked to start a game
+  it already started answers with its players as they are now.
+
+Once the game starts, the service writes its players to the card, and closes joining.
+
+### 4. Publish state, whose turn it is and the result
+
+```ts
+await miniApps.update({
+    game,
+    waitingFor: [nextPlayer], // or [] for no one in particular
+    state: { seq: ++seq, shared: { version: 1, board, lastMove }, private: { [userId]: { hand } } },
+});
+await miniApps.update({ game, status: "finished", result: "Bob won" });
+```
+
+Whatever's undefined stays as it is. The only status a bot sets is "finished", which ends the game,
+whether it started or not, and a result only comes with it. `remove: [userId]` takes players off,
+but a bot can never put them on. `seq` must go up, `shared` goes to everyone, spectators included,
+and each `private` part only to its player. Put a format version in the state, so an app left
+open from an older release knows to reload. An update, with its state, is at most 64 KB. The
+service's errors are `MiniAppServiceError`s, whose `kind` says what went wrong, eg. `finished`,
+`unknown_game`, or `unavailable` when it couldn't be reached. Failing to get the bot's token from
+the LocalUserIndex gives that call's error.
+
+### 5. Serve `/app`, using the browser client
+
+The SDK's browser entry, `@open-ic/openchat-botclient-ts/mini_app`, has no Node dependencies:
+
+```ts
+import { connectToOpenChat } from "@open-ic/openchat-botclient-ts/mini_app";
+
+const openChat = await connectToOpenChat<Board, Hand>();
+// The role is "player" or "spectator", and the state undefined until the first one comes
+render(openChat.role, openChat.state);
+openChat.onStateChange((state) => render(openChat.role, state));
+openChat.onRoleChange((role) => render(role, openChat.state));
+openChat.onDarkModeChange(setTheme);
+
+// The Start button, for players. The bot decides, and OpenChat says what it decided.
+startButton.onclick = async () => {
+    const { accepted, message } = await openChat.start();
+    if (!accepted) showError(message); // eg. "Needs 2 players"
+};
+
+// A player's request to the bot, with their token in `x-oc-jwt`. A spectator has no token.
+await openChat.fetch("api/move", { method: "POST", body: JSON.stringify(move) });
+```
+
+It takes messages only from the window it's framed in, and drops a state whose `seq` is below the
+last one's. When the user's role changes, eg. as they join, OpenChat initialises the app again and
+re-sends the latest state, with the same `seq`, which replaces the one the app has. It asks OpenChat
+for a new player token before the current one expires, and sends it only with requests to the app's
+own origin. It also has `userId`, `token`, `darkMode`, `locale`, `refreshToken()` and `close()`.
+Serve the page as static, cacheable files, as it's the only thing spectators fetch from the bot.
+
+### 6. Verify player tokens on the app's requests
+
+```ts
+const { game, userId } = (await miniAppTokens()).verifyPlayer(req.headers["x-oc-jwt"]);
+if (!isPlayer(game, userId)) return res.status(403).end();
+```
+
+A player token lasts an hour and outlives the player being removed, so check the bot's own player
+list on every request too.
+
+### No wagering
+
+Apps must never take or pay out tokens, or anything else of value, eg. a stake to join a game or a
+prize paid from the players' stakes. That's gambling, which OpenChat isn't licensed for.
+
 ## BotClient interface
 
 Here is a full description of the BotClient interface.

@@ -40,6 +40,20 @@ export class GlobalClient extends MsgpackCanisterAgent {
         });
     }
 
+    /**
+     * The user id OpenChat gave the bot when it was registered, which isn't its principal. It's
+     * the `bot` in the bot's tokens. This fails until the bot is registered.
+     */
+    async botId(): Promise<string> {
+        const response = await this.installationEventsPage(0, 0);
+        if (response.kind !== "success") {
+            throw new Error(
+                `Unable to look up the bot's id: ${response.code} ${response.message ?? ""}`.trim(),
+            );
+        }
+        return response.botId;
+    }
+
     async installationEvents(): Promise<BotInstallationEventsResponse> {
         const pageSize = 5000;
         let from = 0;

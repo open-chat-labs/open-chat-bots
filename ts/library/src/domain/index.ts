@@ -9,6 +9,7 @@ export * from "./event";
 export * from "./identifiers";
 export * from "./install_registry";
 export * from "./message";
+export * from "./mini_app";
 export * from "./permissions";
 export * from "./response";
 export * from "./rules";
