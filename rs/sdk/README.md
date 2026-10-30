@@ -36,7 +36,8 @@ It also defines a list of [commands](#commands).
 The bot definition specifies an optional [autonomous_config](#autonomous-configuration).
 
 Finally, a bot which hosts games lists them in `mini_apps`, each with its artwork, which its
-[MiniApp cards](#miniapp-cards) name. A bot which hosts none leaves it out.
+[MiniApp cards](#miniapp-cards) name. A bot which hosts none leaves it empty, and it's then left out
+of the JSON.
 
 #### Commands
 
@@ -316,8 +317,8 @@ A bot can host a game, or another app, which people open from a card the bot pos
 channel. OpenChat draws the card: its markdown text, the players, whose turn it is or the result,
 buttons to join, leave and open the game, and a frame box at the app's aspect ratio. The game itself
 is the bot's own web page, which OpenChat shows in that frame. Whenever there's no app to show,
-before it loads, to someone who can't open the game, and once the game is over, the box shows the
-app's image instead, from the bot's definition.
+before it loads, to someone who can't open the game, and once the game is over without an end
+state, the box shows the app's image instead, from the bot's definition.
 
 OpenChat's MiniApp service sits between the website and the bot. It posts the card for the bot, so
 that a card exists only for a game it knows. Only it records who joins, asking the bot to accept
@@ -331,7 +332,9 @@ has its client. The whole protocol is in OpenChat's `backend/docs/mini_app_servi
 The bot's definition lists the apps it hosts, each with its name, which a card names it by, and its
 artwork, which the card shows whenever there's no app to show. The image is an absolute https URL,
 or a path relative to the bot's endpoint, which the bot serves itself, eg. an SVG next to its `/app`
-page. OpenChat refuses a card whose app isn't in the bot's definition.
+page. OpenChat refuses a card whose app isn't in the bot's definition, as OpenChat holds it: the
+definition it fetched when the bot was registered, or last updated. So after adding or renaming an
+app, update the bot's registration in OpenChat, or every post is refused until then.
 
 ```rust
 BotDefinition {

@@ -12,7 +12,7 @@ pub struct BotDefinition {
     pub default_subscriptions: Option<BotSubscriptions>,
     pub restricted_locations: Option<HashSet<InstallationLocationType>>,
     /// The apps the bot hosts, which its MiniApp cards name: at most 100, each with a name of its
-    /// own. A bot which hosts none leaves this out.
+    /// own. A bot which hosts none leaves this empty, and it's then left out of the JSON.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub mini_apps: Vec<MiniAppDefinition>,
 }

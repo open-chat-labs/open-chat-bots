@@ -348,7 +348,8 @@ pub struct MiniAppContent {
     pub text: String,
     /// Which of the bot's apps the card opens, by its name in the bot's definition
     /// (`BotDefinition::mini_apps`), eg. "chess", of 1 to 50 characters. OpenChat refuses a card
-    /// whose app isn't in the definition.
+    /// whose app isn't in the definition as OpenChat holds it, so after adding an app, update the
+    /// bot's registration.
     pub app: String,
     /// The most who can play, 1 to 100, if there's a limit, so the card can show eg. "2 of 4"
     pub max_players: Option<u32>,
@@ -504,8 +505,8 @@ impl MiniAppContent {
                 ));
             }
         }
-        // OpenChat's other checks are of the players, whose turn it is and the result, which an
-        // open card has none of
+        // OpenChat's other checks are of the players, whose turn it is, the result and the end
+        // state, which an open card has none of
         Ok(())
     }
 }

@@ -373,9 +373,10 @@ impl GameUpdate {
     /// handing it the state: `initialise_mini_app` with `finished: true`, then
     /// `{ kind: "mini_app_end_state", state }`, so the app can show eg. the final position and let
     /// viewers step through the moves. A finished card without one shows the app's image and the
-    /// result instead.
+    /// result instead. `Value::Null` is no end state.
     pub fn with_end_state(mut self, state: impl Into<Value>) -> Self {
-        self.end_state = Some(state.into());
+        let state = state.into();
+        self.end_state = (!state.is_null()).then_some(state);
         self
     }
 
