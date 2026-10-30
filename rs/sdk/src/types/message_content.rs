@@ -324,11 +324,14 @@ pub struct PriceChartSource {
     pub url: String,
 }
 
-/// A bot's card for a game, or another app, it hosts. OpenChat shows the text, under the image if it
-/// has one, with the players, whose turn it is or the result, and buttons to join, leave and open the
-/// game. Opening it shows the bot's app, served by the bot at `/app` under its endpoint, in a frame.
+/// A bot's card for a game, or another app, it hosts. OpenChat shows the text, with the players,
+/// whose turn it is or the result, buttons to join, leave and open the game, and a frame box at the
+/// app's aspect ratio. Opening the game shows the bot's app, served by the bot at `/app` under its
+/// endpoint, in that frame. Whenever there's no app to show, before it loads, to someone who can't
+/// open the game, and once the game is over without an end state, the box shows the app's image,
+/// from the bot's definition.
 ///
-/// Its text, image, player limit and whether others can watch are set when it's posted and never
+/// Its text, app, player limit and whether others can watch are set when it's posted and never
 /// change. Its status is written only by OpenChat's MiniApp service: the players the game starts
 /// with, who joined through the service and whom the bot started it with when a player asked,
 /// whose turn it is, and then its result. The bot tells the service how its game goes, and the
@@ -343,8 +346,10 @@ pub struct MiniAppContent {
     /// Markdown, eg. "**Uno** · 2 to 4 players", of 1 to 2,000 characters. It's the message's text
     /// in notifications, previews and search.
     pub text: String,
-    /// Shown above the text, eg. the game's artwork
-    pub image: Option<MiniAppImage>,
+    /// Which of the bot's apps the card opens, by its name in the bot's definition
+    /// (`BotDefinition::mini_apps`), eg. "chess", of 1 to 50 characters. OpenChat refuses a card
+    /// whose app isn't in the definition.
+    pub app: String,
     /// The most who can play, 1 to 100, if there's a limit, so the card can show eg. "2 of 4"
     pub max_players: Option<u32>,
     /// Whether people who aren't playing can watch: members, and anyone who can see a public chat
@@ -360,18 +365,6 @@ pub struct MiniAppContent {
 pub struct MiniAppSize {
     pub width: u32,
     pub height: u32,
-}
-
-/// A card's image, which the bot uploads to OpenChat's storage first, as for an image message, eg.
-/// with `Client::upload_mini_app_image`, so that it's scanned like any image and deleted with the
-/// message
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct MiniAppImage {
-    pub width: u32,
-    pub height: u32,
-    /// eg. "image/png"
-    pub mime_type: String,
-    pub blob_reference: BlobReference,
 }
 
 /// In the order a game goes through them, which it only ever moves forward through
@@ -399,6 +392,12 @@ pub struct MiniAppFinished {
     pub players: Vec<UserId>,
     /// eg. "Bob won", or none if the game was abandoned
     pub result: Option<String>,
+    /// How the game ended, as JSON the bot chose when it finished the game, eg. the final position
+    /// and the moves, so viewers can step through them. OpenChat hands it to the bot's app, which
+    /// the card keeps showing: `initialise_mini_app` with `finished: true`, then
+    /// `{ kind: "mini_app_end_state", state }`. None if the bot gave none, when the card shows the
+    /// app's image and the result instead.
+    pub end_state: Option<String>,
 }
 
 impl MiniAppStatus {
@@ -427,14 +426,24 @@ impl MiniAppContent {
     /// ratio
     pub const MAX_APP_SIZE: u32 = 10_000;
     pub const MAX_APP_SIZE_RATIO: u32 = 3;
+    /// The longest name of one of the bot's apps, as in its definition
+    pub const MAX_APP_NAME_CHARS: usize = 50;
+    /// The most an end state, as the bot's JSON serialized, can take up
+    pub const MAX_END_STATE_BYTES: usize = 16 * 1024;
 
-    /// A card without an image, open, with no limit on players, which only its players can open.
-    /// The app's size is what it's laid out for, in CSS pixels, so the card shows it at that aspect
-    /// ratio, sized before it loads: each 1 to 10,000, and neither more than three times the other.
-    pub fn new(text: impl Into<String>, app_width: u32, app_height: u32) -> Self {
+    /// An open card, with no limit on players, which only its players can open, for the bot's app
+    /// named `app` in its definition. The app's size is what it's laid out for, in CSS pixels, so
+    /// the card shows it at that aspect ratio, sized before it loads: each 1 to 10,000, and neither
+    /// more than three times the other.
+    pub fn new(
+        app: impl Into<String>,
+        text: impl Into<String>,
+        app_width: u32,
+        app_height: u32,
+    ) -> Self {
         MiniAppContent {
             text: text.into(),
-            image: None,
+            app: app.into(),
             max_players: None,
             spectators: false,
             app_size: MiniAppSize {
@@ -443,11 +452,6 @@ impl MiniAppContent {
             },
             status: MiniAppStatus::Open,
         }
-    }
-
-    pub fn with_image(mut self, image: MiniAppImage) -> Self {
-        self.image = Some(image);
-        self
     }
 
     /// The most who can play, 1 to 100
@@ -469,9 +473,7 @@ impl MiniAppContent {
             return Err("A game is posted open".to_string());
         }
         check_chars("text", &self.text, Self::MAX_TEXT_CHARS)?;
-        if let Some(image) = &self.image {
-            image.validate()?;
-        }
+        check_chars("app", &self.app, Self::MAX_APP_NAME_CHARS)?;
         if self
             .max_players
             .is_some_and(|max| max == 0 || max as usize > Self::MAX_PLAYERS)
@@ -504,23 +506,6 @@ impl MiniAppContent {
         }
         // OpenChat's other checks are of the players, whose turn it is and the result, which an
         // open card has none of
-        Ok(())
-    }
-}
-
-impl MiniAppImage {
-    /// Checks the image as OpenChat does: it has a width and a height, and an image's mime type
-    pub fn validate(&self) -> Result<(), String> {
-        Self::check(self.width, self.height, &self.mime_type)
-    }
-
-    pub(crate) fn check(width: u32, height: u32, mime_type: &str) -> Result<(), String> {
-        if width == 0 || height == 0 {
-            return Err("The image must have a width and a height".to_string());
-        }
-        if !mime_type.starts_with("image/") {
-            return Err("The image's mime type must be an image's".to_string());
-        }
         Ok(())
     }
 }
@@ -1102,18 +1087,6 @@ mod tests {
         assert_eq!(content.text(), Some("CHAT and ADA · 30 days"));
     }
 
-    fn mini_app_image() -> MiniAppImage {
-        MiniAppImage {
-            width: 640,
-            height: 360,
-            mime_type: "image/png".to_string(),
-            blob_reference: BlobReference {
-                canister_id: Principal::from_slice(&[1; 10]),
-                blob_id: BIG,
-            },
-        }
-    }
-
     fn user(byte: u8) -> UserId {
         Principal::from_slice(&[byte]).into()
     }
@@ -1129,10 +1102,12 @@ mod tests {
             MiniAppStatus::Finished(MiniAppFinished {
                 players: vec![user(1), user(2)],
                 result: Some("Bob won".to_string()),
+                end_state: Some(r#"{"winner":"bob"}"#.to_string()),
             }),
             MiniAppStatus::Finished(MiniAppFinished {
                 players: Vec::new(),
                 result: None,
+                end_state: None,
             }),
         ]
     }
@@ -1141,42 +1116,39 @@ mod tests {
     fn a_cards_app_size_is_within_reason() {
         for (width, height) in [(0, 500), (500, 0), (20_000, 500), (100, 400), (400, 100)] {
             assert!(
-                MiniAppContent::new("Uno", width, height)
+                MiniAppContent::new("uno", "Uno", width, height)
                     .validate()
                     .is_err(),
                 "{width} by {height}"
             );
         }
-        assert_eq!(MiniAppContent::new("Uno", 440, 740).validate(), Ok(()));
+        assert_eq!(
+            MiniAppContent::new("uno", "Uno", 440, 740).validate(),
+            Ok(())
+        );
     }
 
     #[test]
     fn a_mini_app_reads_back_as_it_was_written() {
-        for image in [None, Some(mini_app_image())] {
-            for status in mini_app_statuses() {
-                let mut card = MiniAppContent::new("**Uno** · 2 to 4 players", 440, 740)
-                    .with_max_players(4)
-                    .with_spectators(true);
-                card.image = image.clone();
-                card.status = status;
+        for status in mini_app_statuses() {
+            let mut card = MiniAppContent::new("uno", "**Uno** · 2 to 4 players", 440, 740)
+                .with_max_players(4)
+                .with_spectators(true);
+            card.status = status;
 
-                let bytes = msgpack::serialize_then_unwrap(MessageContent::MiniApp(card.clone()));
-                let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
-                assert_eq!(content.text(), Some("**Uno** · 2 to 4 players"));
-                assert!(matches!(&content, MessageContent::MiniApp(c) if *c == card));
+            let bytes = msgpack::serialize_then_unwrap(MessageContent::MiniApp(card.clone()));
+            let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
+            assert_eq!(content.text(), Some("**Uno** · 2 to 4 players"));
+            assert!(matches!(&content, MessageContent::MiniApp(c) if *c == card));
 
-                let bytes =
-                    msgpack::serialize_then_unwrap(MessageContentInitial::MiniApp(card.clone()));
-                let content: MessageContentInitial = msgpack::deserialize_then_unwrap(&bytes);
-                assert!(matches!(&content, MessageContentInitial::MiniApp(c) if *c == card));
+            let bytes =
+                msgpack::serialize_then_unwrap(MessageContentInitial::MiniApp(card.clone()));
+            let content: MessageContentInitial = msgpack::deserialize_then_unwrap(&bytes);
+            assert!(matches!(&content, MessageContentInitial::MiniApp(c) if *c == card));
 
-                // In JSON too, where a user id is its text. An image's blob reference is written as
-                // bytes, which only msgpack reads back.
-                if card.image.is_none() {
-                    let json = serde_json::to_string(&card).unwrap();
-                    assert_eq!(serde_json::from_str::<MiniAppContent>(&json).unwrap(), card);
-                }
-            }
+            // In JSON too, where a user id is its text
+            let json = serde_json::to_string(&card).unwrap();
+            assert_eq!(serde_json::from_str::<MiniAppContent>(&json).unwrap(), card);
         }
     }
 
@@ -1187,7 +1159,7 @@ mod tests {
         #[derive(Serialize)]
         struct OpenChatMiniApp {
             text: String,
-            image: Option<MiniAppImage>,
+            app: String,
             max_players: Option<u32>,
             spectators: bool,
             app_size: MiniAppSize,
@@ -1203,6 +1175,7 @@ mod tests {
             Finished {
                 players: Vec<UserId>,
                 result: Option<String>,
+                end_state: Option<String>,
             },
         }
         #[derive(Serialize)]
@@ -1219,16 +1192,18 @@ mod tests {
             OpenChatStatus::Finished {
                 players: vec![user(1), user(2)],
                 result: Some("Bob won".to_string()),
+                end_state: Some(r#"{"winner":"bob"}"#.to_string()),
             },
             OpenChatStatus::Finished {
                 players: Vec::new(),
                 result: None,
+                end_state: None,
             },
         ];
         for (status, expected) in statuses.into_iter().zip(mini_app_statuses()) {
             let bytes = msgpack::serialize_then_unwrap(OpenChatContent::MiniApp(OpenChatMiniApp {
                 text: "**Uno** · 2 to 4 players".to_string(),
-                image: Some(mini_app_image()),
+                app: "uno".to_string(),
                 max_players: Some(4),
                 spectators: true,
                 app_size: MiniAppSize {
@@ -1246,7 +1221,7 @@ mod tests {
                 card,
                 MiniAppContent {
                     text: "**Uno** · 2 to 4 players".to_string(),
-                    image: Some(mini_app_image()),
+                    app: "uno".to_string(),
                     max_players: Some(4),
                     spectators: true,
                     app_size: MiniAppSize {
@@ -1261,7 +1236,7 @@ mod tests {
         // With nothing optional set
         let bytes = msgpack::serialize_then_unwrap(OpenChatContent::MiniApp(OpenChatMiniApp {
             text: "x".to_string(),
-            image: None,
+            app: "uno".to_string(),
             max_players: None,
             spectators: false,
             app_size: MiniAppSize {
@@ -1271,16 +1246,17 @@ mod tests {
             status: OpenChatStatus::Open,
         }));
         let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
-        assert!(
-            matches!(content, MessageContent::MiniApp(c) if c == MiniAppContent::new("x", 440, 740))
-        );
+        assert!(matches!(
+            content,
+            MessageContent::MiniApp(c) if c == MiniAppContent::new("uno", "x", 440, 740)
+        ));
     }
 
-    // OpenChat needs every field but the image, player limit and app size, and reads a nil as none
+    // OpenChat needs every field but the player limit, and reads a nil as none
     #[test]
     fn a_mini_app_is_sent_with_every_field() {
         let bytes = msgpack::serialize_then_unwrap(MessageContentInitial::MiniApp(
-            MiniAppContent::new("x", 440, 740).with_spectators(true),
+            MiniAppContent::new("uno", "x", 440, 740).with_spectators(true),
         ));
 
         assert_eq!(
@@ -1288,7 +1264,7 @@ mod tests {
             serde_json::json!({
                 "MiniApp": {
                     "text": "x",
-                    "image": null,
+                    "app": "uno",
                     "max_players": null,
                     "spectators": true,
                     "app_size": { "width": 440, "height": 740 },
@@ -1313,9 +1289,10 @@ mod tests {
 
     #[test]
     fn a_mini_app_is_valid_with_1_to_2000_characters() {
-        assert_eq!(MiniAppContent::new("x", 440, 740).validate(), Ok(()));
+        assert_eq!(MiniAppContent::new("uno", "x", 440, 740).validate(), Ok(()));
         assert_eq!(
-            MiniAppContent::new("é".repeat(MiniAppContent::MAX_TEXT_CHARS), 440, 740).validate(),
+            MiniAppContent::new("uno", "é".repeat(MiniAppContent::MAX_TEXT_CHARS), 440, 740)
+                .validate(),
             Ok(())
         );
 
@@ -1325,41 +1302,35 @@ mod tests {
             "x".repeat(MiniAppContent::MAX_TEXT_CHARS + 1),
         ] {
             assert_eq!(
-                MiniAppContent::new(text, 440, 740).validate(),
+                MiniAppContent::new("uno", text, 440, 740).validate(),
                 Err("The text must have 1 to 2000 characters".to_string())
             );
         }
     }
 
+    // Which of the bot's apps it is: OpenChat checks the name's there, and that it's one of the
+    // bot's, which only it can
     #[test]
-    fn a_mini_app_image_needs_a_size_and_an_image_mime_type() {
-        let card = |change: fn(&mut MiniAppImage)| {
-            let mut image = mini_app_image();
-            change(&mut image);
-            MiniAppContent::new("x", 440, 740)
-                .with_image(image)
-                .validate()
-        };
+    fn a_mini_app_names_an_app_in_1_to_50_characters() {
+        assert_eq!(
+            MiniAppContent::new(
+                "é".repeat(MiniAppContent::MAX_APP_NAME_CHARS),
+                "x",
+                440,
+                740
+            )
+            .validate(),
+            Ok(())
+        );
 
-        assert_eq!(card(|_| ()), Ok(()));
-        assert_eq!(card(|i| i.mime_type = "image/webp".to_string()), Ok(()));
-        for change in [
-            (|i: &mut MiniAppImage| i.width = 0) as fn(&mut MiniAppImage),
-            |i| i.height = 0,
+        for app in [
+            String::new(),
+            " \n".to_string(),
+            "x".repeat(MiniAppContent::MAX_APP_NAME_CHARS + 1),
         ] {
             assert_eq!(
-                card(change),
-                Err("The image must have a width and a height".to_string())
-            );
-        }
-        for mime_type in ["video/mp4", "application/octet-stream", ""] {
-            let mut image = mini_app_image();
-            image.mime_type = mime_type.to_string();
-            assert_eq!(
-                MiniAppContent::new("x", 440, 740)
-                    .with_image(image)
-                    .validate(),
-                Err("The image's mime type must be an image's".to_string())
+                MiniAppContent::new(app, "x", 440, 740).validate(),
+                Err("The app must have 1 to 50 characters".to_string())
             );
         }
     }
@@ -1368,7 +1339,7 @@ mod tests {
     fn a_mini_app_has_1_to_100_players_at_most() {
         for max in [1, 100] {
             assert_eq!(
-                MiniAppContent::new("x", 440, 740)
+                MiniAppContent::new("uno", "x", 440, 740)
                     .with_max_players(max)
                     .validate(),
                 Ok(())
@@ -1376,7 +1347,7 @@ mod tests {
         }
         for max in [0, 101] {
             assert_eq!(
-                MiniAppContent::new("x", 440, 740)
+                MiniAppContent::new("uno", "x", 440, 740)
                     .with_max_players(max)
                     .validate(),
                 Err("A game has 1 to 100 players at most".to_string())
@@ -1388,7 +1359,7 @@ mod tests {
     #[test]
     fn a_mini_app_is_posted_open() {
         for status in mini_app_statuses().into_iter().skip(1) {
-            let mut card = MiniAppContent::new("x", 440, 740);
+            let mut card = MiniAppContent::new("uno", "x", 440, 740);
             card.status = status;
             assert_eq!(card.validate(), Err("A game is posted open".to_string()));
         }

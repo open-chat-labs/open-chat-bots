@@ -103,6 +103,7 @@ async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> Js
         autonomous_config: None,
         default_subscriptions: None,
         restricted_locations: None,
+        mini_apps: Vec::new(),
     })
 }
 

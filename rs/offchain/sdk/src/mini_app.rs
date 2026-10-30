@@ -84,29 +84,15 @@ impl<R: Runtime> MiniAppServiceClient<R> {
             block_level_markdown: bool,
             replies_to: Option<EventIndex>,
         }
-        // The card as the service takes it: without a status, as the service posts it open, and
-        // with the image's blob id as a decimal string, as message ids are
+        // The card as the service takes it: without a status, as the service posts it open
         #[derive(Serialize)]
         struct Card {
             text: String,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            image: Option<Image>,
+            app: String,
             #[serde(skip_serializing_if = "Option::is_none")]
             max_players: Option<u32>,
             spectators: bool,
             app_size: MiniAppSize,
-        }
-        #[derive(Serialize)]
-        struct Image {
-            width: u32,
-            height: u32,
-            mime_type: String,
-            blob_reference: BlobReference,
-        }
-        #[derive(Serialize)]
-        struct BlobReference {
-            canister_id: String,
-            blob_id: String,
         }
         #[derive(Deserialize)]
         struct Posted {
@@ -117,15 +103,7 @@ impl<R: Runtime> MiniAppServiceClient<R> {
             token,
             card: Card {
                 text: card.text,
-                image: card.image.map(|image| Image {
-                    width: image.width,
-                    height: image.height,
-                    mime_type: image.mime_type,
-                    blob_reference: BlobReference {
-                        canister_id: image.blob_reference.canister_id.to_text(),
-                        blob_id: image.blob_reference.blob_id.to_string(),
-                    },
-                }),
+                app: card.app,
                 max_players: card.max_players,
                 spectators: card.spectators,
                 app_size: card.app_size,
@@ -238,7 +216,8 @@ async fn check(response: reqwest::Response) -> Result<reqwest::Response, MiniApp
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MiniAppServiceError {
     /// 400: eg. a post token which is invalid or has expired, a card OpenChat refused, a status
-    /// moving back, a result without Finished, or waiting for someone who isn't playing
+    /// moving back, a result or an end state without Finished, or waiting for someone who isn't
+    /// playing
     Invalid(String),
     /// 401: the service refused the bot's token, even a new one
     Unauthorized(String),
@@ -318,8 +297,11 @@ pub enum GameStatus {
 ///     .with_waiting_for(vec![bob])
 ///     .with_state(GameState { seq: 2, shared, private });
 ///
-/// // Bob won
-/// let update = GameUpdate::new(game).finished().with_result("Bob won");
+/// // Bob won, and the card keeps showing the app, with the final position and the moves
+/// let update = GameUpdate::new(game)
+///     .finished()
+///     .with_result("Bob won")
+///     .with_end_state(json!({ "version": 1, "position": fen, "moves": moves }));
 /// ```
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct GameUpdate {
@@ -331,6 +313,9 @@ pub struct GameUpdate {
     pub waiting_for: Option<Vec<UserId>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub result: Option<String>,
+    /// How the game ended, which the card's app shows afterwards: only with `Finished`
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_state: Option<Value>,
     /// Players to take off the game
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub remove: Vec<UserId>,
@@ -359,6 +344,7 @@ impl GameUpdate {
             status: None,
             waiting_for: None,
             result: None,
+            end_state: None,
             remove: Vec::new(),
             state: None,
         }
@@ -379,6 +365,17 @@ impl GameUpdate {
     /// eg. "Bob won", of at most 200 characters, which only comes with [`Self::finished`]
     pub fn with_result(mut self, result: impl Into<String>) -> Self {
         self.result = Some(result.into());
+        self
+    }
+
+    /// How the game ended, as any JSON, of at most 16 KB serialized, which only comes with
+    /// [`Self::finished`]. OpenChat writes it to the card, and the card keeps showing the app,
+    /// handing it the state: `initialise_mini_app` with `finished: true`, then
+    /// `{ kind: "mini_app_end_state", state }`, so the app can show eg. the final position and let
+    /// viewers step through the moves. A finished card without one shows the app's image and the
+    /// result instead.
+    pub fn with_end_state(mut self, state: impl Into<Value>) -> Self {
+        self.end_state = Some(state.into());
         self
     }
 
@@ -544,7 +541,7 @@ mod tests {
     use ct_codecs::{Base64UrlSafeNoPadding, Encoder};
     use ic_agent::export::Principal;
     use oc_bots_sdk::msgpack;
-    use oc_bots_sdk::types::{BlobReference, CallResult, Chat, MiniAppImage};
+    use oc_bots_sdk::types::{CallResult, Chat};
     use p256::ecdsa::signature::Signer;
     use p256::ecdsa::{Signature, SigningKey};
     use p256::pkcs8::{EncodePublicKey, LineEnding};
@@ -582,6 +579,7 @@ mod tests {
             .finished()
             .with_waiting_for(vec![id(2)])
             .with_result("Bob won")
+            .with_end_state(json!({ "version": 1, "winner": id(2).to_string(), "moves": [4, 7] }))
             .with_removed(vec![id(3)])
             .with_state(GameState {
                 seq: 12,
@@ -595,6 +593,7 @@ mod tests {
                 "status": "Finished",
                 "waiting_for": [id(2).to_string()],
                 "result": "Bob won",
+                "end_state": { "version": 1, "winner": id(2).to_string(), "moves": [4, 7] },
                 "remove": [id(3).to_string()],
                 "state": {
                     "seq": 12,
@@ -619,6 +618,30 @@ mod tests {
             json!({ "game": game_json(), "status": "Finished", "result": "Bob won" })
         );
         assert!(serde_json::from_value::<GameStatus>(json!("Active")).is_err());
+
+        // An end state is any JSON, sent as it is
+        assert_eq!(
+            serde_json::to_value(
+                GameUpdate::new(game())
+                    .finished()
+                    .with_result("Draw")
+                    .with_end_state(
+                        json!({ "version": 1, "board": [[1, 2, 0], [0, 1, 2], [2, 0, 1]] })
+                    )
+            )
+            .unwrap(),
+            json!({
+                "game": game_json(),
+                "status": "Finished",
+                "result": "Draw",
+                "end_state": { "version": 1, "board": [[1, 2, 0], [0, 1, 2], [2, 0, 1]] },
+            })
+        );
+        assert_eq!(
+            serde_json::to_value(GameUpdate::new(game()).finished().with_end_state("over"))
+                .unwrap(),
+            json!({ "game": game_json(), "status": "Finished", "end_state": "over" })
+        );
     }
 
     #[test]
@@ -947,25 +970,16 @@ mod tests {
     }
 
     fn card() -> MiniAppContent {
-        MiniAppContent::new("**Uno** · 2 to 4 players", 440, 740)
+        MiniAppContent::new("uno", "**Uno** · 2 to 4 players", 440, 740)
             .with_max_players(4)
             .with_spectators(true)
-            .with_image(MiniAppImage {
-                width: 600,
-                height: 400,
-                mime_type: "image/png".to_string(),
-                blob_reference: BlobReference {
-                    canister_id: Principal::from_slice(&[6]),
-                    blob_id: u128::MAX,
-                },
-            })
     }
 
     fn posted_json() -> String {
         json!({ "game": game_json() }).to_string()
     }
 
-    // As the service's `PostArgs` reads it: ids as text, and the blob id as a decimal string
+    // As the service's `PostArgs` reads it: ids as text, and the card without its status
     #[tokio::test]
     async fn posts_a_card_and_fetches_the_public_key() {
         let (url, requests) = serve(vec![
@@ -994,15 +1008,7 @@ mod tests {
                 "token": "post-token",
                 "card": {
                     "text": "**Uno** · 2 to 4 players",
-                    "image": {
-                        "width": 600,
-                        "height": 400,
-                        "mime_type": "image/png",
-                        "blob_reference": {
-                            "canister_id": Principal::from_slice(&[6]).to_text(),
-                            "blob_id": "340282366920938463463374607431768211455",
-                        },
-                    },
+                    "app": "uno",
                     "max_players": 4,
                     "spectators": true,
                     "app_size": { "width": 440, "height": 740 },
@@ -1017,14 +1023,14 @@ mod tests {
 
     // The same token posts the same card, so a post which got no answer is sent again as it was
     #[tokio::test]
-    async fn a_card_without_an_image_or_limit_is_posted_without_them_and_may_be_posted_again() {
+    async fn a_card_without_a_limit_is_posted_without_one_and_may_be_posted_again() {
         let (url, requests) = serve(vec![
             (503, r#"{"error":"Unavailable"}"#.to_string()),
             (200, posted_json()),
         ])
         .await;
         let client = client(url, vec![bot_token("a", 3600)]);
-        let card = MiniAppContent::new("x", 440, 740);
+        let card = MiniAppContent::new("uno", "x", 440, 740);
 
         assert_eq!(
             client.post("post-token", card.clone(), false, None).await,
@@ -1043,7 +1049,12 @@ mod tests {
                 serde_json::from_str::<Value>(&request.body).unwrap(),
                 json!({
                     "token": "post-token",
-                    "card": { "text": "x", "spectators": false, "app_size": { "width": 440, "height": 740 } },
+                    "card": {
+                        "text": "x",
+                        "app": "uno",
+                        "spectators": false,
+                        "app_size": { "width": 440, "height": 740 },
+                    },
                     "block_level_markdown": false,
                     "replies_to": null,
                 })
@@ -1065,7 +1076,7 @@ mod tests {
         let post = || {
             client.post(
                 "post-token",
-                MiniAppContent::new("x", 440, 740),
+                MiniAppContent::new("uno", "x", 440, 740),
                 false,
                 None,
             )
