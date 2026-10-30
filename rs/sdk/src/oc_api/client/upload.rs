@@ -4,7 +4,7 @@ use crate::oc_api::actions::allocated_bucket::{self, AllocatedBucketAction};
 use crate::oc_api::actions::call_action;
 use crate::oc_api::actions::upload_chunk::{self, UploadChunkAction};
 use crate::types::{
-    ActionContext, ActionScope, BlobReference, CallError, CanisterId, ImageContent, MiniAppImage,
+    ActionContext, ActionScope, BlobReference, CallError, CanisterId, ImageContent,
 };
 use crate::utils::thumbnail_of;
 use futures_util::{StreamExt, TryStreamExt, stream};
@@ -113,59 +113,6 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
             caption: None,
             mime_type,
             blob_reference: Some(blob_reference),
-        })
-    }
-
-    /// Uploads an image for a MiniApp card as [`Self::upload_blob`] does, reading its size from it,
-    /// so that it's scanned like any image and deleted with the card. Only PNGs can be read, for
-    /// now: upload another format with [`Self::upload_mini_app_image_of_size`].
-    ///
-    /// ```ignore
-    /// let image = client.upload_mini_app_image(storage_index, png, image::ImageFormat::Png).await?;
-    /// let card = MiniAppContent::new("**Tic-tac-toe** · tap Open to play", 440, 740).with_image(image);
-    /// ```
-    pub async fn upload_mini_app_image(
-        &self,
-        storage_index: CanisterId,
-        data: Vec<u8>,
-        format: image::ImageFormat,
-    ) -> Result<MiniAppImage, UploadError> {
-        let (width, height) = image::ImageReader::with_format(std::io::Cursor::new(&data), format)
-            .into_dimensions()
-            .map_err(|error| UploadError::InvalidImage(error.to_string()))?;
-
-        self.upload_mini_app_image_of_size(
-            storage_index,
-            format.to_mime_type().to_string(),
-            width,
-            height,
-            data,
-        )
-        .await
-    }
-
-    /// Uploads an image of any format, eg. "image/jpeg", for a MiniApp card, as
-    /// [`Self::upload_blob`] does, with the size the caller gives. An image OpenChat would refuse,
-    /// as it has no width or height or isn't an image's mime type, isn't uploaded.
-    pub async fn upload_mini_app_image_of_size(
-        &self,
-        storage_index: CanisterId,
-        mime_type: String,
-        width: u32,
-        height: u32,
-        data: Vec<u8>,
-    ) -> Result<MiniAppImage, UploadError> {
-        MiniAppImage::check(width, height, &mime_type).map_err(UploadError::InvalidImage)?;
-
-        let blob_reference = self
-            .upload_blob(storage_index, mime_type.clone(), data)
-            .await?;
-
-        Ok(MiniAppImage {
-            width,
-            height,
-            mime_type,
-            blob_reference,
         })
     }
 
@@ -527,72 +474,6 @@ mod tests {
                 .starts_with("data:image/png;base64,")
         );
         assert_eq!(content.blob_reference.unwrap().blob_id, 7);
-    }
-
-    #[test]
-    fn uploads_a_mini_app_image_with_its_size() {
-        let runtime = FakeRuntime::new(vec![
-            Ok(msgpack::serialize_then_unwrap(allocated(1 << 19))),
-            Ok(msgpack::serialize_then_unwrap(
-                upload_chunk::Response::Success,
-            )),
-        ]);
-        let client = client(&runtime);
-        let mut png = Vec::new();
-        image::RgbImage::new(120, 60)
-            .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
-            .unwrap();
-
-        let image = block_on(client.upload_mini_app_image(
-            canister_id(STORAGE_INDEX),
-            png,
-            image::ImageFormat::Png,
-        ))
-        .unwrap();
-
-        assert_eq!((image.width, image.height), (120, 60));
-        assert_eq!(image.mime_type, "image/png");
-        assert_eq!(image.blob_reference.blob_id, 7);
-        assert_eq!(
-            image.blob_reference.canister_id,
-            Principal::from_text(BUCKET).unwrap()
-        );
-        assert_eq!(image.validate(), Ok(()));
-    }
-
-    // Nothing's called, as the runtime has no responses to give
-    #[test]
-    fn doesnt_upload_a_mini_app_image_openchat_would_refuse() {
-        let runtime = FakeRuntime::new(Vec::new());
-        let client = client(&runtime);
-        let upload = |mime_type: &str, width, height| {
-            block_on(client.upload_mini_app_image_of_size(
-                canister_id(STORAGE_INDEX),
-                mime_type.to_string(),
-                width,
-                height,
-                vec![1, 2, 3],
-            ))
-        };
-
-        for result in [
-            upload("image/jpeg", 0, 10),
-            upload("image/jpeg", 10, 0),
-            upload("text/plain", 10, 10),
-        ] {
-            assert!(
-                matches!(result, Err(UploadError::InvalidImage(_))),
-                "{result:?}"
-            );
-        }
-        // Nor one it can't read
-        let unreadable = block_on(client.upload_mini_app_image(
-            canister_id(STORAGE_INDEX),
-            vec![1, 2, 3],
-            image::ImageFormat::Png,
-        ));
-        assert!(matches!(unreadable, Err(UploadError::InvalidImage(_))));
-        assert!(runtime.calls.lock().unwrap().is_empty());
     }
 
     // OpenChat takes the bytes as msgpack's bin type, and principals as bytes

@@ -26,6 +26,7 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
                 InstallationLocationType::Community,
                 InstallationLocationType::Group,
             ])),
+            mini_apps: Vec::new(),
         },
     )
 }

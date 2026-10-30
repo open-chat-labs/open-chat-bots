@@ -2122,12 +2122,7 @@ export function miniAppContent(value: ApiMiniAppContent): MiniAppContent {
     return {
         kind: "mini_app_content",
         text: value.text,
-        image: optional(value.image, (image) => ({
-            width: image.width,
-            height: image.height,
-            mimeType: image.mime_type,
-            blobReference: blobReference(image.blob_reference),
-        })),
+        app: value.app,
         maxPlayers: optional(value.max_players, identity),
         spectators: value.spectators,
         appSize: { width: value.app_size.width, height: value.app_size.height },
@@ -2138,12 +2133,7 @@ export function miniAppContent(value: ApiMiniAppContent): MiniAppContent {
 export function apiMiniAppContent(domain: Omit<MiniAppContent, "kind">): ApiMiniAppContent {
     return {
         text: domain.text,
-        image: apiOptional(domain.image, (image) => ({
-            width: image.width,
-            height: image.height,
-            mime_type: image.mimeType,
-            blob_reference: apiBlobReference(image.blobReference),
-        })),
+        app: domain.app,
         max_players: apiOptional(domain.maxPlayers, identity),
         spectators: domain.spectators,
         app_size: { width: domain.appSize.width, height: domain.appSize.height },
@@ -2160,6 +2150,7 @@ function miniAppStatus(value: ApiMiniAppStatus): MiniAppStatus {
             kind: "active",
             players: value.Active.players.map(principalBytesToString),
             waitingFor: value.Active.waiting_for.map(principalBytesToString),
+            settings: optional(value.Active.settings, identity),
         };
     }
     if ("Finished" in value) {
@@ -2167,6 +2158,8 @@ function miniAppStatus(value: ApiMiniAppStatus): MiniAppStatus {
             kind: "finished",
             players: value.Finished.players.map(principalBytesToString),
             result: optional(value.Finished.result, identity),
+            endState: optional(value.Finished.end_state, identity),
+            settings: optional(value.Finished.settings, identity),
         };
     }
     throw new UnsupportedValueError("Unexpected ApiMiniAppStatus type received", value);
@@ -2181,6 +2174,7 @@ function apiMiniAppStatus(domain: MiniAppStatus): ApiMiniAppStatus {
                 Active: {
                     players: domain.players.map(principalStringToBytes),
                     waiting_for: domain.waitingFor.map(principalStringToBytes),
+                    settings: domain.settings,
                 },
             };
         case "finished":
@@ -2188,6 +2182,8 @@ function apiMiniAppStatus(domain: MiniAppStatus): ApiMiniAppStatus {
                 Finished: {
                     players: domain.players.map(principalStringToBytes),
                     result: domain.result,
+                    end_state: domain.endState,
+                    settings: domain.settings,
                 },
             };
     }
@@ -2233,16 +2229,10 @@ export function apiMiniAppGame(domain: MiniAppGame): ApiMiniAppGame {
 }
 
 // A card as the MiniApp service's `POST /bot/post` takes it, in JSON: the content the bot posts,
-// without a status, as the service posts it open. Ids are text, and the blob id a decimal string, as
-// the message id is.
+// without a status, as the service posts it open
 export type ApiMiniAppCard = {
     text: string;
-    image?: {
-        width: number;
-        height: number;
-        mime_type: string;
-        blob_reference: { canister_id: string; blob_id: string };
-    };
+    app: string;
     max_players?: number;
     spectators: boolean;
     app_size: { width: number; height: number };
@@ -2252,15 +2242,7 @@ export type ApiMiniAppCard = {
 export function apiMiniAppCard(domain: MiniAppCard): ApiMiniAppCard {
     return {
         text: domain.text,
-        image: apiOptional(domain.image, (image) => ({
-            width: image.width,
-            height: image.height,
-            mime_type: image.mimeType,
-            blob_reference: {
-                canister_id: image.blobReference.canisterId,
-                blob_id: image.blobReference.blobId.toString(),
-            },
-        })),
+        app: domain.app,
         max_players: domain.maxPlayers,
         spectators: domain.spectators,
         app_size: domain.appSize,
@@ -2276,12 +2258,14 @@ export type ApiMiniAppPostArgs = {
     replies_to: number | null;
 };
 
-// The body of the MiniApp service's `POST /bot/update`, in which every field but `game` is optional
+// The body of the MiniApp service's `POST /bot/update`, in which every field but `game` is optional.
+// `end_state` is any JSON value, sent as it is.
 export type ApiMiniAppGameUpdate = {
     game: ApiMiniAppGame;
     status?: "Finished";
     waiting_for?: string[];
     result?: string;
+    end_state?: unknown;
     remove?: string[];
     state?: { seq: number; shared: unknown; private?: Record<string, unknown> };
 };
@@ -2293,6 +2277,7 @@ export function apiMiniAppGameUpdate(domain: MiniAppGameUpdate): ApiMiniAppGameU
         status: domain.status === "finished" ? "Finished" : undefined,
         waiting_for: domain.waitingFor,
         result: domain.result,
+        end_state: domain.endState,
         remove: domain.remove,
         state: domain.state,
     };

@@ -25,6 +25,7 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
                 chat: HashSet::from_iter([ChatEventType::MessageReaction, ChatEventType::Message]),
             }),
             restricted_locations: Some(HashSet::from([InstallationLocationType::Community])),
+            mini_apps: Vec::new(),
         },
     )
 }

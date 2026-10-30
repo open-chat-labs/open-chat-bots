@@ -29,10 +29,10 @@ For an example of this you can refer to [the middleware](./examples/other/src/mi
 
 ```typescript
 const factory = new BotClientFactory({
-  openchatPublicKey: process.env.OC_PUBLIC!,
-  icHost: process.env.IC_HOST!,
-  identityPrivateKey: process.env.IDENTITY_PRIVATE!,
-  openStorageCanisterId: process.env.STORAGE_INDEX_CANISTER!,
+    openchatPublicKey: process.env.OC_PUBLIC!,
+    icHost: process.env.IC_HOST!,
+    identityPrivateKey: process.env.IDENTITY_PRIVATE!,
+    openStorageCanisterId: process.env.STORAGE_INDEX_CANISTER!,
 });
 ```
 
@@ -105,7 +105,7 @@ Your bots schema definition is used to express what arguments a command requires
 ```typescript
 const album = client.stringArg("album");
 if (album === undefined) {
-  res.status(400).send(argumentsInvalid());
+    res.status(400).send(argumentsInvalid());
 }
 ```
 
@@ -122,13 +122,8 @@ It's likely that our bot will have some async work to do before interacting with
 We can either create a text message and send it to OpenChat in one go using the `sendTextMessage` method or we can create the message and send it in two steps using `createTextMessage` and passing the result to `sendMessage`. In this case we want to send the message both to the OpenChat backend and return it to the OpenChat frontend so we create the message explicitly to avoid creating the same message twice.
 
 ```typescript
-const placeholder = await client.createTextMessage(
-  false,
-  "Searching Spotify ..."
-);
-client
-  .sendMessage(placeholder)
-  .catch((err) => console.error("sendTextMessage failed with: ", err));
+const placeholder = await client.createTextMessage(false, "Searching Spotify ...");
+client.sendMessage(placeholder).catch((err) => console.error("sendTextMessage failed with: ", err));
 ```
 
 The first parameter to the `createTextMessage` method is a `finalised` flag to tell OpenChat whether this is the final message associated with this command. Since it is just a placeholder, the finalised flag is set to false.
@@ -155,8 +150,8 @@ Once we have done our work and achieved some result, it is likely that we will w
 
 ```typescript
 client
-  .sendTextMessage(true, url)
-  .catch((err) => console.error("sendTextMessage failed with: ", err));
+    .sendTextMessage(true, url)
+    .catch((err) => console.error("sendTextMessage failed with: ", err));
 ```
 
 Note that in this case we are creating and sending the message all in one method call since we do not need to re-use the message created and we are setting the `finalised` flag to true since this is the final message that we expect to send to OpenChat for this command execution.
@@ -188,19 +183,19 @@ chats only asks the preview service once.
 ### Supplying previews yourself
 
 ```typescript
-const message = (await client.createTextMessage("check this out https://example.com")).setOgPreviews([
-  { url: "https://example.com", title: "Example", description: "An example" },
-]);
+const message = (
+    await client.createTextMessage("check this out https://example.com")
+).setOgPreviews([{ url: "https://example.com", title: "Example", description: "An example" }]);
 await client.sendMessage(message);
 ```
 
 The field is tri-state:
 
-| `setOgPreviews` | behaviour |
-| --- | --- |
-| not called | previews are fetched automatically (unless disabled - see below) |
-| called with a non-empty list | that list is sent as-is, nothing is fetched |
-| called with `[]` | no previews are sent, nothing is fetched |
+| `setOgPreviews`              | behaviour                                                        |
+| ---------------------------- | ---------------------------------------------------------------- |
+| not called                   | previews are fetched automatically (unless disabled - see below) |
+| called with a non-empty list | that list is sent as-is, nothing is fetched                      |
+| called with `[]`             | no previews are sent, nothing is fetched                         |
 
 So passing `[]` is how you suppress previews for one particular message. Anything you set
 explicitly always wins over the automatic lookup.
@@ -251,7 +246,7 @@ previews that you set explicitly.
 
 ### Other SDKs
 
-The Rust and Motoko SDKs support the same `og_previews` field, but only the *offchain* targets
+The Rust and Motoko SDKs support the same `og_previews` field, but only the _offchain_ targets
 fetch automatically. In-canister bots (`oc_bots_sdk_canister`, the Motoko SDK) are pass-through
 only, because scraping a link from a canister would mean a consensus-replicated http outcall and
 a cycles cost on every send.
@@ -259,9 +254,26 @@ a cycles cost on every send.
 ## MiniApp cards
 
 A bot can host a game, or another app, which people open from a card the bot posts in a chat.
-OpenChat draws the card: markdown text, an optional image, the players, whose turn it is or the
-result, and buttons to join, open or watch. Everything else, eg. the board, is the bot's own page,
-`<endpoint>/app`, which OpenChat shows in a sandboxed frame.
+OpenChat draws the card: markdown text, the players, whose turn it is or the result, and buttons to
+join, open or watch. Everything else, eg. the board, is the bot's own page, `<endpoint>/app`, which
+OpenChat shows in a sandboxed frame. The bot's definition lists the apps it hosts, each with its
+artwork, and a card names one of them:
+
+```ts
+const definition: BotDefinition = {
+    description: "Board games",
+    commands: [...],
+    // Each app the bot posts cards for, with its image: https, or a path relative to the bot's
+    // endpoint. At most 100, named uniquely in up to 50 characters, with URLs of up to 500.
+    mini_apps: [{ name: "chess", image_url: "app/chess.svg" }],
+};
+```
+
+OpenChat shows the app's image in the card's frame box whenever there's no app to show: before the
+app loads, to someone who can't open the game, and once the game is over without an end state, with
+the result over it. It refuses a card whose app isn't in the bot's definition as OpenChat holds it,
+the one fetched when the bot was registered or last updated: after adding or renaming an app, update
+the bot's registration in OpenChat, or every post is refused until then.
 
 OpenChat's MiniApp service sits between OpenChat's website and the bot. It posts every card, as the
 bot, tracks who's joined each game, is the only thing that writes a card's status, and relays the
@@ -289,8 +301,13 @@ async function miniAppTokens(): Promise<MiniAppTokens> {
 ### 1. Post a card
 
 ```ts
-// The text, what the app's laid out for, in CSS pixels, and the image
-const card = (await client.createMiniAppMessage("**Uno** · 2 to 4 players", { width: 440, height: 740 }, image))
+// The app, as the bot's definition names it, the text, and what the app's laid out for, in CSS pixels
+const card = (
+    await client.createMiniAppMessage("uno", "**Uno** · 2 to 4 players", {
+        width: 440,
+        height: 740,
+    })
+)
     .setMaxPlayers(4)
     // Whether people who aren't playing can watch
     .setSpectators(true);
@@ -308,11 +325,11 @@ one, with the same options, `{ channelId, thread, messageId }`: the channel for 
 community's scope, the thread, and the card's message id, which the SDK picks unless the bot chooses
 one, or a chat command's token fixes it. The token lasts an hour, and needs the `MiniApp` message
 permission, so a command which posts a card asks for it. A card can't be posted in a direct chat,
-and its text, image, player limit, spectators and app size never change. The app size is what the
-app's laid out for, in CSS pixels, each 1 to 10,000 and neither more than three times the other:
-the card shows the app at that aspect ratio, sized before it loads. `createMiniAppMessage` uploads the
-optional image (`{ data, mimeType, width, height }`) first, as `createImageMessage` does;
-`setBlockLevelMarkdown` and `setRepliesTo` apply. Posting the same token again posts nothing new and
+and its app, text, player limit, spectators and app size never change. The app's name is 1 to 50
+characters, and must be one of the bot's definition's `mini_apps`. The app size is what the app's
+laid out for, in CSS pixels, each 1 to 10,000 and neither more than three times the other: the card
+shows the app at that aspect ratio, sized before it loads. `setBlockLevelMarkdown` and
+`setRepliesTo` apply. Posting the same token again posts nothing new and
 gives the same game, so a bot which got no answer, eg. an `unavailable` error, posts again with the
 same token. Key the game before posting, from `miniAppGameFromPostToken(token)`: the service may
 have posted the card and forwarded a join before the bot hears its answer, so the bot should know
@@ -371,12 +388,16 @@ app.post("/mini_app/start", async (req, res) => {
             players: g.seats, // as they are now
             waitingFor: [g.seats[0]],
             state: g.firstState,
+            // Fixed at the start, kept by the card, and handed to the app whenever it opens
+            settings: { handSize: 7 },
         }),
     );
 });
 ```
 
-Answer within 5 seconds.
+Answer within 5 seconds. `settings` is any JSON of at most 4 KB, eg. what the host chose in the
+lobby: the service writes it into the card, which keeps it as long as it exists, and OpenChat hands
+it to the app (`openChat.settings`) whenever the game's opened, and never reads it itself.
 
 - **The players** should each be playing, or have a join the bot's still answering. Anyone else
   isn't added, and the bot's told they left, eg. a player whose leave hadn't reached it yet. Anyone
@@ -400,14 +421,23 @@ await miniApps.update({
     waitingFor: [nextPlayer], // or [] for no one in particular
     state: { seq: ++seq, shared: { version: 1, board, lastMove }, private: { [userId]: { hand } } },
 });
-await miniApps.update({ game, status: "finished", result: "Bob won" });
+await miniApps.update({
+    game,
+    status: "finished",
+    result: "Bob won",
+    // How it ended, as any JSON the app can show its end view from
+    endState: { version: 1, board, moves },
+});
 ```
 
 Whatever's undefined stays as it is. The only status a bot sets is "finished", which ends the game,
-whether it started or not, and a result only comes with it. `remove: [userId]` takes players off,
-but a bot can never put them on. `seq` must go up, `shared` goes to everyone, spectators included,
-and each `private` part only to its player. Put a format version in the state, so an app left
-open from an older release knows to reload. An update, with its state, is at most 64 KB. The
+whether it started or not, and a result and an end state only come with it. The end state is any
+JSON value of at most 16 KB, serialized: OpenChat writes it to the card and hands it to the app, so a
+finished card with one shows the app with it, eg. the final position and a replay, while one without
+shows the app's image and the result. `remove: [userId]` takes players off, but a bot can never put
+them on. `seq` must go up, `shared` goes to everyone, spectators included, and each `private` part
+only to its player. Put a format version in the state, and in the end state, so an app left open
+from an older release knows to reload. An update, with its state, is at most 64 KB. The
 service's errors are `MiniAppServiceError`s, whose `kind` says what went wrong, eg. `finished`,
 `unknown_game`, or `unavailable` when it couldn't be reached. Failing to get the bot's token from
 the LocalUserIndex gives that call's error.
@@ -419,12 +449,15 @@ The SDK's browser entry, `@open-ic/openchat-botclient-ts/mini_app`, has no Node 
 ```ts
 import { connectToOpenChat } from "@open-ic/openchat-botclient-ts/mini_app";
 
-const openChat = await connectToOpenChat<Board, Hand>();
+const openChat = await connectToOpenChat<Board, Hand, Replay>();
 // The role is "player" or "spectator", and the state undefined until the first one comes
 render(openChat.role, openChat.state);
 openChat.onStateChange((state) => render(openChat.role, state));
 openChat.onRoleChange((role) => render(role, openChat.state));
 openChat.onDarkModeChange(setTheme);
+// Once the game is over, with an end state: right after connecting to a finished card, or as the
+// game finishes while the app is open. No state follows it.
+openChat.onEndState(renderReplay);
 
 // The Start button, for players. The bot decides, and OpenChat says what it decided.
 startButton.onclick = async () => {
@@ -440,8 +473,12 @@ It takes messages only from the window it's framed in, and drops a state whose `
 last one's. When the user's role changes, eg. as they join, OpenChat initialises the app again and
 re-sends the latest state, with the same `seq`, which replaces the one the app has. It asks OpenChat
 for a new player token before the current one expires, and sends it only with requests to the app's
-own origin. It also has `userId`, `token`, `darkMode`, `locale`, `refreshToken()` and `close()`.
-Serve the page as static, cacheable files, as it's the only thing spectators fetch from the bot.
+own origin. When the app is opened on a game that's over, `finished` is true from the start: there's
+no token, the role is "player" if the user was one of the game's players, no state comes, and
+OpenChat sends the bot's end state, `endState`, which the app shows its end view from. It also has
+`userId`, `token`, `darkMode`, `locale`, `settings` (what the bot gave when it started the game, see
+step 3), `refreshToken()` and `close()`. Serve the page as static, cacheable files, as it's the only
+thing spectators fetch from the bot.
 
 ### 6. Verify player tokens on the app's requests
 

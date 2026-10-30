@@ -17,7 +17,7 @@ export type MiniAppGame = {
 /**
  * A card as a bot posts it, through the service, with `MiniAppServiceClient.post`: a
  * `MiniAppContent` without its status, as the service posts a card open. It's a `MiniAppMessage`'s
- * `card`, which `BotClient.createMiniAppMessage` makes, uploading its image.
+ * `card`, which `BotClient.createMiniAppMessage` makes.
  */
 export type MiniAppCard = Omit<MiniAppContent, "kind" | "status">;
 
@@ -74,13 +74,21 @@ export type MiniAppStart = {
     waitingFor: string[];
     /** The game's first state, whose `seq` is above any state the bot has already sent */
     state?: MiniAppGameState;
+    /**
+     * The game's settings, as any JSON of at most 4 KB serialized, eg. `{ target: 2048 }`. The
+     * service writes them into the card, which keeps them for as long as it exists, and OpenChat
+     * hands them to the app whenever it opens the game, and never reads them itself. They're
+     * fixed at the start: nothing changes them after.
+     */
+    settings?: unknown;
 };
 
 /**
  * The bot's answer to the service's `POST <endpoint>/mini_app/start`, within 5 seconds, as the
  * service reads it, from `acceptMiniAppStart` or `refuseMiniAppStart`. If a start fails, eg. as it
  * timed out or the service couldn't save it, the player can ask again, so a bot asked to start a
- * game it already started answers with its players as they are now.
+ * game it already started answers with its players as they are now, and the same settings: the
+ * service takes a repeated start as the same one only when both match.
  */
 export type MiniAppStartResponse =
     | {
@@ -88,6 +96,7 @@ export type MiniAppStartResponse =
           players: string[];
           waiting_for: string[];
           state?: MiniAppGameState;
+          settings?: unknown;
       }
     | { accepted: false; message?: string };
 
@@ -98,6 +107,7 @@ export function acceptMiniAppStart(start: MiniAppStart): MiniAppStartResponse {
         players: start.players,
         waiting_for: start.waitingFor,
         state: start.state,
+        settings: start.settings,
     };
 }
 
@@ -111,7 +121,8 @@ export function refuseMiniAppStart(message?: string): MiniAppStartResponse {
 
 /**
  * A bot's update to one of its games, for `MiniAppServiceClient.update`. Whatever's undefined stays
- * as it is. The whole update, with its state and every player's part of it, is at most 64 KB.
+ * as it is. The whole update, with its state, its end state and every player's part of it, is at
+ * most 64 KB.
  */
 export type MiniAppGameUpdate = {
     game: MiniAppGame;
@@ -127,6 +138,13 @@ export type MiniAppGameUpdate = {
     waitingFor?: string[];
     /** eg. "Bob won", of 1 to 200 characters, only with "finished" */
     result?: string;
+    /**
+     * How the game ended, as any JSON value but null the bot chooses, eg. the final position and
+     * the moves, of at most 16 KB serialized, only with "finished" (null is no end state). OpenChat writes it to the card and hands
+     * it to the bot's app, in the card and to any app open as the game finishes, which shows its
+     * end view from it. A finished card without one shows the app's image and the result instead.
+     */
+    endState?: unknown;
     /** Players to take off the game, by user id. A bot can take players off, never put them on. */
     remove?: string[];
     state?: MiniAppGameState;
