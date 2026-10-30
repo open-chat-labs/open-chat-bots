@@ -20,6 +20,7 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
             }),
             default_subscriptions: None,
             restricted_locations: None,
+            mini_apps: Vec::new(),
         },
     )
 }

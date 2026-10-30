@@ -33,6 +33,7 @@ import {
     type UnitResult,
     type UserSummaryResponse,
 } from "../domain";
+import type { MiniAppSize } from "../domain";
 import type { ActionContext } from "../domain/action_context";
 import type { Channel } from "../domain/channel";
 import { apiOptional, principalBytesToString } from "../mapping";
@@ -378,10 +379,13 @@ export class BotClient {
      */
     async createMiniAppMessage(
         text: string,
+        appSize: MiniAppSize,
         image?: { data: Uint8Array; mimeType: string; width: number; height: number },
     ): Promise<MiniAppMessage> {
         if (image === undefined) {
-            return new MiniAppMessage(text).setContextMessageId<MiniAppMessage>(this.messageId);
+            return new MiniAppMessage(text, appSize).setContextMessageId<MiniAppMessage>(
+                this.messageId,
+            );
         }
         const invalid = validateMiniAppImage(image.width, image.height, image.mimeType);
         if (invalid !== undefined) {
@@ -390,7 +394,7 @@ export class BotClient {
         const dataClient = new DataClient(this.#agent, this.#env);
         const canisterId = this.#extractCanisterFromChat();
         const blobReference = await dataClient.uploadData([canisterId], image.mimeType, image.data);
-        return new MiniAppMessage(text, {
+        return new MiniAppMessage(text, appSize, {
             width: image.width,
             height: image.height,
             mimeType: image.mimeType,

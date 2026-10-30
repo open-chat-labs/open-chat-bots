@@ -141,17 +141,24 @@ describe("MiniAppServiceClient.update", () => {
 describe("MiniAppServiceClient.post", () => {
     const token = postToken();
     const posted: [number, string] = [200, `{"game":${GAME_JSON}}`];
-    const plain = { text: TEXT, spectators: false };
+    const plain = { text: TEXT, spectators: false, appSize: { width: 440, height: 740 } };
 
     test("posts the card as the service reads it, and resolves with the token's game", async () => {
         const { fetch, sent } = service(posted, posted, posted);
         const { client: miniApps } = client(fetch);
-        const card = new MiniAppMessage(TEXT, {
-            width: 600,
-            height: 400,
-            mimeType: "image/png",
-            blobReference: { canisterId: BUCKET, blobId: 340282366920938463463374607431768211455n },
-        })
+        const card = new MiniAppMessage(
+            TEXT,
+            { width: 440, height: 740 },
+            {
+                width: 600,
+                height: 400,
+                mimeType: "image/png",
+                blobReference: {
+                    canisterId: BUCKET,
+                    blobId: 340282366920938463463374607431768211455n,
+                },
+            },
+        )
             .setMaxPlayers(4)
             .setSpectators(true)
             .setBlockLevelMarkdown<MiniAppMessage>(true)
@@ -172,10 +179,10 @@ describe("MiniAppServiceClient.post", () => {
         ]);
         // The blob id is a decimal string, as the message id is
         expect(sent[0].body).toBe(
-            `{"token":"${token}","card":{"text":"${TEXT}","image":{"width":600,"height":400,"mime_type":"image/png","blob_reference":{"canister_id":"${BUCKET}","blob_id":"340282366920938463463374607431768211455"}},"max_players":4,"spectators":true},"block_level_markdown":true,"replies_to":12}`,
+            `{"token":"${token}","card":{"text":"${TEXT}","image":{"width":600,"height":400,"mime_type":"image/png","blob_reference":{"canister_id":"${BUCKET}","blob_id":"340282366920938463463374607431768211455"}},"max_players":4,"spectators":true,"app_size":{"width":440,"height":740}},"block_level_markdown":true,"replies_to":12}`,
         );
         expect(sent[1].body).toBe(
-            `{"token":"${token}","card":{"text":"${TEXT}","spectators":false},"block_level_markdown":false,"replies_to":null}`,
+            `{"token":"${token}","card":{"text":"${TEXT}","spectators":false,"app_size":{"width":440,"height":740}},"block_level_markdown":false,"replies_to":null}`,
         );
         expect(sent[2].body).toContain(`"block_level_markdown":false,"replies_to":3}`);
     });
