@@ -5,7 +5,7 @@
 //
 // The bot decides every move, so no one can forge a board. The race keeps its whole state in
 // `RaceData`, which the store writes to disk as it is.
-import type { ConfigureResult, Game } from "../game";
+import type { ConfigureResult, Game, Host } from "../game";
 import { defaultSettings, type Settings } from "../settings";
 import {
     canMove,
@@ -53,6 +53,7 @@ export type RaceData = {
     settings?: Settings;
     /** Who ran `/play`: the one who can change the settings */
     host?: string;
+    hostName?: string;
     seats: Seat[];
     players: PlayerData[];
     /** The `seq` of the last state published, which each state goes above */
@@ -72,7 +73,7 @@ export type RaceOptions = {
     now?: () => number;
     /** The settings to start with, eg. from the command; any left out is its default */
     settings?: Settings;
-    host?: string;
+    host?: Host;
 };
 
 export type SeatResult = "seated" | "already_seated" | "full" | "started";
@@ -103,7 +104,8 @@ export class Race2048 implements Game {
                 seq: 0,
                 createdAt: now(),
                 settings: options.settings,
-                host: options.host,
+                host: options.host?.id,
+                hostName: options.host?.name,
             },
             options,
         );
@@ -347,6 +349,7 @@ export class Race2048 implements Game {
             phase: d.phase,
             settings: this.settings(),
             host: d.host,
+            hostName: d.hostName,
             target: this.target,
             timeLimit: this.timeLimit,
             maxPlayers: MAX_PLAYERS,

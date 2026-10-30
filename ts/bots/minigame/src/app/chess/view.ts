@@ -111,7 +111,12 @@ export const chessView: GameView = {
             blurb: `${time}. ${whiteText}.`,
             seats: s.players.map((id) => ({ id, name: s.names[id] ?? shortId(id) })),
             hint: "Start once you're both here.",
-            settings: { specs: CHESS_SETTINGS, current: s.settings, host: s.host ?? undefined },
+            settings: {
+                specs: CHESS_SETTINGS,
+                current: s.settings,
+                host: s.host ?? undefined,
+                hostName: s.host === null ? undefined : s.names[s.host],
+            },
         };
     },
 
