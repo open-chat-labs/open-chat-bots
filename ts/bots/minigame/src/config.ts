@@ -15,6 +15,8 @@ export type Config = {
     appDir: string;
     /** The tile which wins a race, 2048 unless set lower to test a race end to end */
     raceTarget?: number;
+    /** How long a race lasts, in ms, 10 minutes unless set shorter to test the time running out */
+    raceTimeLimit?: number;
 };
 
 export function configFromEnv(env: NodeJS.ProcessEnv = process.env): Config {
@@ -41,5 +43,7 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): Config {
         dataFile: optional("DATA_FILE") ?? "./data/games.json",
         appDir: optional("APP_DIR") ?? "./dist/app",
         raceTarget: optional("RACE_TARGET") === undefined ? undefined : Number(env.RACE_TARGET),
+        raceTimeLimit:
+            optional("RACE_SECONDS") === undefined ? undefined : Number(env.RACE_SECONDS) * 1000,
     };
 }

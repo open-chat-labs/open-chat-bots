@@ -11,10 +11,16 @@ export const GAME_ID = "2048";
 /** The tile which wins the race */
 export const TARGET = 2048;
 
-/** The most players, a 3 by 3 grid of boards */
+/** How long a race lasts if nobody makes the target tile: then the top score wins */
+export const TIME_LIMIT_MS = 10 * 60 * 1000;
+
+/** The most players: one big board over a row of the others' */
 export const MAX_PLAYERS = 10;
 
 export type Phase = "open" | "active" | "finished";
+
+/** How a race ended: a player made the target tile, or the time ran out and the top score won */
+export type Ending = "target" | "time";
 
 /** Someone who joined, before the game starts */
 export type Seat = { id: string; name: string };
@@ -40,13 +46,18 @@ export type SharedState = {
     game: typeof GAME_ID;
     phase: Phase;
     target: number;
+    /** How long the race lasts from its start, in ms, before the top score wins */
+    timeLimit: number;
     maxPlayers: number;
     /** Who's joined so far, while the game is open */
     seats: Seat[];
     /** Everyone racing, once it starts, in the order they joined */
     players: PlayerView[];
     startedAt?: number;
+    /** When the race ends if nobody makes the target tile, once started */
+    endsAt?: number;
     finishedAt?: number;
+    ended?: Ending;
     /** The winner's user id */
     winner?: string;
     lastMove?: { player: string; direction: Direction };

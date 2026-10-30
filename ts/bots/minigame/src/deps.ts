@@ -21,4 +21,6 @@ export type Deps = {
     tokens: () => Promise<MiniAppTokens>;
     /** The tile which wins a race, if not 2048 */
     raceTarget?: number;
+    /** How long a race lasts, in ms, if not 10 minutes */
+    raceTimeLimit?: number;
 };

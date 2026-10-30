@@ -3,8 +3,8 @@
 Games played from MiniApp cards in OpenChat chats. `/play <game>` posts a card; people join from
 the card, a player starts the game, and it's played in the card, in the bot's own page. The first
 game is a **2048 race**: up to 10 players, each on their own board, and the first to make a 2048
-tile wins. A player whose board gets stuck restarts on a fresh board, as often as they like, and
-everyone sees how many times.
+tile wins, or the top score when 10 minutes are up. A player whose board gets stuck restarts on a
+fresh board, as often as they like, and everyone sees how many times.
 
 The bot is a TypeScript Express server, built on the SDK in [`ts/library`](../../library), and the
 page is a small browser app built with Vite from the same source tree, so the server and the page
@@ -28,9 +28,11 @@ it and adds the new tile.
    board. The bot publishes the whole race's state through the service after each change,
    coalescing fast moves into one update every 80 ms, and the service relays it to every player and
    spectator.
-5. **Winning**: the first move that makes a 2048 tile ends the race. The bot publishes the final
-   state with `status: "finished"` and the result, eg. "Alice reached 2048 in 2m 15s", which the
-   card shows.
+5. **Winning**: the first move that makes a 2048 tile ends the race, and so does the clock: the
+   bot checks every second, and before every move, whether a race's 10 minutes are up, and then
+   the top score wins, ties going to the higher tile and then the fewer restarts. The bot
+   publishes the final state with `status: "finished"` and the result, eg. "Alice reached 2048 in
+   2m 15s" or "Time's up after 10m 0s: Alice won with 5,432 points", which the card shows.
 
 Games are kept in memory and written to `DATA_FILE` (`./data/games.json` by default) on every
 change, so a restart doesn't end them. A finished game is dropped after two hours, and one that
@@ -81,6 +83,7 @@ group, and run `/play`.
 | `DATA_FILE` | Where the games are kept, `./data/games.json` if not set. |
 | `APP_DIR` | The built page, `./dist/app` if not set. |
 | `RACE_TARGET` | The tile which wins a race, 2048 if not set. Set it low, eg. 16, to test a race end to end. |
+| `RACE_SECONDS` | How long a race lasts, 600 if not set. Set it short to see the time run out. |
 
 ## Docker
 

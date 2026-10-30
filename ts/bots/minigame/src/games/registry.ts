@@ -2,7 +2,7 @@
 // The 2048 race is the first; another game adds an entry here, its rules under `games/`, its
 // requests under `handlers/api.ts` and its view in the app.
 import type { MiniAppSize } from "@open-ic/openchat-botclient-ts";
-import { GAME_ID, MAX_PLAYERS, TARGET } from "./race2048/types";
+import { GAME_ID, MAX_PLAYERS, TARGET, TIME_LIMIT_MS } from "./race2048/types";
 
 export type GameType = {
     /** The `/play` command's value, and the `game` in the shared state */
@@ -25,8 +25,8 @@ export const RACE_2048: GameType = {
     title: "2048 Race",
     cardText:
         `**2048 Race** · up to ${MAX_PLAYERS} players\n` +
-        `Everyone gets a board. The first to make a ${TARGET} tile wins. ` +
-        `Stuck? Restart on a fresh board and keep racing.`,
+        `Everyone gets a board. The first to make a ${TARGET} tile wins, or the top score ` +
+        `after ${TIME_LIMIT_MS / 60_000} minutes. Stuck? Restart on a fresh board and keep racing.`,
     maxPlayers: MAX_PLAYERS,
     spectators: true,
     // A portrait frame: the lobby, or a player's board above a row of the others'

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { duration, Race2048 } from "./race";
-import { MAX_PLAYERS, STATE_VERSION, TARGET } from "./types";
+import { MAX_PLAYERS, STATE_VERSION, TARGET, TIME_LIMIT_MS } from "./types";
 
 // Spawns always put a 2 in the first empty cell
 const first2 = () => 0;
@@ -10,9 +10,9 @@ function clock(start = 1_000_000) {
     return { now: () => now, tick: (ms: number) => (now += ms) };
 }
 
-function started(names = ["alice", "bob"]) {
+function started(names = ["alice", "bob"], timeLimit?: number) {
     const time = clock();
-    const race = Race2048.create({ random: first2, now: time.now });
+    const race = Race2048.create({ random: first2, now: time.now, timeLimit });
     names.forEach((name) => race.takeSeat(name, name.toUpperCase()));
     race.start();
     return { race, time };
@@ -54,6 +54,7 @@ describe("start", () => {
             expect(p.score).toBe(0);
         });
         expect(race.data.startedAt).toBe(time.now());
+        expect(race.data.endsAt).toBe(time.now() + TIME_LIMIT_MS);
         // Seated players aren't players until the race starts
         expect(race.isPlayer("alice")).toBe(true);
     });
@@ -113,6 +114,7 @@ describe("moves", () => {
         const result = race.move("alice", "left");
         expect(result).toMatchObject({ ok: true, phase: "finished" });
         expect(race.phase).toBe("finished");
+        expect(race.data.ended).toBe("target");
         expect(race.winner?.id).toBe("alice");
         expect(race.players[0].won).toBe(true);
         expect(race.result()).toBe(`ALICE reached ${TARGET} in 2m 15s`);
@@ -152,6 +154,68 @@ describe("moves", () => {
     });
 });
 
+describe("time limit", () => {
+    it("ends the race with the top score once the time is up", () => {
+        const { race, time } = started(["alice", "bob", "carol"]);
+        race.data.players[0].score = 1200;
+        race.data.players[1].score = 5432;
+        race.data.players[2].score = 300;
+        time.tick(TIME_LIMIT_MS - 1);
+        expect(race.endIfTimeUp()).toBe(false);
+        expect(race.phase).toBe("active");
+        time.tick(1);
+        expect(race.endIfTimeUp()).toBe(true);
+        expect(race.phase).toBe("finished");
+        expect(race.data.ended).toBe("time");
+        expect(race.data.finishedAt).toBe(time.now());
+        expect(race.winner?.id).toBe("bob");
+        expect(race.players[1].won).toBe(true);
+        expect(race.players[0].won).toBe(false);
+        expect(race.result()).toBe("Time's up after 10m 0s: BOB won with 5,432 points");
+        // Only the once
+        expect(race.endIfTimeUp()).toBe(false);
+        expect(race.move("alice", "left")).toEqual({ ok: false, error: "The race is over" });
+        expect(race.restart("alice")).toEqual({ ok: false, error: "The race is over" });
+    });
+
+    it("breaks a tie on score by the higher tile, then the fewer restarts", () => {
+        const { race, time } = started(["alice", "bob", "carol"]);
+        for (const p of race.data.players) {
+            p.score = 100;
+            p.board = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8];
+        }
+        // Bob's higher tile beats Carol's fewer restarts
+        race.data.players[0].restarts = 2;
+        race.data.players[1].restarts = 1;
+        race.data.players[1].board[0] = 16;
+        time.tick(TIME_LIMIT_MS);
+        race.endIfTimeUp();
+        expect(race.winner?.id).toBe("bob");
+
+        // With the same tiles, the fewer restarts win
+        const again = started(["alice", "bob"]);
+        for (const p of again.race.data.players) p.score = 100;
+        again.race.data.players[0].restarts = 1;
+        again.time.tick(TIME_LIMIT_MS);
+        again.race.endIfTimeUp();
+        expect(again.race.winner?.id).toBe("bob");
+    });
+
+    it("a move or restart after the time is up ends the race instead", () => {
+        const { race, time } = started(undefined, 60_000);
+        expect(race.timeLimit).toBe(60_000);
+        expect(race.shared()).toMatchObject({
+            timeLimit: 60_000,
+            endsAt: race.data.startedAt! + 60_000,
+        });
+        time.tick(60_000);
+        expect(race.move("alice", "left")).toEqual({ ok: false, error: "The race is over" });
+        expect(race.phase).toBe("finished");
+        expect(race.data.ended).toBe("time");
+        expect(race.result()).toBe("Time's up after 1m 0s: ALICE won with 0 points");
+    });
+});
+
 describe("shared state", () => {
     it("has the version, phase, seats and every board", () => {
         const race = Race2048.create({ random: first2 });
@@ -161,6 +225,7 @@ describe("shared state", () => {
             game: "2048",
             phase: "open",
             target: TARGET,
+            timeLimit: TIME_LIMIT_MS,
             maxPlayers: MAX_PLAYERS,
             seats: [{ id: "alice", name: "ALICE" }],
             players: [],

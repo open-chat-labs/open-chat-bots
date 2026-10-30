@@ -260,7 +260,8 @@ function lobby(shared: SharedState | undefined, player: boolean): string {
         : `<p class="muted center">Join from the card in the chat to race. Watching starts when a player does.</p>`;
     return `<section class="lobby">
         <h2>Waiting to start</h2>
-        <p class="muted">Everyone gets their own board. The first to make a <strong>${shared?.target ?? 2048}</strong> tile wins.
+        <p class="muted">Everyone gets their own board. The first to make a <strong>${shared?.target ?? 2048}</strong> tile wins,
+           or the top score after <strong>${limitText(shared?.timeLimit ?? 600_000)}</strong>.
            Stuck? Restart on a fresh board and keep racing.</p>
         ${names}
         ${action}
@@ -277,12 +278,7 @@ function race(shared: SharedState, player: boolean): string {
     const main = byScore.find((p) => p.id === me) ?? byScore[0];
     const others = byScore.filter((p) => p !== main);
     const winner = byScore.find((p) => p.id === shared.winner);
-    const banner =
-        shared.phase === "finished"
-            ? `<div class="banner">
-                   ${winner === undefined ? "The race is over" : `<strong>${escape(winner.name)}</strong> ${winner.id === me ? "(you) " : ""}reached ${shared.target} in ${clockText(shared)}`}
-               </div>`
-            : "";
+    const banner = shared.phase === "finished" ? `<div class="banner">${ending(shared, winner, me)}</div>` : "";
     const big =
         main === undefined ? "" : card(main, main.id === me ? own : undefined, shared, "main");
     const row =
@@ -359,13 +355,44 @@ function card(p: PlayerView, mine: Own | undefined, shared: SharedState, size: "
     </article>`;
 }
 
+/** How the race ended, for the banner */
+function ending(shared: SharedState, winner: PlayerView | undefined, me: string | undefined): string {
+    if (winner === undefined) return "The race is over";
+    const who = `<strong>${escape(winner.name)}</strong> ${winner.id === me ? "(you) " : ""}`;
+    if (shared.ended === "time") {
+        return `Time's up! ${who}wins with the top score, ${winner.score.toLocaleString()}`;
+    }
+    return `${who}reached ${shared.target} in ${elapsedText(shared)}`;
+}
+
+/** The time left while racing, or how long the race took once it's over */
 function clockText(shared: SharedState | undefined): string {
     if (shared?.startedAt === undefined) return "";
-    const end = shared.finishedAt ?? Date.now();
-    const seconds = Math.max(0, Math.floor((end - shared.startedAt) / 1000));
+    if (shared.phase === "finished") return elapsedText(shared);
+    if (shared.endsAt === undefined) return elapsedText(shared);
+    return `${mmss(shared.endsAt - Date.now())} left`;
+}
+
+function elapsedText(shared: SharedState): string {
+    if (shared.startedAt === undefined) return "";
+    return mmss((shared.finishedAt ?? Date.now()) - shared.startedAt);
+}
+
+function mmss(ms: number): string {
+    const seconds = Math.max(0, Math.floor(ms / 1000));
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/** eg. "10 minutes", "90 seconds" */
+function limitText(ms: number): string {
+    const seconds = Math.round(ms / 1000);
+    if (seconds % 60 === 0) {
+        const minutes = seconds / 60;
+        return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+    }
+    return `${seconds} seconds`;
 }
 
 function renderClock() {

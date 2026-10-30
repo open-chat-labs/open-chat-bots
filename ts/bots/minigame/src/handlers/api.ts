@@ -33,14 +33,16 @@ async function act(req: Request, res: Response, deps: Deps, action: Act): Promis
         res.status(403).json({ ok: false, error: "You aren't in this race" } satisfies MoveResponse);
         return;
     }
+    // The time may have run out since the last sweep: then the race's end is what's published
+    const endedNow = entry.race.endIfTimeUp();
     const result = action(entry.race, userId, req.body);
+    if (endedNow || (result.ok && result.moved)) {
+        deps.store.save();
+        deps.publisher.publish(game);
+    }
     if (!result.ok) {
         res.status(409).json(result);
         return;
-    }
-    if (result.moved) {
-        deps.store.save();
-        deps.publisher.publish(game);
     }
     res.json(result);
 }

@@ -71,7 +71,10 @@ async function play(client: BotClient, res: Response, deps: Deps): Promise<void>
     const token = await client.miniAppPostToken();
     // Known before it's posted: the service may forward a join before the bot hears its answer
     const miniAppGame = miniAppGameFromPostToken(token);
-    deps.store.create(miniAppGame, Race2048.create({ target: deps.raceTarget }));
+    deps.store.create(
+        miniAppGame,
+        Race2048.create({ target: deps.raceTarget, timeLimit: deps.raceTimeLimit }),
+    );
     try {
         await post(miniApps, token, card);
     } catch (err) {

@@ -1,6 +1,6 @@
 // The 2048 race: up to 10 players, each on their own board, and the first to make a 2048 tile wins.
-// A player whose board gets stuck can restart on a fresh board, as often as they like, and the
-// restarts are counted for everyone to see.
+// If nobody has in 10 minutes, the top score wins. A player whose board gets stuck can restart on a
+// fresh board, as often as they like, and the restarts are counted for everyone to see.
 //
 // The bot decides every move, so no one can forge a board. The race keeps its whole state in
 // `RaceData`, which the store writes to disk as it is.
@@ -19,6 +19,8 @@ import {
     MAX_PLAYERS,
     STATE_VERSION,
     TARGET,
+    TIME_LIMIT_MS,
+    type Ending,
     type MoveResponse,
     type Phase,
     type PlayerView,
@@ -42,13 +44,18 @@ export type RaceData = {
     phase: Phase;
     /** The tile which wins, `TARGET` unless the race was made with another, eg. for a test */
     target?: number;
+    /** How long the race lasts, `TIME_LIMIT_MS` unless the race was made with another */
+    timeLimit?: number;
     seats: Seat[];
     players: PlayerData[];
     /** The `seq` of the last state published, which each state goes above */
     seq: number;
     createdAt: number;
     startedAt?: number;
+    /** When the race ends if nobody makes the target tile: the start plus the time limit */
+    endsAt?: number;
     finishedAt?: number;
+    ended?: Ending;
     winner?: string;
     lastMove?: { player: string; direction: Direction };
 };
@@ -58,6 +65,8 @@ export type RaceOptions = {
     now?: () => number;
     /** The tile which wins, `TARGET` by default. A lower one makes a race quick to test. */
     target?: number;
+    /** How long the race lasts, in ms, `TIME_LIMIT_MS` by default */
+    timeLimit?: number;
 };
 
 export type SeatResult = "seated" | "already_seated" | "full" | "started";
@@ -83,6 +92,7 @@ export class Race2048 {
                 seq: 0,
                 createdAt: now(),
                 target: options.target,
+                timeLimit: options.timeLimit,
             },
             options,
         );
@@ -107,6 +117,10 @@ export class Race2048 {
 
     get target(): number {
         return this.#data.target ?? TARGET;
+    }
+
+    get timeLimit(): number {
+        return this.#data.timeLimit ?? TIME_LIMIT_MS;
     }
 
     get winner(): PlayerData | undefined {
@@ -165,8 +179,31 @@ export class Race2048 {
             this.#data.seats = [];
             this.#data.phase = "active";
             this.#data.startedAt = this.#now();
+            this.#data.endsAt = this.#data.startedAt + this.timeLimit;
         }
         return this.#data.players.map((p) => p.id);
+    }
+
+    /**
+     * Ends the race with the top score as the winner if its time is up, and says whether it did
+     * just now. Called before a move, and every second by the bot, so a race ends on time whether
+     * or not anyone's still playing. Ties go to the higher tile, then to the fewer restarts.
+     */
+    endIfTimeUp(): boolean {
+        const d = this.#data;
+        if (d.phase !== "active" || d.endsAt === undefined || this.#now() < d.endsAt) return false;
+        const top = [...d.players].sort(
+            (a, b) =>
+                b.score - a.score || maxTile(b.board) - maxTile(a.board) || a.restarts - b.restarts,
+        )[0];
+        if (top !== undefined) {
+            top.won = true;
+            d.winner = top.id;
+        }
+        d.ended = "time";
+        d.phase = "finished";
+        d.finishedAt = this.#now();
+        return true;
     }
 
     /** The next state's `seq`, above every state published before */
@@ -176,6 +213,7 @@ export class Race2048 {
 
     move(userId: string, direction: unknown): MoveResponse {
         if (!isDirection(direction)) return { ok: false, error: "Not a direction" };
+        this.endIfTimeUp();
         const player = this.#racingPlayer(userId);
         if (!player.ok) return player;
         if (player.player.dead) {
@@ -195,6 +233,7 @@ export class Race2048 {
         if (maxTile(p.board) >= this.target) {
             p.won = true;
             this.#data.winner = userId;
+            this.#data.ended = "target";
             this.#data.phase = "finished";
             this.#data.finishedAt = this.#now();
         } else if (!canMove(p.board)) {
@@ -205,6 +244,7 @@ export class Race2048 {
 
     /** A fresh board for a player, counted against them */
     restart(userId: string): MoveResponse {
+        this.endIfTimeUp();
         const player = this.#racingPlayer(userId);
         if (!player.ok) return player;
         const p = player.player;
@@ -233,17 +273,23 @@ export class Race2048 {
             game: GAME_ID,
             phase: d.phase,
             target: this.target,
+            timeLimit: this.timeLimit,
             maxPlayers: MAX_PLAYERS,
             seats: d.seats.map((s) => ({ ...s })),
             players: d.players.map(view),
             startedAt: d.startedAt,
+            endsAt: d.endsAt,
             finishedAt: d.finishedAt,
+            ended: d.ended,
             winner: d.winner,
             lastMove: d.lastMove === undefined ? undefined : { ...d.lastMove },
         };
     }
 
-    /** The card's result once the race is over, eg. "Alice reached 2048 in 2m 15s" */
+    /**
+     * The card's result once the race is over, eg. "Alice reached 2048 in 2m 15s", or
+     * "Time's up after 10m: Alice won with 5,432 points"
+     */
     result(): string | undefined {
         const d = this.#data;
         if (d.phase !== "finished") return undefined;
@@ -252,6 +298,10 @@ export class Race2048 {
             return "The race ended with no winner";
         }
         const name = winner.name.length > 100 ? `${winner.name.slice(0, 99)}…` : winner.name;
+        if (d.ended === "time") {
+            const points = winner.score.toLocaleString("en-US");
+            return `Time's up after ${duration(this.timeLimit)}: ${name} won with ${points} points`;
+        }
         return `${name} reached ${this.target} in ${duration(d.finishedAt - d.startedAt)}`;
     }
 }

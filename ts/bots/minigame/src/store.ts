@@ -78,6 +78,11 @@ export class GameStore {
         return this.#games.size;
     }
 
+    /** Every game, for a sweep */
+    entries(): IterableIterator<GameEntry> {
+        return this.#games.values();
+    }
+
     /** Drops games that are long over, or were never finished */
     prune(): number {
         const now = this.#now();
