@@ -3,7 +3,7 @@ import type { SettingSpec } from "../settings";
 import { TIME_PER_SIDE_MS } from "./types";
 
 /** The `white` setting's choices: who plays White, and moves first */
-export const WHITE_BY_COIN = 0;
+export const WHITE_RANDOM = 0;
 export const WHITE_IS_HOST = 1;
 export const WHITE_IS_OPPONENT = 2;
 
@@ -11,13 +11,13 @@ export const CHESS_SETTINGS: readonly SettingSpec[] = [
     {
         id: "white",
         label: "Who plays White",
-        description: "Who plays White: a coin toss, the host, or the host's opponent",
+        description: "Who plays White: random, the host, or the host's opponent",
         choices: [
-            { value: WHITE_BY_COIN, label: "Coin toss" },
+            { value: WHITE_RANDOM, label: "Random" },
             { value: WHITE_IS_HOST, label: "The host" },
             { value: WHITE_IS_OPPONENT, label: "The host's opponent" },
         ],
-        default: WHITE_BY_COIN,
+        default: WHITE_RANDOM,
     },
     {
         id: "minutes",
