@@ -5,11 +5,16 @@ of a chat, with ten minutes each on the clock, which everyone else in the chat c
 through OpenChat's MiniApp service, so OpenChat's card records who's playing, whose move it is and
 how the game ended, and spectators never reach the bot.
 
-- `/chess` posts a card, "**Chess** · 10 minutes each", for two players, open to spectators, with the
-  app's size, 440 by 740, so the card shows the app at that aspect ratio before it loads. The bot
-  gets a post token from the LocalUserIndex, `mini_app_post_token`, keys the game from it,
-  `MiniAppGame::from_post_token`, and hands it to the service with the card,
-  `MiniAppServiceClient::post`. The service posts the card as the bot and records the game.
+- The bot's definition lists its one app, `chess`, with its image, [`chess.svg`](./src/chess.svg),
+  served next to the app at `GET /app/chess.svg`. The card shows the image in the app's frame
+  whenever there's no app to show: before it loads, to anyone who can't open the game, and over a
+  finished game with no end state.
+- `/chess` posts a card, "**Chess** · 10 minutes each", which names the app, `chess`, for two
+  players, open to spectators, with the app's size, 440 by 740, so the card shows the app at that
+  aspect ratio before it loads. The bot gets a post token from the LocalUserIndex,
+  `mini_app_post_token`, keys the game from it, `MiniAppGame::from_post_token`, and hands it to the
+  service with the card, `MiniAppServiceClient::post`. The service posts the card as the bot and
+  records the game.
 - People join and leave with the card's buttons, which OpenChat draws. The service asks the bot,
   at `POST /mini_app/join`, which takes the first two, and tells it at `/mini_app/leave`.
 - Open opens the bot's app, `{endpoint}/app`, in a frame: [one HTML page](./src/app.html), with
@@ -36,7 +41,11 @@ how the game ended, and spectators never reach the bot.
   if the side hasn't moved by then, the game ends, won by the other side, or drawn if the other side
   hasn't the material to mate with. A move arriving after the flag has fallen is refused.
 - The result goes on the card, eg. "White won by checkmate", "Black won on time", "Draw by
-  agreement".
+  agreement", with an **end state**, `GameUpdate::with_end_state`: the result, who played, the
+  moves, and the position before each move and after the last, as FEN. The card keeps showing the
+  app, which gets the end state as `mini_app_end_state` and lets anyone step through the game, with
+  Previous and Next, the arrow keys, or a tap on a move. A game too long for the service's 16 KB
+  keeps only its final position, marked `truncated`.
 - Every token the service signs is verified with a `MiniAppVerifier`, with the service's public key,
   fetched once from `GET /public_key`, and the bot's user id, looked up from the UserIndex. The
   games are kept in memory, so they're lost when the bot is restarted.
@@ -48,6 +57,7 @@ The rules are [shakmaty](https://crates.io/crates/shakmaty)'s.
 | `POST /execute_command` | the command's | `/chess` |
 | `POST /mini_app/join`, `/mini_app/start`, `/mini_app/leave` | the service's | the service's calls |
 | `GET /app` | none | the app's page |
+| `GET /app/chess.svg` | none | the app's image, for the card |
 | `POST /api/move` | a player's | plays `{ "move": "<uci>" }` |
 | `POST /api/resign` | a player's | resigns |
 | `POST /api/draw` | a player's | offers, or accepts, a draw |
@@ -78,6 +88,25 @@ didn't take the update. The state everyone sees is:
 where everything from `fen` on is there once the game has started. Nothing is private: both players
 and every spectator see the same. The app shows each user by their id, shortened, as it has no
 usernames.
+
+Once the game's over, the card keeps its end state, which the app gets instead of a live state:
+
+```json
+{
+  "version": 1,
+  "result": "Black won by checkmate",
+  "white": "<user id>",
+  "black": "<user id>",
+  "moves": ["f3", "e5", "g4", "Qh4#"],
+  "fens": ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "...", "..."],
+  "last_move": { "from": "d8", "to": "h4" } | null,
+  "truncated": true
+}
+```
+
+with one more FEN than there are moves, the last being the final position, or, if the game was too
+long for the service's 16 KB, only the final position, with `truncated` set; otherwise `truncated`
+is left out.
 
 ## Running it against a local OpenChat
 

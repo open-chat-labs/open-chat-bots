@@ -79,13 +79,16 @@ impl CommandHandler<AgentRuntime> for Chess {
     }
 }
 
-/// The card: two players, anyone can watch, and the app's a board with its clocks, moves and
-/// buttons, so taller than wide
+/// The card: it opens the bot's one app, `APP`, two players, anyone can watch, and the app's a
+/// board with its clocks, moves and buttons, so taller than wide
 pub fn card() -> MiniAppContent {
-    MiniAppContent::new(CARD_TEXT, APP_WIDTH, APP_HEIGHT)
+    MiniAppContent::new(APP, CARD_TEXT, APP_WIDTH, APP_HEIGHT)
         .with_max_players(2)
         .with_spectators(true)
 }
+
+/// The app's name in the bot's definition, which the card names it by
+pub const APP: &str = "chess";
 
 /// What the app's laid out for, in CSS pixels: the card shows it at this aspect ratio
 pub const APP_WIDTH: u32 = 440;
@@ -110,8 +113,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_card_is_valid() {
+    fn the_card_is_valid_and_names_the_app() {
         assert_eq!(card().validate(), Ok(()));
+        assert_eq!(card().app, "chess");
         assert_eq!(card().max_players, Some(2));
     }
 }

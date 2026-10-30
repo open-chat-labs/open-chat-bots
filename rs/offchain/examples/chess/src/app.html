@@ -155,6 +155,12 @@
   }
   #moves .n { color: var(--muted); }
   #moves .m.latest { font-weight: 700; }
+  /* Once the game's over, the moves are where the viewer steps to, so they get more room */
+  #moves.replay { max-height: 7em; }
+  #moves.replay .m { cursor: pointer; border-radius: 3px; padding: 0 3px; }
+  #moves.replay .m.latest { background: var(--panel); }
+  #replay { margin: 8px 0 0; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  #replay span { min-width: 7em; text-align: center; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
   #promotion {
     position: fixed;
     inset: 0;
@@ -182,6 +188,11 @@
     <button id="draw" type="button" class="quiet">Offer draw</button>
     <button id="resign" type="button" class="quiet">Resign</button>
   </div>
+  <div id="replay" hidden>
+    <button id="previous" type="button" class="quiet">‹ Previous</button>
+    <span id="ply"></span>
+    <button id="next" type="button" class="quiet">Next ›</button>
+  </div>
   <p id="error" role="alert"></p>
   <div id="moves" hidden></div>
 </main>
@@ -203,12 +214,17 @@
 // whether the user is a player or a spectator, gives a player their token, and passes on the game's
 // state as the bot publishes it through the MiniApp service. A player's moves go to the bot's API,
 // with the token in the `x-oc-jwt` header, which the bot verifies. Spectators only watch.
+//
+// Once the game's over, the card keeps how it ended, which OpenChat hands the app as
+// `mini_app_end_state`: the result, who played, the moves, and the position before each move and
+// after the last. The app then shows the final position and lets the viewer step through the game.
 
 const TOKEN_TIMEOUT_MS = 10000;
 const LOW_TIME_MS = 20000;
 const RESIGN_CONFIRM_MS = 4000;
 const FILES = "abcdefgh";
 const GLYPHS = { k: "♚", q: "♛", r: "♜", b: "♝", n: "♞", p: "♟" };
+const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 let openChatOrigin = null;
 let role = null;
@@ -217,6 +233,12 @@ let token = null;
 // The last state shown, so an older one arriving late doesn't replace it
 let lastSeq = -1;
 let shared = null;
+// Whether OpenChat opened a finished game, which no one plays: there's no token, and no moves
+let finished = false;
+// How the game ended, from the card, once it has it: shown in place of the live game
+let endState = null;
+// Which position of the finished game is shown, as an index into its FENs: 0 is before any move
+let ply = 0;
 // The square of the piece picked up, if any, and a promotion waiting for its piece
 let selected = null;
 let promotion = null;
@@ -239,6 +261,10 @@ const resignButton = document.getElementById("resign");
 const errorText = document.getElementById("error");
 const movesList = document.getElementById("moves");
 const promotionDialog = document.getElementById("promotion");
+const replayRow = document.getElementById("replay");
+const previousButton = document.getElementById("previous");
+const nextButton = document.getElementById("next");
+const plyText = document.getElementById("ply");
 
 // Starting goes through OpenChat, so that the card records exactly who the game started with
 startButton.addEventListener("click", () => {
@@ -271,6 +297,20 @@ board.addEventListener("click", (event) => {
   const square = event.target.closest(".sq");
   if (square !== null) onSquare(square.dataset.square);
 });
+// Stepping through a finished game: the buttons, the arrow keys, or a tap on a move
+previousButton.addEventListener("click", () => step(ply - 1));
+nextButton.addEventListener("click", () => step(ply + 1));
+document.addEventListener("keydown", (event) => {
+  if (!canStep()) return;
+  if (event.key === "ArrowLeft") step(ply - 1);
+  else if (event.key === "ArrowRight") step(ply + 1);
+  else return;
+  event.preventDefault();
+});
+movesList.addEventListener("click", (event) => {
+  const move = event.target.closest(".m[data-ply]");
+  if (move !== null && canStep()) step(Number(move.dataset.ply));
+});
 
 window.addEventListener("message", (event) => {
   // Only OpenChat, the window this page is framed in, is listened to
@@ -286,6 +326,8 @@ window.addEventListener("message", (event) => {
     role = message.role;
     userId = typeof message.user_id === "string" ? message.user_id : null;
     token = typeof message.token === "string" ? message.token : null;
+    // A finished game is opened to look at: no one gets a token, and its end state follows
+    finished = message.finished === true || endState !== null;
     setDarkMode(message.dark_mode);
     if (typeof message.locale === "string") document.documentElement.lang = message.locale;
     render();
@@ -296,12 +338,17 @@ window.addEventListener("message", (event) => {
 
   switch (message.kind) {
     case "mini_app_state":
+      // Once the game's over, how it ended is what's shown
+      if (endState !== null) return;
       // A state with the same seq replaces the one shown; an older one is dropped
       if (typeof message.seq !== "number" || message.seq < lastSeq) return;
       lastSeq = message.seq;
       shared = message.shared;
       selected = null;
       render();
+      break;
+    case "mini_app_end_state":
+      showEndState(message.state);
       break;
     case "mini_app_token":
       if (typeof message.token === "string") setToken(message.token);
@@ -402,16 +449,59 @@ function showError(text) {
   errorText.textContent = text;
 }
 
-// The side the user plays, if they're a player in a started game
+// The game as it ended, from the card, which takes the place of the live game: whether it's just
+// finished while open, or was opened once over. Anything odd in it is left out rather than trusted.
+function showEndState(state) {
+  if (state === null || typeof state !== "object") return;
+  const strings = (list) => (Array.isArray(list) ? list.filter((item) => typeof item === "string") : []);
+  const id = (value) => (typeof value === "string" ? value : null);
+  const lastMove = state.last_move;
+  endState = {
+    result: id(state.result),
+    white: id(state.white),
+    black: id(state.black),
+    moves: strings(state.moves),
+    fens: strings(state.fens),
+    lastMove: lastMove !== null && typeof lastMove === "object" && typeof lastMove.from === "string" && typeof lastMove.to === "string" ? lastMove : null,
+    // A game too long for the card keeps only its final position, so there's nothing to step through
+    truncated: state.truncated === true,
+  };
+  if (endState.fens.length === 0) endState.fens = [shared?.fen ?? START_FEN];
+  finished = true;
+  selected = null;
+  promotion = null;
+  promotionDialog.hidden = true;
+  disarmResign();
+  showError("");
+  ply = endState.fens.length - 1;
+  render();
+}
+
+// Whether the viewer can step through the game: it's over, and the card kept every position
+function canStep() {
+  return endState !== null && !endState.truncated && endState.fens.length > 1;
+}
+
+// Shows the finished game's position after `to` moves
+function step(to) {
+  if (!canStep()) return;
+  ply = Math.max(0, Math.min(endState.fens.length - 1, to));
+  renderBoard();
+  renderMoves();
+  renderReplay();
+}
+
+// The side the user plays, if they're a player in a started game, or played in a finished one
 function myColor() {
-  if (role !== "player" || shared === null || userId === null) return null;
-  if (shared.white === userId) return "white";
-  if (shared.black === userId) return "black";
+  const sides = endState ?? shared;
+  if (role !== "player" || sides === null || userId === null) return null;
+  if (sides.white === userId) return "white";
+  if (sides.black === userId) return "black";
   return null;
 }
 
 function canMove() {
-  return !sending && shared !== null && shared.status === "Active" && myColor() === shared.turn;
+  return !sending && !finished && shared !== null && shared.status === "Active" && myColor() === shared.turn;
 }
 
 // A tap on a square: picks up one of the player's pieces, puts it down on a square it can move to,
@@ -463,6 +553,15 @@ function pieces(fen) {
   return placed;
 }
 
+// The squares a move changed: where the piece left, where it went, and the rook's too when castling
+function changedSquares(before, after) {
+  const changed = new Set();
+  for (const square of new Set([...Object.keys(before), ...Object.keys(after)])) {
+    if (before[square] !== after[square]) changed.add(square);
+  }
+  return changed;
+}
+
 // The board's a square, as wide as the frame unless the rows around it leave less height than that
 function fitBoard() {
   const main = document.querySelector("main");
@@ -485,6 +584,7 @@ function render() {
   renderPlayers();
   renderBoard();
   renderMoves();
+  renderReplay();
   tickClocks();
   fitBoard();
 }
@@ -494,6 +594,14 @@ function renderStatus() {
   const mine = myColor();
   let text;
   let offer = "";
+  // A game that's over is only looked at. OpenChat shows the result over the app too, so it's
+  // only the status line here.
+  if (endState !== null || finished) {
+    statusText.textContent = endState?.result ?? shared?.result ?? "Game over";
+    offerText.textContent = "";
+    controls.hidden = true;
+    return;
+  }
   const status = shared?.status ?? "Open";
   if (status === "Open") {
     const joined = shared?.players?.length ?? 0;
@@ -527,9 +635,11 @@ function flipped() {
 }
 
 function renderPlayers() {
-  const status = shared?.status ?? "Open";
+  // Who played, from the end state once the game's over, as it may be all the app has
+  const sides = endState ?? shared;
+  const status = endState !== null ? "Finished" : shared?.status ?? "Open";
   const describe = (color) => {
-    const id = status === "Open" ? shared?.players?.[color === "white" ? 0 : 1] : shared?.[color];
+    const id = status === "Open" ? shared?.players?.[color === "white" ? 0 : 1] : sides?.[color];
     const label = status === "Open" ? `Player ${color === "white" ? 1 : 2}` : sideName(color);
     if (id === undefined || id === null) return `<span class="side">${label}</span> · waiting for a player`;
     const who = id === userId ? "you" : `<span class="id" title="${id}">${shortId(id)}</span>`;
@@ -541,22 +651,34 @@ function renderPlayers() {
   topPanel.querySelector(".name").innerHTML = describe(topColor);
   bottomPanel.dataset.color = bottomColor;
   topPanel.dataset.color = topColor;
-  const running = shared?.clock?.running ?? null;
+  const running = endState !== null ? null : shared?.clock?.running ?? null;
   bottomPanel.classList.toggle("active", running === bottomColor);
   topPanel.classList.toggle("active", running === topColor);
+  // The clocks mean nothing once the game's over
+  for (const panel of [topPanel, bottomPanel]) panel.querySelector(".clock").hidden = endState !== null;
 }
 
 function renderBoard() {
-  const fen = shared?.fen ?? "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  const replay = endState !== null;
+  const fen = replay ? endState.fens[ply] : shared?.fen ?? START_FEN;
   const placed = pieces(fen);
   const flip = flipped();
   const moves = canMove() ? shared.legal_moves : [];
   const targets = selected === null ? new Set() : new Set(moves.filter((m) => m.startsWith(selected)).map((m) => m.slice(2, 4)));
   const movable = new Set(moves.map((m) => m.slice(0, 2)));
-  const last = shared?.last_move ?? null;
+  // The squares of the move just played: in a finished game, those which differ from the position
+  // before it, or the last move's if that's all the card kept
+  let last = new Set();
+  if (!replay) {
+    if (shared?.last_move) last = new Set([shared.last_move.from, shared.last_move.to]);
+  } else if (ply > 0) {
+    last = changedSquares(pieces(endState.fens[ply - 1]), placed);
+  } else if (endState.truncated && endState.lastMove !== null) {
+    last = new Set([endState.lastMove.from, endState.lastMove.to]);
+  }
   // The king in check, if any
   let checked = null;
-  if (shared?.check && shared.status === "Active") {
+  if (!replay && shared?.check && shared.status === "Active") {
     const king = shared.turn === "white" ? "K" : "k";
     checked = Object.keys(placed).find((square) => placed[square] === king) ?? null;
   }
@@ -568,10 +690,11 @@ function renderBoard() {
       const rank = flip ? row + 1 : 8 - row;
       const square = FILES[file] + rank;
       const div = document.createElement("div");
-      div.className = `sq ${(file + rank) % 2 === 0 ? "dark" : "light"}`;
+      // a1 is dark, as is every square whose file and rank add up odd, counting the file from 0
+      div.className = `sq ${(file + rank) % 2 === 1 ? "dark" : "light"}`;
       div.dataset.square = square;
       div.setAttribute("role", "gridcell");
-      if (last !== null && (last.from === square || last.to === square)) div.classList.add("last");
+      if (last.has(square)) div.classList.add("last");
       if (checked === square) div.classList.add("check");
       if (selected === square) div.classList.add("selected");
       if (targets.has(square)) {
@@ -608,8 +731,12 @@ function renderBoard() {
 }
 
 function renderMoves() {
-  const moves = shared?.moves ?? [];
+  const moves = endState !== null ? endState.moves : shared?.moves ?? [];
+  const stepping = canStep();
+  // The move whose position is shown: the one just played, or the one stepped to
+  const current = stepping ? ply - 1 : moves.length - 1;
   movesList.hidden = moves.length === 0;
+  movesList.classList.toggle("replay", stepping);
   const cells = [];
   for (let i = 0; i < moves.length; i += 2) {
     const n = document.createElement("span");
@@ -619,13 +746,33 @@ function renderMoves() {
     for (const j of [i, i + 1]) {
       const m = document.createElement("span");
       m.className = "m";
-      if (j === moves.length - 1) m.classList.add("latest");
+      if (j === current) m.classList.add("latest");
+      if (stepping && j < moves.length) m.dataset.ply = j + 1;
       m.textContent = moves[j] ?? "";
       cells.push(m);
     }
   }
   movesList.replaceChildren(...cells);
-  movesList.scrollTop = movesList.scrollHeight;
+  // Keep the current move in view: the latest, or the one stepped to, which is scrolled to within
+  // the list itself, so as not to scroll the page the app is framed in
+  const shown = movesList.querySelector(".m.latest");
+  if (stepping && shown !== null) {
+    movesList.scrollTop = Math.max(0, shown.offsetTop - movesList.offsetTop - movesList.clientHeight / 2);
+  } else {
+    movesList.scrollTop = movesList.scrollHeight;
+  }
+}
+
+// The row under the board of a finished game: where the viewer is in it, and the buttons to step
+function renderReplay() {
+  const stepping = canStep();
+  replayRow.hidden = !stepping;
+  if (!stepping) return;
+  previousButton.disabled = ply === 0;
+  nextButton.disabled = ply === endState.fens.length - 1;
+  // eg. "3. Nf3" for White's third move, "3… Nf6" for Black's
+  const number = Math.ceil(ply / 2);
+  plyText.textContent = ply === 0 ? "Start" : `${number}${ply % 2 === 1 ? "." : "…"} ${endState.moves[ply - 1] ?? ""}`;
 }
 
 function formatClock(ms) {
@@ -639,6 +786,7 @@ function formatClock(ms) {
 // clock is running. A state can be old when it arrives, as the service sends the latest one to
 // whoever opens the game, so it's counted from the bot's time, taking the two clocks to agree.
 function tickClocks() {
+  if (endState !== null) return;
   for (const panel of [topPanel, bottomPanel]) {
     const clockText = panel.querySelector(".clock");
     const clock = shared?.clock;

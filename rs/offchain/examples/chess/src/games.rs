@@ -1,7 +1,8 @@
-use crate::chess::{Ending, Match, Snapshot};
+use crate::chess::{Ending, LastMove, Match, Snapshot};
 use oc_bots_sdk::types::{MiniAppGame, TimestampMillis, UserId};
 use oc_bots_sdk_offchain::mini_app::{GameState, GameUpdate};
 use serde::Serialize;
+use serde_json::Value;
 use shakmaty::Color;
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -10,6 +11,9 @@ use std::sync::Mutex;
 // unknown, and how long one which never started is kept: the service ends those after a day
 const KEEP_FINISHED_MS: u64 = 60 * 60 * 1000;
 const KEEP_UNSTARTED_MS: u64 = 25 * 60 * 60 * 1000;
+
+/// The most the service takes for how a game ended, serialized
+const MAX_END_STATE_BYTES: usize = 16 * 1024;
 
 /// The bot's games, in memory, so they're lost when the bot is restarted: who's joined each, and
 /// once it's started, who's White, who's Black and the board. The service names a game by its card.
@@ -52,6 +56,9 @@ pub struct Change {
     /// keeps what it has, so that a change which arrives late doesn't put back an earlier turn.
     pub waiting_for: Option<Vec<UserId>>,
     pub result: Option<String>,
+    /// With the result: the game as it ended, for the card to keep and hand to the app, so anyone
+    /// can look at the final position and step through the moves
+    pub end_state: Option<Value>,
     pub deadline: Option<TimestampMillis>,
 }
 
@@ -61,10 +68,53 @@ impl Change {
     pub fn into_update(self, game: MiniAppGame) -> GameUpdate {
         let update = GameUpdate::new(game).with_state(self.state);
         match (self.result, self.waiting_for) {
-            (Some(result), _) => update.finished().with_result(result),
+            (Some(result), _) => {
+                let update = update.finished().with_result(result);
+                match self.end_state {
+                    Some(end_state) => update.with_end_state(end_state),
+                    None => update,
+                }
+            }
             (None, Some(waiting_for)) => update.with_waiting_for(waiting_for),
             (None, None) => update,
         }
+    }
+}
+
+/// How a game ended, as the card keeps it: the result, who played, the moves, and the position
+/// before the first and after each, so an app can step through the game. If the whole game won't
+/// fit in what the service takes, only the final position is kept, and `truncated` says so.
+#[derive(Serialize, Debug, PartialEq, Eq)]
+pub struct EndState {
+    /// Of this format, so an app knows what it's reading
+    pub version: u32,
+    pub result: Option<String>,
+    pub white: UserId,
+    pub black: UserId,
+    /// In standard algebraic notation, as the state's
+    pub moves: Vec<String>,
+    /// One more than `moves`, the last being the final position, or only the final position if
+    /// `truncated`
+    pub fens: Vec<String>,
+    pub last_move: Option<LastMove>,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub truncated: bool,
+}
+
+impl EndState {
+    /// The end state as JSON, within what the service takes: a very long game keeps only its final
+    /// position
+    pub fn into_json(mut self) -> Value {
+        let serialized = |state: &EndState| {
+            serde_json::to_vec(state)
+                .expect("The end state serializes")
+                .len()
+        };
+        if serialized(&self) > MAX_END_STATE_BYTES {
+            self.fens = self.fens.pop().into_iter().collect();
+            self.truncated = true;
+        }
+        serde_json::to_value(self).expect("The end state serializes")
     }
 }
 
@@ -310,6 +360,9 @@ impl Game {
             result: play
                 .and_then(|play| play.board.ending())
                 .map(Ending::describe),
+            end_state: play
+                .filter(|play| play.board.is_over())
+                .map(|play| play.end_state(now).into_json()),
             deadline: play.and_then(|play| play.board.deadline()),
         }
     }
@@ -345,6 +398,21 @@ impl Play {
             Some(Color::Black)
         } else {
             None
+        }
+    }
+
+    // The game as it ended, for the card to keep
+    fn end_state(&self, now: TimestampMillis) -> EndState {
+        let snapshot = self.board.snapshot(now);
+        EndState {
+            version: 1,
+            result: snapshot.result,
+            white: self.white,
+            black: self.black,
+            moves: snapshot.moves,
+            fens: self.board.fens().to_vec(),
+            last_move: snapshot.last_move,
+            truncated: false,
         }
     }
 }
@@ -566,16 +634,66 @@ mod tests {
         assert_eq!(change.result.as_deref(), Some("Black won by checkmate"));
         assert_eq!(change.deadline, None);
         assert_eq!(change.state.shared["status"], "Finished");
+        let final_fen = change.state.shared["fen"].clone();
         let update = change.into_update(game(1));
         assert_eq!(update.status, Some(GameStatus::Finished));
         assert_eq!(update.result.as_deref(), Some("Black won by checkmate"));
         assert_eq!(update.waiting_for, None);
+        // The card keeps the whole game: the position before each move and after the last
+        let end_state = update.end_state.unwrap();
+        assert_eq!(end_state["version"], 1);
+        assert_eq!(end_state["result"], "Black won by checkmate");
+        assert_eq!(end_state["white"], json!(user(1)));
+        assert_eq!(end_state["black"], json!(user(2)));
+        assert_eq!(end_state["moves"], json!(["f3", "e5", "g4", "Qh4#"]));
+        assert_eq!(end_state["last_move"], json!({ "from": "d8", "to": "h4" }));
+        assert_eq!(end_state.get("truncated"), None);
+        let fens = end_state["fens"].as_array().unwrap();
+        assert_eq!(fens.len(), 5);
+        assert_eq!(
+            fens[0],
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        );
+        assert_eq!(fens[4], final_fen);
         assert_eq!(
             games
                 .play_move(game(1), user(1), "e1f2", START + 2000)
                 .err(),
             Some("The game has finished".to_string())
         );
+    }
+
+    // An end state is at most 16 KB, so a very long game keeps only its final position
+    #[test]
+    fn a_very_long_game_s_end_state_keeps_only_the_final_position() {
+        let start = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string();
+        let end_state = |plies: usize| EndState {
+            version: 1,
+            result: Some("Draw by agreement".to_string()),
+            white: user(1),
+            black: user(2),
+            moves: (0..plies)
+                .map(|ply| if ply % 2 == 0 { "Nf3" } else { "Nf6" }.to_string())
+                .collect(),
+            fens: (0..=plies).map(|ply| format!("{start} {ply}")).collect(),
+            last_move: Some(LastMove {
+                from: "g8".to_string(),
+                to: "f6".to_string(),
+            }),
+            truncated: false,
+        };
+
+        let short = end_state(40).into_json();
+        assert_eq!(short["fens"].as_array().unwrap().len(), 41);
+        assert_eq!(short.get("truncated"), None);
+        assert!(serde_json::to_vec(&short).unwrap().len() <= MAX_END_STATE_BYTES);
+
+        let long = end_state(600).into_json();
+        assert_eq!(long["truncated"], true);
+        assert_eq!(long["fens"], json!([format!("{start} 600")]));
+        assert_eq!(long["moves"].as_array().unwrap().len(), 600);
+        assert_eq!(long["result"], "Draw by agreement");
+        assert!(serde_json::to_vec(&long).unwrap().len() <= MAX_END_STATE_BYTES);
     }
 
     #[test]

@@ -17,6 +17,9 @@ pub struct Match {
     position: Chess,
     /// Every move so far, in standard algebraic notation, eg. "Nf3", "O-O", "e8=Q+"
     moves: Vec<String>,
+    /// The position before any move and after each, as FEN: one more than `moves`, so that once
+    /// the game's over an app can step through it
+    fens: Vec<String>,
     last_move: Option<LastMove>,
     /// How often each position has come up, by its placement, side to move, castling rights and
     /// en passant square, for the threefold repetition rule
@@ -89,6 +92,7 @@ impl Match {
         let mut repetitions = HashMap::new();
         repetitions.insert(epd(&position), 1);
         Match {
+            fens: vec![fen(&position)],
             position,
             moves: Vec::new(),
             last_move: None,
@@ -114,6 +118,12 @@ impl Match {
 
     pub fn is_over(&self) -> bool {
         self.ending.is_some()
+    }
+
+    /// The position before any move and after each, as FEN, so one more than there are moves, the
+    /// last being the position as it stands
+    pub fn fens(&self) -> &[String] {
+        &self.fens
     }
 
     /// How long the side has left, as its clock runs
@@ -159,6 +169,7 @@ impl Match {
         let to = m.to().to_string();
         let san = SanPlus::from_move_and_play_unchecked(&mut self.position, m);
         self.moves.push(san.to_string());
+        self.fens.push(fen(&self.position));
         self.last_move = Some(LastMove { from, to });
 
         let elapsed = now.saturating_sub(self.clock.since);
@@ -257,7 +268,7 @@ impl Match {
                 .collect()
         };
         Snapshot {
-            fen: Fen::from_position(&self.position, EnPassantMode::Legal).to_string(),
+            fen: fen(&self.position),
             turn: side(self.turn()),
             moves: self.moves.clone(),
             last_move: self.last_move.clone(),
@@ -317,6 +328,10 @@ pub fn side(color: Color) -> &'static str {
 
 fn side_name(color: Color) -> &'static str {
     color.fold_wb("White", "Black")
+}
+
+fn fen(position: &Chess) -> String {
+    Fen::from_position(position, EnPassantMode::Legal).to_string()
 }
 
 // The position without its move counters, so that the same position is the same key
@@ -380,6 +395,17 @@ mod tests {
             snapshot.fen,
             "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3"
         );
+        // The position before each move and after the last, for stepping through the game
+        assert_eq!(game.fens().len(), 5);
+        assert_eq!(
+            game.fens()[0],
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        );
+        assert_eq!(
+            game.fens()[1],
+            "rnbqkbnr/pppppppp/8/8/8/5P2/PPPPP1PP/RNBQKBNR b KQkq - 0 1"
+        );
+        assert_eq!(game.fens()[4], snapshot.fen);
         assert_eq!(
             game.play(Color::White, "e1f2", now + 1000),
             Err("The game has finished".to_string())

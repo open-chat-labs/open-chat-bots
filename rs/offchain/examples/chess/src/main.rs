@@ -1,15 +1,15 @@
 use crate::bot::Bot;
-use crate::command::Chess;
+use crate::command::{APP, Chess};
 use crate::config::Config;
 use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::http::header::CACHE_CONTROL;
+use axum::http::header::{CACHE_CONTROL, CONTENT_TYPE};
 use axum::response::{Html, IntoResponse, Json};
 use axum::routing::{get, post};
 use axum::{Extension, Router};
 use oc_bots_sdk::api::command::{CommandHandlerRegistry, CommandResponse};
-use oc_bots_sdk::api::definition::BotDefinition;
+use oc_bots_sdk::api::definition::{BotDefinition, MiniAppDefinition};
 use oc_bots_sdk::oc_api::client::ClientFactory;
 use oc_bots_sdk::types::InstallationLocationType;
 use oc_bots_sdk_offchain::middleware::tower::{ExtractJwtLayer, OpenChatJwt};
@@ -30,7 +30,14 @@ mod service;
 
 /// The app OpenChat opens, in a frame, from the card's Open button: the board, the clocks, the
 /// moves, and the script which talks to OpenChat and to the bot's API
-const APP: &str = include_str!("app.html");
+const APP_PAGE: &str = include_str!("app.html");
+
+/// The app's image, which the card shows in the app's place whenever there's no app to show:
+/// before it loads, to someone who can't open the game, and over a finished game with no end state
+const APP_IMAGE: &str = include_str!("chess.svg");
+
+/// Where the image is served, relative to the bot's endpoint, as the definition gives it
+const APP_IMAGE_PATH: &str = "app/chess.svg";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -97,6 +104,7 @@ fn routes(state: Arc<AppState>) -> Router {
         // for its calls, or a player's for the app's
         .route_layer(ExtractJwtLayer::new())
         .route("/app", get(app))
+        .route("/app/chess.svg", get(app_image))
         .fallback(get(bot_definition))
         // For OpenChat's website, which calls `/execute_command` from its own origin. The app calls
         // the API from the bot's origin, so needs none, unless OpenChat frames it without
@@ -132,7 +140,15 @@ async fn execute_command(
 // OpenChat opens the bot's endpoint followed by `/app`. The page needs no token to load: OpenChat
 // gives a player one once it's running.
 async fn app() -> impl IntoResponse {
-    ([(CACHE_CONTROL, "no-cache")], Html(APP))
+    ([(CACHE_CONTROL, "no-cache")], Html(APP_PAGE))
+}
+
+// The card's image, next to the app, where the definition says it is
+async fn app_image() -> impl IntoResponse {
+    (
+        [(CACHE_CONTROL, "no-cache"), (CONTENT_TYPE, "image/svg+xml")],
+        APP_IMAGE,
+    )
 }
 
 async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> Json<BotDefinition> {
@@ -149,6 +165,11 @@ async fn bot_definition(State(state): State<Arc<AppState>>, _body: String) -> Js
             InstallationLocationType::Community,
             InstallationLocationType::Group,
         ])),
+        // The one app, which the card names, with its image
+        mini_apps: vec![MiniAppDefinition {
+            name: APP.to_string(),
+            image_url: APP_IMAGE_PATH.to_string(),
+        }],
     })
 }
 
@@ -305,6 +326,44 @@ mod tests {
 
         assert_eq!(status, StatusCode::OK);
         assert!(body.as_str().unwrap().contains("mini_app_ready"));
+    }
+
+    // The definition names the image by a path next to the app, and that's where it's served
+    #[test]
+    fn the_app_s_image_is_served_where_the_definition_says() {
+        let bot = TestBot::new();
+        let (_, definition) = bot.call("GET", "/", None, None);
+        assert_eq!(
+            definition["mini_apps"],
+            json!([{ "name": "chess", "image_url": "app/chess.svg" }])
+        );
+
+        let request = Request::builder()
+            .method("GET")
+            .uri(format!(
+                "/{}",
+                definition["mini_apps"][0]["image_url"].as_str().unwrap()
+            ))
+            .body(Body::empty())
+            .unwrap();
+        let response = bot
+            .runtime
+            .block_on(async { routes(bot.state.clone()).oneshot(request).await.unwrap() });
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.headers()[CONTENT_TYPE], "image/svg+xml");
+        assert_eq!(response.headers()[CACHE_CONTROL], "no-cache");
+        let body = bot
+            .runtime
+            .block_on(to_bytes(response.into_body(), usize::MAX))
+            .unwrap();
+        let svg = std::str::from_utf8(&body).unwrap();
+        assert!(svg.starts_with("<svg "), "{}", &svg[..60]);
+        assert!(svg.contains(r#"viewBox="0 0 440 740""#));
+        // Self-contained: nothing fetched or run
+        assert!(!svg.contains("<script"));
+        assert!(!svg.contains("href="));
+        assert!(!svg.contains("url("));
     }
 
     #[test]
