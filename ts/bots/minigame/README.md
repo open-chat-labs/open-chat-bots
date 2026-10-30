@@ -25,7 +25,12 @@ which the store, the handlers, the sweep and the publisher use, and which each g
 1. **`/play 2048`** or **`/play chess`** asks the LocalUserIndex for a post token, records the game,
    and has the MiniApp service post the card. The service is the only thing that posts a card or
    writes its status; the protocol is open-chat's `backend/docs/mini_app_service_protocol.md`. The
-   empty lobby is published once the card is up, so the page knows which game it's showing.
+   empty lobby is published once the card is up, so the page knows which game it's showing. The
+   command's other parameters are the game's settings, the race's winning tile and time limit,
+   which are the defaults if left out; the game's host, who ran the command, can change them in
+   the lobby until the start (`POST /api/settings`), and everyone in the lobby sees them. A game
+   declares its settings (`src/games/settings.ts`), which gives it the parameters, the check on a
+   change, and the lobby's form.
 2. **Joining** goes through OpenChat's buttons on the card. The service asks the bot at
    `POST /mini_app/join`, which looks the user's name up and gives them a seat: up to 10 in a race,
    two at chess ("This game is for two" after that, "The game has started" once it has). Leaving,
@@ -33,7 +38,8 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    a chess game can't, so it ends, the other player winning "by abandonment". The lobby's seats are
    published as the game's state, so the page shows who's joined.
 3. **Starting**: a player presses Start in the page, OpenChat asks the bot at
-   `POST /mini_app/start`, and the bot answers with the players and the first state. A race deals
+   `POST /mini_app/start`, and the bot answers with the players, the first state and the game's
+   settings, which the card keeps from then on and OpenChat hands to the app. A race deals
    everyone seated a board with two tiles, and it's everyone's turn at once. Chess needs two,
    tosses a coin for White, lists the players White first, says it's waiting for White, and White's
    clock runs.
@@ -138,7 +144,8 @@ had no update.
   id, its result, its end state, which the publisher sends only within 16 KB (`jsonBytes` measures
   it), so a game which can run long cuts its own down first, and its data for the store.
 - Add it to `src/games/registry.ts`, with its `create` and `fromJson`: that's the `/play` choice,
-  the card's text and limits, the size the page is laid out for, which gives the frame in the card
+  the card's one-line text and limits, its settings, each a choice among a few values with a
+  default, the size the page is laid out for, which gives the frame in the card
   its aspect ratio, and its image, an SVG at that aspect ratio in `src/app/public`, which the
   definition lists with the app. Add the id to `GameKind`. The page is drawn as wide as the card, so
   it has to work at a few hundred pixels, and full screen.
@@ -182,8 +189,8 @@ group, and run `/play`.
 | `OC_API_GATEWAY` | A LocalUserIndex to get the bot's service token from. Optional: the bot remembers the last command's. |
 | `DATA_FILE` | Where the games are kept, `./data/games.json` if not set. |
 | `APP_DIR` | The built page, `./dist/app` if not set. |
-| `RACE_TARGET` | The tile which wins a race, 2048 if not set. Set it low, eg. 16, to test a race end to end. |
-| `RACE_SECONDS` | How long a race lasts, 600 if not set. Set it short to see the time run out. |
+| `RACE_TARGET` | The winning tile unless the command or the host sets it, 2048 if not set. Set it low, eg. 16, to test a race end to end. |
+| `RACE_SECONDS` | The time limit unless the command or the host sets it, 600 if not set. Set it short to see the time run out. |
 
 ## Docker
 

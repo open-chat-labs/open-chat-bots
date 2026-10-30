@@ -241,7 +241,7 @@ describe("time limit", () => {
 describe("settings", () => {
     it("are the defaults unless chosen, and the host changes them while the race is open", () => {
         const race = Race2048.create({ settings: { target: 512 }, host: "alice" });
-        expect(race.settings).toEqual({ target: 512, minutes: 10 });
+        expect(race.settings()).toEqual({ target: 512, minutes: 10 });
         expect(race.target).toBe(512);
         expect(race.timeLimit).toBe(TIME_LIMIT_MS);
         expect(race.shared()).toMatchObject({ settings: { target: 512, minutes: 10 }, host: "alice" });
@@ -251,7 +251,7 @@ describe("settings", () => {
             error: "Only the host can change the settings",
         });
         expect(race.configure("alice", { minutes: 5 })).toEqual({ ok: true });
-        expect(race.settings).toEqual({ target: 512, minutes: 5 });
+        expect(race.settings()).toEqual({ target: 512, minutes: 5 });
         expect(race.timeLimit).toBe(5 * 60_000);
 
         race.takeSeat("alice", "ALICE");

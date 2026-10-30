@@ -10,6 +10,8 @@ import type { ActionResponse } from "../games/chess/types";
 import type { Game, GameKind } from "../games/game";
 import type { Race2048 } from "../games/race2048/race";
 import type { MoveResponse } from "../games/race2048/types";
+import { gameType } from "../games/registry";
+import { parseSettings } from "../games/settings";
 
 /** What a request did to the game: its answer, and whether the game changed, so it's published */
 type Outcome = { result: { ok: boolean }; changed: boolean };
@@ -58,6 +60,46 @@ async function act<G extends Game>(
         deps.publisher.publish(game);
     }
     res.status(result.ok ? 200 : 409).json(result);
+}
+
+/**
+ * `POST /api/settings` with `{ "<setting>": value, ... }`: the host's change to the game's settings
+ * from the lobby, before the start, published to everyone in it. Anyone seated has a player token,
+ * so the game itself says who may change them.
+ */
+export async function settings(req: Request, res: Response, deps: Deps): Promise<void> {
+    let userId: string;
+    let game;
+    try {
+        ({ userId, game } = (await deps.tokens()).verifyPlayer(req.headers[MINI_APP_TOKEN_HEADER]));
+    } catch (err) {
+        if (err instanceof TokenError) {
+            res.status(401).json({ ok: false, error: err.message });
+        } else {
+            console.error("Couldn't verify the player's token:", err);
+            res.status(500).json({ ok: false, error: "Couldn't verify the token" });
+        }
+        return;
+    }
+    const entry = deps.store.get(game);
+    if (entry === undefined) {
+        res.status(404).json({ ok: false, error: "This game is over" });
+        return;
+    }
+    const { play } = entry;
+    const parsed = parseSettings(gameType(play.kind)?.settings ?? [], req.body);
+    if (!parsed.ok) {
+        res.status(400).json(parsed);
+        return;
+    }
+    const result = play.configure(userId, parsed.settings);
+    if (!result.ok) {
+        res.status(403).json(result);
+        return;
+    }
+    deps.store.save();
+    deps.publisher.publish(game);
+    res.json({ ok: true, settings: play.settings() });
 }
 
 // The 2048 race: a move or a restart changes the board, unless the move moved nothing

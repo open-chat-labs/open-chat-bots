@@ -9,8 +9,9 @@ export const definition = {
     description:
         "Play games with the people in your chat. `/play` posts a game card: join from the card, " +
         "and the game opens in OpenChat. Race to 2048 with up to 10 players, where the first to " +
-        "make a 2048 tile wins, or the top score after 10 minutes, or play chess, two players with " +
-        "10 minutes each, which anyone in the chat can watch.",
+        "make the target tile wins, or the top score when the time's up (2048 and 10 minutes " +
+        "unless set, with the command or by the host in the lobby), or play chess, two players " +
+        "with 10 minutes each, which anyone in the chat can watch.",
     commands: [
         {
             name: "play",
@@ -31,6 +32,25 @@ export const definition = {
                         },
                     },
                 },
+                // Each game's settings, which its host can also change in the lobby
+                ...GAMES.flatMap((game) =>
+                    game.settings.map((setting) => ({
+                        name: setting.id,
+                        description: setting.description,
+                        placeholder: setting.label,
+                        required: false,
+                        param_type: {
+                            IntegerParam: {
+                                min_value: Math.min(...setting.choices.map((c) => c.value)),
+                                max_value: Math.max(...setting.choices.map((c) => c.value)),
+                                choices: setting.choices.map((c) => ({
+                                    name: c.label,
+                                    value: c.value,
+                                })),
+                            },
+                        },
+                    })),
+                ),
             ],
             // As bitflags, which is how OpenChat reads a definition's permissions
             permissions: Permissions.encodePermissions({

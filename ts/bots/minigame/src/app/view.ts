@@ -2,6 +2,7 @@
 // lobby, which every game shares, and hands the game itself to the view for the `game` named in the
 // shared state, or the end state: `race2048/view.ts` or `chess/view.ts`.
 import type { MiniAppClient } from "@open-ic/openchat-botclient-ts/mini_app";
+import type { SettingSpec, Settings } from "../games/settings";
 
 /** What every game's shared state, and end state, starts with */
 export type BaseState = { version: number; game: string };
@@ -15,6 +16,13 @@ export type Lobby = {
     seats: Seat[];
     /** For the player with the Start button, eg. "Start when everyone has joined." */
     hint: string;
+    /** The game's settings, if it has any: the host changes them from the lobby */
+    settings?: {
+        specs: readonly SettingSpec[];
+        current: Settings;
+        /** Who may change them, the user who ran `/play` */
+        host: string | undefined;
+    };
 };
 
 export type ViewContext = {
