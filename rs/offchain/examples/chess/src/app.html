@@ -36,14 +36,17 @@
     --low: #ff6961;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; min-height: 100%; }
+  html, body { margin: 0; height: 100%; }
   body {
     background: var(--bg);
     color: var(--fg);
     font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     padding: 12px;
+    overflow: hidden;
   }
-  main { max-width: 440px; margin: 0 auto; }
+  /* The card gives the frame the app's aspect ratio, 440 by 740, and the board takes whatever height
+     the rows around it leave, so nothing's cut off and nothing's left empty */
+  main { max-width: 440px; height: 100%; margin: 0 auto; display: flex; flex-direction: column; }
   #status { min-height: 1.4em; margin: 0 0 8px; text-align: center; font-weight: 600; }
   #offer { min-height: 1.4em; margin: 4px 0 0; text-align: center; color: var(--muted); font-size: 14px; }
   .player {
@@ -72,6 +75,8 @@
     display: grid;
     grid-template-columns: repeat(8, 1fr);
     width: 100%;
+    max-width: var(--board-max, 100%);
+    margin: 0 auto;
     aspect-ratio: 1;
     border-radius: 4px;
     overflow: hidden;
@@ -139,7 +144,7 @@
     grid-template-columns: 2.6em 1fr 1fr;
     column-gap: 4px;
     row-gap: 2px;
-    max-height: 7.5em;
+    max-height: 4.5em;
     overflow-y: auto;
     padding: 6px 8px;
     border-top: 1px solid var(--line);
@@ -455,12 +460,29 @@ function pieces(fen) {
   return placed;
 }
 
+// The board's a square, as wide as the frame unless the rows around it leave less height than that
+function fitBoard() {
+  const main = document.querySelector("main");
+  let used = 0;
+  for (const el of main.children) {
+    if (el === board || el.hidden) continue;
+    const style = getComputedStyle(el);
+    used += el.offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+  }
+  const boardStyle = getComputedStyle(board);
+  used += parseFloat(boardStyle.marginTop) + parseFloat(boardStyle.marginBottom);
+  const max = Math.max(120, main.clientHeight - used);
+  board.style.setProperty("--board-max", `${Math.floor(max)}px`);
+}
+window.addEventListener("resize", fitBoard);
+
 function render() {
   renderStatus();
   renderPlayers();
   renderBoard();
   renderMoves();
   tickClocks();
+  fitBoard();
 }
 
 function renderStatus() {

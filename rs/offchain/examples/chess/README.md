@@ -5,7 +5,8 @@ of a chat, with ten minutes each on the clock, which everyone else in the chat c
 through OpenChat's MiniApp service, so OpenChat's card records who's playing, whose move it is and
 how the game ended, and spectators never reach the bot.
 
-- `/chess` posts a card, "**Chess** · 10 minutes each", for two players, open to spectators. The bot
+- `/chess` posts a card, "**Chess** · 10 minutes each", for two players, open to spectators, with the
+  app's size, 440 by 740, so the card shows the app at that aspect ratio before it loads. The bot
   gets a post token from the LocalUserIndex, `mini_app_post_token`, keys the game from it,
   `MiniAppGame::from_post_token`, and hands it to the service with the card,
   `MiniAppServiceClient::post`. The service posts the card as the bot and records the game.
