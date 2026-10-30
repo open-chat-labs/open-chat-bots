@@ -2150,6 +2150,7 @@ function miniAppStatus(value: ApiMiniAppStatus): MiniAppStatus {
             kind: "active",
             players: value.Active.players.map(principalBytesToString),
             waitingFor: value.Active.waiting_for.map(principalBytesToString),
+            settings: optional(value.Active.settings, identity),
         };
     }
     if ("Finished" in value) {
@@ -2158,6 +2159,7 @@ function miniAppStatus(value: ApiMiniAppStatus): MiniAppStatus {
             players: value.Finished.players.map(principalBytesToString),
             result: optional(value.Finished.result, identity),
             endState: optional(value.Finished.end_state, identity),
+            settings: optional(value.Finished.settings, identity),
         };
     }
     throw new UnsupportedValueError("Unexpected ApiMiniAppStatus type received", value);
@@ -2172,6 +2174,7 @@ function apiMiniAppStatus(domain: MiniAppStatus): ApiMiniAppStatus {
                 Active: {
                     players: domain.players.map(principalStringToBytes),
                     waiting_for: domain.waitingFor.map(principalStringToBytes),
+                    settings: domain.settings,
                 },
             };
         case "finished":
@@ -2180,6 +2183,7 @@ function apiMiniAppStatus(domain: MiniAppStatus): ApiMiniAppStatus {
                     players: domain.players.map(principalStringToBytes),
                     result: domain.result,
                     end_state: domain.endState,
+                    settings: domain.settings,
                 },
             };
     }

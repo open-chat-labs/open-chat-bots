@@ -21,6 +21,7 @@ pub struct BotDefinition {
     pub description: String,
     pub commands: Vec<BotCommandDefinition>,
     pub autonomous_config: Option<AutonomousConfig>,
+    pub mini_apps: Vec<MiniAppDefinition>,
 }
 ```
 
@@ -32,7 +33,11 @@ It _does_ include the `description` of the bot which is shown in the OpenChat UI
 
 It also defines a list of [commands](#commands).
 
-Finally, the bot definition specifies an optional [autonomous_config](#autonomous-configuration).
+The bot definition specifies an optional [autonomous_config](#autonomous-configuration).
+
+Finally, a bot which hosts games lists them in `mini_apps`, each with its artwork, which its
+[MiniApp cards](#miniapp-cards) name. A bot which hosts none leaves it empty, and it's then left out
+of the JSON.
 
 #### Commands
 
@@ -309,9 +314,11 @@ client
 ## MiniApp cards
 
 A bot can host a game, or another app, which people open from a card the bot posts in a group or
-channel. OpenChat draws the card: its markdown text, an optional image, the players, whose turn it
-is or the result, and buttons to join, leave and open the game. The game itself is the bot's own
-web page, which OpenChat shows in a sandboxed frame.
+channel. OpenChat draws the card: its markdown text, the players, whose turn it is or the result,
+buttons to join, leave and open the game, and a frame box at the app's aspect ratio. The game itself
+is the bot's own web page, which OpenChat shows in that frame. Whenever there's no app to show,
+before it loads, to someone who can't open the game, and once the game is over without an end
+state, the box shows the app's image instead, from the bot's definition.
 
 OpenChat's MiniApp service sits between the website and the bot. It posts the card for the bot, so
 that a card exists only for a game it knows. Only it records who joins, asking the bot to accept
@@ -320,16 +327,47 @@ game through the service too, and the bot decides who it starts with. A bot can 
 game, but never put them on. The service's API is HTTPS, so the offchain SDK's `mini_app` module
 has its client. The whole protocol is in OpenChat's `backend/docs/mini_app_service_protocol.md`.
 
-### 1. Posting a card
+### 1. Declaring the app
+
+The bot's definition lists the apps it hosts, each with its name, which a card names it by, and its
+artwork, which the card shows whenever there's no app to show. The image is an absolute https URL,
+or a path relative to the bot's endpoint, which the bot serves itself, eg. an SVG next to its `/app`
+page. OpenChat refuses a card whose app isn't in the bot's definition, as OpenChat holds it: the
+definition it fetched when the bot was registered, or last updated. So after adding or renaming an
+app, update the bot's registration in OpenChat, or every post is refused until then.
+
+```rust
+BotDefinition {
+    description: "Play Uno in a chat".to_string(),
+    commands: commands.definitions(),
+    autonomous_config: Some(AutonomousConfig {
+        permissions: BotPermissions::from_message_permission(MessagePermission::MiniApp),
+    }),
+    default_subscriptions: None,
+    restricted_locations: Some(HashSet::from([
+        InstallationLocationType::Community,
+        InstallationLocationType::Group,
+    ])),
+    mini_apps: vec![MiniAppDefinition {
+        name: "uno".to_string(),
+        image_url: "app/uno.svg".to_string(),
+    }],
+}
+```
+
+- A name has 1 to 50 characters, and is unique among the bot's apps, of which there are at most 100.
+- An image URL has at most 500 characters.
+
+### 2. Posting a card
 
 The bot gets a post token from the LocalUserIndex, in the context it would send a message with, and
 hands it to the service with the card. The service posts the card as the bot and records its game,
 together, and gives the `MiniAppGame` it names the game by: the card's chat, thread and message id.
 
 ```rust
-// The text, and what the app's laid out for, in CSS pixels: the card shows it at this aspect ratio,
-// sized before it loads
-let card = MiniAppContent::new("**Uno** · 2 to 4 players", 440, 740)
+// Which of the bot's apps, by its name in the definition, the text, and what the app's laid out
+// for, in CSS pixels: the card shows it at this aspect ratio, sized before it loads
+let card = MiniAppContent::new("uno", "**Uno** · 2 to 4 players", 440, 740)
     .with_max_players(4)
     // Whether people who aren't playing can watch
     .with_spectators(true);
@@ -365,24 +403,13 @@ mini_apps.post(&token, card, false, None).await?;
   the card, no one can join the game, and `update` answers `UnknownGame`.
 - `post` gives the game too, as the service recorded it: the same game the token names.
 - `MiniAppContent::validate` checks the card as OpenChat does, with its errors: it's open, its text
-  has 1 to 2,000 characters, and `max_players` is 1 to 100.
-
-A card can have an image above its text, eg. the game's artwork. Upload it to OpenChat's storage
-first, so that it's scanned like any image and deleted with the card: `Client::upload_mini_app_image`
-reads a PNG's size, and `upload_mini_app_image_of_size` takes any image with the size you give.
-Upload it for each card, rather than reusing one upload, as deleting a card deletes its image.
-
-```rust
-let image = client
-    .upload_mini_app_image(mainnet_storage_index_canister_id(), png, image::ImageFormat::Png)
-    .await?;
-let card = MiniAppContent::new("**Uno** · 2 to 4 players", 440, 740).with_image(image);
-```
+  has 1 to 2,000 characters, its app's name 1 to 50, and `max_players` is 1 to 100. Only OpenChat
+  can check that the app is one of the bot's.
 
 The client gets the bot's token with `Client::mini_app_token`, keeps it for its hour, and gets a new
 one when it's about to expire or the service refuses it.
 
-### 2. Answering join and leave
+### 3. Answering join and leave
 
 The service calls the bot at `POST <endpoint>/mini_app/join` and `/mini_app/leave`, with no body
 and a token in `x-oc-jwt`, which `ExtractJwtLayer` takes. A `MiniAppVerifier` checks it, with the
@@ -413,7 +440,7 @@ let claims = verifier.leave(&jwt)?;
 - If the service can't add a player the bot accepted, as the game started or filled up meanwhile,
   it tells the bot they left.
 
-### 3. Starting the game
+### 4. Starting the game
 
 A player asks to start the game, eg. with a Start button in the app, and the service calls the bot
 at `POST <endpoint>/mini_app/start`, with a token in `x-oc-jwt`. The bot starts it, or refuses:
@@ -443,14 +470,25 @@ let answer = if players.len() >= 2 {
   answer a start of a game the bot has already started with its players as they are now.
 - Starting closes joining, and the card records the players.
 
-### 4. Updating the game
+### 5. Updating the game
 
 ```rust
+// Alice moved, so it's Bob's turn
 mini_apps
     .update(
         GameUpdate::new(game)
             .with_waiting_for(vec![bob])
             .with_state(GameState { seq: 2, shared, private }),
+    )
+    .await?;
+
+// Bob won, and the card keeps showing the app, with the final position and the moves
+mini_apps
+    .update(
+        GameUpdate::new(game)
+            .finished()
+            .with_result("Bob won")
+            .with_end_state(json!({ "version": 1, "position": fen, "moves": moves })),
     )
     .await?;
 ```
@@ -460,19 +498,24 @@ Whatever an update doesn't set stays as it was:
 - `with_waiting_for`: whose turn it is now, players, each once, or none for no one in particular.
 - `finished()`: ends the game, whether it started or not. An update can't start a game.
 - `with_result("Bob won")`: at most 200 characters, only with `finished()`.
+- `with_end_state(json)`: how the game ended, as any JSON of at most 16 KB serialized, only with
+  `finished()`. OpenChat writes it to the card, which keeps showing the app and hands it the state:
+  `initialise_mini_app` with `finished: true`, then `{ kind: "mini_app_end_state", state }`, so the
+  app can show the final position and let viewers step through the moves. A finished card without
+  one shows the app's image and the result instead.
 - `with_removed`: takes players off the game.
 - `with_state`: goes to everyone with the game open, `shared` to all, and each player's `private`
   part only to them. `seq` must increase. Include a format version, so that an app left open from an
   older release knows to reload. An update is at most 64 KB.
 
-### 5. Serving the app
+### 6. Serving the app
 
 OpenChat opens `<endpoint>/app` in a sandboxed frame and talks to it with `postMessage`. It tells the
 app whether the user is a player or a spectator, gives a player their token, passes on the game's
 state as it changes, and asks the service to start the game when a player's app asks. The browser
 side of this is in the TypeScript SDK, at `@open-ic/openchat-botclient-ts/mini_app`.
 
-### 6. Verifying players
+### 7. Verifying players
 
 A player's app sends its player token in `x-oc-jwt` with each request to the bot:
 

@@ -92,6 +92,24 @@ describe("MiniApp cards", () => {
         });
     });
 
+    test("are read with the game's settings, as JSON text, once started and once finished", () => {
+        const settings = '{"target":2048,"minutes":10}';
+        expect(
+            read({
+                spectators: false,
+                status: { Active: { players: [bytes(ALICE)], waiting_for: [], settings } },
+            }),
+        ).toMatchObject({ status: { kind: "active", players: [ALICE], waitingFor: [], settings } });
+        expect(
+            read({
+                spectators: false,
+                status: { Finished: { players: [bytes(ALICE)], result: "Alice won", settings } },
+            }),
+        ).toMatchObject({
+            status: { kind: "finished", players: [ALICE], result: "Alice won", settings },
+        });
+    });
+
     test("are read with everything OpenChat sends, once finished", () => {
         // Principals as bytes, and the end state as the JSON the bot sent, unparsed
         const endState = '{"version":1,"board":"XOXOXO..X","winner":"X"}';
@@ -325,6 +343,18 @@ describe("A bot's answer to starting a game", () => {
 
         expect(JSON.stringify(response)).toBe(
             `{"accepted":true,"players":["${ALICE}","${BOB}"],"waiting_for":["${ALICE}"],"state":{"seq":1,"shared":{"turn":0},"private":{"${ALICE}":{"hand":[1]},"${BOB}":{}}}}`,
+        );
+        // With the game's settings, which the service writes into the card
+        expect(
+            JSON.stringify(
+                acceptMiniAppStart({
+                    players: [ALICE],
+                    waitingFor: [],
+                    settings: { target: 2048 },
+                }),
+            ),
+        ).toBe(
+            `{"accepted":true,"players":["${ALICE}"],"waiting_for":[],"settings":{"target":2048}}`,
         );
         // Without a state, or whose turn it is
         expect(JSON.stringify(acceptMiniAppStart({ players: [ALICE], waitingFor: [] }))).toBe(

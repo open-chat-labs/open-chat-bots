@@ -74,13 +74,21 @@ export type MiniAppStart = {
     waitingFor: string[];
     /** The game's first state, whose `seq` is above any state the bot has already sent */
     state?: MiniAppGameState;
+    /**
+     * The game's settings, as any JSON of at most 4 KB serialized, eg. `{ target: 2048 }`. The
+     * service writes them into the card, which keeps them for as long as it exists, and OpenChat
+     * hands them to the app whenever it opens the game, and never reads them itself. They're
+     * fixed at the start: nothing changes them after.
+     */
+    settings?: unknown;
 };
 
 /**
  * The bot's answer to the service's `POST <endpoint>/mini_app/start`, within 5 seconds, as the
  * service reads it, from `acceptMiniAppStart` or `refuseMiniAppStart`. If a start fails, eg. as it
  * timed out or the service couldn't save it, the player can ask again, so a bot asked to start a
- * game it already started answers with its players as they are now.
+ * game it already started answers with its players as they are now, and the same settings: the
+ * service takes a repeated start as the same one only when both match.
  */
 export type MiniAppStartResponse =
     | {
@@ -88,6 +96,7 @@ export type MiniAppStartResponse =
           players: string[];
           waiting_for: string[];
           state?: MiniAppGameState;
+          settings?: unknown;
       }
     | { accepted: false; message?: string };
 
@@ -98,6 +107,7 @@ export function acceptMiniAppStart(start: MiniAppStart): MiniAppStartResponse {
         players: start.players,
         waiting_for: start.waitingFor,
         state: start.state,
+        settings: start.settings,
     };
 }
 

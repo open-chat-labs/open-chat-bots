@@ -109,6 +109,7 @@ pub fn definition<P: Platform>() -> BotDefinition {
             InstallationLocationType::Community,
             InstallationLocationType::Group,
         ])),
+        mini_apps: Vec::new(),
     }
 }
 

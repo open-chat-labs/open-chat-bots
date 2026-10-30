@@ -14,6 +14,7 @@ pub async fn get(_request: HttpRequest) -> HttpResponse {
             autonomous_config: Some(AutonomousConfig { permissions: BotPermissions::text_only() }),
             default_subscriptions: None,
             restricted_locations: None,
+            mini_apps: Vec::new(),
         },
     )
 }

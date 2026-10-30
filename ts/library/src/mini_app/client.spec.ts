@@ -162,6 +162,23 @@ describe("connectToOpenChat", () => {
         });
     });
 
+    test("has the game's settings when OpenChat gives them, and none otherwise", async () => {
+        const win = new FakeWindow();
+        const connecting = connectToOpenChat({ window: win });
+        win.send({
+            kind: "initialise_mini_app",
+            role: "spectator",
+            user_id: USER,
+            settings: { target: 2048 },
+        });
+        const client = await connecting;
+        expect(client.settings).toEqual({ target: 2048 });
+
+        // Again, eg. as the user's role changed, with what the card has now
+        win.send({ kind: "initialise_mini_app", role: "spectator", user_id: USER, settings: null });
+        expect(client.settings).toBeUndefined();
+    });
+
     test("fills in a missing theme or language", async () => {
         const win = new FakeWindow();
         const connecting = connectToOpenChat({ window: win });
