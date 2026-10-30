@@ -1,4 +1,4 @@
-// The 2048 race: up to 9 players, each on their own board, and the first to make a 2048 tile wins.
+// The 2048 race: up to 10 players, each on their own board, and the first to make a 2048 tile wins.
 // A player whose board gets stuck can restart on a fresh board, as often as they like, and the
 // restarts are counted for everyone to see.
 //

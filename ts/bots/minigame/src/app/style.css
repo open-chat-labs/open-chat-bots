@@ -181,49 +181,49 @@ button.link {
     font-size: 16px;
 }
 
-.grid {
-    display: grid;
-    gap: 12px;
-    grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
-}
-
-.grid.cols-1 {
-    --cols: 1;
-    max-width: 420px;
+/* The big board, the player's own or the leader's */
+.main {
+    width: 100%;
+    max-width: 400px;
     margin: 0 auto;
 }
 
-.grid.cols-2 {
-    --cols: 2;
+/* The other players' boards, in a row that scrolls sideways when there are many */
+.others {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 2px 2px 8px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    touch-action: pan-x;
 }
 
-.grid.cols-3 {
-    --cols: 3;
+.others .player {
+    flex: 0 0 120px;
+    padding: 8px;
+    scroll-snap-align: start;
 }
 
-/* The player's own board takes two columns and rows of three, so it's the one that's big */
-.grid.own-big .player.mine {
-    grid-column: span 2;
-    grid-row: span 2;
+.player.small header {
+    margin-bottom: 2px;
 }
 
-/* The frame is as wide as the card: three columns of boards fit down to about 420 pixels */
-@media (max-width: 419px) {
-    .grid.cols-3 {
-        --cols: 2;
-    }
-
-    .grid.own-big .player.mine {
-        grid-column: 1 / -1;
-        grid-row: auto;
-    }
+.player.small .name {
+    font-size: 13px;
 }
 
-@media (max-width: 299px) {
-    .grid.cols-2,
-    .grid.cols-3 {
-        --cols: 1;
-    }
+.player.small .chip {
+    font-size: 9px;
+    padding: 1px 6px;
+}
+
+.player.small .stats {
+    font-size: 11px;
+    gap: 6px;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .player {
@@ -398,8 +398,12 @@ button.link {
 }
 
 .controls {
-    margin-top: 16px;
+    margin-top: 8px;
     text-align: center;
+}
+
+.controls p {
+    margin: 0;
 }
 
 .dpad {

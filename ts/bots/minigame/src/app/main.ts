@@ -256,7 +256,7 @@ function lobby(shared: SharedState | undefined, player: boolean): string {
     const action = player
         ? `<p class="center"><button class="primary" data-action="start" ${starting ? "disabled" : ""}>
                ${starting ? "Starting…" : "Start the race"}</button></p>
-           <p class="muted center">Start when everyone has joined. Up to ${shared?.maxPlayers ?? 9} can race.</p>`
+           <p class="muted center">Start when everyone has joined. Up to ${shared?.maxPlayers ?? 10} can race.</p>`
         : `<p class="muted center">Join from the card in the chat to race. Watching starts when a player does.</p>`;
     return `<section class="lobby">
         <h2>Waiting to start</h2>
@@ -269,16 +269,26 @@ function lobby(shared: SharedState | undefined, player: boolean): string {
 
 function race(shared: SharedState, player: boolean): string {
     const me = oc?.userId;
-    const players = [...shared.players].sort((a, b) => (a.id === me ? -1 : b.id === me ? 1 : 0));
-    const columns = players.length <= 1 ? 1 : players.length <= 4 ? 2 : 3;
-    const winner = players.find((p) => p.id === shared.winner);
+    // The player's own board is the big one, over the others' in a row, the highest score first.
+    // Someone watching sees the leader's board as the big one.
+    const byScore = [...shared.players].sort(
+        (a, b) => b.score - a.score || a.name.localeCompare(b.name),
+    );
+    const main = byScore.find((p) => p.id === me) ?? byScore[0];
+    const others = byScore.filter((p) => p !== main);
+    const winner = byScore.find((p) => p.id === shared.winner);
     const banner =
         shared.phase === "finished"
             ? `<div class="banner">
                    ${winner === undefined ? "The race is over" : `<strong>${escape(winner.name)}</strong> ${winner.id === me ? "(you) " : ""}reached ${shared.target} in ${clockText(shared)}`}
                </div>`
             : "";
-    const cards = players.map((p) => card(p, p.id === me ? own : undefined, shared)).join("");
+    const big =
+        main === undefined ? "" : card(main, main.id === me ? own : undefined, shared, "main");
+    const row =
+        others.length === 0
+            ? ""
+            : `<section class="others">${others.map((p) => card(p, undefined, shared, "small")).join("")}</section>`;
     const controls =
         player && shared.phase === "active"
             ? `<div class="controls">
@@ -291,9 +301,8 @@ function race(shared: SharedState, player: boolean): string {
                    <p class="muted"><span id="hint">${hintText()}</span> <button class="link" data-action="restart">Restart my board</button></p>
                </div>`
             : "";
-    // The player's own board is drawn bigger than the others' when there's room for three columns
-    const ownBig = columns === 3 ? "own-big" : "";
-    return `${banner}<section class="grid cols-${columns} ${ownBig}">${cards}</section>${controls}`;
+    // The controls are under the player's board, so the d-pad is near it, with the row last
+    return `${banner}<section class="main">${big}</section>${controls}${row}`;
 }
 
 function hintText(): string {
@@ -308,30 +317,39 @@ function renderHint() {
     if (hint !== null) hint.textContent = hintText();
 }
 
-function card(p: PlayerView, mine: Own | undefined, shared: SharedState): string {
+function card(p: PlayerView, mine: Own | undefined, shared: SharedState, size: "main" | "small"): string {
     const board = mine?.board ?? p.board;
     const score = mine?.score ?? p.score;
     const dead = mine?.dead ?? p.dead;
     const won = mine?.won ?? p.won;
+    // The big board that isn't the viewer's own is the leader's
+    const leading = size === "main" && mine === undefined;
     const status = won
         ? `<span class="chip winner">Winner</span>`
         : dead
           ? `<span class="chip stuck">Stuck</span>`
           : shared.phase === "finished"
             ? ""
-            : `<span class="chip racing">Racing</span>`;
+            : leading
+              ? `<span class="chip racing">Leading</span>`
+              : `<span class="chip racing">Racing</span>`;
     const overlay =
         mine !== undefined && dead && shared.phase === "active"
             ? `<div class="overlay"><p>No moves left</p><button class="primary" data-action="restart">Restart</button></div>`
             : "";
-    return `<article class="player ${mine !== undefined ? "mine" : ""}">
+    return `<article class="player ${size} ${mine !== undefined ? "mine" : ""}">
         <header>
             <span class="name">${escape(p.name)}${mine !== undefined ? " <em>(you)</em>" : ""}</span>
             ${status}
         </header>
         <div class="stats">
-            <span>Score <strong>${score}</strong></span>
-            <span>Best <strong>${Math.max(...board, 0)}</strong></span>
+            ${
+                size === "main"
+                    ? `<span>Score <strong>${score}</strong></span>
+                       <span>Best <strong>${Math.max(...board, 0)}</strong></span>`
+                    : `<span><strong>${score}</strong></span>
+                       <span>best ${Math.max(...board, 0)}</span>`
+            }
             ${p.restarts > 0 ? `<span title="Restarts">↻ ${p.restarts}</span>` : ""}
         </div>
         <div class="board">

@@ -29,7 +29,7 @@ export const RACE_2048: GameType = {
         `Stuck? Restart on a fresh board and keep racing.`,
     maxPlayers: MAX_PLAYERS,
     spectators: true,
-    // A portrait frame: the lobby, or a player's board above the others', with room for nine
+    // A portrait frame: the lobby, or a player's board above a row of the others'
     appSize: { width: 480, height: 720 },
 };
 

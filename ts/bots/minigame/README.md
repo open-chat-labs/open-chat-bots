@@ -2,7 +2,7 @@
 
 Games played from MiniApp cards in OpenChat chats. `/play <game>` posts a card; people join from
 the card, a player starts the game, and it's played in the card, in the bot's own page. The first
-game is a **2048 race**: up to 9 players, each on their own board, and the first to make a 2048
+game is a **2048 race**: up to 10 players, each on their own board, and the first to make a 2048
 tile wins. A player whose board gets stuck restarts on a fresh board, as often as they like, and
 everyone sees how many times.
 
@@ -17,7 +17,7 @@ it and adds the new tile.
    service post the card. The service is the only thing that posts a card or writes its status;
    the protocol is open-chat's `backend/docs/mini_app_service_protocol.md`.
 2. **Joining** goes through OpenChat's buttons on the card. The service asks the bot at
-   `POST /mini_app/join`, which looks the user's name up and gives them a seat, up to 9. Leaving,
+   `POST /mini_app/join`, which looks the user's name up and gives them a seat, up to 10. Leaving,
    `POST /mini_app/leave`, frees it. The lobby's seats are published as the game's state, so the
    page shows who's joined.
 3. **Starting**: a player presses Start in the page, OpenChat asks the bot at

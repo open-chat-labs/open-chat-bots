@@ -12,7 +12,7 @@ export const GAME_ID = "2048";
 export const TARGET = 2048;
 
 /** The most players, a 3 by 3 grid of boards */
-export const MAX_PLAYERS = 9;
+export const MAX_PLAYERS = 10;
 
 export type Phase = "open" | "active" | "finished";
 
