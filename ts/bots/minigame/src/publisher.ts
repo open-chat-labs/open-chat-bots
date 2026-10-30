@@ -57,13 +57,18 @@ export class Publisher {
         pending.inFlight = true;
         pending.again = false;
         const { race } = entry;
+        const shared = race.shared();
         const update: MiniAppGameUpdate = {
             game,
-            state: { seq: race.nextSeq(), shared: race.shared() },
+            state: { seq: race.nextSeq(), shared },
         };
         if (race.phase === "finished") {
             update.status = "finished";
             update.result = race.result();
+            // The final shared state, with every board, the winner and the times, is how the race
+            // ended: OpenChat writes it to the card and hands it to the app, which shows the finished
+            // race from it. It's a few KB at most, well within the end state's 16 KB.
+            update.endState = shared;
         }
         this.store.save();
         let retry = false;

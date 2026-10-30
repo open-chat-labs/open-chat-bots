@@ -6,6 +6,10 @@
 //
 // The lobby is drawn afresh on each change. The race isn't: its boards animate (`board.ts`), so
 // their elements are kept and brought up to date, and the rest of the race view with them.
+//
+// Once the race is over, the bot's end state is its final shared state, so a finished race is drawn
+// the same way, from `oc.endState`: on connecting to a finished card, when no state comes at all,
+// and as the race finishes while the page is open. Nothing is sent to the bot after that.
 import { connectToOpenChat, type MiniAppClient } from "@open-ic/openchat-botclient-ts/mini_app";
 import { slide, type Board, type Direction } from "../games/race2048/engine";
 import {
@@ -21,7 +25,7 @@ const root = document.getElementById("app") as HTMLElement;
 /** The player's own board, as last confirmed by the bot or predicted from a move */
 type Own = { board: Board; rev: number; score: number; best: number; dead: boolean; won: boolean };
 
-let oc: MiniAppClient<SharedState> | undefined;
+let oc: MiniAppClient<SharedState, unknown, SharedState> | undefined;
 let own: Own | undefined;
 /** The direction of the player's own move being drawn, for the board to slide */
 let ownMove: Direction | undefined;
@@ -50,7 +54,7 @@ const KEYS: Record<string, Direction> = {
 
 async function main() {
     try {
-        oc = await connectToOpenChat<SharedState>();
+        oc = await connectToOpenChat<SharedState, unknown, SharedState>();
     } catch (err) {
         root.innerHTML = `<p class="notice">Open this game from its card in OpenChat.<br><small>${escape(
             String(err),
@@ -71,6 +75,11 @@ async function main() {
         render();
     });
     oc.onRoleChange(() => {
+        syncOwn();
+        render();
+    });
+    // The race finished while the page was open: the end state is its final shared state
+    oc.onEndState(() => {
         syncOwn();
         render();
     });
@@ -128,10 +137,18 @@ async function main() {
     render();
 }
 
+/**
+ * The race as it is now: the end state once the race is over, which is its final shared state, or
+ * the latest shared state, or nothing before the first one
+ */
+function current(): SharedState | undefined {
+    return oc?.endState ?? oc?.state?.shared;
+}
+
 /** Takes the player's board from the shared state, unless a move is still being answered */
 function syncOwn() {
     if (oc === undefined) return;
-    const me = oc.state?.shared.players.find((p) => p.id === oc!.userId);
+    const me = current()?.players.find((p) => p.id === oc!.userId);
     if (me === undefined) {
         own = undefined;
     } else if (!sending && (own === undefined || me.rev >= own.rev)) {
@@ -144,8 +161,9 @@ function applyOwn(p: PlayerView) {
 }
 
 async function move(direction: Direction) {
-    if (oc === undefined || oc.role !== "player") return;
-    const shared = oc.state?.shared;
+    // Nothing is sent once the race is over: there's no token then anyway
+    if (oc === undefined || oc.role !== "player" || oc.finished) return;
+    const shared = current();
     if (shared === undefined || shared.phase !== "active") return;
     if (own === undefined || own.dead || own.won) return;
     if (sending) {
@@ -190,7 +208,7 @@ async function move(direction: Direction) {
 }
 
 async function restart() {
-    if (oc === undefined || oc.role !== "player" || sending) return;
+    if (oc === undefined || oc.role !== "player" || oc.finished || sending) return;
     sending = true;
     try {
         const response = await oc.fetch("/api/2048/restart", { method: "POST" });
@@ -209,7 +227,7 @@ async function restart() {
 }
 
 async function start() {
-    if (oc === undefined || oc.role !== "player" || starting) return;
+    if (oc === undefined || oc.role !== "player" || oc.finished || starting) return;
     starting = true;
     render();
     try {
@@ -266,13 +284,14 @@ function byId(id: string): HTMLElement {
 
 function render() {
     if (oc === undefined) return;
-    const shared = oc.state?.shared;
+    const shared = current();
     const player = oc.role === "player";
     byId("clock").textContent = clockText(shared);
     const toast = byId("toast");
     toast.hidden = notice === undefined;
     toast.textContent = notice ?? "";
     const body = byId("body");
+    // An end state from another release of the bot is checked like a state
     if (shared !== undefined && shared.version !== STATE_VERSION) {
         raceDom = undefined;
         body.innerHTML = `<p class="notice">This game needs a newer page.</p>
@@ -281,6 +300,8 @@ function render() {
         raceDom = undefined;
         body.innerHTML = lobby(shared, player);
     } else {
+        // A finished race, from an end state or a final state, shows its boards read-only: no
+        // controls, no restart, and the clock stopped at the finish
         renderRace(body, shared, player);
     }
 }
@@ -504,7 +525,7 @@ function limitText(ms: number): string {
 
 function renderClock() {
     const clock = document.getElementById("clock");
-    const shared = oc?.state?.shared;
+    const shared = current();
     if (clock !== null && shared?.phase === "active") {
         clock.textContent = clockText(shared);
     }

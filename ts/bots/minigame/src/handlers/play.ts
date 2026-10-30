@@ -60,7 +60,7 @@ async function play(client: BotClient, res: Response, deps: Deps): Promise<void>
     }
     const miniApps = deps.useApiGateway(client.apiGateway);
 
-    const card = (await client.createMiniAppMessage(game.cardText, game.appSize))
+    const card = (await client.createMiniAppMessage(game.id, game.cardText, game.appSize))
         .setMaxPlayers(game.maxPlayers)
         .setSpectators(game.spectators);
     const invalid = card.validate();

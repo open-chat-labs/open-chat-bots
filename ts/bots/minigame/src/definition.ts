@@ -1,6 +1,7 @@
 // The bot's definition, which OpenChat fetches from `/bot_definition` when the bot is registered,
 // and shows when it's installed. One command posts a game's card; which game is a parameter, so
-// adding a game adds a choice rather than a command.
+// adding a game adds a choice rather than a command. The definition also lists the apps the bot
+// hosts, one per game, with their images: OpenChat refuses a card whose app isn't listed.
 import { Permissions } from "@open-ic/openchat-botclient-ts";
 import { GAMES } from "./games/registry";
 
@@ -41,4 +42,6 @@ export const definition = {
     ],
     // A card can't be posted in a direct chat
     restricted_locations: ["Community", "Group"],
+    // Each game's app, which its card names, with the image shown when there's no app to show
+    mini_apps: GAMES.map((game) => ({ name: game.id, image_url: game.image })),
 };

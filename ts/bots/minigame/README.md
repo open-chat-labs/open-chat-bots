@@ -34,7 +34,14 @@ it and adds the new tile.
    going to the higher score now, then the higher tile, then the fewer restarts. The cards show both,
    as "Top" and "Now". The bot
    publishes the final state with `status: "finished"` and the result, eg. "Alice reached 2048 in
-   2m 15s" or "Time's up after 10m 0s: Alice won with 5,432 points", which the card shows.
+   2m 15s" or "Time's up after 10m 0s: Alice won with 5,432 points", which the card shows. That
+   final shared state also goes as the game's end state, which OpenChat keeps in the card and hands
+   to the page, so anyone opening a finished card sees every board, the winner and the times,
+   read-only, and a page open as the race finishes shows the same.
+
+The bot's definition lists the 2048 app with its image, `app/2048.svg`, a hand-drawn board served
+from `src/app/public`, which OpenChat shows in the card's frame whenever there's no page to show:
+before it loads, to someone who can't open the game, and over a finished game with no end state.
 
 Games are kept in memory and written to `DATA_FILE` (`./data/games.json` by default) on every
 change, so a restart doesn't end them. A finished game is dropped after two hours, and one that
@@ -44,9 +51,10 @@ never finished after a day, which is when the service ends a game that's had no 
 
 - Add its rules under `src/games/<game>/`, with a shared state type carrying a `version` and a
   `game` id.
-- Add it to `src/games/registry.ts`: that's the `/play` choice, the card's text and limits, and
-  the size the page is laid out for, which gives the frame in the card its aspect ratio. The page
-  is drawn as wide as the card, so it has to work at a few hundred pixels, and full screen.
+- Add it to `src/games/registry.ts`: that's the `/play` choice, the card's text and limits, the
+  size the page is laid out for, which gives the frame in the card its aspect ratio, and its image,
+  an SVG at that aspect ratio in `src/app/public`, which the definition lists with the app. The
+  page is drawn as wide as the card, so it has to work at a few hundred pixels, and full screen.
 - Add its requests under `src/handlers/`, and route them in `src/app.ts`.
 - Draw it in `src/app/` by the state's `game`.
 
@@ -65,7 +73,8 @@ npm run dev
 source changes. Register the bot at `http://localhost:3100` with `/register_bot`, install it in a
 group, and run `/play`.
 
-- `npm test` runs the engine's and the race's tests.
+- `npm test` runs the engine's and the race's tests, the publisher's, and the server's for the
+  routes anyone can fetch.
 - `npm run check` type-checks the server and the page.
 - `npm run build` compiles the server to `dist/server` and the page to `dist/app`, which
   `npm start` serves.

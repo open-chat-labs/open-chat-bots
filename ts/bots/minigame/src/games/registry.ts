@@ -5,9 +5,19 @@ import type { MiniAppSize } from "@open-ic/openchat-botclient-ts";
 import { GAME_ID, MAX_PLAYERS, TARGET, TIME_LIMIT_MS } from "./race2048/types";
 
 export type GameType = {
-    /** The `/play` command's value, and the `game` in the shared state */
+    /**
+     * The `/play` command's value, the `game` in the shared state, and the app's name in the bot's
+     * definition, which its card names
+     */
     id: string;
     title: string;
+    /**
+     * The app's image, a path relative to the bot's endpoint, served as a static file from
+     * `src/app/public`. OpenChat shows it in the card's frame box whenever there's no app to show:
+     * before the app loads, to someone who can't open the game, and over a finished game with no
+     * end state. It's drawn at the app's aspect ratio, cropped to fill.
+     */
+    image: string;
     /** The card's text, markdown */
     cardText: string;
     maxPlayers: number;
@@ -23,6 +33,7 @@ export type GameType = {
 export const RACE_2048: GameType = {
     id: GAME_ID,
     title: "2048 Race",
+    image: "app/2048.svg",
     cardText:
         `**2048 Race** · up to ${MAX_PLAYERS} players\n` +
         `Everyone gets a board. The first to make a ${TARGET} tile wins, or the top score ` +
