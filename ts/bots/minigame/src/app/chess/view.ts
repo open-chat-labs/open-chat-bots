@@ -102,16 +102,15 @@ export const chessView: GameView = {
                   ? `<strong>${escape(host)}</strong>'s opponent plays White`
                   : "A coin decides who's White";
         const time =
-            `<strong>${minutes} minute${minutes === 1 ? "" : "s"}</strong> each for the whole game` +
+            `<strong>${minutes} minute${minutes === 1 ? "" : "s"}</strong> each` +
             (increment > 0
-                ? `, with <strong>${increment} second${increment === 1 ? "" : "s"}</strong> added after each move`
+                ? `, <strong>${increment} second${increment === 1 ? "" : "s"}</strong> added per move`
                 : "");
         return {
-            blurb: `Two players, with ${time}. ${whiteText}. The game ends on checkmate, a flag
-                falling, resignation, or a draw: agreed, stalemate, repetition, the fifty-move rule
-                or bare material.`,
+            // People know the rules of chess: just what's set
+            blurb: `${time}. ${whiteText}.`,
             seats: s.players.map((id) => ({ id, name: s.names[id] ?? shortId(id) })),
-            hint: "Start once you're both here. White moves first.",
+            hint: "Start once you're both here.",
             settings: { specs: CHESS_SETTINGS, current: s.settings, host: s.host ?? undefined },
         };
     },
