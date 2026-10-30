@@ -6,10 +6,35 @@ import {
 } from "@open-ic/openchat-botclient-ts";
 import { describe, expect, it, vi } from "vitest";
 import { ChessGame } from "./games/chess/chess";
+import { MAX_END_STATE_BYTES, type Game } from "./games/game";
 import { Race2048 } from "./games/race2048/race";
 import { TIME_LIMIT_MS } from "./games/race2048/types";
 import { Publisher } from "./publisher";
 import { GameStore } from "./store";
+
+/** A finished game of no kind the bot knows, with whatever end state the test gives it */
+function finishedGame(endState: unknown): Game {
+    return {
+        kind: "chess",
+        phase: "finished",
+        createdAt: 0,
+        finishedAt: 1,
+        isSeated: () => false,
+        isPlayer: () => false,
+        join: () => "The game has finished",
+        leave: () => false,
+        cannotStart: () => undefined,
+        start: () => [],
+        waitingFor: () => [],
+        endIfTimeUp: () => false,
+        resume: () => false,
+        nextSeq: () => 1,
+        shared: () => ({ version: 1, game: "fake" }),
+        result: () => "Somebody won",
+        endState: () => endState,
+        toJson: () => ({}),
+    };
+}
 
 const game: MiniAppGame = { chat: new GroupChatIdentifier("aaaaa-aa"), messageId: 1n };
 
@@ -110,5 +135,30 @@ describe("publisher", () => {
             moves: ["e4"],
         });
         expect((updates[2].endState as { fens: string[] }).fens).toHaveLength(2);
+    });
+
+    it("sends no end state over 16 KB, whatever the game, but still ends the card", async () => {
+        const { updates, store, publisher } = setUp();
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        try {
+            store.create(game, finishedGame({ big: "x".repeat(MAX_END_STATE_BYTES) }));
+            publisher.publish(game);
+            await published(updates, 1);
+            expect(updates[0].status).toBe("finished");
+            expect(updates[0].result).toBe("Somebody won");
+            expect(updates[0].endState).toBeUndefined();
+            expect(warn).toHaveBeenCalledTimes(1);
+
+            // One that just fits goes, measured in bytes: the "é"s are two each
+            const other: MiniAppGame = { chat: new GroupChatIdentifier("aaaaa-aa"), messageId: 2n };
+            const fits = { big: "é".repeat(MAX_END_STATE_BYTES / 2 - 5) };
+            expect(Buffer.byteLength(JSON.stringify(fits))).toBe(MAX_END_STATE_BYTES);
+            store.create(other, finishedGame(fits));
+            publisher.publish(other);
+            await published(updates, 2);
+            expect(updates[1].endState).toEqual(fits);
+        } finally {
+            warn.mockRestore();
+        }
     });
 });

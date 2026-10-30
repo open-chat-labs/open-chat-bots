@@ -109,6 +109,16 @@ export class Match {
     }
 
     /**
+     * The running clock didn't run for `ms`, eg. while the bot was down, so no one is charged
+     * for it: the side to move has what it had when the game was saved. Nothing once it's over.
+     */
+    pause(ms: number): boolean {
+        if (this.isOver || ms <= 0) return false;
+        this.#data.clock.since += ms;
+        return true;
+    }
+
+    /**
      * Plays the side's move, given as UCI: the squares it's from and to, eg. "e2e4", "e1g1" to
      * castle, with the piece to promote to on the end, eg. "e7e8q". The side's clock stops and the
      * other's starts, an offer of a draw by the other side lapses, and the game ends if the move

@@ -113,8 +113,10 @@ export class ChessGame implements Game {
             this.#data.players = this.#data.players.filter((p) => p.id !== userId);
             return this.#data.players.length < before;
         }
+        // A flag that fell before they left is the result: the leave doesn't change it
+        const flagged = this.endIfTimeUp();
         const side = this.sideOf(userId);
-        if (side === undefined || this.#match.isOver) return false;
+        if (side === undefined || this.#match.isOver) return flagged;
         this.#match.abandon(side, this.#now());
         this.#finished();
         return true;
@@ -158,6 +160,11 @@ export class ChessGame implements Game {
         return true;
     }
 
+    /** The side to move isn't charged for the time the bot was down */
+    resume(downMs: number): boolean {
+        return this.#match?.pause(downMs) ?? false;
+    }
+
     nextSeq(): number {
         return ++this.#data.seq;
     }
@@ -179,10 +186,7 @@ export class ChessGame implements Game {
     }
 
     // Something the user does to the board as the side they play
-    #act(
-        userId: string,
-        action: (match: Match, side: Side) => string | undefined,
-    ): ActionResponse {
+    #act(userId: string, action: (match: Match, side: Side) => string | undefined): ActionResponse {
         if (this.#match === undefined) {
             return {
                 ok: false,
@@ -206,7 +210,8 @@ export class ChessGame implements Game {
     shared(): SharedState {
         const names: Record<string, string> = {};
         for (const p of this.#data.players) names[p.id] = p.name;
-        const status = this.phase === "open" ? "Open" : this.phase === "active" ? "Active" : "Finished";
+        const status =
+            this.phase === "open" ? "Open" : this.phase === "active" ? "Active" : "Finished";
         return {
             version: STATE_VERSION,
             game: GAME_ID,
@@ -225,16 +230,22 @@ export class ChessGame implements Game {
     }
 
     /**
-     * The game as it ended, for the card to keep, within what the service takes: a very long game
-     * keeps only its final position, marked `truncated`, and one too long even for that sends
-     * nothing, so the card shows the image and the result
+     * The game as it ended, for the card to keep: the positions are the placement field of each
+     * FEN, which is all the app shows. A very long game keeps only its final position, marked
+     * `truncated`; one too long even for that is over the publisher's limit, which sends nothing,
+     * so the card shows the image and the result.
      */
     endState(): EndState | undefined {
         const match = this.#match;
         const white = this.white;
         const black = this.black;
         const ending = match?.ending;
-        if (match === undefined || ending === undefined || white === undefined || black === undefined) {
+        if (
+            match === undefined ||
+            ending === undefined ||
+            white === undefined ||
+            black === undefined
+        ) {
             return undefined;
         }
         const names: Record<string, string> = {};
@@ -247,7 +258,7 @@ export class ChessGame implements Game {
             black,
             names,
             moves: [...match.moves],
-            fens: [...match.fens],
+            fens: match.fens.map(placement),
             last_move: match.lastMove === undefined ? null : { ...match.lastMove },
         };
         return fitEndState(state);
@@ -258,9 +269,13 @@ export class ChessGame implements Game {
     }
 }
 
-/** The end state within the service's limit, or undefined if even its final position won't fit */
-export function fitEndState(state: EndState): EndState | undefined {
+/** The end state within the service's limit if it fits, or with only its final position if not */
+export function fitEndState(state: EndState): EndState {
     if (jsonBytes(state) <= MAX_END_STATE_BYTES) return state;
-    const truncated: EndState = { ...state, fens: state.fens.slice(-1), truncated: true };
-    return jsonBytes(truncated) <= MAX_END_STATE_BYTES ? truncated : undefined;
+    return { ...state, fens: state.fens.slice(-1), truncated: true };
+}
+
+/** The pieces on the board: the first field of a FEN */
+function placement(fen: string): string {
+    return fen.split(" ")[0];
 }

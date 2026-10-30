@@ -26,7 +26,12 @@ type GameJson = {
 
 type EntryJson = { game: GameJson; kind: GameKind; data: unknown };
 
-type FileJson = { apiGateway?: string; games: Record<string, EntryJson> };
+type FileJson = {
+    apiGateway?: string;
+    /** When the file was written, so a load knows how long the bot was down */
+    savedAt?: number;
+    games: Record<string, EntryJson>;
+};
 
 /** How long a finished game is kept, so late requests to it get a clear answer */
 const KEEP_FINISHED_MS = 2 * 60 * 60 * 1000;
@@ -37,6 +42,7 @@ const SAVE_DELAY_MS = 300;
 export class GameStore {
     readonly #file?: string;
     readonly #games = new Map<string, GameEntry>();
+    readonly #resumed: GameEntry[] = [];
     #apiGateway?: string;
     #saveTimer?: NodeJS.Timeout;
     #now: () => number;
@@ -85,6 +91,14 @@ export class GameStore {
         return this.#games.values();
     }
 
+    /**
+     * The games whose clocks skipped the time the bot was down, as they were loaded, for the
+     * server to publish once it can, so everyone sees the new deadline
+     */
+    get resumedOnLoad(): readonly GameEntry[] {
+        return this.#resumed;
+    }
+
     /** Drops games that are long over, or were never finished */
     prune(): number {
         const now = this.#now();
@@ -130,7 +144,7 @@ export class GameStore {
         for (const [key, { game, play }] of this.#games) {
             games[key] = { game: gameToJson(game), kind: play.kind, data: play.toJson() };
         }
-        const json: FileJson = { apiGateway: this.#apiGateway, games };
+        const json: FileJson = { apiGateway: this.#apiGateway, savedAt: this.#now(), games };
         fs.mkdirSync(path.dirname(this.#file), { recursive: true });
         const tmp = `${this.#file}.tmp`;
         fs.writeFileSync(tmp, JSON.stringify(json));
@@ -141,6 +155,9 @@ export class GameStore {
         if (this.#file === undefined || !fs.existsSync(this.#file)) return;
         const json = JSON.parse(fs.readFileSync(this.#file, "utf8")) as FileJson;
         this.#apiGateway = json.apiGateway;
+        // How long the bot was down, which a game's clock doesn't charge anyone for. A file from
+        // before `savedAt` was written counts as just saved.
+        const downMs = json.savedAt === undefined ? 0 : Math.max(0, this.#now() - json.savedAt);
         for (const [key, entry] of Object.entries(json.games ?? {})) {
             const type = gameType(entry.kind);
             if (type === undefined) {
@@ -148,12 +165,21 @@ export class GameStore {
                 continue;
             }
             try {
-                this.#games.set(key, { game: gameFromJson(entry.game), play: type.fromJson(entry.data) });
+                const loaded = { game: gameFromJson(entry.game), play: type.fromJson(entry.data) };
+                this.#games.set(key, loaded);
+                if (loaded.play.resume(downMs)) this.#resumed.push(loaded);
             } catch (err) {
                 console.warn(`Skipped a ${entry.kind} game that couldn't be read:`, err);
             }
         }
         console.log(`Loaded ${this.#games.size} games from ${this.#file}`);
+        if (this.#resumed.length > 0) {
+            console.log(
+                `${this.#resumed.length} games' clocks skipped the ${downMs} ms the bot was down`,
+            );
+            // So another stop before any change doesn't skip the same time again
+            this.save();
+        }
     }
 }
 

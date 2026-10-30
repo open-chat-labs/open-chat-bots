@@ -246,6 +246,11 @@ export class Race2048 implements Game {
         return [];
     }
 
+    /** A race ends at its time whether or not the bot was up for all of it */
+    resume(): boolean {
+        return false;
+    }
+
     /** The next state's `seq`, above every state published before */
     nextSeq(): number {
         return ++this.#data.seq;
@@ -261,7 +266,13 @@ export class Race2048 implements Game {
         }
         const { board, gained, moved } = slide(player.player.board, direction);
         if (!moved) {
-            return { ok: true, player: view(player.player), gained: 0, moved: false, phase: this.#data.phase };
+            return {
+                ok: true,
+                player: view(player.player),
+                gained: 0,
+                moved: false,
+                phase: this.#data.phase,
+            };
         }
         const p = player.player;
         // `slide` says the board changed, so there's an empty cell for the new tile

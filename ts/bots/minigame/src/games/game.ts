@@ -42,6 +42,12 @@ export interface Game {
      * by the bot, and before every request, so a game ends on time whether or not anyone's playing.
      */
     endIfTimeUp(): boolean;
+    /**
+     * The bot was down for `downMs` between saving the game and loading it back. A game with a
+     * clock that runs against a player doesn't charge them for it. Whether the game changed, when
+     * its state is published again.
+     */
+    resume(downMs: number): boolean;
     /** The next state's `seq`, above every state published before */
     nextSeq(): number;
     /** The state everyone sees, with a `version` and the `game`'s id */
@@ -49,8 +55,10 @@ export interface Game {
     /** The card's result once the game is over, eg. "White won by checkmate" */
     result(): string | undefined;
     /**
-     * How the game ended, for the card to keep and hand to the app, once it's over: any JSON value
-     * of at most 16 KB, or undefined to send none, when the card shows the image and the result
+     * How the game ended, for the card to keep and hand to the app, once it's over: any JSON
+     * value, or undefined to send none, when the card shows the image and the result. The
+     * publisher sends none over `MAX_END_STATE_BYTES`, so a game which can run long cuts its own
+     * down first, as chess does.
      */
     endState(): unknown;
     /** The game's whole state, for the store to write; the registry's `fromJson` reads it back */
@@ -62,8 +70,7 @@ export const MAX_END_STATE_BYTES = 16 * 1024;
 
 /**
  * How many bytes a JSON value takes serialized, as the service measures it: UTF-8 bytes, not
- * UTF-16 units, as `JSON.stringify(..).length` would give. `TextEncoder` is what both Node and the
- * browser have, as this is shared with the app's build.
+ * UTF-16 units, as `JSON.stringify(..).length` would give
  */
 export function jsonBytes(value: unknown): number {
     return new TextEncoder().encode(JSON.stringify(value)).length;

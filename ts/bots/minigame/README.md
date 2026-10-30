@@ -65,10 +65,11 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    hands to the page, so anyone opening a finished card sees how it went, read-only, and a page open
    as the game finishes shows the same. The 2048 end state is the final shared state, every board,
    the winner and the times. The chess end state is the result, who played, the moves, and the
-   position before each move and after the last, as FEN, which the page steps through with
-   Previous and Next, the arrow keys, or a tap on a move; a game too long for the service's 16 KB
-   keeps only its final position, marked `truncated`, and one too long even for that sends no end
-   state, so the card shows the image and the result.
+   position before each move and after the last, as the placement field of its FEN, the pieces on
+   the board, which the page steps through with Previous and Next, the arrow keys, or a tap on a
+   move; a game too long for the service's 16 KB keeps only its final position, marked
+   `truncated`, and one too long even for that sends no end state, so the card shows the image and
+   the result.
 
 The chess state everyone sees is the Rust ChessBot's, with the players' names added:
 
@@ -105,17 +106,17 @@ move's as UCI, empty once the game's over, and nothing is private. Its end state
   "black": "<user id>",
   "names": { "<user id>": "Alice", ... },
   "moves": ["f3", "e5", "g4", "Qh4#"],
-  "fens": ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "...", "..."],
+  "fens": ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", "...", "..."],
   "last_move": { "from": "d8", "to": "h4" } | null,
   "truncated": true
 }
 ```
 
-with one more FEN than there are moves, or only the final position with `truncated` set; otherwise
-`truncated` is left out. The 2048 end state is its shared state, `SharedState` in
-`src/games/race2048/types.ts`, with `phase: "finished"`. The page reads every version of an end
-state it can, as a card keeps its end state for good; only a live state from a newer bot asks it
-to reload.
+where `fens` are the positions' placement fields, one more than there are moves, or only the final
+position with `truncated` set; otherwise `truncated` is left out. The 2048 end state is its shared
+state, `SharedState` in `src/games/race2048/types.ts`, with `phase: "finished"`. The page reads
+every version of an end state it can, as a card keeps its end state for good; only a live state
+from a newer bot asks it to reload.
 
 The bot's definition lists each game's app with its image, `app/2048.svg` and `app/chess.svg`,
 hand-drawn SVGs served from `src/app/public`, which OpenChat shows in the card's frame whenever
@@ -123,15 +124,19 @@ there's no page to show: before it loads, to someone who can't open the game, an
 game with no end state.
 
 Games are kept in memory and written to `DATA_FILE` (`./data/games.json` by default) on every
-change, each with its `kind`, so a restart doesn't end them: a chess game's clock is persisted with
-the running side's deadline, so its flag still falls. A finished game is dropped after two hours,
-and one that never finished after a day, which is when the service ends a game that's had no update.
+change, each with its `kind`, so a restart doesn't end them. The file says when it was written,
+and a chess game's clock is persisted with the running side's time left, so the time the bot was
+down isn't charged to anyone: on loading, the side to move has what it had when the game was saved,
+and the game's state is published again with the new deadline. A finished game is dropped after
+two hours, and one that never finished after a day, which is when the service ends a game that's
+had no update.
 
 ## Adding a game
 
 - Add its rules under `src/games/<game>/`, as a class implementing `Game` (`src/games/game.ts`):
   seats, start, whose turn it is, its clock, a shared state carrying a `version` and the `game`'s
-  id, its result, its end state within 16 KB (`jsonBytes` measures it), and its data for the store.
+  id, its result, its end state, which the publisher sends only within 16 KB (`jsonBytes` measures
+  it), so a game which can run long cuts its own down first, and its data for the store.
 - Add it to `src/games/registry.ts`, with its `create` and `fromJson`: that's the `/play` choice,
   the card's text and limits, the size the page is laid out for, which gives the frame in the card
   its aspect ratio, and its image, an SVG at that aspect ratio in `src/app/public`, which the

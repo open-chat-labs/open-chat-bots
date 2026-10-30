@@ -10,6 +10,7 @@ import {
     type MiniAppGameUpdate,
     type MiniAppServiceClient,
 } from "@open-ic/openchat-botclient-ts";
+import { jsonBytes, MAX_END_STATE_BYTES } from "./games/game";
 import type { GameStore } from "./store";
 
 type Pending = { timer?: NodeJS.Timeout; inFlight: boolean; again: boolean; retries: number };
@@ -65,9 +66,19 @@ export class Publisher {
             update.status = "finished";
             update.result = play.result();
             // How the game ended, if the game has it to give: OpenChat writes it to the card and
-            // hands it to the app, which shows the finished game from it
+            // hands it to the app, which shows the finished game from it. The service takes so
+            // much of it; over that, the card shows the image and the result instead.
             const endState = play.endState();
-            if (endState !== undefined) update.endState = endState;
+            if (endState !== undefined) {
+                const bytes = jsonBytes(endState);
+                if (bytes <= MAX_END_STATE_BYTES) {
+                    update.endState = endState;
+                } else {
+                    console.warn(
+                        `The end state of ${miniAppGameKey(game)} is ${bytes} bytes, over the ${MAX_END_STATE_BYTES} the service takes, so none was sent`,
+                    );
+                }
+            }
         } else {
             // Whose turn it is, for the card, when the game has turns: the states go one at a time
             // per game, in order, so the latest is never put back by an earlier one

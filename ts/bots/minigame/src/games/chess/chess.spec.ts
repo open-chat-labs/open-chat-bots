@@ -128,7 +128,10 @@ describe("playing", () => {
         expect(game.result()).toBe("Black won by checkmate");
         expect(game.waitingFor()).toEqual([]);
         expect(game.deadline()).toBeUndefined();
-        expect(game.shared()).toMatchObject({ status: "Finished", result: "Black won by checkmate" });
+        expect(game.shared()).toMatchObject({
+            status: "Finished",
+            result: "Black won by checkmate",
+        });
         expect(game.endState()).toEqual({
             version: 1,
             game: "chess",
@@ -137,12 +140,13 @@ describe("playing", () => {
             black: "bob",
             names: { alice: "Alice", bob: "Bob" },
             moves: ["f3", "e5", "g4", "Qh4#"],
+            // The pieces on the board, without the rest of the FEN
             fens: [
-                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-                "rnbqkbnr/pppppppp/8/8/8/5P2/PPPPP1PP/RNBQKBNR b KQkq - 0 1",
-                "rnbqkbnr/pppp1ppp/8/4p3/8/5P2/PPPPP1PP/RNBQKBNR w KQkq - 0 2",
-                "rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2",
-                "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3",
+                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
+                "rnbqkbnr/pppppppp/8/8/8/5P2/PPPPP1PP/RNBQKBNR",
+                "rnbqkbnr/pppp1ppp/8/4p3/8/5P2/PPPPP1PP/RNBQKBNR",
+                "rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR",
+                "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR",
             ],
             last_move: { from: "d8", to: "h4" },
         });
@@ -185,7 +189,10 @@ describe("playing", () => {
         // A request that finds the time up ends the game instead
         const late = started();
         late.time.tick(TIME_PER_SIDE_MS);
-        expect(late.game.move("alice", "e2e4")).toEqual({ ok: false, error: "The game has finished" });
+        expect(late.game.move("alice", "e2e4")).toEqual({
+            ok: false,
+            error: "The game has finished",
+        });
         expect(late.game.result()).toBe("Black won on time");
         expect(late.game.endState()).toMatchObject({ moves: [], fens: [expect.any(String)] });
     });
@@ -199,6 +206,37 @@ describe("playing", () => {
         expect(game.leave("alice")).toBe(false);
         // Who played is as it was
         expect(game.shared().players).toEqual(["alice", "bob"]);
+    });
+
+    it("a leave after the flag fell leaves the result on time", () => {
+        const { game, time } = started();
+        time.tick(TIME_PER_SIDE_MS);
+        // White's flag fell first: the game changed, but not to abandonment
+        expect(game.leave("alice")).toBe(true);
+        expect(game.result()).toBe("Black won on time");
+        expect(game.finishedAt).toBe(time.now());
+        expect(game.leave("bob")).toBe(false);
+        expect(game.result()).toBe("Black won on time");
+    });
+
+    it("doesn't charge the side to move for the time the bot was down", () => {
+        const { game, time } = started();
+        time.tick(1000);
+        game.move("alice", "e2e4");
+        time.tick(4000);
+        // Down for five minutes from here
+        time.tick(5 * 60_000);
+        expect(game.resume(5 * 60_000)).toBe(true);
+        expect(game.shared().clock).toMatchObject({
+            white_ms: TIME_PER_SIDE_MS - 1000,
+            black_ms: TIME_PER_SIDE_MS - 4000,
+            running: "black",
+        });
+        expect(game.deadline()).toBe(time.now() + TIME_PER_SIDE_MS - 4000);
+        // Nothing to skip once the game's over, or before it starts
+        game.resign("bob");
+        expect(game.resume(1000)).toBe(false);
+        expect(ChessGame.create().resume(1000)).toBe(false);
     });
 
     it("is rebuilt from its data", () => {
@@ -221,7 +259,8 @@ describe("playing", () => {
 });
 
 describe("the end state", () => {
-    const start = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    // Positions a placement's size, one per ply: a synthetic game, so they needn't be legal
+    const position = (ply: number) => `rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/${ply}`;
     const endState = (plies: number): EndState => ({
         version: 1,
         game: "chess",
@@ -230,7 +269,7 @@ describe("the end state", () => {
         black: "bob",
         names: { alice: "Alice", bob: "Bob" },
         moves: Array.from({ length: plies }, (_, ply) => (ply % 2 === 0 ? "Nf3" : "Nf6")),
-        fens: Array.from({ length: plies + 1 }, (_, ply) => `${start} ${ply}`),
+        fens: Array.from({ length: plies + 1 }, (_, ply) => position(ply)),
         last_move: { from: "g8", to: "f6" },
     });
 
@@ -244,16 +283,18 @@ describe("the end state", () => {
     it("keeps only the final position of a very long game", () => {
         const long = fitEndState(endState(600))!;
         expect(long.truncated).toBe(true);
-        expect(long.fens).toEqual([`${start} 600`]);
+        expect(long.fens).toEqual([position(600)]);
         expect(long.moves).toHaveLength(600);
         expect(long.result).toBe("Draw by agreement");
         expect(jsonBytes(long)).toBeLessThanOrEqual(MAX_END_STATE_BYTES);
     });
 
-    it("sends nothing when even the final position won't fit", () => {
+    it("is still over the limit when even the final position won't fit, so the publisher sends none", () => {
         const state = endState(4000);
-        expect(jsonBytes({ ...state, fens: state.fens.slice(-1) })).toBeGreaterThan(MAX_END_STATE_BYTES);
-        expect(fitEndState(state)).toBeUndefined();
+        const fitted = fitEndState(state);
+        expect(fitted.truncated).toBe(true);
+        expect(fitted.fens).toEqual([position(4000)]);
+        expect(jsonBytes(fitted)).toBeGreaterThan(MAX_END_STATE_BYTES);
     });
 
     it("measures bytes, not UTF-16 units", () => {

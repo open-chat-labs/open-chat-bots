@@ -185,11 +185,14 @@ async function move(direction: Direction) {
     if (!predicted.moved) return;
     const score = own.score + predicted.gained;
     own = { ...own, board: predicted.board, score, best: Math.max(own.best, score) };
+    // Sending from here, before the predicted board is drawn: a render syncs the player's board
+    // from the shared state unless a move is being answered, and the prediction has the same
+    // `rev` as the state's board, which would put the old board back
+    sending = true;
     ownMove = direction;
     ctx.render();
     ownMove = undefined;
 
-    sending = true;
     try {
         const response = await ctx.oc.fetch("/api/2048/move", {
             method: "POST",
@@ -424,7 +427,11 @@ function renderHint() {
 }
 
 /** How the race ended, for the banner */
-function ending(shared: SharedState, winner: PlayerView | undefined, me: string | undefined): string {
+function ending(
+    shared: SharedState,
+    winner: PlayerView | undefined,
+    me: string | undefined,
+): string {
     if (winner === undefined) return "The race is over";
     const who = `<strong>${escape(winner.name)}</strong> ${winner.id === me ? "(you) " : ""}`;
     if (shared.ended === "time") {

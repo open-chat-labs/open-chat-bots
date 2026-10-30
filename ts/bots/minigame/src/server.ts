@@ -82,6 +82,12 @@ const deps: Deps = {
     raceTimeLimit: config.raceTimeLimit,
 };
 
+// A chess game that was running when the bot stopped: its clock skipped the time the bot was
+// down, so everyone with it open gets the new deadline
+for (const { game } of store.resumedOnLoad) {
+    deps.publisher.publish(game);
+}
+
 const app = createApp(deps, config.appDir);
 app.listen(config.port, () => {
     console.log(`MiniGameBot listening on port ${config.port}, with ${store.size} games`);

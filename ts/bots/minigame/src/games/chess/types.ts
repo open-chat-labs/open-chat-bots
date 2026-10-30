@@ -65,6 +65,8 @@ export type SharedState = {
  * How a game ended, as the card keeps it: the result, who played, the moves, and the position
  * before the first and after each, so the app can step through the game. If the whole game won't
  * fit in what the service takes, only the final position is kept, and `truncated` says so.
+ * A position is the placement field of its FEN, the pieces on the board, which is all the app
+ * shows of it.
  */
 export type EndState = {
     version: typeof STATE_VERSION;
@@ -75,7 +77,10 @@ export type EndState = {
     names: Record<string, string>;
     /** In standard algebraic notation, as the state's */
     moves: string[];
-    /** One more than `moves`, the last being the final position, or only the final position if `truncated` */
+    /**
+     * The pieces on the board, eg. "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR": one more than
+     * `moves`, the last being the final position, or only the final position if `truncated`
+     */
     fens: string[];
     last_move: LastMove | null;
     truncated?: true;
