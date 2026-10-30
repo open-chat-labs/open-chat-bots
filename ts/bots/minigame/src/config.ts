@@ -1,3 +1,5 @@
+import type { Settings } from "./games/settings";
+
 export type Config = {
     port: number;
     openchatPublicKey: string;
@@ -13,10 +15,8 @@ export type Config = {
     dataFile?: string;
     /** The built app, served at `/app` */
     appDir: string;
-    /** The tile which wins a race, 2048 unless set lower to test a race end to end */
-    raceTarget?: number;
-    /** How long a race lasts, in ms, 10 minutes unless set shorter to test the time running out */
-    raceTimeLimit?: number;
+    /** A race's settings unless the command or the host sets them: the defaults are 2048 and 10 minutes */
+    raceSettings?: Settings;
 };
 
 export function configFromEnv(env: NodeJS.ProcessEnv = process.env): Config {
@@ -42,8 +42,14 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): Config {
         apiGateway: optional("OC_API_GATEWAY"),
         dataFile: optional("DATA_FILE") ?? "./data/games.json",
         appDir: optional("APP_DIR") ?? "./dist/app",
-        raceTarget: optional("RACE_TARGET") === undefined ? undefined : Number(env.RACE_TARGET),
-        raceTimeLimit:
-            optional("RACE_SECONDS") === undefined ? undefined : Number(env.RACE_SECONDS) * 1000,
+        raceSettings: raceSettingsFromEnv(optional("RACE_TARGET"), optional("RACE_SECONDS")),
     };
+}
+
+/** The race's default settings from the env, for trying a race out: a low tile, a short time */
+function raceSettingsFromEnv(target?: string, seconds?: string): Settings | undefined {
+    const settings: Settings = {};
+    if (target !== undefined) settings.target = Number(target);
+    if (seconds !== undefined) settings.minutes = Number(seconds) / 60;
+    return Object.keys(settings).length === 0 ? undefined : settings;
 }

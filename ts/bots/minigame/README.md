@@ -14,7 +14,11 @@ it and adds the new tile.
 ## How a game runs
 
 1. **`/play 2048`** asks the LocalUserIndex for a post token, records the game, and has the MiniApp
-   service post the card. The service is the only thing that posts a card or writes its status;
+   service post the card. The command's other parameters are the game's settings, the winning
+   tile and the time limit, which are the defaults if left out; the game's host, who ran the
+   command, can change them in the lobby until the race starts (`POST /api/2048/settings`), and
+   everyone in the lobby sees them. A game declares its settings (`src/games/settings.ts`), which
+   gives it the parameters, the check on a change, and the lobby's form. The service is the only thing that posts a card or writes its status;
    the protocol is open-chat's `backend/docs/mini_app_service_protocol.md`.
 2. **Joining** goes through OpenChat's buttons on the card. The service asks the bot at
    `POST /mini_app/join`, which looks the user's name up and gives them a seat, up to 10. Leaving,
@@ -44,8 +48,8 @@ never finished after a day, which is when the service ends a game that's had no 
 
 - Add its rules under `src/games/<game>/`, with a shared state type carrying a `version` and a
   `game` id.
-- Add it to `src/games/registry.ts`: that's the `/play` choice, the card's text and limits, and
-  the size the page is laid out for, which gives the frame in the card its aspect ratio. The page
+- Add it to `src/games/registry.ts`: that's the `/play` choice, the card's text and limits, its
+  settings, and the size the page is laid out for, which gives the frame in the card its aspect ratio. The page
   is drawn as wide as the card, so it has to work at a few hundred pixels, and full screen.
 - Add its requests under `src/handlers/`, and route them in `src/app.ts`.
 - Draw it in `src/app/` by the state's `game`.
@@ -84,8 +88,8 @@ group, and run `/play`.
 | `OC_API_GATEWAY` | A LocalUserIndex to get the bot's service token from. Optional: the bot remembers the last command's. |
 | `DATA_FILE` | Where the games are kept, `./data/games.json` if not set. |
 | `APP_DIR` | The built page, `./dist/app` if not set. |
-| `RACE_TARGET` | The tile which wins a race, 2048 if not set. Set it low, eg. 16, to test a race end to end. |
-| `RACE_SECONDS` | How long a race lasts, 600 if not set. Set it short to see the time run out. |
+| `RACE_TARGET` | The winning tile unless the command or the host sets it, 2048 if not set. Set it low, eg. 16, to test a race end to end. |
+| `RACE_SECONDS` | The time limit unless the command or the host sets it, 600 if not set. Set it short to see the time run out. |
 
 ## Docker
 
