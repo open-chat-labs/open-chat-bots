@@ -388,12 +388,16 @@ app.post("/mini_app/start", async (req, res) => {
             players: g.seats, // as they are now
             waitingFor: [g.seats[0]],
             state: g.firstState,
+            // Fixed at the start, kept by the card, and handed to the app whenever it opens
+            settings: { handSize: 7 },
         }),
     );
 });
 ```
 
-Answer within 5 seconds.
+Answer within 5 seconds. `settings` is any JSON of at most 4 KB, eg. what the host chose in the
+lobby: the service writes it into the card, which keeps it as long as it exists, and OpenChat hands
+it to the app (`openChat.settings`) whenever the game's opened, and never reads it itself.
 
 - **The players** should each be playing, or have a join the bot's still answering. Anyone else
   isn't added, and the bot's told they left, eg. a player whose leave hadn't reached it yet. Anyone
@@ -472,8 +476,9 @@ for a new player token before the current one expires, and sends it only with re
 own origin. When the app is opened on a game that's over, `finished` is true from the start: there's
 no token, the role is "player" if the user was one of the game's players, no state comes, and
 OpenChat sends the bot's end state, `endState`, which the app shows its end view from. It also has
-`userId`, `token`, `darkMode`, `locale`, `refreshToken()` and `close()`. Serve the page as static,
-cacheable files, as it's the only thing spectators fetch from the bot.
+`userId`, `token`, `darkMode`, `locale`, `settings` (what the bot gave when it started the game, see
+step 3), `refreshToken()` and `close()`. Serve the page as static, cacheable files, as it's the only
+thing spectators fetch from the bot.
 
 ### 6. Verify player tokens on the app's requests
 

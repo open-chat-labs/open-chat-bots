@@ -934,6 +934,9 @@ export type MiniAppActive = {
     players: string[];
     // The players whose turn it is, or no one in particular, eg. in a game without turns
     waitingFor: string[];
+    // The game's settings as JSON text, if the bot gave any when it started the game. OpenChat
+    // keeps them and hands them to the app, and never reads them itself.
+    settings?: string;
 };
 
 export type MiniAppFinished = {
@@ -946,6 +949,8 @@ export type MiniAppFinished = {
     // OpenChat hands to the bot's app in the card. None if the bot gave none, when the card shows
     // the app's image and the result instead.
     endState?: string;
+    // The game's settings as JSON text, as they were when it started, if the bot gave any
+    settings?: string;
 };
 
 export type ChatEventsCriteria = ChatEventsPage | ChatEventsByIndex | ChatEventsWindow;

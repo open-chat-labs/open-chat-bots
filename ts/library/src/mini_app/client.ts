@@ -6,8 +6,9 @@
 // - the page sends `{ kind: "mini_app_ready" }` once it's listening, to any origin, as it carries
 //   nothing secret;
 // - OpenChat answers `{ kind: "initialise_mini_app", role, user_id, token, dark_mode, locale,
-//   finished }`, where only a player gets a `token`. The page accepts it only from the window it's
-//   framed in, and after it takes messages only from, and sends them only to, its origin;
+//   finished, settings }`, where only a player gets a `token`, and `settings` is what the bot gave
+//   when the game started, if anything. The page accepts it only from the window it's framed in,
+//   and after it takes messages only from, and sends them only to, its origin;
 // - OpenChat sends `{ kind: "mini_app_state", seq, shared, private }` with the game's latest state,
 //   and each one after it. Only a player gets `private`, their own part;
 // - OpenChat sends `initialise_mini_app` again when the user's role changes, eg. as they joined the
@@ -67,6 +68,7 @@ export type OpenChatToMiniApp =
           // Whether the game is over, with how it ended in its card: then there's no token, and
           // `mini_app_end_state` follows in place of any state
           finished: boolean;
+          settings?: unknown;
       }
     | { kind: "mini_app_token"; token: string }
     | { kind: "mini_app_state"; seq: number; shared: unknown; private?: unknown }
@@ -181,6 +183,7 @@ export class MiniAppClient<Shared = unknown, Private = unknown, EndState = unkno
     #endState?: EndState;
     #darkMode: boolean;
     #locale: string;
+    #settings: unknown;
     #roleListeners = new Listeners<MiniAppRole>();
     #stateListeners = new Listeners<MiniAppState<Shared, Private>>();
     #endStateListeners = new Listeners<EndState>();
@@ -217,6 +220,7 @@ export class MiniAppClient<Shared = unknown, Private = unknown, EndState = unkno
         this.#finished = initialise.finished;
         this.#darkMode = initialise.dark_mode;
         this.#locale = initialise.locale;
+        this.#settings = initialise.settings;
         this.#timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
         this.#refreshBeforeExpiryMs =
             options.refreshBeforeExpiryMs ?? DEFAULT_REFRESH_BEFORE_EXPIRY_MS;
@@ -279,6 +283,14 @@ export class MiniAppClient<Shared = unknown, Private = unknown, EndState = unkno
     /** The user's language in OpenChat, eg. "en" */
     get locale(): string {
         return this.#locale;
+    }
+
+    /**
+     * The game's settings, as the bot gave them when it started the game, or undefined before
+     * the start or if it gave none. The card keeps them, so they're here whenever the game's open.
+     */
+    get settings(): unknown {
+        return this.#settings;
     }
 
     /**
@@ -432,6 +444,7 @@ export class MiniAppClient<Shared = unknown, Private = unknown, EndState = unkno
                 if (message.finished) {
                     this.#finished = true;
                 }
+                this.#settings = message.settings;
                 this.#setToken(message.token);
                 if (roleChanged) {
                     this.#roleListeners.notify(message.role);
@@ -596,6 +609,7 @@ function openChatMessage(data: unknown): OpenChatToMiniApp | undefined {
                       dark_mode: message.dark_mode === true,
                       locale: typeof message.locale === "string" ? message.locale : "en",
                       finished: message.finished === true,
+                      settings: message.settings ?? undefined,
                   }
                 : undefined;
         case "mini_app_token":
