@@ -385,6 +385,11 @@ pub struct MiniAppActive {
     pub players: Vec<UserId>,
     /// The players whose turn it is, or no one in particular, eg. in a game without turns
     pub waiting_for: Vec<UserId>,
+    /// The game's settings as JSON text, if the bot gave any when it started the game, eg. what
+    /// the host chose in the lobby: at most 4 KB. OpenChat keeps them and hands them to the app,
+    /// and never reads them itself.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settings: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -399,6 +404,9 @@ pub struct MiniAppFinished {
     /// `{ kind: "mini_app_end_state", state }`. None if the bot gave none, when the card shows the
     /// app's image and the result instead.
     pub end_state: Option<String>,
+    /// The game's settings as JSON text, as they were when it started, if the bot gave any
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settings: Option<String>,
 }
 
 impl MiniAppStatus {
@@ -1099,16 +1107,19 @@ mod tests {
             MiniAppStatus::Active(MiniAppActive {
                 players: vec![user(1), user(2)],
                 waiting_for: vec![user(2)],
+                settings: Some("{\"target\":2048}".to_string()),
             }),
             MiniAppStatus::Finished(MiniAppFinished {
                 players: vec![user(1), user(2)],
                 result: Some("Bob won".to_string()),
                 end_state: Some(r#"{"winner":"bob"}"#.to_string()),
+                settings: Some("{\"target\":2048}".to_string()),
             }),
             MiniAppStatus::Finished(MiniAppFinished {
                 players: Vec::new(),
                 result: None,
                 end_state: None,
+                settings: None,
             }),
         ]
     }
@@ -1172,11 +1183,13 @@ mod tests {
             Active {
                 players: Vec<UserId>,
                 waiting_for: Vec<UserId>,
+                settings: Option<String>,
             },
             Finished {
                 players: Vec<UserId>,
                 result: Option<String>,
                 end_state: Option<String>,
+                settings: Option<String>,
             },
         }
         #[derive(Serialize)]
@@ -1189,16 +1202,19 @@ mod tests {
             OpenChatStatus::Active {
                 players: vec![user(1), user(2)],
                 waiting_for: vec![user(2)],
+                settings: Some("{\"target\":2048}".to_string()),
             },
             OpenChatStatus::Finished {
                 players: vec![user(1), user(2)],
                 result: Some("Bob won".to_string()),
                 end_state: Some(r#"{"winner":"bob"}"#.to_string()),
+                settings: Some("{\"target\":2048}".to_string()),
             },
             OpenChatStatus::Finished {
                 players: Vec::new(),
                 result: None,
                 end_state: None,
+                settings: None,
             },
         ];
         for (status, expected) in statuses.into_iter().zip(mini_app_statuses()) {
