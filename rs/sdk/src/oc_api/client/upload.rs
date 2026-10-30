@@ -122,7 +122,7 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
     ///
     /// ```ignore
     /// let image = client.upload_mini_app_image(storage_index, png, image::ImageFormat::Png).await?;
-    /// let card = MiniAppContent::new("**Tic-tac-toe** · tap Open to play").with_image(image);
+    /// let card = MiniAppContent::new("**Tic-tac-toe** · tap Open to play", 440, 740).with_image(image);
     /// ```
     pub async fn upload_mini_app_image(
         &self,
