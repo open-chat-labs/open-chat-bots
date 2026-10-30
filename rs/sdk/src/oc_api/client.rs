@@ -23,6 +23,8 @@ use delete_messages::DeleteMessagesBuilder;
 use edit_message::EditMessageBuilder;
 use installation_events::InstallationEventsBuilder;
 use invite_users::InviteUsersBuilder;
+use mini_app_post_token::MiniAppPostTokenBuilder;
+use mini_app_token::MiniAppTokenBuilder;
 use send_message::SendMessageBuilder;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -44,6 +46,8 @@ mod edit_message;
 mod installation_events;
 mod invite_users;
 mod members;
+mod mini_app_post_token;
+mod mini_app_token;
 mod remove_user;
 mod send_message;
 mod upload;
@@ -135,6 +139,14 @@ impl<R: Runtime, C: ActionContext> Client<R, C> {
         MembersBuilder::new(self, member_types)
     }
 
+    /// A token which lets OpenChat's MiniApp service post one MiniApp card for the bot, where
+    /// `send_message` would send a message: as a command's message, or autonomously in the chat, or
+    /// the channel given with `in_channel`. Valid for an hour. The offchain SDK's
+    /// `MiniAppServiceClient::post` posts the card with it, as `send_message` refuses a card.
+    pub fn mini_app_post_token(&self) -> MiniAppPostTokenBuilder<'_, R, C> {
+        MiniAppPostTokenBuilder::new(self)
+    }
+
     pub fn remove_user(&self, user_id: UserId) -> RemoveUserBuilder<'_, R, C> {
         RemoveUserBuilder::new(self, user_id)
     }
@@ -187,5 +199,14 @@ impl<R: Runtime> Client<R, CanisterId> {
     #[cfg(feature = "bridge")]
     pub fn unlink_bridged_user(&self, user: BridgedUserId) -> UnlinkBridgedUserBuilder<'_, R> {
         UnlinkBridgedUserBuilder::new(self, user)
+    }
+}
+
+// Calls to a LocalUserIndex, whose id is the client's context, eg. a command's `api_gateway`
+impl<R: Runtime> Client<R, CanisterId> {
+    /// A token which says which bot is calling OpenChat's MiniApp service, valid for an hour. Any
+    /// LocalUserIndex gives one. The offchain SDK's `MiniAppServiceClient` gets and refreshes it.
+    pub fn mini_app_token(&self) -> MiniAppTokenBuilder<'_, R> {
+        MiniAppTokenBuilder::new(self)
     }
 }

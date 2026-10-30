@@ -274,6 +274,8 @@ pub enum MessagePermission {
     Prize = 8,
     P2pSwap = 9,
     VideoCall = 10,
+    /// To post a MiniApp card, a [`crate::types::MiniAppContent`]
+    MiniApp = 11,
 }
 
 impl From<MessagePermission> for u8 {
@@ -298,6 +300,7 @@ impl TryFrom<u8> for MessagePermission {
             8 => Ok(MessagePermission::Prize),
             9 => Ok(MessagePermission::P2pSwap),
             10 => Ok(MessagePermission::VideoCall),
+            11 => Ok(MessagePermission::MiniApp),
             _ => Err(()),
         }
     }
@@ -441,6 +444,25 @@ mod tests {
             assert_eq!(chat, permissions.chat());
             assert_eq!(message, permissions.message());
         }
+    }
+
+    // As OpenChat numbers them, each its own bit
+    #[test]
+    fn mini_app_is_message_permission_11() {
+        let permissions = BotPermissions::from_message_permission(MessagePermission::MiniApp);
+
+        assert_eq!(
+            serde_json::to_string(&permissions).unwrap(),
+            r#"{"message":2048}"#
+        );
+        assert_eq!(
+            permissions.message(),
+            HashSet::from([MessagePermission::MiniApp])
+        );
+        assert_eq!(
+            serde_json::to_string(&MessagePermission::MiniApp).unwrap(),
+            r#""MiniApp""#
+        );
     }
 
     #[test]
