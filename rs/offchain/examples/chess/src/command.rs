@@ -82,10 +82,9 @@ impl CommandHandler<AgentRuntime> for Chess {
 /// The card: two players, anyone can watch, and the app's a board with its clocks, moves and
 /// buttons, so taller than wide
 pub fn card() -> MiniAppContent {
-    MiniAppContent::new(CARD_TEXT)
+    MiniAppContent::new(CARD_TEXT, APP_WIDTH, APP_HEIGHT)
         .with_max_players(2)
         .with_spectators(true)
-        .with_app_size(APP_WIDTH, APP_HEIGHT)
 }
 
 /// What the app's laid out for, in CSS pixels: the card shows it at this aspect ratio
