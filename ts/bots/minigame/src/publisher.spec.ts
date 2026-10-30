@@ -125,11 +125,11 @@ describe("publisher", () => {
         await published(updates, 3);
         expect(updates[2].waitingFor).toBeUndefined();
         expect(updates[2].status).toBe("finished");
-        expect(updates[2].result).toBe("White won by resignation");
+        expect(updates[2].result).toBe("Black resigned");
         expect(updates[2].endState).toMatchObject({
             version: 1,
             game: "chess",
-            result: "White won by resignation",
+            result: "Black resigned",
             white: "alice",
             black: "bob",
             moves: ["e4"],

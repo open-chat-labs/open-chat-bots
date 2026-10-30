@@ -233,7 +233,7 @@ describe("playing", () => {
         const other = started();
         const resigned = other.game.resign("alice");
         expect(resigned.ok).toBe(true);
-        expect(other.game.result()).toBe("Black won by resignation");
+        expect(other.game.result()).toBe("White resigned");
         expect(other.game.offerDraw("bob")).toEqual({ ok: false, error: "The game has finished" });
         expect(other.game.resign("carol")).toEqual({ ok: false, error: "You're not playing" });
     });

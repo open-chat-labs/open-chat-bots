@@ -311,7 +311,8 @@ export function describe(ending: Ending): string {
         case "checkmate":
             return `${sideName(ending.winner)} won by checkmate`;
         case "resignation":
-            return `${sideName(ending.winner)} won by resignation`;
+            // Said as what happened, rather than who it gave the game to
+            return `${sideName(other(ending.winner))} resigned`;
         case "timeout":
             return `${sideName(ending.winner)} won on time`;
         case "abandonment":
