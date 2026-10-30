@@ -349,8 +349,17 @@ pub struct MiniAppContent {
     pub max_players: Option<u32>,
     /// Whether people who aren't playing can watch: members, and anyone who can see a public chat
     pub spectators: bool,
+    /// The size the app's designed for, in CSS pixels, eg. 440 by 740. The card shows the app at
+    /// that aspect ratio, sized before the app loads, so the chat doesn't jump as it does.
+    pub app_size: MiniAppSize,
     /// Open when the bot posts it, after which only the MiniApp service changes it
     pub status: MiniAppStatus,
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub struct MiniAppSize {
+    pub width: u32,
+    pub height: u32,
 }
 
 /// A card's image, which the bot uploads to OpenChat's storage first, as for an image message, eg.
@@ -414,14 +423,24 @@ impl MiniAppContent {
     pub const MAX_PLAYERS: usize = 100;
     /// The longest result the MiniApp service takes, to write to the card when the game finishes
     pub const MAX_RESULT_CHARS: usize = 200;
+    /// An app's size is in pixels, no more than this each way, and no taller or wider than this
+    /// ratio
+    pub const MAX_APP_SIZE: u32 = 10_000;
+    pub const MAX_APP_SIZE_RATIO: u32 = 3;
 
-    /// A card without an image, open, with no limit on players, which only its players can open
-    pub fn new(text: impl Into<String>) -> Self {
+    /// A card without an image, open, with no limit on players, which only its players can open.
+    /// The app's size is what it's laid out for, in CSS pixels, so the card shows it at that aspect
+    /// ratio, sized before it loads: each 1 to 10,000, and neither more than three times the other.
+    pub fn new(text: impl Into<String>, app_width: u32, app_height: u32) -> Self {
         MiniAppContent {
             text: text.into(),
             image: None,
             max_players: None,
             spectators: false,
+            app_size: MiniAppSize {
+                width: app_width,
+                height: app_height,
+            },
             status: MiniAppStatus::Open,
         }
     }
@@ -461,6 +480,27 @@ impl MiniAppContent {
                 "A game has 1 to {} players at most",
                 Self::MAX_PLAYERS
             ));
+        }
+        {
+            let size = self.app_size;
+            if size.width == 0
+                || size.height == 0
+                || size.width > Self::MAX_APP_SIZE
+                || size.height > Self::MAX_APP_SIZE
+            {
+                return Err(format!(
+                    "The app's size is 1 to {} pixels each way",
+                    Self::MAX_APP_SIZE
+                ));
+            }
+            if size.width > size.height * Self::MAX_APP_SIZE_RATIO
+                || size.height > size.width * Self::MAX_APP_SIZE_RATIO
+            {
+                return Err(format!(
+                    "The app's size is at most {}:1 either way",
+                    Self::MAX_APP_SIZE_RATIO
+                ));
+            }
         }
         // OpenChat's other checks are of the players, whose turn it is and the result, which an
         // open card has none of
@@ -1098,10 +1138,23 @@ mod tests {
     }
 
     #[test]
+    fn a_cards_app_size_is_within_reason() {
+        for (width, height) in [(0, 500), (500, 0), (20_000, 500), (100, 400), (400, 100)] {
+            assert!(
+                MiniAppContent::new("Uno", width, height)
+                    .validate()
+                    .is_err(),
+                "{width} by {height}"
+            );
+        }
+        assert_eq!(MiniAppContent::new("Uno", 440, 740).validate(), Ok(()));
+    }
+
+    #[test]
     fn a_mini_app_reads_back_as_it_was_written() {
         for image in [None, Some(mini_app_image())] {
             for status in mini_app_statuses() {
-                let mut card = MiniAppContent::new("**Uno** · 2 to 4 players")
+                let mut card = MiniAppContent::new("**Uno** · 2 to 4 players", 440, 740)
                     .with_max_players(4)
                     .with_spectators(true);
                 card.image = image.clone();
@@ -1137,6 +1190,7 @@ mod tests {
             image: Option<MiniAppImage>,
             max_players: Option<u32>,
             spectators: bool,
+            app_size: MiniAppSize,
             status: OpenChatStatus,
         }
         #[derive(Serialize)]
@@ -1177,6 +1231,10 @@ mod tests {
                 image: Some(mini_app_image()),
                 max_players: Some(4),
                 spectators: true,
+                app_size: MiniAppSize {
+                    width: 440,
+                    height: 740,
+                },
                 status,
             }));
             let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
@@ -1191,6 +1249,10 @@ mod tests {
                     image: Some(mini_app_image()),
                     max_players: Some(4),
                     spectators: true,
+                    app_size: MiniAppSize {
+                        width: 440,
+                        height: 740
+                    },
                     status: expected,
                 }
             );
@@ -1202,17 +1264,23 @@ mod tests {
             image: None,
             max_players: None,
             spectators: false,
+            app_size: MiniAppSize {
+                width: 440,
+                height: 740,
+            },
             status: OpenChatStatus::Open,
         }));
         let content: MessageContent = msgpack::deserialize_then_unwrap(&bytes);
-        assert!(matches!(content, MessageContent::MiniApp(c) if c == MiniAppContent::new("x")));
+        assert!(
+            matches!(content, MessageContent::MiniApp(c) if c == MiniAppContent::new("x", 440, 740))
+        );
     }
 
-    // OpenChat needs every field but the image and player limit, and reads a nil as none
+    // OpenChat needs every field but the image, player limit and app size, and reads a nil as none
     #[test]
     fn a_mini_app_is_sent_with_every_field() {
         let bytes = msgpack::serialize_then_unwrap(MessageContentInitial::MiniApp(
-            MiniAppContent::new("x").with_spectators(true),
+            MiniAppContent::new("x", 440, 740).with_spectators(true),
         ));
 
         assert_eq!(
@@ -1223,6 +1291,7 @@ mod tests {
                     "image": null,
                     "max_players": null,
                     "spectators": true,
+                    "app_size": { "width": 440, "height": 740 },
                     "status": "Open",
                 }
             })
@@ -1244,9 +1313,9 @@ mod tests {
 
     #[test]
     fn a_mini_app_is_valid_with_1_to_2000_characters() {
-        assert_eq!(MiniAppContent::new("x").validate(), Ok(()));
+        assert_eq!(MiniAppContent::new("x", 440, 740).validate(), Ok(()));
         assert_eq!(
-            MiniAppContent::new("é".repeat(MiniAppContent::MAX_TEXT_CHARS)).validate(),
+            MiniAppContent::new("é".repeat(MiniAppContent::MAX_TEXT_CHARS), 440, 740).validate(),
             Ok(())
         );
 
@@ -1256,7 +1325,7 @@ mod tests {
             "x".repeat(MiniAppContent::MAX_TEXT_CHARS + 1),
         ] {
             assert_eq!(
-                MiniAppContent::new(text).validate(),
+                MiniAppContent::new(text, 440, 740).validate(),
                 Err("The text must have 1 to 2000 characters".to_string())
             );
         }
@@ -1267,7 +1336,9 @@ mod tests {
         let card = |change: fn(&mut MiniAppImage)| {
             let mut image = mini_app_image();
             change(&mut image);
-            MiniAppContent::new("x").with_image(image).validate()
+            MiniAppContent::new("x", 440, 740)
+                .with_image(image)
+                .validate()
         };
 
         assert_eq!(card(|_| ()), Ok(()));
@@ -1285,7 +1356,9 @@ mod tests {
             let mut image = mini_app_image();
             image.mime_type = mime_type.to_string();
             assert_eq!(
-                MiniAppContent::new("x").with_image(image).validate(),
+                MiniAppContent::new("x", 440, 740)
+                    .with_image(image)
+                    .validate(),
                 Err("The image's mime type must be an image's".to_string())
             );
         }
@@ -1295,13 +1368,17 @@ mod tests {
     fn a_mini_app_has_1_to_100_players_at_most() {
         for max in [1, 100] {
             assert_eq!(
-                MiniAppContent::new("x").with_max_players(max).validate(),
+                MiniAppContent::new("x", 440, 740)
+                    .with_max_players(max)
+                    .validate(),
                 Ok(())
             );
         }
         for max in [0, 101] {
             assert_eq!(
-                MiniAppContent::new("x").with_max_players(max).validate(),
+                MiniAppContent::new("x", 440, 740)
+                    .with_max_players(max)
+                    .validate(),
                 Err("A game has 1 to 100 players at most".to_string())
             );
         }
@@ -1311,7 +1388,7 @@ mod tests {
     #[test]
     fn a_mini_app_is_posted_open() {
         for status in mini_app_statuses().into_iter().skip(1) {
-            let mut card = MiniAppContent::new("x");
+            let mut card = MiniAppContent::new("x", 440, 740);
             card.status = status;
             assert_eq!(card.validate(), Err("A game is posted open".to_string()));
         }
