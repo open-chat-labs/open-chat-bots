@@ -12,7 +12,7 @@ use oc_bots_sdk::oc_api::actions::mini_app_token;
 use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::{
     CanisterId, EventIndex, Milliseconds, MiniAppContent, MiniAppGame, MiniAppPlayerClaims,
-    MiniAppTokenType, TimestampMillis, TokenError, UserId,
+    MiniAppSize, MiniAppTokenType, TimestampMillis, TokenError, UserId,
 };
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -94,6 +94,7 @@ impl<R: Runtime> MiniAppServiceClient<R> {
             #[serde(skip_serializing_if = "Option::is_none")]
             max_players: Option<u32>,
             spectators: bool,
+            app_size: MiniAppSize,
         }
         #[derive(Serialize)]
         struct Image {
@@ -127,6 +128,7 @@ impl<R: Runtime> MiniAppServiceClient<R> {
                 }),
                 max_players: card.max_players,
                 spectators: card.spectators,
+                app_size: card.app_size,
             },
             block_level_markdown,
             replies_to,
@@ -945,7 +947,7 @@ mod tests {
     }
 
     fn card() -> MiniAppContent {
-        MiniAppContent::new("**Uno** · 2 to 4 players")
+        MiniAppContent::new("**Uno** · 2 to 4 players", 440, 740)
             .with_max_players(4)
             .with_spectators(true)
             .with_image(MiniAppImage {
@@ -1003,6 +1005,7 @@ mod tests {
                     },
                     "max_players": 4,
                     "spectators": true,
+                    "app_size": { "width": 440, "height": 740 },
                 },
                 "block_level_markdown": true,
                 "replies_to": 3,
@@ -1021,7 +1024,7 @@ mod tests {
         ])
         .await;
         let client = client(url, vec![bot_token("a", 3600)]);
-        let card = MiniAppContent::new("x");
+        let card = MiniAppContent::new("x", 440, 740);
 
         assert_eq!(
             client.post("post-token", card.clone(), false, None).await,
@@ -1040,7 +1043,7 @@ mod tests {
                 serde_json::from_str::<Value>(&request.body).unwrap(),
                 json!({
                     "token": "post-token",
-                    "card": { "text": "x", "spectators": false },
+                    "card": { "text": "x", "spectators": false, "app_size": { "width": 440, "height": 740 } },
                     "block_level_markdown": false,
                     "replies_to": null,
                 })
@@ -1059,7 +1062,14 @@ mod tests {
         ])
         .await;
         let client = client(url, vec![bot_token("a", 3600)]);
-        let post = || client.post("post-token", MiniAppContent::new("x"), false, None);
+        let post = || {
+            client.post(
+                "post-token",
+                MiniAppContent::new("x", 440, 740),
+                false,
+                None,
+            )
+        };
 
         for expected in [
             MiniAppServiceError::Invalid("Invalid post token".to_string()),
