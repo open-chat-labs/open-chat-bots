@@ -48,7 +48,8 @@ never finished after a day, which is when the service ends a game that's had no 
 
 - Add its rules under `src/games/<game>/`, with a shared state type carrying a `version` and a
   `game` id.
-- Add it to `src/games/registry.ts`: that's the `/play` choice, the card's text and limits, its
+- Add it to `src/games/registry.ts`: that's the `/play` choice, the card's one-line text (its
+  rules go in the lobby, as the card's text shows where the app doesn't) and limits, its
   settings, and the size the page is laid out for, which gives the frame in the card its aspect ratio. The page
   is drawn as wide as the card, so it has to work at a few hundred pixels, and full screen.
 - Add its requests under `src/handlers/`, and route them in `src/app.ts`.

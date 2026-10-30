@@ -27,11 +27,9 @@ export type GameType = {
 export const RACE_2048: GameType = {
     id: GAME_ID,
     title: "2048 Race",
-    cardText:
-        `**2048 Race** · up to ${MAX_PLAYERS} players\n` +
-        // The target and the time can change in the lobby, so the card doesn't say them
-        `Everyone gets a board. The first to make the target tile wins, or the top score when ` +
-        `the time's up. Stuck? Restart on a fresh board and keep racing.`,
+    // One line, for where the card shows without its app: replies, previews, notifications. The
+    // rules and the settings are in the lobby.
+    cardText: `**2048 Race** · up to ${MAX_PLAYERS} players`,
     maxPlayers: MAX_PLAYERS,
     spectators: true,
     settings: RACE_SETTINGS,
