@@ -330,7 +330,10 @@ together, and gives the `MiniAppGame` it names the game by: the card's chat, thr
 let card = MiniAppContent::new("**Uno** · 2 to 4 players")
     .with_max_players(4)
     // Whether people who aren't playing can watch
-    .with_spectators(true);
+    .with_spectators(true)
+    // What the app's laid out for, in CSS pixels: the card shows it at this aspect ratio, sized
+    // before it loads
+    .with_app_size(440, 740);
 
 // Any LocalUserIndex gives the bot its token for the service, eg. the command's `api_gateway`
 let mini_apps = MiniAppServiceClient::new(service_url, oc_client_factory.build(api_gateway));
