@@ -152,7 +152,7 @@ describe("the service's calls for a chess game", () => {
 
         const play = store.get(game)!.play;
         expect(play.phase).toBe("finished");
-        expect(play.result()).toBe("White won by abandonment");
+        expect(play.result()).toBe("Black left the game");
         expect(publish).toHaveBeenCalledTimes(1);
     });
 

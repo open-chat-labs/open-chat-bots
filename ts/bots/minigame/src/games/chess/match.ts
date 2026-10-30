@@ -316,7 +316,7 @@ export function describe(ending: Ending): string {
         case "timeout":
             return `${sideName(ending.winner)} won on time`;
         case "abandonment":
-            return `${sideName(ending.winner)} won by abandonment`;
+            return `${sideName(other(ending.winner))} left the game`;
         case "stalemate":
             return "Draw by stalemate";
         case "insufficient_material":
