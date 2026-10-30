@@ -79,15 +79,6 @@ impl Ending {
     }
 }
 
-/// What a draw offer did
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum DrawOffer {
-    /// The other side had offered, so the game's a draw
-    Accepted,
-    /// It stands until the other side moves, or accepts
-    Offered,
-}
-
 impl Match {
     /// The starting position, with White's clock running from `now`
     pub fn new(now: TimestampMillis) -> Self {
@@ -154,14 +145,12 @@ impl Match {
         if self.time_left(color, now) == 0 {
             return Err("Your time ran out".to_string());
         }
+        // `to_move` only gives a legal move
         let m = uci
             .parse::<UciMove>()
             .map_err(|_| format!("'{uci}' isn't a move"))?
             .to_move(&self.position)
             .map_err(|_| format!("{uci} isn't a legal move"))?;
-        if !self.position.is_legal(m) {
-            return Err(format!("{uci} isn't a legal move"));
-        }
 
         let from = m
             .from()
@@ -233,18 +222,18 @@ impl Match {
         Ok(())
     }
 
-    /// The side offers a draw, or accepts the other side's offer if it stands
-    pub fn offer_draw(&mut self, color: Color, now: TimestampMillis) -> Result<DrawOffer, String> {
+    /// The side offers a draw, which stands until the other side moves, or accepts the other
+    /// side's offer if it stands, which ends the game
+    pub fn offer_draw(&mut self, color: Color, now: TimestampMillis) -> Result<(), String> {
         if self.is_over() {
             return Err("The game has finished".to_string());
         }
         if self.draw_offer == Some(color.other()) {
             self.end(Ending::Agreement, now);
-            Ok(DrawOffer::Accepted)
         } else {
             self.draw_offer = Some(color);
-            Ok(DrawOffer::Offered)
         }
+        Ok(())
     }
 
     // Stops the clocks and records how the game ended
@@ -545,24 +534,20 @@ mod tests {
     fn a_draw_offer_stands_until_the_other_side_moves_or_accepts() {
         let mut game = Match::new(START);
 
-        assert_eq!(game.offer_draw(Color::White, START), Ok(DrawOffer::Offered));
+        assert_eq!(game.offer_draw(Color::White, START), Ok(()));
         assert_eq!(game.snapshot(START).draw_offer, Some("white"));
         // Offering again changes nothing
-        assert_eq!(game.offer_draw(Color::White, START), Ok(DrawOffer::Offered));
+        assert_eq!(game.offer_draw(Color::White, START), Ok(()));
+        assert_eq!(game.snapshot(START).draw_offer, Some("white"));
         // Moving on with the game declines it
         game.play(Color::White, "e2e4", START + 1000).unwrap();
         assert_eq!(game.snapshot(START).draw_offer, Some("white"));
         game.play(Color::Black, "e7e5", START + 2000).unwrap();
         assert_eq!(game.snapshot(START).draw_offer, None);
 
-        assert_eq!(
-            game.offer_draw(Color::Black, START + 3000),
-            Ok(DrawOffer::Offered)
-        );
-        assert_eq!(
-            game.offer_draw(Color::White, START + 4000),
-            Ok(DrawOffer::Accepted)
-        );
+        assert_eq!(game.offer_draw(Color::Black, START + 3000), Ok(()));
+        assert_eq!(game.snapshot(START).draw_offer, Some("black"));
+        assert_eq!(game.offer_draw(Color::White, START + 4000), Ok(()));
 
         assert_eq!(game.ending(), Some(Ending::Agreement));
         let snapshot = game.snapshot(START + 4000);

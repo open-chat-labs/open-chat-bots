@@ -8,7 +8,7 @@ use oc_bots_sdk::oc_api::client::Client;
 use oc_bots_sdk::types::{
     BotCommandContext, Chat, MessageContentInitial, MiniAppContent, MiniAppGame,
 };
-use oc_bots_sdk_offchain::AgentRuntime;
+use oc_bots_sdk_offchain::{AgentRuntime, env};
 use std::sync::{Arc, LazyLock};
 use tracing::error;
 
@@ -59,7 +59,7 @@ impl CommandHandler<AgentRuntime> for Chess {
             other => return Err(format!("Couldn't get a post token: {other:?}")),
         };
         let game = MiniAppGame::from_post_token(&token).map_err(|error| error.to_string())?;
-        self.bot.games.posted(game);
+        self.bot.games.posted(game, env::now());
 
         // The service posts the card as the bot, and records the game, which takes a moment, so
         // the command is answered meanwhile. The service verifies the token, so a failure is only

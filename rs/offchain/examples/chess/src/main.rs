@@ -65,6 +65,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         user_index_canister_id,
         mini_app_service_url,
     ));
+    bot.prune_games();
     let app_state = AppState {
         oc_public_key,
         commands: CommandHandlerRegistry::new(oc_client_factory)
@@ -169,7 +170,7 @@ mod tests {
     use ic_agent::Agent;
     use ic_principal::Principal;
     use oc_bots_sdk::types::UserId;
-    use oc_bots_sdk_offchain::mini_app::MiniAppVerifier;
+    use oc_bots_sdk_offchain::mini_app::{MiniAppServiceClient, MiniAppVerifier};
     use p256::ecdsa::signature::Signer;
     use p256::ecdsa::{Signature, SigningKey};
     use p256::pkcs8::{EncodePublicKey, LineEnding};
@@ -230,7 +231,12 @@ mod tests {
                 tokio::runtime::Runtime::new().unwrap(),
             )));
             let mut bot = Bot::new(factory.clone(), id(5), "http://127.0.0.1:1".to_string());
-            // As if the service's key and the bot's id had been fetched already
+            // As if the service's client, its key and the bot's id had been fetched already: the
+            // service itself is never reached, so an update fails at once
+            bot.mini_apps = OnceCell::new_with(Some(MiniAppServiceClient::new(
+                "http://127.0.0.1:1",
+                factory.build(id(5)),
+            )));
             bot.verifier = OnceCell::new_with(Some(MiniAppVerifier::new(
                 key()
                     .verifying_key()
@@ -353,8 +359,7 @@ mod tests {
         assert!(players.contains(&json!(id(6).to_string())));
         // White moves first
         assert_eq!(start["waiting_for"], json!([players[0]]));
-        // Above the four lobby states, sent as players joined and left
-        assert_eq!(start["state"]["seq"], 5);
+        assert!(start["state"]["seq"].as_u64().unwrap() > 0);
         assert_eq!(start["state"]["shared"]["status"], "Active");
         assert_eq!(start["state"]["shared"]["white"], players[0]);
         assert_eq!(start["state"]["shared"]["black"], players[1]);

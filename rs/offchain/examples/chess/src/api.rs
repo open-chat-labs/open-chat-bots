@@ -73,7 +73,7 @@ pub async fn draw(
     Extension(OpenChatJwt(jwt)): Extension<OpenChatJwt>,
 ) -> Result<Json<Value>, ApiError> {
     let claims = verified(&state, |verifier| verifier.player(&jwt)).await?;
-    let (_, change) = state
+    let change = state
         .bot
         .games
         .offer_draw(claims.game, claims.user_id, env::now())

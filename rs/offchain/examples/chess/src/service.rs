@@ -18,10 +18,15 @@ pub async fn join(
 ) -> Result<Json<JoinResponse>, ApiError> {
     let claims = verified(&state, |verifier| verifier.join(&jwt)).await?;
 
+    let now = env::now();
+
     Ok(Json(
-        match state.bot.games.join(claims.game, claims.user_id) {
+        match state.bot.games.join(claims.game, claims.user_id, now) {
             Ok(()) => {
-                state.bot.publish_lobby(claims.game);
+                // So everyone with the game open sees who's joined
+                if let Some(change) = state.bot.games.lobby(claims.game, now) {
+                    state.bot.publish_in_background(claims.game, change);
+                }
                 JoinResponse::accept()
             }
             Err(message) => JoinResponse::refuse(message),
@@ -48,21 +53,31 @@ pub async fn start(
                 if let Some(deadline) = change.deadline {
                     state.bot.arm_clock(claims.game, deadline);
                 }
-                StartResponse::accept(players, change.waiting_for, change.state)
+                StartResponse::accept(
+                    players,
+                    change.waiting_for.unwrap_or_default(),
+                    change.state,
+                )
             }
             Err(message) => StartResponse::refuse(message),
         },
     ))
 }
 
-/// POST /mini_app/leave: 200 whether or not they were in the game
+/// POST /mini_app/leave: 200 whether or not they were in the game. Before the start, everyone
+/// with the game open sees who's left; after it, the game ends, as it can't go on without them.
 pub async fn leave(
     State(state): State<Arc<AppState>>,
     Extension(OpenChatJwt(jwt)): Extension<OpenChatJwt>,
 ) -> Result<StatusCode, ApiError> {
     let claims = verified(&state, |verifier| verifier.leave(&jwt)).await?;
-    state.bot.games.leave(claims.game, claims.user_id);
-    state.bot.publish_lobby(claims.game);
+    if let Some(change) = state
+        .bot
+        .games
+        .leave(claims.game, claims.user_id, env::now())
+    {
+        state.bot.publish_in_background(claims.game, change);
+    }
 
     Ok(StatusCode::OK)
 }

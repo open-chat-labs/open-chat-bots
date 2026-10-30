@@ -3,15 +3,30 @@ use oc_bots_sdk::oc_api::actions::installation_events::BotInstallationEvent;
 use oc_bots_sdk::oc_api::actions::{ActionArgsBuilder, installation_events};
 use oc_bots_sdk::oc_api::client::{Client, ClientFactory};
 use oc_bots_sdk::types::{CanisterId, MiniAppGame, TimestampMillis, UserId};
-use oc_bots_sdk_offchain::mini_app::{MiniAppServiceClient, MiniAppVerifier};
+use oc_bots_sdk_offchain::mini_app::{
+    GameUpdate, MiniAppServiceClient, MiniAppServiceError, MiniAppVerifier,
+};
 use oc_bots_sdk_offchain::{AgentRuntime, env};
-use std::sync::Arc;
+use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::OnceCell;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 // How long after a deadline the bot looks at the clock, so the flag has fallen by then
 const FLAG_MARGIN_MS: u64 = 50;
+// How long to wait before each try at sending a game's latest state again, after the service
+// didn't take an update, after which the bot gives up on it: the service ends a game it hears
+// nothing about for a day
+const RETRY_DELAYS: [Duration; 5] = [
+    Duration::from_secs(2),
+    Duration::from_secs(5),
+    Duration::from_secs(15),
+    Duration::from_secs(60),
+    Duration::from_secs(300),
+];
+// How often games which are over, or never started, are forgotten
+const PRUNE_INTERVAL: Duration = Duration::from_secs(10 * 60);
 
 /// What the command and the routes share: the bot's games, and its clients for OpenChat and the
 /// MiniApp service
@@ -22,6 +37,16 @@ pub struct Bot {
     pub mini_apps: OnceCell<MiniAppServiceClient<AgentRuntime>>,
     pub verifier: OnceCell<MiniAppVerifier>,
     pub games: Games,
+    /// The games whose latest state is waiting to be sent again
+    retrying: Mutex<HashSet<MiniAppGame>>,
+}
+
+// Why an update didn't reach the service
+enum SendError {
+    /// The service couldn't be reached, or couldn't take it for now, so it's worth trying again
+    Transient(String),
+    /// The service refused it, which trying again won't change
+    Refused(String),
 }
 
 impl Bot {
@@ -37,10 +62,14 @@ impl Bot {
             mini_apps: OnceCell::new(),
             verifier: OnceCell::new(),
             games: Games::default(),
+            retrying: Mutex::new(HashSet::new()),
         }
     }
 
-    /// Tells the service about a change to a game, and watches for the next flag
+    /// Tells the service about a change to a game, and watches for the next flag. If the service
+    /// couldn't take it for now, the game's latest state is sent again later, so the change
+    /// stands: the states are idempotent, by their seq. An update the service refuses outright is
+    /// an error.
     pub async fn publish(
         self: &Arc<Self>,
         game: MiniAppGame,
@@ -49,24 +78,27 @@ impl Bot {
         if let Some(deadline) = change.deadline {
             self.arm_clock(game, deadline);
         }
-        self.mini_apps()
-            .await?
-            .update(change.into_update(game))
-            .await
-            .map_err(|error| format!("The MiniApp service didn't take the update: {error}"))
+        match self.send(change.into_update(game)).await {
+            Ok(()) => Ok(()),
+            Err(SendError::Transient(reason)) => {
+                warn!(
+                    "The MiniApp service didn't take an update for {game:?}, trying again later: {reason}"
+                );
+                self.retry_later(game);
+                Ok(())
+            }
+            Err(SendError::Refused(reason)) => Err(reason),
+        }
     }
 
-    /// Shows everyone with the game open who's joined, once the service has the bot's answer. It
-    /// can't wait for the service: the service holds the game while it asks the bot about a join,
-    /// so an update sent before the answer would wait for the join to time out.
-    pub fn publish_lobby(self: &Arc<Self>, game: MiniAppGame) {
-        let Some(change) = self.games.lobby(game, env::now()) else {
-            return;
-        };
+    /// Publishes a change once the call this is made from has answered. The service holds a game
+    /// while it asks the bot about it, eg. a join, so an update sent before the answer would wait
+    /// for the call to time out.
+    pub fn publish_in_background(self: &Arc<Self>, game: MiniAppGame, change: Change) {
         let bot = self.clone();
         tokio::spawn(async move {
             if let Err(error) = bot.publish(game, change).await {
-                error!("Failed to send the players of {game:?}: {error}");
+                error!("Failed to publish a change to {game:?}: {error}");
             }
         });
     }
@@ -87,6 +119,75 @@ impl Bot {
                 error!("Failed to tell the service the flag fell in {game:?}: {error}");
             }
         });
+    }
+
+    /// Forgets old games now and then
+    pub fn prune_games(self: &Arc<Self>) {
+        let bot = self.clone();
+        tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(PRUNE_INTERVAL).await;
+                bot.games.prune(env::now());
+            }
+        });
+    }
+
+    // Sends the game's latest state again, after a while, and again if that doesn't get through
+    // either; one such chain per game
+    fn retry_later(self: &Arc<Self>, game: MiniAppGame) {
+        if self.retrying.lock().unwrap().insert(game) {
+            self.retry(game, 0);
+        }
+    }
+
+    fn retry(self: &Arc<Self>, game: MiniAppGame, attempt: usize) {
+        let Some(delay) = RETRY_DELAYS.get(attempt) else {
+            error!("Gave up sending the latest state of {game:?}");
+            self.retrying.lock().unwrap().remove(&game);
+            return;
+        };
+        let bot = self.clone();
+        let delay = *delay;
+        tokio::spawn(async move {
+            tokio::time::sleep(delay).await;
+            let Some(change) = bot.games.latest(game, env::now()) else {
+                bot.retrying.lock().unwrap().remove(&game);
+                return;
+            };
+            match bot.send(change.into_update(game)).await {
+                Ok(()) => {
+                    info!("Sent the latest state of {game:?}");
+                    bot.retrying.lock().unwrap().remove(&game);
+                }
+                Err(SendError::Transient(reason)) => {
+                    warn!(
+                        "The MiniApp service still didn't take the latest state of {game:?}: {reason}"
+                    );
+                    bot.retry(game, attempt + 1);
+                }
+                Err(SendError::Refused(reason)) => {
+                    error!("The MiniApp service refused the latest state of {game:?}: {reason}");
+                    bot.retrying.lock().unwrap().remove(&game);
+                }
+            }
+        });
+    }
+
+    async fn send(&self, update: GameUpdate) -> Result<(), SendError> {
+        let mini_apps = self.mini_apps().await.map_err(SendError::Transient)?;
+        mini_apps.update(update).await.map_err(|error| match error {
+            MiniAppServiceError::Status(..)
+            | MiniAppServiceError::Request(_)
+            | MiniAppServiceError::BotToken(_) => SendError::Transient(error.to_string()),
+            MiniAppServiceError::Invalid(_)
+            | MiniAppServiceError::Unauthorized(_)
+            | MiniAppServiceError::NotTheBotsGame(_)
+            | MiniAppServiceError::UnknownGame(_)
+            | MiniAppServiceError::Finished(_)
+            | MiniAppServiceError::TooLarge(_) => {
+                SendError::Refused(format!("The MiniApp service refused the update: {error}"))
+            }
+        })
     }
 
     /// The service's client, which gets the bot's token from the LocalUserIndex a command came
