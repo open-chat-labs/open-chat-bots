@@ -14,6 +14,7 @@ import type { Request, Response } from "express";
 import type { Deps } from "../deps";
 import { Race2048 } from "../games/race2048/race";
 import { gameType } from "../games/registry";
+import { parseSettings } from "../games/settings";
 
 const POST_ATTEMPTS = 3;
 const POST_RETRY_MS = 1000;
@@ -58,6 +59,18 @@ async function play(client: BotClient, res: Response, deps: Deps): Promise<void>
         res.json(await ephemeral(client, "Games are played in a group or a channel."));
         return;
     }
+    // The settings given as parameters; the host can change them in the lobby
+    const given = Object.fromEntries(
+        game.settings
+            .map((setting) => [setting.id, client.integerArg(setting.id)] as const)
+            .filter(([, value]) => value !== undefined),
+    );
+    const parsed = parseSettings(game.settings, given);
+    if (!parsed.ok) {
+        res.json(await ephemeral(client, parsed.error));
+        return;
+    }
+    const settings = parsed.settings;
     const miniApps = deps.useApiGateway(client.apiGateway);
 
     const card = (await client.createMiniAppMessage(game.cardText, game.appSize))
@@ -73,7 +86,7 @@ async function play(client: BotClient, res: Response, deps: Deps): Promise<void>
     const miniAppGame = miniAppGameFromPostToken(token);
     deps.store.create(
         miniAppGame,
-        Race2048.create({ target: deps.raceTarget, timeLimit: deps.raceTimeLimit }),
+        Race2048.create({ settings: { ...deps.raceSettings, ...settings }, host: client.initiator }),
     );
     try {
         await post(miniApps, token, card);

@@ -5,6 +5,7 @@
 //
 // The bot decides every move, so no one can forge a board. The race keeps its whole state in
 // `RaceData`, which the store writes to disk as it is.
+import { defaultSettings, type Settings } from "../settings";
 import {
     canMove,
     isDirection,
@@ -28,6 +29,7 @@ import {
     type Seat,
     type SharedState,
 } from "./types";
+import { RACE_SETTINGS } from "./settings";
 
 export type PlayerData = {
     id: string;
@@ -46,10 +48,10 @@ export type PlayerData = {
 
 export type RaceData = {
     phase: Phase;
-    /** The tile which wins, `TARGET` unless the race was made with another, eg. for a test */
-    target?: number;
-    /** How long the race lasts, `TIME_LIMIT_MS` unless the race was made with another */
-    timeLimit?: number;
+    /** The settings chosen, by id (`RACE_SETTINGS`); the rest are the defaults */
+    settings?: Settings;
+    /** Who ran `/play`: the one who can change the settings */
+    host?: string;
     seats: Seat[];
     players: PlayerData[];
     /** The `seq` of the last state published, which each state goes above */
@@ -67,11 +69,12 @@ export type RaceData = {
 export type RaceOptions = {
     random?: () => number;
     now?: () => number;
-    /** The tile which wins, `TARGET` by default. A lower one makes a race quick to test. */
-    target?: number;
-    /** How long the race lasts, in ms, `TIME_LIMIT_MS` by default */
-    timeLimit?: number;
+    /** The settings to start with, eg. from the command; any left out is its default */
+    settings?: Settings;
+    host?: string;
 };
+
+export type ConfigureResult = { ok: true } | { ok: false; error: string };
 
 export type SeatResult = "seated" | "already_seated" | "full" | "started";
 
@@ -99,8 +102,8 @@ export class Race2048 {
                 players: [],
                 seq: 0,
                 createdAt: now(),
-                target: options.target,
-                timeLimit: options.timeLimit,
+                settings: options.settings,
+                host: options.host,
             },
             options,
         );
@@ -123,12 +126,32 @@ export class Race2048 {
         return this.#data.players;
     }
 
+    /** Every setting as it stands: the ones chosen over the defaults */
+    get settings(): Settings {
+        return { ...defaultSettings(RACE_SETTINGS), ...this.#data.settings };
+    }
+
+    get host(): string | undefined {
+        return this.#data.host;
+    }
+
     get target(): number {
-        return this.#data.target ?? TARGET;
+        return this.#data.settings?.target ?? TARGET;
     }
 
     get timeLimit(): number {
-        return this.#data.timeLimit ?? TIME_LIMIT_MS;
+        const minutes = this.#data.settings?.minutes;
+        return minutes === undefined ? TIME_LIMIT_MS : minutes * 60_000;
+    }
+
+    /** Changes settings, which only the host can, and only before the race starts */
+    configure(userId: string, settings: Settings): ConfigureResult {
+        if (this.#data.phase !== "open") return { ok: false, error: "The race has started" };
+        if (userId !== this.#data.host) {
+            return { ok: false, error: "Only the host can change the settings" };
+        }
+        this.#data.settings = { ...this.#data.settings, ...settings };
+        return { ok: true };
     }
 
     get winner(): PlayerData | undefined {
@@ -280,6 +303,8 @@ export class Race2048 {
             version: STATE_VERSION,
             game: GAME_ID,
             phase: d.phase,
+            settings: this.settings,
+            host: d.host,
             target: this.target,
             timeLimit: this.timeLimit,
             maxPlayers: MAX_PLAYERS,

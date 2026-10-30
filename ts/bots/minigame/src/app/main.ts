@@ -14,6 +14,7 @@ import {
     type PlayerView,
     type SharedState,
 } from "../games/race2048/types";
+import { RACE_SETTINGS } from "../games/race2048/settings";
 import { BoardView } from "./board";
 
 const root = document.getElementById("app") as HTMLElement;
@@ -122,6 +123,12 @@ async function main() {
                 break;
         }
     });
+    // The host's settings form in the lobby
+    root.addEventListener("change", (event) => {
+        const select = event.target as HTMLSelectElement;
+        if (select.dataset.setting === undefined) return;
+        void configure(select.dataset.setting, Number(select.value));
+    });
     setInterval(renderClock, 1000);
 
     syncOwn();
@@ -206,6 +213,22 @@ async function restart() {
     sending = false;
     syncOwn();
     render();
+}
+
+/** The host's change to a setting, which comes back to everyone in the next state */
+async function configure(id: string, value: number) {
+    if (oc === undefined || oc.role !== "player") return;
+    try {
+        const response = await oc.fetch("/api/2048/settings", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ [id]: value }),
+        });
+        const result = (await response.json()) as { ok: boolean; error?: string };
+        if (!result.ok) showNotice(result.error ?? "The setting wasn't changed");
+    } catch {
+        showNotice("Couldn't reach the game");
+    }
 }
 
 async function start() {
@@ -303,9 +326,32 @@ function lobby(shared: SharedState | undefined, player: boolean): string {
         <p class="muted">Everyone gets their own board. The first to make a <strong>${shared?.target ?? 2048}</strong> tile wins,
            or the top score after <strong>${limitText(shared?.timeLimit ?? 600_000)}</strong>.
            Stuck? Restart on a fresh board and keep racing.</p>
+        ${settingsForm(shared, player)}
         ${names}
         ${action}
     </section>`;
+}
+
+/** The host's form for the settings; everyone else sees who can change them */
+function settingsForm(shared: SharedState | undefined, player: boolean): string {
+    if (shared === undefined) return "";
+    const host = shared.host !== undefined && shared.host === oc?.userId;
+    if (!host || !player) {
+        const name = shared.seats.find((s) => s.id === shared.host)?.name;
+        return `<p class="muted small">${name === undefined ? "The host" : escape(name)} can change the winning tile and the time limit.</p>`;
+    }
+    const fields = RACE_SETTINGS.map((spec) => {
+        const current = shared.settings[spec.id] ?? spec.default;
+        // A value set outside the choices, eg. for a test, is shown as it is
+        const choices = spec.choices.some((c) => c.value === current)
+            ? spec.choices
+            : [{ value: current, label: String(current) }, ...spec.choices];
+        const options = choices
+            .map((c) => `<option value="${c.value}" ${c.value === current ? "selected" : ""}>${escape(c.label)}</option>`)
+            .join("");
+        return `<label><span>${escape(spec.label)}</span><select data-setting="${spec.id}">${options}</select></label>`;
+    });
+    return `<div class="settings">${fields.join("")}</div>`;
 }
 
 function renderRace(body: HTMLElement, shared: SharedState, player: boolean) {

@@ -78,8 +78,7 @@ const deps: Deps = {
         return serviceClient(store.apiGateway)!;
     },
     tokens: miniAppTokens,
-    raceTarget: config.raceTarget,
-    raceTimeLimit: config.raceTimeLimit,
+    raceSettings: config.raceSettings,
 };
 
 const app = createApp(deps, config.appDir);

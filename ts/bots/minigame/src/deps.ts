@@ -4,6 +4,7 @@ import type {
     MiniAppServiceClient,
     MiniAppTokens,
 } from "@open-ic/openchat-botclient-ts";
+import type { Settings } from "./games/settings";
 import type { Names } from "./names";
 import type { Publisher } from "./publisher";
 import type { GameStore } from "./store";
@@ -19,8 +20,6 @@ export type Deps = {
     useApiGateway: (gateway: string) => MiniAppServiceClient;
     /** The verifier of the service's tokens, made on first use: it needs the bot's id */
     tokens: () => Promise<MiniAppTokens>;
-    /** The tile which wins a race, if not 2048 */
-    raceTarget?: number;
-    /** How long a race lasts, in ms, if not 10 minutes */
-    raceTimeLimit?: number;
+    /** A race's settings unless the command or the host sets them, eg. a quick race for a test */
+    raceSettings?: Settings;
 };

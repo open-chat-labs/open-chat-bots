@@ -2,7 +2,9 @@
 // The 2048 race is the first; another game adds an entry here, its rules under `games/`, its
 // requests under `handlers/api.ts` and its view in the app.
 import type { MiniAppSize } from "@open-ic/openchat-botclient-ts";
-import { GAME_ID, MAX_PLAYERS, TARGET, TIME_LIMIT_MS } from "./race2048/types";
+import { RACE_SETTINGS } from "./race2048/settings";
+import { GAME_ID, MAX_PLAYERS } from "./race2048/types";
+import type { SettingSpec } from "./settings";
 
 export type GameType = {
     /** The `/play` command's value, and the `game` in the shared state */
@@ -13,6 +15,8 @@ export type GameType = {
     maxPlayers: number;
     /** Whether people who aren't playing can watch */
     spectators: boolean;
+    /** What can be set: `/play`'s parameters, and the host's form in the lobby */
+    settings: readonly SettingSpec[];
     /**
      * The size the page is laid out for, in CSS pixels. The card shows the page at that aspect
      * ratio, as wide as the card, so this is what it's drawn at unless the player goes full screen.
@@ -25,10 +29,12 @@ export const RACE_2048: GameType = {
     title: "2048 Race",
     cardText:
         `**2048 Race** · up to ${MAX_PLAYERS} players\n` +
-        `Everyone gets a board. The first to make a ${TARGET} tile wins, or the top score ` +
-        `after ${TIME_LIMIT_MS / 60_000} minutes. Stuck? Restart on a fresh board and keep racing.`,
+        // The target and the time can change in the lobby, so the card doesn't say them
+        `Everyone gets a board. The first to make the target tile wins, or the top score when ` +
+        `the time's up. Stuck? Restart on a fresh board and keep racing.`,
     maxPlayers: MAX_PLAYERS,
     spectators: true,
+    settings: RACE_SETTINGS,
     // A portrait frame: the lobby, or a player's board above a row of the others'
     appSize: { width: 480, height: 720 },
 };
