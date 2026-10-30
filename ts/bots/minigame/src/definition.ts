@@ -5,13 +5,72 @@
 import { Permissions } from "@open-ic/openchat-botclient-ts";
 import { GAMES } from "./games/registry";
 
+/** The bot's apps, as the games declare them */
+type SettingParam = {
+    name: string;
+    description: string;
+    placeholder: string;
+    required: false;
+    param_type: {
+        IntegerParam: {
+            min_value: number;
+            max_value: number;
+            choices: { name: string; value: number }[];
+        };
+    };
+};
+
+/**
+ * A parameter per setting. Games with a setting of the same id, eg. a time limit in minutes,
+ * share one parameter, offering every game's choices: the game chosen takes the value if it's one
+ * of its own choices, and refuses it otherwise, so a value picked for the other game is refused
+ * with the choices that would do.
+ */
+function settingParams(): SettingParam[] {
+    const params = new Map<string, SettingParam>();
+    for (const game of GAMES) {
+        for (const setting of game.settings) {
+            const choices = setting.choices.map((c) => ({ name: c.label, value: c.value }));
+            const param = params.get(setting.id);
+            if (param === undefined) {
+                params.set(setting.id, {
+                    name: setting.id,
+                    description: `${game.title}: ${setting.description}`,
+                    placeholder: setting.label,
+                    required: false,
+                    param_type: {
+                        IntegerParam: {
+                            min_value: Math.min(...choices.map((c) => c.value)),
+                            max_value: Math.max(...choices.map((c) => c.value)),
+                            choices,
+                        },
+                    },
+                });
+                continue;
+            }
+            const integer = param.param_type.IntegerParam;
+            param.description += `; ${game.title}: ${setting.description}`;
+            for (const choice of choices) {
+                if (!integer.choices.some((c) => c.value === choice.value)) {
+                    integer.choices.push(choice);
+                }
+            }
+            integer.choices.sort((a, b) => a.value - b.value);
+            integer.min_value = Math.min(integer.min_value, ...choices.map((c) => c.value));
+            integer.max_value = Math.max(integer.max_value, ...choices.map((c) => c.value));
+        }
+    }
+    return [...params.values()];
+}
+
 export const definition = {
     description:
         "Play games with the people in your chat. `/play` posts a game card: join from the card, " +
         "and the game opens in OpenChat. Race to 2048 with up to 10 players, where the first to " +
         "make the target tile wins, or the top score when the time's up (2048 and 10 minutes " +
         "unless set, with the command or by the host in the lobby), or play chess, two players " +
-        "with 10 minutes each, which anyone in the chat can watch.",
+        "which anyone in the chat can watch, with the time, the increment and who's White set " +
+        "the same way.",
     commands: [
         {
             name: "play",
@@ -33,24 +92,7 @@ export const definition = {
                     },
                 },
                 // Each game's settings, which its host can also change in the lobby
-                ...GAMES.flatMap((game) =>
-                    game.settings.map((setting) => ({
-                        name: setting.id,
-                        description: setting.description,
-                        placeholder: setting.label,
-                        required: false,
-                        param_type: {
-                            IntegerParam: {
-                                min_value: Math.min(...setting.choices.map((c) => c.value)),
-                                max_value: Math.max(...setting.choices.map((c) => c.value)),
-                                choices: setting.choices.map((c) => ({
-                                    name: c.label,
-                                    value: c.value,
-                                })),
-                            },
-                        },
-                    })),
-                ),
+                ...settingParams(),
             ],
             // As bitflags, which is how OpenChat reads a definition's permissions
             permissions: Permissions.encodePermissions({
