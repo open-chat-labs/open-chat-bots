@@ -1,0 +1,197 @@
+import { describe, expect, it } from "vitest";
+import { duration, Race2048 } from "./race";
+import { MAX_PLAYERS, STATE_VERSION, TARGET } from "./types";
+
+// Spawns always put a 2 in the first empty cell
+const first2 = () => 0;
+
+function clock(start = 1_000_000) {
+    let now = start;
+    return { now: () => now, tick: (ms: number) => (now += ms) };
+}
+
+function started(names = ["alice", "bob"]) {
+    const time = clock();
+    const race = Race2048.create({ random: first2, now: time.now });
+    names.forEach((name) => race.takeSeat(name, name.toUpperCase()));
+    race.start();
+    return { race, time };
+}
+
+describe("seats", () => {
+    it("seats up to the limit, once each, until the race starts", () => {
+        const race = Race2048.create({ random: first2 });
+        for (let i = 0; i < MAX_PLAYERS; i++) {
+            expect(race.takeSeat(`u${i}`, `U${i}`)).toBe("seated");
+        }
+        expect(race.takeSeat("u0", "U0")).toBe("already_seated");
+        expect(race.takeSeat("late", "Late")).toBe("full");
+        expect(race.leaveSeat("u3")).toBe(true);
+        expect(race.leaveSeat("u3")).toBe(false);
+        expect(race.takeSeat("late", "Late")).toBe("seated");
+        race.start();
+        expect(race.takeSeat("later", "Later")).toBe("started");
+        expect(race.isPlayer("late")).toBe(true);
+        expect(race.isPlayer("u3")).toBe(false);
+    });
+
+    it("can't start with nobody seated", () => {
+        const race = Race2048.create();
+        expect(race.cannotStart()).toBe("Nobody has joined yet");
+        race.takeSeat("a", "A");
+        expect(race.cannotStart()).toBeUndefined();
+    });
+});
+
+describe("start", () => {
+    it("gives everyone seated a board with two tiles, and starts the clock", () => {
+        const { race, time } = started();
+        expect(race.phase).toBe("active");
+        expect(race.seats).toEqual([]);
+        expect(race.players.map((p) => p.id)).toEqual(["alice", "bob"]);
+        race.players.forEach((p) => {
+            expect(p.board.filter((v) => v !== 0)).toHaveLength(2);
+            expect(p.score).toBe(0);
+        });
+        expect(race.data.startedAt).toBe(time.now());
+        // Seated players aren't players until the race starts
+        expect(race.isPlayer("alice")).toBe(true);
+    });
+
+    it("starting again changes nothing and gives the same players", () => {
+        const { race } = started();
+        const boards = race.players.map((p) => p.board.slice());
+        expect(race.start()).toEqual(["alice", "bob"]);
+        expect(race.players.map((p) => p.board)).toEqual(boards);
+    });
+});
+
+describe("moves", () => {
+    it("applies a move, spawns a tile and keeps score", () => {
+        const { race } = started();
+        // With first2, the two starting tiles are in cells 0 and 1: [2, 2, 0, 0, ...]
+        const result = race.move("alice", "left");
+        expect(result.ok).toBe(true);
+        if (!result.ok) return;
+        expect(result.gained).toBe(4);
+        expect(result.moved).toBe(true);
+        expect(result.player.board.slice(0, 4)).toEqual([4, 2, 0, 0]);
+        expect(result.player.score).toBe(4);
+        expect(result.player.moves).toBe(1);
+        expect(result.player.rev).toBe(1);
+        expect(race.data.lastMove).toEqual({ player: "alice", direction: "left" });
+    });
+
+    it("spawns nothing for a move that changes nothing", () => {
+        const { race } = started();
+        const result = race.move("alice", "up");
+        expect(result).toMatchObject({ ok: true, moved: false, gained: 0 });
+        if (!result.ok) return;
+        expect(result.player.board.filter((v) => v !== 0)).toHaveLength(2);
+        expect(result.player.moves).toBe(0);
+    });
+
+    it("refuses a move from someone not racing, before the start, or with no direction", () => {
+        const race = Race2048.create({ random: first2 });
+        race.takeSeat("alice", "ALICE");
+        expect(race.move("alice", "left")).toEqual({ ok: false, error: "The race hasn't started" });
+        race.start();
+        expect(race.move("carol", "left")).toEqual({ ok: false, error: "You aren't in this race" });
+        expect(race.move("alice", "sideways")).toEqual({ ok: false, error: "Not a direction" });
+    });
+
+    it("ends the race when a player makes the target tile", () => {
+        const { race, time } = started();
+        const alice = race.data.players[0];
+        alice.board = [
+            ...[TARGET / 2, TARGET / 2, 0, 0],
+            ...[0, 0, 0, 0],
+            ...[0, 0, 0, 0],
+            ...[0, 0, 0, 0],
+        ];
+        time.tick(135_000);
+        const result = race.move("alice", "left");
+        expect(result).toMatchObject({ ok: true, phase: "finished" });
+        expect(race.phase).toBe("finished");
+        expect(race.winner?.id).toBe("alice");
+        expect(race.players[0].won).toBe(true);
+        expect(race.result()).toBe(`ALICE reached ${TARGET} in 2m 15s`);
+        expect(race.move("bob", "left")).toEqual({ ok: false, error: "The race is over" });
+        expect(race.restart("bob")).toEqual({ ok: false, error: "The race is over" });
+    });
+
+    it("marks a stuck board dead, and a restart gives a fresh one", () => {
+        const { race } = started();
+        const bob = race.data.players[1];
+        // One move from stuck: sliding left makes the last row 4 2 4 0, the spawn fills the last
+        // cell with a 2, and no two neighbours match
+        bob.board = [
+            ...[2, 4, 2, 4],
+            ...[4, 2, 4, 2],
+            ...[2, 4, 2, 4],
+            ...[0, 4, 2, 4],
+        ];
+        const result = race.move("bob", "left");
+        expect(result).toMatchObject({ ok: true, moved: true });
+        if (!result.ok) return;
+        expect(result.player.dead).toBe(true);
+        expect(race.move("bob", "left")).toEqual({
+            ok: false,
+            error: "Your board is stuck. Restart to keep racing.",
+        });
+
+        const restarted = race.restart("bob");
+        expect(restarted.ok).toBe(true);
+        if (!restarted.ok) return;
+        expect(restarted.player.dead).toBe(false);
+        expect(restarted.player.restarts).toBe(1);
+        expect(restarted.player.score).toBe(0);
+        expect(restarted.player.moves).toBe(0);
+        expect(restarted.player.rev).toBe(2);
+        expect(restarted.player.board.filter((v) => v !== 0)).toHaveLength(2);
+    });
+});
+
+describe("shared state", () => {
+    it("has the version, phase, seats and every board", () => {
+        const race = Race2048.create({ random: first2 });
+        race.takeSeat("alice", "ALICE");
+        expect(race.shared()).toMatchObject({
+            version: STATE_VERSION,
+            game: "2048",
+            phase: "open",
+            target: TARGET,
+            maxPlayers: MAX_PLAYERS,
+            seats: [{ id: "alice", name: "ALICE" }],
+            players: [],
+        });
+        race.start();
+        const shared = race.shared();
+        expect(shared.phase).toBe("active");
+        expect(shared.players).toHaveLength(1);
+        expect(shared.players[0]).toMatchObject({ id: "alice", name: "ALICE", dead: false });
+        // A copy, not the race's own board
+        shared.players[0].board[0] = 999;
+        expect(race.players[0].board[0]).not.toBe(999);
+    });
+
+    it("seq goes up with each state", () => {
+        const race = Race2048.create();
+        expect(race.nextSeq()).toBe(1);
+        expect(race.nextSeq()).toBe(2);
+        expect(race.data.seq).toBe(2);
+    });
+
+    it("rebuilds from its data", () => {
+        const { race } = started();
+        race.move("alice", "left");
+        const copy = new Race2048(JSON.parse(JSON.stringify(race.data)));
+        expect(copy.shared()).toEqual(race.shared());
+    });
+});
+
+it("duration reads naturally", () => {
+    expect(duration(45_000)).toBe("45s");
+    expect(duration(135_000)).toBe("2m 15s");
+    expect(duration(3_720_000)).toBe("1h 2m");
+});
