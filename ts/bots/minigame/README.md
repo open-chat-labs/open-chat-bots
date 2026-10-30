@@ -6,8 +6,9 @@ the card, a player starts the game, and it's played in the card, in the bot's ow
 - a **2048 race**: up to 10 players, each on their own board, and the first to make a 2048 tile
   wins, or the top score when 10 minutes are up. A player whose board gets stuck restarts on a fresh
   board, as often as they like, and everyone sees how many times;
-- **chess**: two players, with ten minutes each on the clock and no increment, which everyone else
-  in the chat can watch. A coin decides who's White. The rules are
+- **chess**: two players, which everyone else in the chat can watch, with ten minutes each on the
+  clock, nothing added per move, and a coin deciding who's White, unless the host sets otherwise.
+  The rules are
   [chess.js](https://github.com/jhlywa/chess.js)'s (MIT): the game ends by itself on checkmate,
   stalemate, insufficient material, threefold repetition and the fifty-move rule, and otherwise by
   a flag falling, resignation or an agreed draw.

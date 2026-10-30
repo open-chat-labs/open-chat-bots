@@ -1,5 +1,6 @@
-// One game of chess, with its clock. The rules are chess.js's. Each side has ten minutes for the
-// whole game, with no increment, and the game ends by itself on checkmate, stalemate, insufficient
+// One game of chess, with its clock. The rules are chess.js's. Each side has its time for the whole
+// game, ten minutes unless set, with seconds added after each of its moves if the game was set up
+// with an increment, and the game ends by itself on checkmate, stalemate, insufficient
 // material, threefold repetition, the fifty-move rule, or a flag falling. Who plays each side is
 // the bot's business: this knows only White and Black.
 import { Chess, type Color, type Square } from "chess.js";
@@ -34,6 +35,8 @@ export type MatchData = {
         blackMs: number;
         /** When the side to move's clock started running. Once the game's over, nothing runs. */
         since: number;
+        /** Added to a side's clock after each of its moves, if any */
+        incrementMs?: number;
     };
     drawOffer?: Side;
     ending?: Ending;
@@ -54,14 +57,27 @@ export class Match {
         }
     }
 
-    /** The starting position, with White's clock running from `now` */
-    static create(now: number, start?: string): Match {
+    /**
+     * The starting position, with White's clock running from `now`: each side has
+     * `clock.perSideMs`, ten minutes unless given, and gets `clock.incrementMs` after each move
+     */
+    static create(
+        now: number,
+        start?: string,
+        clock: { perSideMs?: number; incrementMs?: number } = {},
+    ): Match {
         const position = new Chess(start);
+        const perSide = clock.perSideMs ?? TIME_PER_SIDE_MS;
         return new Match({
             start,
             moves: [],
             fens: [position.fen()],
-            clock: { whiteMs: TIME_PER_SIDE_MS, blackMs: TIME_PER_SIDE_MS, since: now },
+            clock: {
+                whiteMs: perSide,
+                blackMs: perSide,
+                since: now,
+                incrementMs: clock.incrementMs === 0 ? undefined : clock.incrementMs,
+            },
         });
     }
 
@@ -142,8 +158,9 @@ export class Match {
         d.fens.push(this.#position.fen());
         d.lastMove = { from, to };
 
+        // The side's clock stops, with the increment added once it has moved
         const elapsed = Math.max(0, now - d.clock.since);
-        this.#setLeft(color, Math.max(0, this.#left(color) - elapsed));
+        this.#setLeft(color, Math.max(0, this.#left(color) - elapsed) + (d.clock.incrementMs ?? 0));
         d.clock.since = now;
 
         // Moving declines the other side's offer

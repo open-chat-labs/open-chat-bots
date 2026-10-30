@@ -20,6 +20,70 @@ function started(firstIsWhite = true) {
     return { game, time };
 }
 
+describe("settings", () => {
+    it("are the defaults unless chosen, and only the host changes them, before the start", () => {
+        const game = ChessGame.create({ settings: { minutes: 5 }, host: "alice" });
+        expect(game.settings()).toEqual({ white: 0, minutes: 5, increment: 0 });
+        expect(game.shared()).toMatchObject({
+            settings: { white: 0, minutes: 5, increment: 0 },
+            host: "alice",
+        });
+        expect(game.configure("bob", { increment: 2 })).toEqual({
+            ok: false,
+            error: "Only the host can change the settings",
+        });
+        expect(game.configure("alice", { increment: 2 })).toEqual({ ok: true });
+        expect(game.settings()).toEqual({ white: 0, minutes: 5, increment: 2 });
+        game.join("alice", "Alice");
+        game.join("bob", "Bob");
+        game.start();
+        expect(game.configure("alice", { minutes: 1 })).toEqual({
+            ok: false,
+            error: "The game has started",
+        });
+    });
+
+    it("gives each side the minutes set, and adds the increment after each move", () => {
+        const time = clock();
+        const game = ChessGame.create({
+            now: time.now,
+            random: () => 0.9,
+            settings: { minutes: 3, increment: 2 },
+        });
+        game.join("alice", "Alice");
+        game.join("bob", "Bob");
+        game.start();
+        expect(game.shared().clock).toMatchObject({ white_ms: 180_000, black_ms: 180_000 });
+        time.tick(5000);
+        expect(game.move("alice", "e2e4")).toMatchObject({ ok: true });
+        // Five seconds spent, two given back
+        expect(game.shared().clock).toMatchObject({ white_ms: 177_000, running: "black" });
+        // The data keeps the increment, so a reload keeps it
+        const copy = new ChessGame(JSON.parse(JSON.stringify(game.data)), { now: time.now });
+        time.tick(1000);
+        expect(copy.move("bob", "e7e5")).toMatchObject({ ok: true });
+        expect(copy.shared().clock).toMatchObject({ black_ms: 181_000 });
+    });
+
+    it("lets the host choose who's White, when the host is playing; otherwise the coin does", () => {
+        const host = (white: number, hostJoinsFirst: boolean, hostPlays = true) => {
+            // The coin would make the second to join White
+            const game = ChessGame.create({ random: () => 0.1, settings: { white }, host: "host" });
+            const order = hostJoinsFirst ? ["host", "other"] : ["other", "host"];
+            for (const id of hostPlays ? order : ["other", "third"]) game.join(id, id);
+            game.start();
+            return game.white;
+        };
+        expect(host(1, true)).toBe("host");
+        expect(host(1, false)).toBe("host");
+        expect(host(2, true)).toBe("other");
+        expect(host(2, false)).toBe("other");
+        // The coin: the second to join
+        expect(host(0, true)).toBe("other");
+        expect(host(1, true, false)).toBe("third");
+    });
+});
+
 describe("joining and starting", () => {
     it("takes two, once each, until the game starts, and the coin says who is White", () => {
         const game = ChessGame.create({ random: () => 0.1, now: () => START });
@@ -46,6 +110,8 @@ describe("joining and starting", () => {
             names: { alice: "Alice", bob: "Bob" },
             white: null,
             black: null,
+            settings: { white: 0, minutes: 10, increment: 0 },
+            host: null,
         });
 
         // The coin came up below a half: the second to join is White
