@@ -218,9 +218,15 @@ function lobby(info: ReturnType<GameView["lobby"]> | undefined): string {
 /** The host's form for the game's settings; everyone else sees who can change them */
 function settingsForm(settings: NonNullable<Lobby["settings"]>, seats: Seat[], player: boolean) {
     const { specs, current, host, hostName } = settings;
-    if (host === undefined || host !== oc?.userId || !player) {
-        const name = hostName ?? seats.find((s) => s.id === host)?.name;
-        const what = specs.map((spec) => spec.label.toLowerCase()).join(" and the ");
+    const what = specs.map((spec) => spec.label.toLowerCase()).join(" and the ");
+    if (host !== undefined && host === oc?.userId && !player) {
+        // The host before they've joined: only a player's token reaches the bot
+        return `<p class="muted small">Join to change the ${what}.</p>`;
+    }
+    if (host === undefined || host !== oc?.userId) {
+        // The name from the seat, looked up as they joined, over the one from the command, which
+        // may have been a placeholder if the lookup failed then
+        const name = seats.find((s) => s.id === host)?.name ?? hostName;
         return `<p class="muted small">${name === undefined ? "The host" : escape(name)} can change the ${what}.</p>`;
     }
     const fields = specs.map((spec) => {

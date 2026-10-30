@@ -70,6 +70,10 @@ async function play(client: BotClient, res: Response, deps: Deps): Promise<void>
         return;
     }
     const miniApps = deps.useApiGateway(client.apiGateway);
+    // The host, named now, as the lobby says who can change the settings before they've joined.
+    // Looked up alongside the card, so a slow lookup doesn't sit between the post token and the post.
+    const initiator = client.initiator;
+    const hostName = initiator === undefined ? undefined : deps.names.lookup(initiator);
 
     const card = (await client.createMiniAppMessage(game.id, game.cardText, game.appSize))
         .setMaxPlayers(game.maxPlayers)
@@ -82,12 +86,10 @@ async function play(client: BotClient, res: Response, deps: Deps): Promise<void>
     const token = await client.miniAppPostToken();
     // Known before it's posted: the service may forward a join before the bot hears its answer
     const miniAppGame = miniAppGameFromPostToken(token);
-    // The host, named now, as the lobby says who can change the settings before they've joined
-    const initiator = client.initiator;
     const host =
-        initiator === undefined
+        initiator === undefined || hostName === undefined
             ? undefined
-            : { id: initiator, name: await deps.names.lookup(initiator) };
+            : { id: initiator, name: await hostName };
     deps.store.create(
         miniAppGame,
         game.create({ raceSettings: deps.raceSettings }, parsed.settings, host),

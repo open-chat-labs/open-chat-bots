@@ -95,11 +95,13 @@ export const chessView: GameView = {
         const s = state as SharedState;
         const { white, minutes, increment } = s.settings;
         const host = s.host === null ? undefined : (s.names[s.host] ?? shortId(s.host));
+        // The host is White, or their opponent is, only if the host plays: otherwise it's random
+        const hostPlays = s.host !== null && s.players.includes(s.host);
         const whiteText =
             white === WHITE_IS_HOST && host !== undefined
-                ? `<strong>${escape(host)}</strong> plays as White`
+                ? `<strong>${escape(host)}</strong> plays as White${hostPlays ? "" : " if they join"}`
                 : white === WHITE_IS_OPPONENT && host !== undefined
-                  ? `<strong>${escape(host)}</strong>'s opponent plays as White`
+                  ? `<strong>${escape(host)}</strong>'s opponent plays as White${hostPlays ? "" : " if they join"}`
                   : "White chosen at random";
         // One line of what's set, the increment only when there is one: people know the rules
         const parts = [`<strong>${minutes} minute${minutes === 1 ? "" : "s"}</strong> each`];
