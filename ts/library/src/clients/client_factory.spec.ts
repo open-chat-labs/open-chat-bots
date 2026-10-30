@@ -118,7 +118,11 @@ describe("BotClientFactory.createMiniAppServiceClient", () => {
 
         await factory()
             .createMiniAppServiceClient("https://mini-apps.example.com/", API_GATEWAY)
-            .post(postToken(), { text: "**Uno**", spectators: false });
+            .post(postToken(), {
+                text: "**Uno**",
+                spectators: false,
+                appSize: { width: 440, height: 740 },
+            });
 
         expect(query).toHaveBeenCalledWith(
             "bot_mini_app_token",

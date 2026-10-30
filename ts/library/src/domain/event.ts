@@ -905,10 +905,9 @@ export type MiniAppContent = {
     // Whether people who aren't playing can watch: members, and anyone who can see a public chat
     spectators: boolean;
     // The size the app's designed for, in CSS pixels, eg. 440 by 740. The card shows the app at
-    // that aspect ratio, sized before the app loads, so the chat doesn't jump as it does. Without
-    // one the card gives the app a fixed height. Each is 1 to 10,000, and neither more than three
-    // times the other.
-    appSize?: MiniAppSize;
+    // that aspect ratio, sized before the app loads, so the chat doesn't jump as it does. Each is
+    // 1 to 10,000, and neither more than three times the other.
+    appSize: MiniAppSize;
     status: MiniAppStatus;
 };
 

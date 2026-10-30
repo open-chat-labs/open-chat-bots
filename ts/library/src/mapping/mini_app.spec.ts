@@ -46,9 +46,11 @@ const BOB = "qhbym-qaaaa-aaaaa-aaafq-cai";
 const bytes = (id: string) => Principal.fromText(id).toUint8Array();
 
 // A new card, as OpenChat sends one and as `MiniAppMessage` makes one
-const OPEN_CARD = { spectators: false, status: "Open" };
+const SIZE = { width: 440, height: 740 };
+const OPEN_CARD = { spectators: false, app_size: SIZE, status: "Open" };
 const OPEN: Omit<MiniAppContent, "kind" | "text"> = {
     spectators: false,
+    appSize: SIZE,
     status: { kind: "open" },
 };
 
@@ -61,7 +63,7 @@ const IMAGE = {
 
 // A card as OpenChat sends one from a chat, in msgpack, as the SDK reads it
 function read(card: object) {
-    const wire = Packer.pack({ MiniApp: { text: TEXT, ...card } });
+    const wire = Packer.pack({ MiniApp: { text: TEXT, app_size: SIZE, ...card } });
     return messageContent(Value.Parse(ApiMessageContent, Packer.unpack(wire)), SENDER);
 }
 
@@ -88,6 +90,7 @@ describe("MiniApp cards", () => {
             text: TEXT,
             maxPlayers: 4,
             spectators: true,
+            appSize: SIZE,
             status: { kind: "active", players: [ALICE, BOB], waitingFor: [BOB] },
         });
     });
@@ -115,6 +118,7 @@ describe("MiniApp cards", () => {
             image: IMAGE,
             maxPlayers: 2,
             spectators: true,
+            appSize: SIZE,
             status: { kind: "finished", players: [ALICE, BOB], result: "Bob won" },
         });
     });
@@ -124,19 +128,20 @@ describe("MiniApp cards", () => {
             kind: "mini_app_content",
             text: TEXT,
             spectators: false,
+            appSize: SIZE,
             status: { kind: "finished", players: [], result: undefined },
         });
     });
 
     test("are sent open, as OpenChat reads them, with the fields it needs", () => {
-        const message = new MiniAppMessage(TEXT);
+        const message = new MiniAppMessage(TEXT, SIZE);
 
         expect(sent(message)).toEqual({ MiniApp: { text: TEXT, ...OPEN_CARD } });
         expect(message.requiredMessagePermissions).toEqual(["MiniApp"]);
     });
 
     test("are sent with their image, player limit and spectators", () => {
-        const message = new MiniAppMessage(TEXT, IMAGE).setMaxPlayers(2).setSpectators(true);
+        const message = new MiniAppMessage(TEXT, SIZE, IMAGE).setMaxPlayers(2).setSpectators(true);
         const wire = sent(message);
 
         // The u128 as a string and the bucket as principal bytes, as for an image message
@@ -153,6 +158,7 @@ describe("MiniApp cards", () => {
             image: IMAGE,
             maxPlayers: 2,
             spectators: true,
+            appSize: SIZE,
             status: { kind: "open" },
         });
         expect(message.validate()).toBeUndefined();
@@ -173,15 +179,21 @@ describe("MiniApp cards", () => {
     });
 
     test("are written for the service to post, with the blob id as a decimal string", () => {
-        const message = new MiniAppMessage(TEXT, IMAGE).setMaxPlayers(2).setSpectators(true);
+        const message = new MiniAppMessage(TEXT, SIZE, IMAGE).setMaxPlayers(2).setSpectators(true);
 
-        expect(message.card).toEqual({ text: TEXT, image: IMAGE, maxPlayers: 2, spectators: true });
+        expect(message.card).toEqual({
+            text: TEXT,
+            image: IMAGE,
+            maxPlayers: 2,
+            spectators: true,
+            appSize: SIZE,
+        });
         expect(JSON.stringify(apiMiniAppCard(message.card))).toBe(
-            `{"text":"${TEXT}","image":{"width":640,"height":360,"mime_type":"image/png","blob_reference":{"canister_id":"${BUCKET}","blob_id":"340282366920938463463374607431768211455"}},"max_players":2,"spectators":true}`,
+            `{"text":"${TEXT}","image":{"width":640,"height":360,"mime_type":"image/png","blob_reference":{"canister_id":"${BUCKET}","blob_id":"340282366920938463463374607431768211455"}},"max_players":2,"spectators":true,"app_size":{"width":440,"height":740}}`,
         );
         // Leaving out what the card hasn't
-        expect(JSON.stringify(apiMiniAppCard(new MiniAppMessage(TEXT).card))).toBe(
-            `{"text":"${TEXT}","spectators":false}`,
+        expect(JSON.stringify(apiMiniAppCard(new MiniAppMessage(TEXT, SIZE).card))).toBe(
+            `{"text":"${TEXT}","spectators":false,"app_size":{"width":440,"height":740}}`,
         );
     });
 });
@@ -192,21 +204,23 @@ describe("validateMiniAppText", () => {
         // Counted in code points, as OpenChat counts them
         expect(validateMiniAppText("é".repeat(MINI_APP_MAX_TEXT_CHARS))).toBeUndefined();
         expect(validateMiniAppText("😀".repeat(MINI_APP_MAX_TEXT_CHARS))).toBeUndefined();
-        expect(new MiniAppMessage(TEXT).validate()).toBeUndefined();
+        expect(new MiniAppMessage(TEXT, SIZE).validate()).toBeUndefined();
     });
 
     test("refuses blank or longer text, with OpenChat's error", () => {
         for (const text of ["", " \n", "x".repeat(MINI_APP_MAX_TEXT_CHARS + 1)]) {
             expect(validateMiniAppText(text)).toBe("The text must have 1 to 2000 characters");
         }
-        expect(new MiniAppMessage(" ").validate()).toBe("The text must have 1 to 2000 characters");
+        expect(new MiniAppMessage(" ", SIZE).validate()).toBe(
+            "The text must have 1 to 2000 characters",
+        );
     });
 });
 
 describe("validateMiniAppImage", () => {
     test("needs a width, a height and an image's mime type, with OpenChat's errors", () => {
         expect(validateMiniAppImage(1, 1, "image/webp")).toBeUndefined();
-        expect(new MiniAppMessage(TEXT, IMAGE).validate()).toBeUndefined();
+        expect(new MiniAppMessage(TEXT, SIZE, IMAGE).validate()).toBeUndefined();
 
         expect(validateMiniAppImage(2 ** 32 - 1, 2 ** 32 - 1, "image/png")).toBeUndefined();
         for (const [width, height] of [
@@ -227,7 +241,7 @@ describe("validateMiniAppImage", () => {
                 "The image's mime type must be an image's",
             );
         }
-        expect(new MiniAppMessage(TEXT, { ...IMAGE, width: 0 }).validate()).toBe(
+        expect(new MiniAppMessage(TEXT, SIZE, { ...IMAGE, width: 0 }).validate()).toBe(
             "The image must have a width and a height",
         );
     });
@@ -242,7 +256,7 @@ describe("validateMiniAppContent", () => {
             expect(validateMiniAppContent(card({ maxPlayers }))).toBeUndefined();
         }
         expect(validateMiniAppContent(card({ image: IMAGE, spectators: true }))).toBeUndefined();
-        expect(new MiniAppMessage(TEXT).setMaxPlayers(100).validate()).toBeUndefined();
+        expect(new MiniAppMessage(TEXT, SIZE).setMaxPlayers(100).validate()).toBeUndefined();
     });
 
     test("refuses one beyond them, with OpenChat's errors", () => {
@@ -251,7 +265,7 @@ describe("validateMiniAppContent", () => {
         for (const maxPlayers of [0, 101, 1.5]) {
             expect(error({ maxPlayers })).toBe("A game has 1 to 100 players at most");
         }
-        expect(new MiniAppMessage(TEXT).setMaxPlayers(0).validate()).toBe(
+        expect(new MiniAppMessage(TEXT, SIZE).setMaxPlayers(0).validate()).toBe(
             "A game has 1 to 100 players at most",
         );
         expect(error({ text: "" })).toBe("The text must have 1 to 2000 characters");
@@ -365,7 +379,7 @@ describe("BotClient.createMiniAppMessage", () => {
         const upload = stubUpload();
         const data = new Uint8Array([1, 2, 3]);
 
-        const message = await client().createMiniAppMessage(TEXT, {
+        const message = await client().createMiniAppMessage(TEXT, SIZE, {
             data,
             mimeType: "image/png",
             width: 640,
@@ -393,6 +407,7 @@ describe("BotClient.createMiniAppMessage", () => {
 
         const message = await new BotClient({} as HttpAgent, config, context).createMiniAppMessage(
             TEXT,
+            SIZE,
             { data, mimeType: "image/png", width: 640, height: 360 },
         );
 
@@ -403,7 +418,7 @@ describe("BotClient.createMiniAppMessage", () => {
     test("uploads nothing for a card without an image", async () => {
         const upload = stubUpload();
 
-        const message = await client().createMiniAppMessage(TEXT);
+        const message = await client().createMiniAppMessage(TEXT, SIZE);
 
         expect(upload).not.toHaveBeenCalled();
         expect(message.toResponse().content).toEqual({ MiniApp: { text: TEXT, ...OPEN_CARD } });
@@ -414,7 +429,7 @@ describe("BotClient.createMiniAppMessage", () => {
         const data = new Uint8Array([1]);
 
         await expect(
-            client().createMiniAppMessage(TEXT, {
+            client().createMiniAppMessage(TEXT, SIZE, {
                 data,
                 mimeType: "image/png",
                 width: 0,
@@ -422,7 +437,7 @@ describe("BotClient.createMiniAppMessage", () => {
             }),
         ).rejects.toThrow("The image must have a width and a height");
         await expect(
-            client().createMiniAppMessage(TEXT, {
+            client().createMiniAppMessage(TEXT, SIZE, {
                 data,
                 mimeType: "text/plain",
                 width: 1,

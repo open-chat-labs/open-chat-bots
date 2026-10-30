@@ -6710,7 +6710,7 @@ export const MiniAppContent = /* @__PURE__ */ Type.Object({
     image: Type.Optional(MiniAppImage),
     max_players: Type.Optional(Type.Number()),
     spectators: Type.Boolean(),
-    app_size: Type.Optional(MiniAppSize),
+    app_size: MiniAppSize,
     status: MiniAppStatus,
 });
 
