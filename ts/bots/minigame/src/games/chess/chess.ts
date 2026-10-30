@@ -1,5 +1,5 @@
 // A game of chess between two members of a chat, which everyone else can watch. Two join; when a
-// player starts the game, White is whoever the settings say, or a coin decides, and White's clock
+// player starts the game, White is whoever the settings say, or is chosen at random, and White's clock
 // runs, with each side's time and the increment from the settings. The rules and the clocks are the
 // `Match`'s; this knows who plays each side, and what the card and the app are told.
 import {
@@ -157,7 +157,7 @@ export class ChessGame implements Game {
 
     /**
      * Starts the game between the two who've joined. White, who moves first, is the host or their
-     * opponent if the settings say so and the host is playing; otherwise a coin decides.
+     * opponent if the settings say so and the host is playing; otherwise it's random.
      */
     start(): string[] {
         if (this.#match === undefined && this.#data.players.length === 2) {

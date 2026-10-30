@@ -97,18 +97,20 @@ export const chessView: GameView = {
         const host = s.host === null ? undefined : (s.names[s.host] ?? shortId(s.host));
         const whiteText =
             white === WHITE_IS_HOST && host !== undefined
-                ? `<strong>${escape(host)}</strong> plays White`
+                ? `<strong>${escape(host)}</strong> plays as White`
                 : white === WHITE_IS_OPPONENT && host !== undefined
-                  ? `<strong>${escape(host)}</strong>'s opponent plays White`
-                  : "A coin decides who's White";
-        const time =
-            `<strong>${minutes} minute${minutes === 1 ? "" : "s"}</strong> each` +
-            (increment > 0
-                ? `, <strong>${increment} second${increment === 1 ? "" : "s"}</strong> added per move`
-                : "");
+                  ? `<strong>${escape(host)}</strong>'s opponent plays as White`
+                  : "White chosen at random";
+        // One line of what's set, the increment only when there is one: people know the rules
+        const parts = [`<strong>${minutes} minute${minutes === 1 ? "" : "s"}</strong> each`];
+        if (increment > 0) {
+            parts.push(
+                `<strong>${increment} second${increment === 1 ? "" : "s"}</strong> added per move`,
+            );
+        }
+        parts.push(whiteText);
         return {
-            // People know the rules of chess: just what's set
-            blurb: `${time}. ${whiteText}.`,
+            blurb: `${parts.join(", ")}.`,
             seats: s.players.map((id) => ({ id, name: s.names[id] ?? shortId(id) })),
             hint: "Start once you're both here.",
             settings: {
