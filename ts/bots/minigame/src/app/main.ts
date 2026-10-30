@@ -1,7 +1,8 @@
-// The 2048 race's page, which OpenChat opens in a frame from the game's card. It connects to
-// OpenChat with the SDK's browser client, draws every player's board from the shared state, and
-// sends the player's own moves to the bot. A move is applied to the player's board as soon as
-// it's made, with the bot's answer confirming it and adding the new tile.
+// The 2048 race's page, which OpenChat shows in the game's card, in a frame at the size the card
+// declares (`appSize` in the registry), or full screen. It connects to OpenChat with the SDK's
+// browser client, draws every player's board from the shared state, and sends the player's own
+// moves to the bot. A move is applied to the player's board as soon as it's made, with the bot's
+// answer confirming it and adding the new tile.
 import { connectToOpenChat, type MiniAppClient } from "@open-ic/openchat-botclient-ts/mini_app";
 import { slide, type Board, type Direction } from "../games/race2048/engine";
 import {
@@ -23,6 +24,8 @@ let queued: Direction | undefined;
 let notice: string | undefined;
 let noticeTimer: ReturnType<typeof setTimeout> | undefined;
 let starting = false;
+// The frame only gets the keys once the player has clicked in it, as it's in the chat
+let focused = document.hasFocus();
 
 const KEYS: Record<string, Direction> = {
     ArrowUp: "up",
@@ -65,9 +68,21 @@ async function main() {
         event.preventDefault();
         void move(direction);
     });
+    // Only the hint changes with focus: redrawing everything would lose the click giving it
+    window.addEventListener("focus", () => {
+        focused = true;
+        renderHint();
+    });
+    window.addEventListener("blur", () => {
+        focused = false;
+        renderHint();
+    });
+    // A swipe on the player's own board moves; elsewhere the page scrolls, as it may be taller
+    // than the frame with many players
     let touchStart: { x: number; y: number } | undefined;
     root.addEventListener("pointerdown", (event) => {
-        touchStart = { x: event.clientX, y: event.clientY };
+        const onOwnBoard = (event.target as HTMLElement).closest(".player.mine") !== null;
+        touchStart = onOwnBoard ? { x: event.clientX, y: event.clientY } : undefined;
     });
     root.addEventListener("pointerup", (event) => {
         if (touchStart === undefined) return;
@@ -273,10 +288,24 @@ function race(shared: SharedState, player: boolean): string {
                        <button data-action="move" data-direction="down" aria-label="Down">↓</button>
                        <button data-action="move" data-direction="right" aria-label="Right">→</button>
                    </div>
-                   <p class="muted">Arrow keys, WASD, swipe or tap. <button class="link" data-action="restart">Restart my board</button></p>
+                   <p class="muted"><span id="hint">${hintText()}</span> <button class="link" data-action="restart">Restart my board</button></p>
                </div>`
             : "";
-    return `${banner}<section class="grid cols-${columns}">${cards}</section>${controls}`;
+    // The player's own board is drawn bigger than the others' when there's room for three columns
+    const ownBig = columns === 3 ? "own-big" : "";
+    return `${banner}<section class="grid cols-${columns} ${ownBig}">${cards}</section>${controls}`;
+}
+
+function hintText(): string {
+    // the d-pad is only shown where there's no mouse and keyboard
+    const keyboard = matchMedia("(hover: hover) and (pointer: fine)").matches;
+    if (!keyboard) return "Swipe your board, or tap the arrows.";
+    return focused ? "Arrow keys or WASD." : "Click your board to use the keys.";
+}
+
+function renderHint() {
+    const hint = document.getElementById("hint");
+    if (hint !== null) hint.textContent = hintText();
 }
 
 function card(p: PlayerView, mine: Own | undefined, shared: SharedState): string {

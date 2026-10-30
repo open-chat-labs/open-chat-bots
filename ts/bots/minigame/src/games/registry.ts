@@ -1,6 +1,7 @@
 // The games the bot hosts. Each is a choice of the `/play` command, and its card's text and limits.
 // The 2048 race is the first; another game adds an entry here, its rules under `games/`, its
 // requests under `handlers/api.ts` and its view in the app.
+import type { MiniAppSize } from "@open-ic/openchat-botclient-ts";
 import { GAME_ID, MAX_PLAYERS, TARGET } from "./race2048/types";
 
 export type GameType = {
@@ -12,6 +13,11 @@ export type GameType = {
     maxPlayers: number;
     /** Whether people who aren't playing can watch */
     spectators: boolean;
+    /**
+     * The size the page is laid out for, in CSS pixels. The card shows the page at that aspect
+     * ratio, as wide as the card, so this is what it's drawn at unless the player goes full screen.
+     */
+    appSize: MiniAppSize;
 };
 
 export const RACE_2048: GameType = {
@@ -23,6 +29,8 @@ export const RACE_2048: GameType = {
         `Stuck? Restart on a fresh board and keep racing.`,
     maxPlayers: MAX_PLAYERS,
     spectators: true,
+    // A portrait frame: the lobby, or a player's board above the others', with room for nine
+    appSize: { width: 480, height: 720 },
 };
 
 export const GAMES: readonly GameType[] = [RACE_2048];

@@ -50,12 +50,15 @@ body {
     font-size: 15px;
     line-height: 1.4;
     overscroll-behavior: none;
-    touch-action: none;
     user-select: none;
     -webkit-user-select: none;
 }
 
+/* Fills the frame, so the lobby can sit in the middle of it */
 .app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
     padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
     max-width: 920px;
     margin: 0 auto;
@@ -144,6 +147,7 @@ button.link {
 }
 
 .lobby {
+    margin: auto 0;
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -197,13 +201,25 @@ button.link {
     --cols: 3;
 }
 
-@media (max-width: 560px) {
+/* The player's own board takes two columns and rows of three, so it's the one that's big */
+.grid.own-big .player.mine {
+    grid-column: span 2;
+    grid-row: span 2;
+}
+
+/* The frame is as wide as the card: three columns of boards fit down to about 420 pixels */
+@media (max-width: 419px) {
     .grid.cols-3 {
         --cols: 2;
     }
+
+    .grid.own-big .player.mine {
+        grid-column: 1 / -1;
+        grid-row: auto;
+    }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 299px) {
     .grid.cols-2,
     .grid.cols-3 {
         --cols: 1;
@@ -222,6 +238,8 @@ button.link {
 .player.mine {
     border-color: var(--mine);
     box-shadow: 0 0 0 2px var(--mine);
+    /* swipes on it are moves, not scrolling */
+    touch-action: none;
 }
 
 .player header {
