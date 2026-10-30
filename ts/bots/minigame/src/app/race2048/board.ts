@@ -7,7 +7,7 @@
 // that's how the board got there, allowing for the tile spawned after it, which is how both the
 // player's own moves and the moves others make, replayed from the shared state, are drawn. Any
 // other change is drawn as it is.
-import { CELLS, SIZE, emptyBoard, slideMoves, type Board, type Direction } from "../games/race2048/engine";
+import { CELLS, SIZE, emptyBoard, slideMoves, type Board, type Direction } from "../../games/race2048/engine";
 
 /** How long a slide takes, after which the merged tiles pop and the sources go */
 const SLIDE_MS = 100;

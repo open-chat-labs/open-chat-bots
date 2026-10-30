@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 720" width="480" height="720" role="img" aria-label="2048 Race">
+  <!--
+    The 2048 race's image, at the app's aspect ratio (480 by 720): OpenChat shows it in the card's
+    frame box whenever there's no app to show. Its background is opaque, so it reads the same on a
+    light or a dark page. No fonts, scripts or references: the text is whatever sans-serif the
+    viewer has. The tile colours are the game's (style.css).
+  -->
+  <rect width="480" height="720" fill="#faf8ef"/>
+  <!-- The board: 4 by 4 cells of 85, with a 12 gap, 400 wide -->
+  <rect x="40" y="110" width="400" height="400" rx="12" fill="#bbada0"/>
+  <g fill="#cdc1b4">
+    <rect x="52" y="122" width="85" height="85" rx="6"/>
+    <rect x="149" y="122" width="85" height="85" rx="6"/>
+    <rect x="246" y="122" width="85" height="85" rx="6"/>
+    <rect x="343" y="122" width="85" height="85" rx="6"/>
+    <rect x="52" y="219" width="85" height="85" rx="6"/>
+    <rect x="149" y="219" width="85" height="85" rx="6"/>
+    <rect x="246" y="219" width="85" height="85" rx="6"/>
+    <rect x="343" y="219" width="85" height="85" rx="6"/>
+    <rect x="52" y="316" width="85" height="85" rx="6"/>
+    <rect x="149" y="316" width="85" height="85" rx="6"/>
+    <rect x="246" y="316" width="85" height="85" rx="6"/>
+    <rect x="343" y="316" width="85" height="85" rx="6"/>
+    <rect x="52" y="413" width="85" height="85" rx="6"/>
+    <rect x="149" y="413" width="85" height="85" rx="6"/>
+    <rect x="246" y="413" width="85" height="85" rx="6"/>
+    <rect x="343" y="413" width="85" height="85" rx="6"/>
+  </g>
+  <g font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-weight="700" text-anchor="middle">
+    <!-- Row 1: 2048, 128, 8, 2 -->
+    <rect x="52" y="122" width="85" height="85" rx="6" fill="#edc22e" stroke="#f3d774" stroke-width="3"/>
+    <text x="94.5" y="177" font-size="30" fill="#f9f6f2">2048</text>
+    <rect x="149" y="122" width="85" height="85" rx="6" fill="#edcf72"/>
+    <text x="191.5" y="178" font-size="34" fill="#f9f6f2">128</text>
+    <rect x="246" y="122" width="85" height="85" rx="6" fill="#f2b179"/>
+    <text x="288.5" y="180" font-size="42" fill="#f9f6f2">8</text>
+    <rect x="343" y="122" width="85" height="85" rx="6" fill="#eee4da"/>
+    <text x="385.5" y="180" font-size="42" fill="#776e65">2</text>
+    <!-- Row 2: 64, 32, 4 -->
+    <rect x="52" y="219" width="85" height="85" rx="6" fill="#f65e3b"/>
+    <text x="94.5" y="277" font-size="42" fill="#f9f6f2">64</text>
+    <rect x="149" y="219" width="85" height="85" rx="6" fill="#f67c5f"/>
+    <text x="191.5" y="277" font-size="42" fill="#f9f6f2">32</text>
+    <rect x="246" y="219" width="85" height="85" rx="6" fill="#ede0c8"/>
+    <text x="288.5" y="277" font-size="42" fill="#776e65">4</text>
+    <!-- Row 3: 16, 2 -->
+    <rect x="52" y="316" width="85" height="85" rx="6" fill="#f59563"/>
+    <text x="94.5" y="374" font-size="42" fill="#f9f6f2">16</text>
+    <rect x="149" y="316" width="85" height="85" rx="6" fill="#eee4da"/>
+    <text x="191.5" y="374" font-size="42" fill="#776e65">2</text>
+    <!-- Row 4: 4 -->
+    <rect x="52" y="413" width="85" height="85" rx="6" fill="#ede0c8"/>
+    <text x="94.5" y="471" font-size="42" fill="#776e65">4</text>
+    <!-- The title, under the board -->
+    <text x="240" y="598" font-size="60" fill="#776e65">2048 Race</text>
+    <text x="240" y="646" font-size="24" font-weight="500" fill="#9a9188">First to a 2048 tile wins</text>
+  </g>
+</svg>

@@ -12,7 +12,6 @@ import {
 } from "@open-ic/openchat-botclient-ts";
 import type { Request, Response } from "express";
 import type { Deps } from "../deps";
-import { MAX_PLAYERS } from "../games/race2048/types";
 
 type Verify = (tokens: MiniAppTokens, header: string | string[] | undefined) => MiniAppPlayerClaims;
 
@@ -40,33 +39,31 @@ export async function join(req: Request, res: Response, deps: Deps): Promise<voi
     const c = await claims(req, res, deps, (t, h) => t.verifyJoin(h));
     if (c === undefined) return;
     const entry = deps.store.get(c.game);
-    const refuse = (message: string): MiniAppJoinResponse => ({ accepted: false, message });
     if (entry === undefined) {
-        res.json(refuse("This game is over"));
+        res.json({ accepted: false, message: "This game is over" } satisfies MiniAppJoinResponse);
         return;
     }
     const name = await deps.names.lookup(c.userId);
-    switch (entry.race.takeSeat(c.userId, name)) {
-        case "seated":
-        case "already_seated":
-            deps.store.save();
-            deps.publisher.publish(c.game);
-            res.json({ accepted: true } satisfies MiniAppJoinResponse);
-            return;
-        case "full":
-            res.json(refuse(`All ${MAX_PLAYERS} seats are taken`));
-            return;
-        case "started":
-            res.json(refuse("The race has already started"));
-            return;
+    const refusal = entry.play.join(c.userId, name);
+    if (refusal !== undefined) {
+        res.json({ accepted: false, message: refusal } satisfies MiniAppJoinResponse);
+        return;
     }
+    deps.store.save();
+    // So everyone with the game open sees who's joined
+    deps.publisher.publish(c.game);
+    res.json({ accepted: true } satisfies MiniAppJoinResponse);
 }
 
+/**
+ * Before the start, the user's seat is freed. After it, the game decides: a race goes on without
+ * them, a chess game can't, so it ends.
+ */
 export async function leave(req: Request, res: Response, deps: Deps): Promise<void> {
     const c = await claims(req, res, deps, (t, h) => t.verifyLeave(h));
     if (c === undefined) return;
     const entry = deps.store.get(c.game);
-    if (entry !== undefined && entry.race.leaveSeat(c.userId)) {
+    if (entry !== undefined && entry.play.leave(c.userId)) {
         deps.store.save();
         deps.publisher.publish(c.game);
     }
@@ -82,28 +79,32 @@ export async function start(req: Request, res: Response, deps: Deps): Promise<vo
         res.json(refuseMiniAppStart("This game is over"));
         return;
     }
-    const { race } = entry;
-    if (race.phase === "open") {
-        if (!race.isSeated(c.userId)) {
-            res.json(refuseMiniAppStart("Join the race before starting it"));
+    const { play } = entry;
+    if (play.phase === "open") {
+        if (!play.isSeated(c.userId)) {
+            res.json(refuseMiniAppStart("Join the game before starting it"));
             return;
         }
-        const cannot = race.cannotStart();
+        const cannot = play.cannotStart();
         if (cannot !== undefined) {
             res.json(refuseMiniAppStart(cannot));
             return;
         }
+    } else if (!play.isPlayer(c.userId)) {
+        res.json(refuseMiniAppStart("You're not in this game"));
+        return;
     }
-    // Starting a race that has started, eg. as the first answer was lost, gives the players as
-    // they are now. The first state goes in the answer, with a seq above any published before.
-    const players = race.start();
+    // Starting a game that has started, eg. as the first answer was lost, gives the players as
+    // they are now. The first state goes in the answer, with a seq above any published before,
+    // and whose turn it is, if the game has turns: White's, in chess. The flag falls through the
+    // sweep, which looks at every game's clock each second.
+    const players = play.start();
     deps.store.save();
     res.json(
         acceptMiniAppStart({
             players,
-            // A race: it's everyone's turn at once
-            waitingFor: [],
-            state: { seq: race.nextSeq(), shared: race.shared() },
+            waitingFor: play.waitingFor(),
+            state: { seq: play.nextSeq(), shared: play.shared() },
         }),
     );
 }
