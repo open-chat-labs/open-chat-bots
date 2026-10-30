@@ -20,26 +20,6 @@ export function emptyBoard(): Board {
     return new Array<number>(CELLS).fill(0);
 }
 
-/** A line of tiles slid towards its start, merging each pair of equal neighbours once */
-function mergeLine(line: number[]): { line: number[]; gained: number } {
-    const tiles = line.filter((v) => v !== 0);
-    const merged: number[] = [];
-    let gained = 0;
-    for (let i = 0; i < tiles.length; i++) {
-        if (i + 1 < tiles.length && tiles[i] === tiles[i + 1]) {
-            merged.push(tiles[i] * 2);
-            gained += tiles[i] * 2;
-            i++;
-        } else {
-            merged.push(tiles[i]);
-        }
-    }
-    while (merged.length < SIZE) {
-        merged.push(0);
-    }
-    return { line: merged, gained };
-}
-
 /** The cells of each line, in the order tiles move: the first cell is where they slide to */
 function lines(direction: Direction): number[][] {
     const result: number[][] = [];
@@ -66,27 +46,48 @@ function lines(direction: Direction): number[][] {
     return result;
 }
 
+/** Where a tile goes in a move. Both tiles of a pair go to the same cell, `merged`. */
+export type TileMove = { from: number; to: number; merged: boolean };
+
 /**
- * Slides every tile as far as it goes in `direction`, merging pairs. `moved` is false when nothing
- * changed, which isn't a move: no tile is spawned for it.
+ * Slides every tile as far as it goes in `direction`, merging each pair of equal neighbours once,
+ * from the edge the tiles move towards, and says where each tile went, which the app animates.
+ * `moved` is false when nothing changed, which isn't a move: no tile is spawned for it.
  */
+export function slideMoves(
+    board: Board,
+    direction: Direction,
+): { board: Board; gained: number; moved: boolean; moves: TileMove[] } {
+    const next = emptyBoard();
+    const moves: TileMove[] = [];
+    let gained = 0;
+    for (const cells of lines(direction)) {
+        const tiles = cells.filter((cell) => board[cell] !== 0);
+        let slot = 0;
+        for (let i = 0; i < tiles.length; i++, slot++) {
+            const to = cells[slot];
+            if (i + 1 < tiles.length && board[tiles[i]] === board[tiles[i + 1]]) {
+                next[to] = board[tiles[i]] * 2;
+                gained += next[to];
+                moves.push({ from: tiles[i], to, merged: true });
+                moves.push({ from: tiles[i + 1], to, merged: true });
+                i++;
+            } else {
+                next[to] = board[tiles[i]];
+                moves.push({ from: tiles[i], to, merged: false });
+            }
+        }
+    }
+    const moved = next.some((value, cell) => value !== board[cell]);
+    return { board: next, gained, moved, moves };
+}
+
+/** `slideMoves` without the moves: the board after a slide, the points it gained, and whether anything moved */
 export function slide(
     board: Board,
     direction: Direction,
 ): { board: Board; gained: number; moved: boolean } {
-    const next = board.slice();
-    let gained = 0;
-    let moved = false;
-    for (const cells of lines(direction)) {
-        const merged = mergeLine(cells.map((cell) => board[cell]));
-        gained += merged.gained;
-        cells.forEach((cell, j) => {
-            if (next[cell] !== merged.line[j]) {
-                next[cell] = merged.line[j];
-                moved = true;
-            }
-        });
-    }
+    const { board: next, gained, moved } = slideMoves(board, direction);
     return { board: next, gained, moved };
 }
 

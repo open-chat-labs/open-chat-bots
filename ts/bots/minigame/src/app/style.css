@@ -32,6 +32,11 @@
     box-sizing: border-box;
 }
 
+/* The page hides and shows its parts with the attribute, whatever their display */
+[hidden] {
+    display: none !important;
+}
+
 html,
 body {
     margin: 0;
@@ -62,6 +67,12 @@ body {
     padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
     max-width: 920px;
     margin: 0 auto;
+}
+
+.body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
 }
 
 .top {
@@ -103,6 +114,7 @@ h2 {
 
 .toast {
     position: fixed;
+    z-index: 4;
     top: 12px;
     left: 50%;
     transform: translateX(-50%);
@@ -111,7 +123,6 @@ h2 {
     padding: 8px 14px;
     border-radius: 8px;
     box-shadow: var(--shadow);
-    z-index: 2;
     max-width: calc(100% - 32px);
 }
 
@@ -300,29 +311,88 @@ button.link {
     color: var(--fg);
 }
 
+/*
+ * The board's cells and tiles are each 20% of the board wide, 4% apart, placed by --x and --y. A
+ * tile moves by a transition on its transform, and its inner pops when it's merged or new: the
+ * animations are Gabriele Cirulli's 2048's (MIT, https://github.com/gabrielecirulli/2048).
+ */
 .board {
     position: relative;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4%;
     background: var(--board);
     border-radius: 8px;
-    padding: 4%;
     aspect-ratio: 1;
     container-type: inline-size;
 }
 
+.cell,
 .tile {
-    aspect-ratio: 1;
+    position: absolute;
+    width: 20cqw;
+    height: 20cqw;
+    left: 4cqw;
+    top: 4cqw;
+    transform: translate(calc(var(--x) * 24cqw), calc(var(--y) * 24cqw));
+}
+
+.cell {
     border-radius: 6%;
     background: var(--empty);
+}
+
+.tile {
+    transition: transform 100ms ease-in-out;
+    z-index: 1;
+}
+
+.tile-merged {
+    z-index: 2;
+}
+
+.tile-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 6%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
     font-size: 11cqw;
     color: #776e65;
-    transition: background 120ms;
+    background: var(--empty);
+}
+
+/* A tile popping after a slide is kept from view until then (its delay and fill are set inline);
+   one appearing now isn't, so it's there even where animations are paused, eg. a hidden tab */
+.tile-new .tile-inner {
+    animation: appear 200ms ease;
+}
+
+.tile-merged .tile-inner {
+    animation: pop 200ms ease 100ms;
+    animation-fill-mode: backwards;
+}
+
+@keyframes appear {
+    0% {
+        opacity: 0;
+        transform: scale(0);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes pop {
+    0% {
+        transform: scale(0);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 .t-2 {
@@ -382,6 +452,7 @@ button.link {
 .overlay {
     position: absolute;
     inset: 0;
+    z-index: 3;
     border-radius: 8px;
     background: rgba(238, 228, 218, 0.78);
     display: flex;

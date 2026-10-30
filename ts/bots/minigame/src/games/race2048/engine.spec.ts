@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canMove, emptyBoard, maxTile, newBoard, slide, spawn, type Board } from "./engine";
+import { canMove, emptyBoard, maxTile, newBoard, slide, slideMoves, spawn, type Board } from "./engine";
 
 // prettier-ignore
 const board = (...rows: number[][]): Board => rows.flat();
@@ -41,6 +41,34 @@ describe("slide", () => {
         const copy = start.slice();
         slide(start, "left");
         expect(start).toEqual(copy);
+    });
+});
+
+describe("slideMoves", () => {
+    it("says where each tile goes, both of a pair to the merged cell", () => {
+        const board = [
+            ...[2, 2, 4, 0],
+            ...[0, 0, 0, 8],
+            ...[0, 0, 0, 0],
+            ...[0, 0, 0, 0],
+        ];
+        const { board: next, gained, moved, moves } = slideMoves(board, "left");
+        expect(next.slice(0, 8)).toEqual([4, 4, 0, 0, 8, 0, 0, 0]);
+        expect(gained).toBe(4);
+        expect(moved).toBe(true);
+        expect(moves).toEqual([
+            { from: 0, to: 0, merged: true },
+            { from: 1, to: 0, merged: true },
+            { from: 2, to: 1, merged: false },
+            { from: 7, to: 4, merged: false },
+        ]);
+    });
+
+    it("lists a tile that stays where it is as a move to its own cell", () => {
+        const board = [...[2, 0, 0, 0], ...[0, 0, 0, 0], ...[0, 0, 0, 0], ...[0, 0, 0, 0]];
+        const { moved, moves } = slideMoves(board, "left");
+        expect(moved).toBe(false);
+        expect(moves).toEqual([{ from: 0, to: 0, merged: false }]);
     });
 });
 

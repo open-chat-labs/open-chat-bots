@@ -3,6 +3,9 @@
 // browser client, draws every player's board from the shared state, and sends the player's own
 // moves to the bot. A move is applied to the player's board as soon as it's made, with the bot's
 // answer confirming it and adding the new tile.
+//
+// The lobby is drawn afresh on each change. The race isn't: its boards animate (`board.ts`), so
+// their elements are kept and brought up to date, and the rest of the race view with them.
 import { connectToOpenChat, type MiniAppClient } from "@open-ic/openchat-botclient-ts/mini_app";
 import { slide, type Board, type Direction } from "../games/race2048/engine";
 import {
@@ -11,6 +14,7 @@ import {
     type PlayerView,
     type SharedState,
 } from "../games/race2048/types";
+import { BoardView } from "./board";
 
 const root = document.getElementById("app") as HTMLElement;
 
@@ -19,6 +23,8 @@ type Own = { board: Board; rev: number; score: number; dead: boolean; won: boole
 
 let oc: MiniAppClient<SharedState> | undefined;
 let own: Own | undefined;
+/** The direction of the player's own move being drawn, for the board to slide */
+let ownMove: Direction | undefined;
 let sending = false;
 let queued: Direction | undefined;
 let notice: string | undefined;
@@ -51,6 +57,13 @@ async function main() {
         )}</small></p>`;
         return;
     }
+    root.innerHTML = `
+        <header class="top">
+            <h1>2048 Race</h1>
+            <span id="clock" class="clock"></span>
+        </header>
+        <div id="toast" class="toast" hidden></div>
+        <div id="body" class="body"></div>`;
     applyTheme(oc.darkMode);
     oc.onDarkModeChange(applyTheme);
     oc.onStateChange(() => {
@@ -68,7 +81,6 @@ async function main() {
         event.preventDefault();
         void move(direction);
     });
-    // Only the hint changes with focus: redrawing everything would lose the click giving it
     window.addEventListener("focus", () => {
         focused = true;
         renderHint();
@@ -143,7 +155,9 @@ async function move(direction: Direction) {
     const predicted = slide(own.board, direction);
     if (!predicted.moved) return;
     own = { ...own, board: predicted.board, score: own.score + predicted.gained };
+    ownMove = direction;
     render();
+    ownMove = undefined;
 
     sending = true;
     try {
@@ -223,26 +237,51 @@ function applyTheme(dark: boolean) {
 
 // Drawing
 
+/** A player's card: its elements, brought up to date on each change, with the board that animates */
+type CardDom = {
+    el: HTMLElement;
+    name: HTMLElement;
+    status: HTMLElement;
+    stats: HTMLElement;
+    view: BoardView;
+    overlay: HTMLElement;
+};
+
+/** The race view, kept while the same board is the big one */
+type RaceDom = {
+    mainId: string;
+    banner: HTMLElement;
+    main: CardDom;
+    controls: HTMLElement;
+    others: HTMLElement;
+    otherCards: Map<string, CardDom>;
+};
+
+let raceDom: RaceDom | undefined;
+
+function byId(id: string): HTMLElement {
+    return document.getElementById(id) as HTMLElement;
+}
+
 function render() {
     if (oc === undefined) return;
     const shared = oc.state?.shared;
     const player = oc.role === "player";
-    let body: string;
+    byId("clock").textContent = clockText(shared);
+    const toast = byId("toast");
+    toast.hidden = notice === undefined;
+    toast.textContent = notice ?? "";
+    const body = byId("body");
     if (shared !== undefined && shared.version !== STATE_VERSION) {
-        body = `<p class="notice">This game needs a newer page.</p>
+        raceDom = undefined;
+        body.innerHTML = `<p class="notice">This game needs a newer page.</p>
             <p class="center"><button class="primary" data-action="reload">Reload</button></p>`;
     } else if (shared === undefined || shared.phase === "open") {
-        body = lobby(shared, player);
+        raceDom = undefined;
+        body.innerHTML = lobby(shared, player);
     } else {
-        body = race(shared, player);
+        renderRace(body, shared, player);
     }
-    root.innerHTML = `
-        <header class="top">
-            <h1>2048 Race</h1>
-            <span id="clock" class="clock">${clockText(shared)}</span>
-        </header>
-        ${notice === undefined ? "" : `<div class="toast">${escape(notice)}</div>`}
-        ${body}`;
 }
 
 function lobby(shared: SharedState | undefined, player: boolean): string {
@@ -268,7 +307,7 @@ function lobby(shared: SharedState | undefined, player: boolean): string {
     </section>`;
 }
 
-function race(shared: SharedState, player: boolean): string {
+function renderRace(body: HTMLElement, shared: SharedState, player: boolean) {
     const me = oc?.userId;
     // The player's own board is the big one, over the others' in a row, the highest score first.
     // Someone watching sees the leader's board as the big one.
@@ -276,29 +315,135 @@ function race(shared: SharedState, player: boolean): string {
         (a, b) => b.score - a.score || a.name.localeCompare(b.name),
     );
     const main = byScore.find((p) => p.id === me) ?? byScore[0];
-    const others = byScore.filter((p) => p !== main);
+    if (main === undefined) {
+        raceDom = undefined;
+        body.innerHTML = `<p class="notice">Nobody's racing.</p>`;
+        return;
+    }
+    if (raceDom === undefined || raceDom.mainId !== main.id) {
+        raceDom = buildRace(body, main, main.id === me ? own : undefined);
+    }
+    const dom = raceDom;
+
     const winner = byScore.find((p) => p.id === shared.winner);
-    const banner = shared.phase === "finished" ? `<div class="banner">${ending(shared, winner, me)}</div>` : "";
-    const big =
-        main === undefined ? "" : card(main, main.id === me ? own : undefined, shared, "main");
-    const row =
-        others.length === 0
+    dom.banner.hidden = shared.phase !== "finished";
+    dom.banner.innerHTML = shared.phase === "finished" ? ending(shared, winner, me) : "";
+
+    // The player's own board slides for their move; a board that moved in the shared state
+    // slides when the last move was its player's, and the board is that move's
+    const lastMove = shared.lastMove;
+    const hint = (p: PlayerView): Direction | undefined =>
+        p.id === me ? ownMove : lastMove?.player === p.id ? lastMove.direction : undefined;
+    updateCard(dom.main, main, main.id === me ? own : undefined, shared, "main", hint(main));
+
+    dom.controls.hidden = !(player && shared.phase === "active");
+    renderHint();
+
+    const others = byScore.filter((p) => p !== main);
+    const seen = new Set<string>();
+    for (const p of others) {
+        seen.add(p.id);
+        let card = dom.otherCards.get(p.id);
+        if (card === undefined) {
+            card = buildCard(p, undefined, "small");
+            dom.otherCards.set(p.id, card);
+        }
+        updateCard(card, p, undefined, shared, "small", hint(p));
+        // Appending in order sorts the row, moving only the cards whose place changed
+        if (dom.others.children[seen.size - 1] !== card.el) {
+            dom.others.append(card.el);
+        }
+    }
+    for (const [id, card] of dom.otherCards) {
+        if (!seen.has(id)) {
+            card.el.remove();
+            dom.otherCards.delete(id);
+        }
+    }
+    dom.others.hidden = others.length === 0;
+}
+
+function buildRace(body: HTMLElement, main: PlayerView, mine: Own | undefined): RaceDom {
+    body.innerHTML = `
+        <div id="banner" class="banner" hidden></div>
+        <section id="main" class="main"></section>
+        <div id="controls" class="controls" hidden>
+            <div class="dpad">
+                <button data-action="move" data-direction="up" aria-label="Up">↑</button>
+                <button data-action="move" data-direction="left" aria-label="Left">←</button>
+                <button data-action="move" data-direction="down" aria-label="Down">↓</button>
+                <button data-action="move" data-direction="right" aria-label="Right">→</button>
+            </div>
+            <p class="muted"><span id="hint"></span> <button class="link" data-action="restart">Restart my board</button></p>
+        </div>
+        <section id="others" class="others" hidden></section>`;
+    const card = buildCard(main, mine, "main");
+    byId("main").append(card.el);
+    return {
+        mainId: main.id,
+        banner: byId("banner"),
+        main: card,
+        controls: byId("controls"),
+        others: byId("others"),
+        otherCards: new Map(),
+    };
+}
+
+function buildCard(p: PlayerView, mine: Own | undefined, size: "main" | "small"): CardDom {
+    const el = document.createElement("article");
+    el.className = `player ${size} ${mine !== undefined ? "mine" : ""}`;
+    el.innerHTML = `
+        <header><span class="name"></span><span class="status"></span></header>
+        <div class="stats"></div>`;
+    const view = new BoardView(mine?.board ?? p.board);
+    const overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.hidden = true;
+    overlay.innerHTML = `<p>No moves left</p><button class="primary" data-action="restart">Restart</button>`;
+    view.el.append(overlay);
+    el.append(view.el);
+    return {
+        el,
+        name: el.querySelector(".name") as HTMLElement,
+        status: el.querySelector(".status") as HTMLElement,
+        stats: el.querySelector(".stats") as HTMLElement,
+        view,
+        overlay,
+    };
+}
+
+function updateCard(
+    card: CardDom,
+    p: PlayerView,
+    mine: Own | undefined,
+    shared: SharedState,
+    size: "main" | "small",
+    hint: Direction | undefined,
+) {
+    const board = mine?.board ?? p.board;
+    const score = mine?.score ?? p.score;
+    const dead = mine?.dead ?? p.dead;
+    const won = mine?.won ?? p.won;
+    // The big board that isn't the viewer's own is the leader's
+    const leading = size === "main" && mine === undefined;
+    card.name.innerHTML = `${escape(p.name)}${mine !== undefined ? " <em>(you)</em>" : ""}`;
+    card.status.innerHTML = won
+        ? `<span class="chip winner">Winner</span>`
+        : dead
+          ? `<span class="chip stuck">Stuck</span>`
+          : shared.phase === "finished"
             ? ""
-            : `<section class="others">${others.map((p) => card(p, undefined, shared, "small")).join("")}</section>`;
-    const controls =
-        player && shared.phase === "active"
-            ? `<div class="controls">
-                   <div class="dpad">
-                       <button data-action="move" data-direction="up" aria-label="Up">↑</button>
-                       <button data-action="move" data-direction="left" aria-label="Left">←</button>
-                       <button data-action="move" data-direction="down" aria-label="Down">↓</button>
-                       <button data-action="move" data-direction="right" aria-label="Right">→</button>
-                   </div>
-                   <p class="muted"><span id="hint">${hintText()}</span> <button class="link" data-action="restart">Restart my board</button></p>
-               </div>`
-            : "";
-    // The controls are under the player's board, so the d-pad is near it, with the row last
-    return `${banner}<section class="main">${big}</section>${controls}${row}`;
+            : leading
+              ? `<span class="chip racing">Leading</span>`
+              : `<span class="chip racing">Racing</span>`;
+    const best = Math.max(...board, 0);
+    card.stats.innerHTML =
+        (size === "main"
+            ? `<span>Score <strong>${score}</strong></span><span>Best <strong>${best}</strong></span>`
+            : `<span><strong>${score}</strong></span><span>best ${best}</span>`) +
+        (p.restarts > 0 ? `<span title="Restarts">↻ ${p.restarts}</span>` : "");
+    card.view.update(board, hint);
+    card.overlay.hidden = !(mine !== undefined && dead && shared.phase === "active");
 }
 
 function hintText(): string {
@@ -308,51 +453,10 @@ function hintText(): string {
     return focused ? "Arrow keys or WASD." : "Click your board to use the keys.";
 }
 
+/** Only the hint changes with focus: redrawing the controls would lose the click giving it */
 function renderHint() {
     const hint = document.getElementById("hint");
     if (hint !== null) hint.textContent = hintText();
-}
-
-function card(p: PlayerView, mine: Own | undefined, shared: SharedState, size: "main" | "small"): string {
-    const board = mine?.board ?? p.board;
-    const score = mine?.score ?? p.score;
-    const dead = mine?.dead ?? p.dead;
-    const won = mine?.won ?? p.won;
-    // The big board that isn't the viewer's own is the leader's
-    const leading = size === "main" && mine === undefined;
-    const status = won
-        ? `<span class="chip winner">Winner</span>`
-        : dead
-          ? `<span class="chip stuck">Stuck</span>`
-          : shared.phase === "finished"
-            ? ""
-            : leading
-              ? `<span class="chip racing">Leading</span>`
-              : `<span class="chip racing">Racing</span>`;
-    const overlay =
-        mine !== undefined && dead && shared.phase === "active"
-            ? `<div class="overlay"><p>No moves left</p><button class="primary" data-action="restart">Restart</button></div>`
-            : "";
-    return `<article class="player ${size} ${mine !== undefined ? "mine" : ""}">
-        <header>
-            <span class="name">${escape(p.name)}${mine !== undefined ? " <em>(you)</em>" : ""}</span>
-            ${status}
-        </header>
-        <div class="stats">
-            ${
-                size === "main"
-                    ? `<span>Score <strong>${score}</strong></span>
-                       <span>Best <strong>${Math.max(...board, 0)}</strong></span>`
-                    : `<span><strong>${score}</strong></span>
-                       <span>best ${Math.max(...board, 0)}</span>`
-            }
-            ${p.restarts > 0 ? `<span title="Restarts">↻ ${p.restarts}</span>` : ""}
-        </div>
-        <div class="board">
-            ${board.map((v) => `<div class="tile ${v === 0 ? "" : `t-${v > 2048 ? "big" : v}`}">${v === 0 ? "" : v}</div>`).join("")}
-            ${overlay}
-        </div>
-    </article>`;
 }
 
 /** How the race ended, for the banner */
