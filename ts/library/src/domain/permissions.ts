@@ -45,6 +45,8 @@ export const messagePermissionList = [
     "Prize",
     "P2pSwap",
     "VideoCall",
+    // To post a MiniApp card
+    "MiniApp",
 ] as const;
 
 type MessagePermissionType = typeof messagePermissionList;
@@ -59,7 +61,11 @@ type LowercaseFirstLetter<T extends string> = T extends `${infer First}${infer R
 export type LowercaseChatPermission = LowercaseFirstLetter<
     Exclude<ChatPermission, "ReadMessages" | "ReadMembership" | "ReadChatSummary">
 >;
-export type LowercaseMessagePermission = LowercaseFirstLetter<MessagePermission>;
+// Without MiniApp, which a group's or channel's permissions have no setting for: a member may have a
+// bot post a card for them whenever they can post text
+export type LowercaseMessagePermission = LowercaseFirstLetter<
+    Exclude<MessagePermission, "MiniApp">
+>;
 export type LowercaseCommunityPermission = LowercaseFirstLetter<
     Exclude<CommunityPermission, "ReadMembership" | "ReadCommunitySummary">
 >;
@@ -117,6 +123,7 @@ const messagePermissionMap = {
     Prize: 8,
     P2pSwap: 9,
     VideoCall: 10,
+    MiniApp: 11,
 };
 
 export class Permissions {
