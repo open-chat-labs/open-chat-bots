@@ -2130,6 +2130,7 @@ export function miniAppContent(value: ApiMiniAppContent): MiniAppContent {
         })),
         maxPlayers: optional(value.max_players, identity),
         spectators: value.spectators,
+        appSize: optional(value.app_size, (size) => ({ width: size.width, height: size.height })),
         status: miniAppStatus(value.status),
     };
 }
@@ -2145,6 +2146,10 @@ export function apiMiniAppContent(domain: Omit<MiniAppContent, "kind">): ApiMini
         })),
         max_players: apiOptional(domain.maxPlayers, identity),
         spectators: domain.spectators,
+        app_size: apiOptional(domain.appSize, (size) => ({
+            width: size.width,
+            height: size.height,
+        })),
         status: apiMiniAppStatus(domain.status),
     };
 }
@@ -2243,6 +2248,7 @@ export type ApiMiniAppCard = {
     };
     max_players?: number;
     spectators: boolean;
+    app_size?: { width: number; height: number };
 };
 
 // What the card leaves undefined, JSON leaves out
@@ -2260,6 +2266,7 @@ export function apiMiniAppCard(domain: MiniAppCard): ApiMiniAppCard {
         })),
         max_players: domain.maxPlayers,
         spectators: domain.spectators,
+        app_size: domain.appSize,
     };
 }
 

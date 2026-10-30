@@ -307,7 +307,9 @@ one, with the same options, `{ channelId, thread, messageId }`: the channel for 
 community's scope, the thread, and the card's message id, which the SDK picks unless the bot chooses
 one, or a chat command's token fixes it. The token lasts an hour, and needs the `MiniApp` message
 permission, so a command which posts a card asks for it. A card can't be posted in a direct chat,
-and its text, image, player limit and spectators never change. `createMiniAppMessage` uploads the
+and its text, image, player limit, spectators and app size never change. The app size, `appSize:
+{ width, height }`, is what the app's laid out for, in CSS pixels: the card shows the app at that
+aspect ratio, sized before it loads; without it the app gets a fixed height. `createMiniAppMessage` uploads the
 optional image (`{ data, mimeType, width, height }`) first, as `createImageMessage` does;
 `setBlockLevelMarkdown` and `setRepliesTo` apply. Posting the same token again posts nothing new and
 gives the same game, so a bot which got no answer, eg. an `unavailable` error, posts again with the

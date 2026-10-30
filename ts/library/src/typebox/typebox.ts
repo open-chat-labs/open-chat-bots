@@ -6698,12 +6698,19 @@ export const MiniAppImage = /* @__PURE__ */ Type.Object({
     blob_reference: BlobReference,
 });
 
+export type MiniAppSize = Static<typeof MiniAppSize>;
+export const MiniAppSize = /* @__PURE__ */ Type.Object({
+    width: Type.Number(),
+    height: Type.Number(),
+});
+
 export type MiniAppContent = Static<typeof MiniAppContent>;
 export const MiniAppContent = /* @__PURE__ */ Type.Object({
     text: Type.String(),
     image: Type.Optional(MiniAppImage),
     max_players: Type.Optional(Type.Number()),
     spectators: Type.Boolean(),
+    app_size: Type.Optional(MiniAppSize),
     status: MiniAppStatus,
 });
 
