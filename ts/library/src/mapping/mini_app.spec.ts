@@ -9,11 +9,12 @@ import { ActionContext } from "../domain/action_context";
 import { ChannelIdentifier, CommunityIdentifier, GroupChatIdentifier } from "../domain/identifiers";
 import type { MiniAppContent, MiniAppStatus } from "../domain/event";
 import {
+    MINI_APP_MAX_APP_NAME_CHARS,
     MINI_APP_MAX_TEXT_CHARS,
     MiniAppMessage,
     TextMessage,
+    validateMiniAppAppName,
     validateMiniAppContent,
-    validateMiniAppImage,
     validateMiniAppText,
 } from "../domain/message";
 import { acceptMiniAppStart, miniAppGameKey, refuseMiniAppStart } from "../domain/mini_app";
@@ -39,7 +40,8 @@ const SENDER = "2yfsq-kaaaa-aaaaf-aaa4q-cai";
 const GROUP = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const COMMUNITY = "r7inp-6aaaa-aaaaa-aaabq-cai";
 const TEXT = "**Tic-tac-toe** · tap Open to play";
-const BUCKET = "rturd-qaaaa-aaaaf-aabaq-cai";
+// One of the bot's apps, in its definition
+const APP = "tic-tac-toe";
 const ALICE = "rdmx6-jaaaa-aaaaa-aaadq-cai";
 const BOB = "qhbym-qaaaa-aaaaa-aaafq-cai";
 
@@ -47,23 +49,17 @@ const bytes = (id: string) => Principal.fromText(id).toUint8Array();
 
 // A new card, as OpenChat sends one and as `MiniAppMessage` makes one
 const SIZE = { width: 440, height: 740 };
-const OPEN_CARD = { spectators: false, app_size: SIZE, status: "Open" };
+const OPEN_CARD = { app: APP, spectators: false, app_size: SIZE, status: "Open" };
 const OPEN: Omit<MiniAppContent, "kind" | "text"> = {
+    app: APP,
     spectators: false,
     appSize: SIZE,
     status: { kind: "open" },
 };
 
-const IMAGE = {
-    width: 640,
-    height: 360,
-    mimeType: "image/png",
-    blobReference: { canisterId: BUCKET, blobId: 340282366920938463463374607431768211455n },
-};
-
 // A card as OpenChat sends one from a chat, in msgpack, as the SDK reads it
 function read(card: object) {
-    const wire = Packer.pack({ MiniApp: { text: TEXT, app_size: SIZE, ...card } });
+    const wire = Packer.pack({ MiniApp: { text: TEXT, app: APP, app_size: SIZE, ...card } });
     return messageContent(Value.Parse(ApiMessageContent, Packer.unpack(wire)), SENDER);
 }
 
@@ -88,6 +84,7 @@ describe("MiniApp cards", () => {
         expect(card).toEqual({
             kind: "mini_app_content",
             text: TEXT,
+            app: APP,
             maxPlayers: 4,
             spectators: true,
             appSize: SIZE,
@@ -96,66 +93,68 @@ describe("MiniApp cards", () => {
     });
 
     test("are read with everything OpenChat sends, once finished", () => {
-        // A u128 as a string, as OpenChat writes large ints, and principals as bytes
+        // Principals as bytes, and the end state as the JSON the bot sent, unparsed
+        const endState = '{"version":1,"board":"XOXOXO..X","winner":"X"}';
         const card = read({
-            image: {
-                width: 640,
-                height: 360,
-                mime_type: "image/png",
-                blob_reference: {
-                    canister_id: bytes(BUCKET),
-                    blob_id: "340282366920938463463374607431768211455",
-                },
-            },
+            app: "chess",
             max_players: 2,
             spectators: true,
-            status: { Finished: { players: [bytes(ALICE), bytes(BOB)], result: "Bob won" } },
+            status: {
+                Finished: {
+                    players: [bytes(ALICE), bytes(BOB)],
+                    result: "Bob won",
+                    end_state: endState,
+                },
+            },
         });
 
         expect(card).toEqual({
             kind: "mini_app_content",
             text: TEXT,
-            image: IMAGE,
+            app: "chess",
             maxPlayers: 2,
             spectators: true,
             appSize: SIZE,
-            status: { kind: "finished", players: [ALICE, BOB], result: "Bob won" },
+            status: { kind: "finished", players: [ALICE, BOB], result: "Bob won", endState },
         });
     });
 
-    test("are read finished without a result, or players, if the game was abandoned", () => {
+    test("are read finished without a result, end state or players, if the game was abandoned", () => {
         expect(read({ spectators: false, status: { Finished: { players: [] } } })).toEqual({
             kind: "mini_app_content",
             text: TEXT,
+            app: APP,
             spectators: false,
             appSize: SIZE,
-            status: { kind: "finished", players: [], result: undefined },
+            status: { kind: "finished", players: [], result: undefined, endState: undefined },
         });
     });
 
     test("are sent open, as OpenChat reads them, with the fields it needs", () => {
-        const message = new MiniAppMessage(TEXT, SIZE);
+        const message = new MiniAppMessage(APP, TEXT, SIZE);
 
         expect(sent(message)).toEqual({ MiniApp: { text: TEXT, ...OPEN_CARD } });
         expect(message.requiredMessagePermissions).toEqual(["MiniApp"]);
     });
 
-    test("are sent with their image, player limit and spectators", () => {
-        const message = new MiniAppMessage(TEXT, SIZE, IMAGE).setMaxPlayers(2).setSpectators(true);
+    test("are sent with their app, player limit and spectators", () => {
+        const message = new MiniAppMessage("chess", TEXT, SIZE)
+            .setMaxPlayers(2)
+            .setSpectators(true);
         const wire = sent(message);
 
-        // The u128 as a string and the bucket as principal bytes, as for an image message
-        expect(wire.MiniApp.image.blob_reference.blob_id).toBe(
-            "340282366920938463463374607431768211455",
-        );
-        expect(Uint8Array.from(wire.MiniApp.image.blob_reference.canister_id)).toEqual(
-            bytes(BUCKET),
-        );
-        expect(wire.MiniApp).toMatchObject({ max_players: 2, spectators: true, status: "Open" });
+        expect(wire.MiniApp).toEqual({
+            text: TEXT,
+            app: "chess",
+            max_players: 2,
+            spectators: true,
+            app_size: SIZE,
+            status: "Open",
+        });
         expect(messageContent(Value.Parse(ApiMessageContent, wire), SENDER)).toEqual({
             kind: "mini_app_content",
             text: TEXT,
-            image: IMAGE,
+            app: "chess",
             maxPlayers: 2,
             spectators: true,
             appSize: SIZE,
@@ -178,22 +177,22 @@ describe("MiniApp cards", () => {
         expect(new Permissions({ message: 1 << 10 }).hasMessagePermission("MiniApp")).toBe(false);
     });
 
-    test("are written for the service to post, with the blob id as a decimal string", () => {
-        const message = new MiniAppMessage(TEXT, SIZE, IMAGE).setMaxPlayers(2).setSpectators(true);
+    test("are written for the service to post, as it reads them", () => {
+        const message = new MiniAppMessage(APP, TEXT, SIZE).setMaxPlayers(2).setSpectators(true);
 
         expect(message.card).toEqual({
             text: TEXT,
-            image: IMAGE,
+            app: APP,
             maxPlayers: 2,
             spectators: true,
             appSize: SIZE,
         });
         expect(JSON.stringify(apiMiniAppCard(message.card))).toBe(
-            `{"text":"${TEXT}","image":{"width":640,"height":360,"mime_type":"image/png","blob_reference":{"canister_id":"${BUCKET}","blob_id":"340282366920938463463374607431768211455"}},"max_players":2,"spectators":true,"app_size":{"width":440,"height":740}}`,
+            `{"text":"${TEXT}","app":"${APP}","max_players":2,"spectators":true,"app_size":{"width":440,"height":740}}`,
         );
         // Leaving out what the card hasn't
-        expect(JSON.stringify(apiMiniAppCard(new MiniAppMessage(TEXT, SIZE).card))).toBe(
-            `{"text":"${TEXT}","spectators":false,"app_size":{"width":440,"height":740}}`,
+        expect(JSON.stringify(apiMiniAppCard(new MiniAppMessage(APP, TEXT, SIZE).card))).toBe(
+            `{"text":"${TEXT}","app":"${APP}","spectators":false,"app_size":{"width":440,"height":740}}`,
         );
     });
 });
@@ -204,45 +203,36 @@ describe("validateMiniAppText", () => {
         // Counted in code points, as OpenChat counts them
         expect(validateMiniAppText("é".repeat(MINI_APP_MAX_TEXT_CHARS))).toBeUndefined();
         expect(validateMiniAppText("😀".repeat(MINI_APP_MAX_TEXT_CHARS))).toBeUndefined();
-        expect(new MiniAppMessage(TEXT, SIZE).validate()).toBeUndefined();
+        expect(new MiniAppMessage(APP, TEXT, SIZE).validate()).toBeUndefined();
     });
 
     test("refuses blank or longer text, with OpenChat's error", () => {
         for (const text of ["", " \n", "x".repeat(MINI_APP_MAX_TEXT_CHARS + 1)]) {
             expect(validateMiniAppText(text)).toBe("The text must have 1 to 2000 characters");
         }
-        expect(new MiniAppMessage(" ", SIZE).validate()).toBe(
+        expect(new MiniAppMessage(APP, " ", SIZE).validate()).toBe(
             "The text must have 1 to 2000 characters",
         );
     });
 });
 
-describe("validateMiniAppImage", () => {
-    test("needs a width, a height and an image's mime type, with OpenChat's errors", () => {
-        expect(validateMiniAppImage(1, 1, "image/webp")).toBeUndefined();
-        expect(new MiniAppMessage(TEXT, SIZE, IMAGE).validate()).toBeUndefined();
+describe("validateMiniAppAppName", () => {
+    test("passes 1 to 50 characters, as a bot's definition names an app", () => {
+        expect(validateMiniAppAppName("chess")).toBeUndefined();
+        // Counted in code points, as OpenChat counts them
+        expect(validateMiniAppAppName("é".repeat(MINI_APP_MAX_APP_NAME_CHARS))).toBeUndefined();
+        expect(validateMiniAppAppName("😀".repeat(MINI_APP_MAX_APP_NAME_CHARS))).toBeUndefined();
+    });
 
-        expect(validateMiniAppImage(2 ** 32 - 1, 2 ** 32 - 1, "image/png")).toBeUndefined();
-        for (const [width, height] of [
-            [0, 10],
-            [10, 0],
-            [NaN, 10],
-            // Whole numbers which fit a u32, as OpenChat holds them
-            [1.5, 10],
-            [10, 2 ** 32],
-            [-1, 10],
-        ]) {
-            expect(validateMiniAppImage(width, height, "image/png")).toBe(
-                "The image must have a width and a height",
-            );
+    test("refuses a blank or longer name, with OpenChat's error", () => {
+        for (const app of ["", " \n", "x".repeat(MINI_APP_MAX_APP_NAME_CHARS + 1)]) {
+            expect(validateMiniAppAppName(app)).toBe("The app must have 1 to 50 characters");
         }
-        for (const mimeType of ["video/mp4", "application/octet-stream", ""]) {
-            expect(validateMiniAppImage(10, 10, mimeType)).toBe(
-                "The image's mime type must be an image's",
-            );
-        }
-        expect(new MiniAppMessage(TEXT, SIZE, { ...IMAGE, width: 0 }).validate()).toBe(
-            "The image must have a width and a height",
+        expect(new MiniAppMessage(" ", TEXT, SIZE).validate()).toBe(
+            "The app must have 1 to 50 characters",
+        );
+        expect(new MiniAppMessage("x".repeat(51), TEXT, SIZE).validate()).toBe(
+            "The app must have 1 to 50 characters",
         );
     });
 });
@@ -255,8 +245,8 @@ describe("validateMiniAppContent", () => {
         for (const maxPlayers of [1, 2, 100]) {
             expect(validateMiniAppContent(card({ maxPlayers }))).toBeUndefined();
         }
-        expect(validateMiniAppContent(card({ image: IMAGE, spectators: true }))).toBeUndefined();
-        expect(new MiniAppMessage(TEXT, SIZE).setMaxPlayers(100).validate()).toBeUndefined();
+        expect(validateMiniAppContent(card({ app: "chess", spectators: true }))).toBeUndefined();
+        expect(new MiniAppMessage(APP, TEXT, SIZE).setMaxPlayers(100).validate()).toBeUndefined();
     });
 
     test("refuses one beyond them, with OpenChat's errors", () => {
@@ -265,13 +255,13 @@ describe("validateMiniAppContent", () => {
         for (const maxPlayers of [0, 101, 1.5]) {
             expect(error({ maxPlayers })).toBe("A game has 1 to 100 players at most");
         }
-        expect(new MiniAppMessage(TEXT, SIZE).setMaxPlayers(0).validate()).toBe(
+        expect(new MiniAppMessage(APP, TEXT, SIZE).setMaxPlayers(0).validate()).toBe(
             "A game has 1 to 100 players at most",
         );
         expect(error({ text: "" })).toBe("The text must have 1 to 2000 characters");
-        expect(error({ image: { ...IMAGE, mimeType: "text/plain" } })).toBe(
-            "The image's mime type must be an image's",
-        );
+        expect(error({ app: "" })).toBe("The app must have 1 to 50 characters");
+        // The text is checked first, as OpenChat checks it
+        expect(error({ text: "", app: "" })).toBe("The text must have 1 to 2000 characters");
     });
 
     // Only the MiniApp service writes a card's status
@@ -359,92 +349,39 @@ describe("BotClient.createMiniAppMessage", () => {
         autoFetchOgPreviews: false,
     };
 
-    function client() {
-        const context = ActionContext.inAutonomousContext(
-            new ChatActionScope(new GroupChatIdentifier(GROUP)),
-            "aaaaa-aa",
-        );
-        return new BotClient({} as HttpAgent, config, context);
-    }
-
-    function stubUpload() {
-        return vi.spyOn(DataClient.prototype, "uploadData").mockResolvedValue(IMAGE.blobReference);
-    }
-
     afterEach(() => {
         vi.restoreAllMocks();
     });
 
-    test("uploads the image, for the chat, then makes the card", async () => {
-        const upload = stubUpload();
-        const data = new Uint8Array([1, 2, 3]);
+    test("makes the card, uploading nothing", async () => {
+        const upload = vi.spyOn(DataClient.prototype, "uploadData");
+        const context = ActionContext.inAutonomousContext(
+            new ChatActionScope(new GroupChatIdentifier(GROUP)),
+            "aaaaa-aa",
+        );
+        const client = new BotClient({} as HttpAgent, config, context);
 
-        const message = await client().createMiniAppMessage(TEXT, SIZE, {
-            data,
-            mimeType: "image/png",
-            width: 640,
-            height: 360,
-        });
+        const message = await client.createMiniAppMessage(APP, TEXT, SIZE);
 
-        expect(upload).toHaveBeenCalledWith([GROUP], "image/png", data);
-        const content = Value.Parse(ApiBotMessageContent, message.toResponse().content);
-        expect("MiniApp" in content && messageContent(content, SENDER)).toEqual({
-            kind: "mini_app_content",
-            text: TEXT,
-            image: IMAGE,
-            ...OPEN,
-        });
+        expect(upload).not.toHaveBeenCalled();
+        expect(message.toResponse().content).toEqual({ MiniApp: { text: TEXT, ...OPEN_CARD } });
+        expect(message.validate()).toBeUndefined();
     });
 
     // eg. a bot installed in a community, posting in one of its channels autonomously
-    test("uploads the image for the community, in a community's scope", async () => {
-        const upload = stubUpload();
+    test("makes a card for a community's channel, in a community's scope", async () => {
         const context = ActionContext.inAutonomousContext(
             new CommunityActionScope(new CommunityIdentifier(COMMUNITY)),
             "aaaaa-aa",
         );
-        const data = new Uint8Array([1]);
 
         const message = await new BotClient({} as HttpAgent, config, context).createMiniAppMessage(
+            APP,
             TEXT,
             SIZE,
-            { data, mimeType: "image/png", width: 640, height: 360 },
         );
 
-        expect(upload).toHaveBeenCalledWith([COMMUNITY], "image/png", data);
         expect(message.setChannelId<MiniAppMessage>(7n).validate()).toBeUndefined();
-    });
-
-    test("uploads nothing for a card without an image", async () => {
-        const upload = stubUpload();
-
-        const message = await client().createMiniAppMessage(TEXT, SIZE);
-
-        expect(upload).not.toHaveBeenCalled();
-        expect(message.toResponse().content).toEqual({ MiniApp: { text: TEXT, ...OPEN_CARD } });
-    });
-
-    test("doesn't upload an image OpenChat would refuse", async () => {
-        const upload = stubUpload();
-        const data = new Uint8Array([1]);
-
-        await expect(
-            client().createMiniAppMessage(TEXT, SIZE, {
-                data,
-                mimeType: "image/png",
-                width: 0,
-                height: 1,
-            }),
-        ).rejects.toThrow("The image must have a width and a height");
-        await expect(
-            client().createMiniAppMessage(TEXT, SIZE, {
-                data,
-                mimeType: "text/plain",
-                width: 1,
-                height: 1,
-            }),
-        ).rejects.toThrow("The image's mime type must be an image's");
-        expect(upload).not.toHaveBeenCalled();
     });
 });
 

@@ -17,7 +17,7 @@ export type MiniAppGame = {
 /**
  * A card as a bot posts it, through the service, with `MiniAppServiceClient.post`: a
  * `MiniAppContent` without its status, as the service posts a card open. It's a `MiniAppMessage`'s
- * `card`, which `BotClient.createMiniAppMessage` makes, uploading its image.
+ * `card`, which `BotClient.createMiniAppMessage` makes.
  */
 export type MiniAppCard = Omit<MiniAppContent, "kind" | "status">;
 
@@ -111,7 +111,8 @@ export function refuseMiniAppStart(message?: string): MiniAppStartResponse {
 
 /**
  * A bot's update to one of its games, for `MiniAppServiceClient.update`. Whatever's undefined stays
- * as it is. The whole update, with its state and every player's part of it, is at most 64 KB.
+ * as it is. The whole update, with its state, its end state and every player's part of it, is at
+ * most 64 KB.
  */
 export type MiniAppGameUpdate = {
     game: MiniAppGame;
@@ -127,6 +128,13 @@ export type MiniAppGameUpdate = {
     waitingFor?: string[];
     /** eg. "Bob won", of 1 to 200 characters, only with "finished" */
     result?: string;
+    /**
+     * How the game ended, as any JSON value the bot chooses, eg. the final position and the moves,
+     * of at most 16 KB serialized, only with "finished". OpenChat writes it to the card and hands
+     * it to the bot's app, in the card and to any app open as the game finishes, which shows its
+     * end view from it. A finished card without one shows the app's image and the result instead.
+     */
+    endState?: unknown;
     /** Players to take off the game, by user id. A bot can take players off, never put them on. */
     remove?: string[];
     state?: MiniAppGameState;

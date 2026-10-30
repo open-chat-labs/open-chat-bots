@@ -6677,6 +6677,7 @@ export type MiniAppFinished = Static<typeof MiniAppFinished>;
 export const MiniAppFinished = /* @__PURE__ */ Type.Object({
     players: Type.Array(UserId),
     result: Type.Optional(Type.String()),
+    end_state: Type.Optional(Type.String()),
 });
 
 export type MiniAppStatus = Static<typeof MiniAppStatus>;
@@ -6690,14 +6691,6 @@ export const MiniAppStatus = /* @__PURE__ */ Type.Union([
     }),
 ]);
 
-export type MiniAppImage = Static<typeof MiniAppImage>;
-export const MiniAppImage = /* @__PURE__ */ Type.Object({
-    width: Type.Number(),
-    height: Type.Number(),
-    mime_type: Type.String(),
-    blob_reference: BlobReference,
-});
-
 export type MiniAppSize = Static<typeof MiniAppSize>;
 export const MiniAppSize = /* @__PURE__ */ Type.Object({
     width: Type.Number(),
@@ -6707,7 +6700,7 @@ export const MiniAppSize = /* @__PURE__ */ Type.Object({
 export type MiniAppContent = Static<typeof MiniAppContent>;
 export const MiniAppContent = /* @__PURE__ */ Type.Object({
     text: Type.String(),
-    image: Type.Optional(MiniAppImage),
+    app: Type.String(),
     max_players: Type.Optional(Type.Number()),
     spectators: Type.Boolean(),
     app_size: MiniAppSize,
@@ -9204,6 +9197,12 @@ export const AccessGate = /* @__PURE__ */ Type.Union([
     }),
 ]);
 
+export type MiniAppDefinition = Static<typeof MiniAppDefinition>;
+export const MiniAppDefinition = /* @__PURE__ */ Type.Object({
+    name: Type.String(),
+    image_url: Type.String(),
+});
+
 export type BotDefinition = Static<typeof BotDefinition>;
 export const BotDefinition = /* @__PURE__ */ Type.Object({
     description: Type.String(),
@@ -9212,6 +9211,7 @@ export const BotDefinition = /* @__PURE__ */ Type.Object({
     default_subscriptions: Type.Optional(BotSubscriptions),
     data_encoding: Type.Optional(BotDataEncoding),
     restricted_locations: Type.Optional(Type.Array(BotInstallationLocationType)),
+    mini_apps: Type.Optional(Type.Array(MiniAppDefinition)),
 });
 
 export type UserIndexBotUpdatesBotDetails = Static<typeof UserIndexBotUpdatesBotDetails>;

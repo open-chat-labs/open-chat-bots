@@ -12,7 +12,6 @@ import {
     PollMessage,
     PriceChartMessage,
     TextMessage,
-    validateMiniAppImage,
     type BotClientConfig,
     type BotInstallationEventsResponse,
     type ChangeRoleResponse,
@@ -371,35 +370,17 @@ export class BotClient {
     }
 
     /**
-     * A MiniApp card for a game, whose buttons open the bot's app. See `MiniAppMessage`. Its
-     * optional image, shown above the text, is uploaded to OpenChat's storage first, as for
-     * `createImageMessage`, so that it's scanned like any image and deleted with the card. An image
-     * OpenChat would refuse, without a width and a height or an image's mime type, isn't uploaded,
-     * and the promise rejects.
+     * A MiniApp card for a game, whose buttons open the bot's app, at the client's message id. See
+     * `MiniAppMessage`. `app` names one of the bot's apps in its definition, whose image the card
+     * shows whenever there's no app to show. Check the card with its `validate` before posting it
+     * with `MiniAppServiceClient.post`.
      */
-    async createMiniAppMessage(
-        text: string,
-        appSize: MiniAppSize,
-        image?: { data: Uint8Array; mimeType: string; width: number; height: number },
-    ): Promise<MiniAppMessage> {
-        if (image === undefined) {
-            return new MiniAppMessage(text, appSize).setContextMessageId<MiniAppMessage>(
+    createMiniAppMessage(app: string, text: string, appSize: MiniAppSize): Promise<MiniAppMessage> {
+        return Promise.resolve(
+            new MiniAppMessage(app, text, appSize).setContextMessageId<MiniAppMessage>(
                 this.messageId,
-            );
-        }
-        const invalid = validateMiniAppImage(image.width, image.height, image.mimeType);
-        if (invalid !== undefined) {
-            throw new Error(invalid);
-        }
-        const dataClient = new DataClient(this.#agent, this.#env);
-        const canisterId = this.#extractCanisterFromChat();
-        const blobReference = await dataClient.uploadData([canisterId], image.mimeType, image.data);
-        return new MiniAppMessage(text, appSize, {
-            width: image.width,
-            height: image.height,
-            mimeType: image.mimeType,
-            blobReference,
-        }).setContextMessageId<MiniAppMessage>(this.messageId);
+            ),
+        );
     }
 
     /**

@@ -6,6 +6,7 @@ export * from "./services/bot_gateway";
 export * from "./services/mini_app";
 export {
     BotDefinition,
+    MiniAppDefinition,
     type MemberType,
     type OgPreview,
     type OgPreviewImage,
