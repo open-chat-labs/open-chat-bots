@@ -229,10 +229,13 @@ button.link {
     padding: 1px 6px;
 }
 
+/* A small card's two scores go on two lines, as there's no room for both on one */
 .player.small .stats {
+    flex-direction: column;
+    gap: 0;
     font-size: 11px;
-    gap: 6px;
-    margin-bottom: 6px;
+    line-height: 1.25;
+    margin-bottom: 5px;
     white-space: nowrap;
     overflow: hidden;
 }

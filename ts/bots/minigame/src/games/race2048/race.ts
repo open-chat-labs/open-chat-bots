@@ -1,6 +1,7 @@
 // The 2048 race: up to 10 players, each on their own board, and the first to make a 2048 tile wins.
-// If nobody has in 10 minutes, the top score wins. A player whose board gets stuck can restart on a
-// fresh board, as often as they like, and the restarts are counted for everyone to see.
+// If nobody has in 10 minutes, the top score wins: a player's best from any of their boards, as a
+// player whose board gets stuck can restart on a fresh board, as often as they like, and the
+// restarts are counted for everyone to see.
 //
 // The bot decides every move, so no one can forge a board. The race keeps its whole state in
 // `RaceData`, which the store writes to disk as it is.
@@ -32,7 +33,10 @@ export type PlayerData = {
     id: string;
     name: string;
     board: Board;
+    /** The current board's score */
     score: number;
+    /** The top score of any of their boards */
+    best: number;
     moves: number;
     restarts: number;
     rev: number;
@@ -78,6 +82,10 @@ export class Race2048 {
 
     constructor(data: RaceData, options: RaceOptions = {}) {
         this.#data = data;
+        // A race saved before players had a best: the current score is the best known
+        for (const p of data.players) {
+            p.best ??= p.score;
+        }
         this.#random = options.random ?? Math.random;
         this.#now = options.now ?? Date.now;
     }
@@ -170,6 +178,7 @@ export class Race2048 {
                 name: seat.name,
                 board: newBoard(this.#random),
                 score: 0,
+                best: 0,
                 moves: 0,
                 restarts: 0,
                 rev: 0,
@@ -187,15 +196,13 @@ export class Race2048 {
     /**
      * Ends the race with the top score as the winner if its time is up, and says whether it did
      * just now. Called before a move, and every second by the bot, so a race ends on time whether
-     * or not anyone's still playing. Ties go to the higher tile, then to the fewer restarts.
+     * or not anyone's still playing. The top score is a player's best from any of their boards;
+     * ties go to the higher current score, then the higher tile, then the fewer restarts.
      */
     endIfTimeUp(): boolean {
         const d = this.#data;
         if (d.phase !== "active" || d.endsAt === undefined || this.#now() < d.endsAt) return false;
-        const top = [...d.players].sort(
-            (a, b) =>
-                b.score - a.score || maxTile(b.board) - maxTile(a.board) || a.restarts - b.restarts,
-        )[0];
+        const top = [...d.players].sort(rank)[0];
         if (top !== undefined) {
             top.won = true;
             d.winner = top.id;
@@ -227,6 +234,7 @@ export class Race2048 {
         // `slide` says the board changed, so there's an empty cell for the new tile
         p.board = spawn(board, this.#random);
         p.score += gained;
+        p.best = Math.max(p.best, p.score);
         p.moves++;
         p.rev++;
         this.#data.lastMove = { player: userId, direction };
@@ -299,7 +307,7 @@ export class Race2048 {
         }
         const name = winner.name.length > 100 ? `${winner.name.slice(0, 99)}…` : winner.name;
         if (d.ended === "time") {
-            const points = winner.score.toLocaleString("en-US");
+            const points = winner.best.toLocaleString("en-US");
             return `Time's up after ${duration(this.timeLimit)}: ${name} won with ${points} points`;
         }
         return `${name} reached ${this.target} in ${duration(d.finishedAt - d.startedAt)}`;
@@ -312,12 +320,23 @@ function view(p: PlayerData): PlayerView {
         name: p.name,
         board: p.board.slice(),
         score: p.score,
+        best: p.best,
         moves: p.moves,
         restarts: p.restarts,
         rev: p.rev,
         dead: p.dead,
         won: p.won,
     };
+}
+
+/** The order players rank in: the best score first, then the current score, the tile and the fewer restarts */
+export function rank(a: PlayerData, b: PlayerData): number {
+    return (
+        b.best - a.best ||
+        b.score - a.score ||
+        maxTile(b.board) - maxTile(a.board) ||
+        a.restarts - b.restarts
+    );
 }
 
 /** eg. "45s", "2m 15s", "1h 2m" */

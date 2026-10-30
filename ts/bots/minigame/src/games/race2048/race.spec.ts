@@ -78,6 +78,7 @@ describe("moves", () => {
         expect(result.moved).toBe(true);
         expect(result.player.board.slice(0, 4)).toEqual([4, 2, 0, 0]);
         expect(result.player.score).toBe(4);
+        expect(result.player.best).toBe(4);
         expect(result.player.moves).toBe(1);
         expect(result.player.rev).toBe(1);
         expect(race.data.lastMove).toEqual({ player: "alice", direction: "left" });
@@ -122,9 +123,11 @@ describe("moves", () => {
         expect(race.restart("bob")).toEqual({ ok: false, error: "The race is over" });
     });
 
-    it("marks a stuck board dead, and a restart gives a fresh one", () => {
+    it("marks a stuck board dead, and a restart gives a fresh one, keeping the best score", () => {
         const { race } = started();
         const bob = race.data.players[1];
+        bob.score = 48;
+        bob.best = 48;
         // One move from stuck: sliding left makes the last row 4 2 4 0, the spawn fills the last
         // cell with a 2, and no two neighbours match
         bob.board = [
@@ -148,6 +151,8 @@ describe("moves", () => {
         expect(restarted.player.dead).toBe(false);
         expect(restarted.player.restarts).toBe(1);
         expect(restarted.player.score).toBe(0);
+        // The move that got stuck merged nothing, so the best is the score before it
+        expect(restarted.player.best).toBe(48);
         expect(restarted.player.moves).toBe(0);
         expect(restarted.player.rev).toBe(2);
         expect(restarted.player.board.filter((v) => v !== 0)).toHaveLength(2);
@@ -155,11 +160,16 @@ describe("moves", () => {
 });
 
 describe("time limit", () => {
-    it("ends the race with the top score once the time is up", () => {
+    it("ends the race with the top score of any board once the time is up", () => {
         const { race, time } = started(["alice", "bob", "carol"]);
+        // Alice's current board is ahead, but Bob's best, before a restart, is the top score
         race.data.players[0].score = 1200;
-        race.data.players[1].score = 5432;
+        race.data.players[0].best = 1200;
+        race.data.players[1].score = 50;
+        race.data.players[1].best = 5432;
+        race.data.players[1].restarts = 1;
         race.data.players[2].score = 300;
+        race.data.players[2].best = 300;
         time.tick(TIME_LIMIT_MS - 1);
         expect(race.endIfTimeUp()).toBe(false);
         expect(race.phase).toBe("active");
@@ -178,10 +188,11 @@ describe("time limit", () => {
         expect(race.restart("alice")).toEqual({ ok: false, error: "The race is over" });
     });
 
-    it("breaks a tie on score by the higher tile, then the fewer restarts", () => {
+    it("breaks a tie on the best score by the current one, the higher tile, then the fewer restarts", () => {
         const { race, time } = started(["alice", "bob", "carol"]);
         for (const p of race.data.players) {
             p.score = 100;
+            p.best = 100;
             p.board = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8];
         }
         // Bob's higher tile beats Carol's fewer restarts
@@ -194,11 +205,20 @@ describe("time limit", () => {
 
         // With the same tiles, the fewer restarts win
         const again = started(["alice", "bob"]);
-        for (const p of again.race.data.players) p.score = 100;
+        for (const p of again.race.data.players) p.best = 100;
         again.race.data.players[0].restarts = 1;
         again.time.tick(TIME_LIMIT_MS);
         again.race.endIfTimeUp();
         expect(again.race.winner?.id).toBe("bob");
+
+        // A better current score breaks the tie before the tile does
+        const third = started(["alice", "bob"]);
+        for (const p of third.race.data.players) p.best = 100;
+        third.race.data.players[1].score = 100;
+        third.race.data.players[0].board[0] = 64;
+        third.time.tick(TIME_LIMIT_MS);
+        third.race.endIfTimeUp();
+        expect(third.race.winner?.id).toBe("bob");
     });
 
     it("a move or restart after the time is up ends the race instead", () => {
@@ -252,6 +272,16 @@ describe("shared state", () => {
         race.move("alice", "left");
         const copy = new Race2048(JSON.parse(JSON.stringify(race.data)));
         expect(copy.shared()).toEqual(race.shared());
+    });
+
+    it("gives a player saved without a best their score as it", () => {
+        const { race } = started();
+        race.data.players[0].score = 20;
+        const data = JSON.parse(JSON.stringify(race.data));
+        for (const p of data.players) delete p.best;
+        const copy = new Race2048(data);
+        expect(copy.players[0].best).toBe(20);
+        expect(copy.players[1].best).toBe(0);
     });
 });
 

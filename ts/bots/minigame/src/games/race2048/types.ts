@@ -11,7 +11,7 @@ export const GAME_ID = "2048";
 /** The tile which wins the race */
 export const TARGET = 2048;
 
-/** How long a race lasts if nobody makes the target tile: then the top score wins */
+/** How long a race lasts if nobody makes the target tile: then the top score of any board wins */
 export const TIME_LIMIT_MS = 10 * 60 * 1000;
 
 /** The most players: one big board over a row of the others' */
@@ -29,7 +29,10 @@ export type PlayerView = {
     id: string;
     name: string;
     board: Board;
+    /** The current board's score */
     score: number;
+    /** The top score of any of their boards, which ranks them and wins when the time's up */
+    best: number;
     /** Moves on the current board */
     moves: number;
     /** How many times they started a fresh board */

@@ -19,7 +19,7 @@ import { BoardView } from "./board";
 const root = document.getElementById("app") as HTMLElement;
 
 /** The player's own board, as last confirmed by the bot or predicted from a move */
-type Own = { board: Board; rev: number; score: number; dead: boolean; won: boolean };
+type Own = { board: Board; rev: number; score: number; best: number; dead: boolean; won: boolean };
 
 let oc: MiniAppClient<SharedState> | undefined;
 let own: Own | undefined;
@@ -140,7 +140,7 @@ function syncOwn() {
 }
 
 function applyOwn(p: PlayerView) {
-    own = { board: p.board, rev: p.rev, score: p.score, dead: p.dead, won: p.won };
+    own = { board: p.board, rev: p.rev, score: p.score, best: p.best, dead: p.dead, won: p.won };
 }
 
 async function move(direction: Direction) {
@@ -154,7 +154,8 @@ async function move(direction: Direction) {
     }
     const predicted = slide(own.board, direction);
     if (!predicted.moved) return;
-    own = { ...own, board: predicted.board, score: own.score + predicted.gained };
+    const score = own.score + predicted.gained;
+    own = { ...own, board: predicted.board, score, best: Math.max(own.best, score) };
     ownMove = direction;
     render();
     ownMove = undefined;
@@ -309,10 +310,11 @@ function lobby(shared: SharedState | undefined, player: boolean): string {
 
 function renderRace(body: HTMLElement, shared: SharedState, player: boolean) {
     const me = oc?.userId;
-    // The player's own board is the big one, over the others' in a row, the highest score first.
-    // Someone watching sees the leader's board as the big one.
+    // The player's own board is the big one, over the others' in a row, the top score first: a
+    // player's best from any of their boards, which is what wins when the time's up. Someone
+    // watching sees the leader's board as the big one.
     const byScore = [...shared.players].sort(
-        (a, b) => b.score - a.score || a.name.localeCompare(b.name),
+        (a, b) => b.best - a.best || b.score - a.score || a.name.localeCompare(b.name),
     );
     const main = byScore.find((p) => p.id === me) ?? byScore[0];
     if (main === undefined) {
@@ -422,6 +424,7 @@ function updateCard(
 ) {
     const board = mine?.board ?? p.board;
     const score = mine?.score ?? p.score;
+    const top = mine?.best ?? p.best;
     const dead = mine?.dead ?? p.dead;
     const won = mine?.won ?? p.won;
     // The big board that isn't the viewer's own is the leader's
@@ -436,12 +439,12 @@ function updateCard(
             : leading
               ? `<span class="chip racing">Leading</span>`
               : `<span class="chip racing">Racing</span>`;
-    const best = Math.max(...board, 0);
+    // The top score ranks a player; the current one is this board's
+    const restarts = p.restarts > 0 ? ` <span title="Restarts">↻ ${p.restarts}</span>` : "";
     card.stats.innerHTML =
-        (size === "main"
-            ? `<span>Score <strong>${score}</strong></span><span>Best <strong>${best}</strong></span>`
-            : `<span><strong>${score}</strong></span><span>best ${best}</span>`) +
-        (p.restarts > 0 ? `<span title="Restarts">↻ ${p.restarts}</span>` : "");
+        size === "main"
+            ? `<span>Top <strong>${top}</strong></span><span>Current <strong>${score}</strong></span>${restarts}`
+            : `<span>Top <strong>${top}</strong></span><span>Now ${score}${restarts}</span>`;
     card.view.update(board, hint);
     card.overlay.hidden = !(mine !== undefined && dead && shared.phase === "active");
 }
@@ -464,7 +467,7 @@ function ending(shared: SharedState, winner: PlayerView | undefined, me: string 
     if (winner === undefined) return "The race is over";
     const who = `<strong>${escape(winner.name)}</strong> ${winner.id === me ? "(you) " : ""}`;
     if (shared.ended === "time") {
-        return `Time's up! ${who}wins with the top score, ${winner.score.toLocaleString()}`;
+        return `Time's up! ${who}wins with the top score, ${winner.best.toLocaleString()}`;
     }
     return `${who}reached ${shared.target} in ${elapsedText(shared)}`;
 }
