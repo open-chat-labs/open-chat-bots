@@ -268,7 +268,7 @@ describe("playing", () => {
         expect(game.leave("carol")).toBe(false);
         expect(game.leave("bob")).toBe(true);
         expect(game.phase).toBe("finished");
-        expect(game.result()).toBe("White won by abandonment");
+        expect(game.result()).toBe("Black left the game");
         expect(game.leave("alice")).toBe(false);
         // Who played is as it was
         expect(game.shared().players).toEqual(["alice", "bob"]);

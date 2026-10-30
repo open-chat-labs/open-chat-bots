@@ -36,7 +36,7 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    `POST /mini_app/join`, which looks the user's name up and gives them a seat: up to 10 in a race,
    two at chess ("This game is for two" after that, "The game has started" once it has). Leaving,
    `POST /mini_app/leave`, frees the seat before the start. After it, a race goes on without them;
-   a chess game can't, so it ends, the other player winning "by abandonment". The lobby's seats are
+   a chess game can't, so it ends, the result being that they "left the game". The lobby's seats are
    published as the game's state, so the page shows who's joined.
 3. **Starting**: a player presses Start in the page, OpenChat asks the bot at
    `POST /mini_app/start`, and the bot answers with the players, the first state and the game's
