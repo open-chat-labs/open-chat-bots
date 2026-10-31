@@ -49,7 +49,7 @@ describe("the sweep", () => {
         expect(endGamesOutOfTime(store, publisher)).toBe(1);
         expect(publish).toHaveBeenCalledTimes(2);
         expect(publish).toHaveBeenLastCalledWith(raceCard);
-        expect(race.result()).toBe("Time's up after 20m 0s: Carol won with 0 points");
+        expect(race.result()).toBe("Time's up! @UserId(carol) won with 0 points");
         expect(endGamesOutOfTime(store, publisher)).toBe(0);
     });
 });

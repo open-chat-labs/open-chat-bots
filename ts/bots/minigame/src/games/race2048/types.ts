@@ -4,8 +4,9 @@
 //
 // A race of a hundred is sent to everyone several times a second, so the racers are packed: a
 // board is 16 hex digits (`packBoard`), a racer's keys are a letter each, and the names are left
-// out of the live state, as they never change once the race starts: the app gets them once from
-// the bot (`GET /api/2048/roster`), and the end state, which the card keeps for good, carries them.
+// out of the live state: the app looks the racers' usernames up by id (`GET /api/names`), and the
+// end state, which the card keeps for good, carries the names they joined with, for when the bot
+// can't say.
 import type { Settings } from "../settings";
 import type { Board, Direction } from "./engine";
 
@@ -85,8 +86,6 @@ export type SharedState = {
     maxPlayers: number;
     /** Who's joined so far, while the game is open */
     seats: Seat[];
-    /** The game's key, with which the app asks the bot for the racers' names */
-    key?: string;
     /** Everyone racing, once it starts, in the order they joined */
     racers: Racer[];
     /** The racers' names by id: only in the end state, which has to stand on its own */
@@ -113,6 +112,3 @@ export type MoveResponse =
           phase: Phase;
       }
     | { ok: false; error: string };
-
-/** The bot's answer to `GET /api/2048/roster?game=<key>`: the racers' names by id */
-export type RosterResponse = { names: Record<string, string> };

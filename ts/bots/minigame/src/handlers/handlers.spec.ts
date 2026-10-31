@@ -2,7 +2,6 @@
 // verification stubbed: what each answers, and what it does to the game
 import {
     GroupChatIdentifier,
-    miniAppGameKey,
     type MiniAppGame,
     type MiniAppPlayerClaims,
     type MiniAppStartResponse,
@@ -14,9 +13,13 @@ import type { Deps } from "../deps";
 import { ChessGame } from "../games/chess/chess";
 import type { SharedState } from "../games/chess/types";
 import { Race2048 } from "../games/race2048/race";
-import type { MoveResponse, SharedState as RaceState } from "../games/race2048/types";
+import {
+    MAX_PLAYERS,
+    type MoveResponse,
+    type SharedState as RaceState,
+} from "../games/race2048/types";
 import { GameStore } from "../store";
-import { chessDraw, chessMove, chessResign, raceMove, raceRestart, raceRoster } from "./api";
+import { chessDraw, chessMove, chessResign, raceMove, raceRestart, userNames } from "./api";
 import { join, leave, start } from "./miniApp";
 
 const game: MiniAppGame = { chat: new GroupChatIdentifier("aaaaa-aa"), messageId: 1n };
@@ -34,7 +37,10 @@ function setUp() {
     const deps = {
         store,
         publisher: { publish },
-        names: { lookup: async (id: string) => id.toUpperCase() },
+        names: {
+            lookup: async (id: string) => id.toUpperCase(),
+            username: async (id: string) => (id === "nobody" ? undefined : id.toLowerCase()),
+        },
         tokens: async () => tokens,
     } as unknown as Deps;
     return { store, publish, deps };
@@ -243,13 +249,13 @@ describe("the app's requests for a chess game", () => {
 
 describe("a race through the same handlers", () => {
     function race(store: GameStore): Race2048 {
-        const play = Race2048.create({ random: () => 0.5, key: miniAppGameKey(game) });
+        const play = Race2048.create({ random: () => 0.5 });
         store.create(game, play);
         return play;
     }
 
-    /** `GET /api/2048/roster?game=<key>`, which has no token */
-    async function roster(deps: Deps, key: string): Promise<Answer> {
+    /** `GET /api/names?ids=<ids>`, which has no token */
+    async function names(deps: Deps, ids: unknown): Promise<Answer> {
         const answer: Answer = { status: 200, body: undefined };
         const res = {
             status(code: number) {
@@ -261,8 +267,8 @@ describe("a race through the same handlers", () => {
             },
             setHeader() {},
         };
-        await raceRoster(
-            { headers: {}, query: { game: key } } as unknown as Request,
+        await userNames(
+            { headers: {}, query: { ids } } as unknown as Request,
             res as unknown as Response,
             deps,
         );
@@ -298,13 +304,6 @@ describe("a race through the same handlers", () => {
             "alice",
             "bob",
         ]);
-        // The names come from the roster, by the key the state carries
-        const key = (started.state?.shared as RaceState).key!;
-        expect(await roster(deps, key)).toEqual({
-            status: 200,
-            body: { names: { alice: "ALICE", bob: "BOB" } },
-        });
-        expect((await roster(deps, "group:nope/-/1")).status).toBe(404);
         expect(await send(join, deps, "carol")).toEqual({
             status: 200,
             body: { accepted: false, message: "The race has already started" },
@@ -324,6 +323,25 @@ describe("a race through the same handlers", () => {
         expect(await send(leave, deps, "bob")).toEqual({ status: 200, body: {} });
         expect(store.get(game)!.play.isPlayer("bob")).toBe(true);
         expect(publish).not.toHaveBeenCalled();
+    });
+
+    it("gives usernames by id, with no token, leaving out anyone OpenChat doesn't know", async () => {
+        const { deps } = setUp();
+        expect(await names(deps, "alice,bob,nobody")).toEqual({
+            status: 200,
+            body: { names: { alice: "alice", bob: "bob" } },
+        });
+    });
+
+    it("refuses a lookup of nothing, of too many, or of what can't be a user id", async () => {
+        const { deps } = setUp();
+        const full = Array.from({ length: MAX_PLAYERS }, (_, i) => `user${i}`);
+        expect((await names(deps, full.join(","))).status).toBe(200);
+        expect((await names(deps, [...full, "one-more"].join(","))).status).toBe(400);
+        expect((await names(deps, undefined)).status).toBe(400);
+        expect((await names(deps, "")).status).toBe(400);
+        expect((await names(deps, ["alice", "bob"])).status).toBe(400);
+        expect((await names(deps, "alice,__proto__")).status).toBe(400);
     });
 
     it("moves and restarts a racer's board, publishing each change", async () => {

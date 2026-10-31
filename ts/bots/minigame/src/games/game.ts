@@ -88,6 +88,9 @@ export interface Game {
     toJson(): unknown;
 }
 
+/** The bot's answer to `GET /api/names?ids=<id>,<id>`: users' usernames by id */
+export type NamesResponse = { names: Record<string, string> };
+
 /** How long the publisher waits to send a change, unless a game says otherwise */
 export const PUBLISH_EVERY_MS = 80;
 

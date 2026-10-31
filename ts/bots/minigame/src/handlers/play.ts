@@ -5,7 +5,6 @@ import {
     MiniAppServiceError,
     argumentsInvalid,
     miniAppGameFromPostToken,
-    miniAppGameKey,
     type BotClient,
     type Message,
     type MiniAppMessage,
@@ -93,12 +92,7 @@ async function play(client: BotClient, res: Response, deps: Deps): Promise<void>
             : { id: initiator, name: await hostName };
     deps.store.create(
         miniAppGame,
-        game.create(
-            { raceSettings: deps.raceSettings },
-            parsed.settings,
-            host,
-            miniAppGameKey(miniAppGame),
-        ),
+        game.create({ raceSettings: deps.raceSettings }, parsed.settings, host),
     );
     try {
         await post(miniApps, token, card);

@@ -2,16 +2,17 @@
 // the bot. A move is applied to the player's board as soon as it's made, with the bot's answer
 // confirming it and adding the new tile.
 //
-// The state carries the racers packed (`types.ts`), without their names, which the view asks the
-// bot for once per race: a race of a hundred is sent to everyone several times a second. The
-// race's boards animate (`board.ts`), so their elements are kept and brought up to date, and the
+// The state carries the racers packed (`types.ts`), without their names, as a race of a hundred is
+// sent to everyone several times a second. The view asks the bot for their usernames by id instead,
+// so they're as they are now, whenever the page is opened. The race's boards animate (`board.ts`), so their elements are kept and brought up to date, and the
 // rest of the race view with them. With many racers only the top boards are drawn; the rest are
 // listed with their scores.
 //
 // Once the race is over, the bot's end state is its final shared state with the names, so a
 // finished race is drawn the same way, from the end state: on connecting to a finished card, when
-// no state comes at all, and as the race finishes while the page is open. Nothing is sent to the
-// bot after that.
+// no state comes at all, and as the race finishes while the page is open. The usernames are all
+// that's asked of the bot after that; the end state's names stand in if it doesn't answer.
+import type { NamesResponse } from "../../games/game";
 import { slide, unpackBoard, type Board, type Direction } from "../../games/race2048/engine";
 import { RACE_SETTINGS } from "../../games/race2048/settings";
 import {
@@ -22,7 +23,6 @@ import {
     type MoveResponse,
     type PlayerView,
     type Racer,
-    type RosterResponse,
     type SharedState,
 } from "../../games/race2048/types";
 import type { BaseState, GameView, Lobby, ViewContext } from "../view";
@@ -45,9 +45,13 @@ let sending = false;
 let queued: Direction | undefined;
 // The frame only gets the keys once the player has clicked in it, as it's in the chat
 let focused = document.hasFocus();
-/** The racers' names by game key, from the bot, once the race has started */
-const rosters = new Map<string, Record<string, string>>();
-const rosterRequests = new Set<string>();
+/** Racers' usernames by id, from the bot, once the race has started */
+const usernames = new Map<string, string>();
+/** The ids the bot's been asked about, or is being */
+const usernamesAsked = new Set<string>();
+/** How long to leave the bot after it doesn't answer: the page redraws far more often than this */
+const USERNAMES_RETRY_MS = 30_000;
+let usernamesRetryAt = 0;
 
 const KEYS: Record<string, Direction> = {
     ArrowUp: "up",
@@ -159,16 +163,14 @@ export const raceView: GameView = {
 
 // The state as the view reads it
 
-/** The live state's racers unpacked, named from the end state, the roster, or the seats */
+/** The state's racers unpacked, named by their usernames, or else the end state or the seats */
 function unpack(shared: SharedState): Race {
-    const names = shared.names ?? (shared.key === undefined ? undefined : rosters.get(shared.key));
-    if (names === undefined && shared.phase !== "open") fetchRoster(shared.key);
-    const seats = new Map(shared.seats.map((s) => [s.id, s.name]));
     const { racers, ...rest } = shared;
-    return {
-        ...rest,
-        players: racers.map((r) => unpackRacer(r, names?.[r.i] ?? seats.get(r.i) ?? shortId(r.i))),
-    };
+    if (shared.phase !== "open") fetchUsernames(racers.map((r) => r.i));
+    const seats = new Map(shared.seats.map((s) => [s.id, s.name]));
+    const name = (id: string) =>
+        usernames.get(id) ?? shared.names?.[id] ?? seats.get(id) ?? shortId(id);
+    return { ...rest, players: racers.map((r) => unpackRacer(r, name(r.i))) };
 }
 
 function unpackRacer(r: Racer, name: string): PlayerView {
@@ -194,20 +196,23 @@ function read(state: unknown): Race | undefined {
         : undefined;
 }
 
-/** Asks the bot for the racers' names, once per race, and draws the page again with them */
-function fetchRoster(key: string | undefined) {
-    if (key === undefined || ctx === undefined || rosterRequests.has(key)) return;
-    rosterRequests.add(key);
+/** Asks the bot for these users' usernames, once each, and draws the page again with them */
+function fetchUsernames(ids: string[]) {
+    const wanted = ids.filter((id) => !usernamesAsked.has(id));
+    if (wanted.length === 0 || ctx === undefined || Date.now() < usernamesRetryAt) return;
+    for (const id of wanted) usernamesAsked.add(id);
     void (async () => {
         try {
-            const response = await ctx.oc.fetch(`/api/2048/roster?game=${encodeURIComponent(key)}`);
+            const query = encodeURIComponent(wanted.join(","));
+            const response = await ctx.oc.fetch(`/api/names?ids=${query}`);
             if (!response.ok) throw new Error(`${response.status}`);
-            const { names } = (await response.json()) as RosterResponse;
-            rosters.set(key, names);
+            const { names } = (await response.json()) as NamesResponse;
+            for (const [id, username] of Object.entries(names)) usernames.set(id, username);
             ctx.render();
         } catch {
-            // Asked again on a later state; the boards show meanwhile, with short ids
-            rosterRequests.delete(key);
+            // Asked again in a while; the boards show the names they have
+            for (const id of wanted) usernamesAsked.delete(id);
+            usernamesRetryAt = Date.now() + USERNAMES_RETRY_MS;
         }
     })();
 }
@@ -368,7 +373,7 @@ function renderRace(body: HTMLElement, race: Race) {
 
     const winner = byScore.find((p) => p.id === race.winner);
     dom.banner.hidden = race.phase !== "finished";
-    dom.banner.innerHTML = race.phase === "finished" ? ending(race, winner, me) : "";
+    dom.banner.innerHTML = race.phase === "finished" ? ending(race, winner) : "";
 
     // The player's own board slides for their move; a board that moved in the shared state
     // slides when the last move was its player's, and the board is that move's
@@ -516,13 +521,13 @@ function renderHint() {
 }
 
 /** How the race ended, for the banner */
-function ending(race: Race, winner: PlayerView | undefined, me: string | undefined): string {
+function ending(race: Race, winner: PlayerView | undefined): string {
     if (winner === undefined) return "The race is over";
-    const who = `<strong>${escape(winner.name)}</strong> ${winner.id === me ? "(you) " : ""}`;
+    const name = `<strong>${escape(winner.name)}</strong>`;
     if (race.ended === "time") {
-        return `Time's up! ${who}wins with the top score, ${winner.best.toLocaleString()}`;
+        return `Time's up! ${name} won with ${winner.best.toLocaleString()} points`;
     }
-    return `${who}reached ${race.target} in ${elapsedText(race)}`;
+    return `${name} reached ${race.target} in ${elapsedText(race)}`;
 }
 
 /** The time left while racing, or how long the race took once it's over */

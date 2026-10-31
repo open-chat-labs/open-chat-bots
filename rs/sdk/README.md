@@ -497,7 +497,8 @@ Whatever an update doesn't set stays as it was:
 
 - `with_waiting_for`: whose turn it is now, players, each once, or none for no one in particular.
 - `finished()`: ends the game, whether it started or not. An update can't start a game.
-- `with_result("Bob won")`: at most 200 characters, only with `finished()`.
+- `with_result("Bob won")`: at most 200 characters, only with `finished()`. It's markdown with links
+  turned off, so `@UserId(<user id>)` shows a user's name as it is now.
 - `with_end_state(json)`: how the game ended, as any JSON of at most 16 KB serialized, only with
   `finished()`. OpenChat writes it to the card, which keeps showing the app and hands it the state:
   `initialise_mini_app` with `finished: true`, then `{ kind: "mini_app_end_state", state }`, so the

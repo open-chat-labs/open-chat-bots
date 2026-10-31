@@ -66,17 +66,17 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    down from the state's `clock.at`, and when the side to move's flag falls the other side wins "on
    time", or it's a draw if they haven't the material to mate with.
 6. **The end**. The bot publishes the final state with `status: "finished"` and the result, which
-   the card shows: "Alice reached 2048 in 2m 15s", "Time's up after 10m 0s: Alice won with 5,432
-   points", "White won by checkmate", "Black won on time", "Draw by agreement", "Draw by
-   stalemate" and so on. With it goes the game's **end state**, which OpenChat keeps in the card and
-   hands to the page, so anyone opening a finished card sees how it went, read-only, and a page open
-   as the game finishes shows the same. The 2048 end state is the final shared state, every board,
-   the winner and the times. The chess end state is the result, who played, the moves, and the
-   position before each move and after the last, as the placement field of its FEN, the pieces on
-   the board, which the page steps through with Previous and Next, the arrow keys, or a tap on a
-   move; a game too long for the service's 16 KB keeps only its final position, marked
-   `truncated`, and one too long even for that sends no end state, so the card shows the image and
-   the result.
+   the card shows: "@alice reached 2048 in 2m 15s", "Time's up! @alice won with 5,432 points",
+   "White won by checkmate", "Black won on time", "Draw by agreement", "Draw by stalemate" and so
+   on. The race's result names the winner with an `@UserId(<id>)` mention, so the card shows their
+   username as it is now. With it goes the game's **end state**, which OpenChat keeps in the card
+   and hands to the page, so anyone opening a finished card sees how it went, read-only, and a page
+   open as the game finishes shows the same. The 2048 end state is the final shared state, every
+   board, the winner and the times. The chess end state is the result, who played, the moves, and
+   the position before each move and after the last, as the placement field of its FEN, the pieces
+   on the board, which the page steps through with Previous and Next, the arrow keys, or a tap on a
+   move; a game too long for the service's 16 KB keeps only its final position, marked `truncated`,
+   and one too long even for that sends no end state, so the card shows the image and the result.
 
 The chess state everyone sees is the Rust ChessBot's, with the players' names added:
 
@@ -149,9 +149,10 @@ kept small (`src/games/race2048/types.ts`):
 
 - a board is 16 hex digits, one per cell, each the tile's power of two (`packBoard`): 8 bytes
   written out, which stays readable in a state dump and packs to raw bytes without a new layout;
-- a racer's keys are a letter each, and the move count and the names are left out: the names never
-  change once the race starts, so the page asks the bot once, `GET /api/2048/roster?game=<key>`,
-  with the key the state carries, and the end state, which the card keeps for good, carries them;
+- a racer's keys are a letter each, and the move count and the names are left out: the page looks
+  up the racers' usernames by id, `GET /api/names?ids=<id>,<id>`, which takes no token and gives
+  them as they are now, within the hour, and the end state, which the card keeps for good, carries
+  the names they joined with, for when the bot can't say;
 - the publisher waits longer between states as the field grows (`publishEveryMs`): 80 ms up to ten
   racers, 400 ms over sixty. A player's own board doesn't wait on it: it's predicted on the page and
   confirmed by the bot's answer to the move.

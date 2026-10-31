@@ -11,8 +11,8 @@ import {
     chessResign,
     raceMove,
     raceRestart,
-    raceRoster,
     settings,
+    userNames,
 } from "./handlers/api";
 import { join, leave, start } from "./handlers/miniApp";
 import { executeCommand } from "./handlers/play";
@@ -41,12 +41,14 @@ export function createApp(deps: Deps, appDir: string): Express {
 
     // Players' apps, with a player token in a header
     app.post("/api/settings", express.json(), handle(settings));
-    app.get("/api/2048/roster", handle(raceRoster));
     app.post("/api/2048/move", express.json(), handle(raceMove));
     app.post("/api/2048/restart", express.json(), handle(raceRestart));
     app.post("/api/chess/move", express.json(), handle(chessMove));
     app.post("/api/chess/resign", express.json(), handle(chessResign));
     app.post("/api/chess/draw", express.json(), handle(chessDraw));
+
+    // Anyone with a game open, watching included, and anyone opening a finished card: no token
+    app.get("/api/names", handle(userNames));
 
     // The app, which OpenChat opens in a frame. Its files are static and cacheable: the page is
     // the only thing spectators fetch from the bot.
