@@ -122,8 +122,11 @@ move's as UCI, empty once the game's over, and nothing is private. Its end state
 where `fens` are the positions' placement fields, one more than there are moves, or only the final
 position with `truncated` set; otherwise `truncated` is left out. The 2048 end state is its shared
 state, `SharedState` in `src/games/race2048/types.ts`, with `phase: "finished"`. The page reads
-every version of an end state it can, as a card keeps its end state for good; only a live state
-from a newer bot asks it to reload.
+every version of an end state it can, as a card keeps its end state for good. A live state it reads
+only at its own version. One it can't read can only be from a newer bot, so it asks to reload:
+that's a newer version, a game it doesn't know, or anything but an object with a `version` and a
+`game`, so a later release can change the encoding as long as the page can tell the difference.
+One from an older bot shows "Loading…" until the bot publishes it again as it starts.
 
 The bot's definition lists each game's app with its image, `app/2048.svg` and `app/chess.svg`,
 hand-drawn SVGs served from `src/app/public`, which OpenChat shows in the card's frame whenever
@@ -133,10 +136,11 @@ game with no end state.
 Games are kept in memory and written to `DATA_FILE` (`./data/games.json` by default) on every
 change, each with its `kind`, so a restart doesn't end them. The file says when it was written,
 and a chess game's clock is persisted with the running side's time left, so the time the bot was
-down isn't charged to anyone: on loading, the side to move has what it had when the game was saved,
-and the game's state is published again with the new deadline. A finished game is dropped after
-two hours, and one that never finished after a day, which is when the service ends a game that's
-had no update.
+down isn't charged to anyone: on loading, the side to move has what it had when the game was saved.
+As the bot starts it publishes every unfinished game again, so everyone gets the new deadline and a
+page from a new release isn't left with a state it can't read. A finished game is dropped after two
+hours, and one that never finished after a day, which is when the service ends a game that's had no
+update.
 
 ## A race of a hundred
 
@@ -153,8 +157,7 @@ kept small (`src/games/race2048/types.ts`):
   confirmed by the bot's answer to the move.
 
 A hundred racers are about 7 KB a state, and the end state with their names about 11 KB, within the
-service's 16 KB. The page draws the top twenty boards and lists the rest with their scores. An end
-state written before this layout, with the boards as arrays, is still read.
+service's 16 KB. The page draws the top twenty boards and lists the rest with their scores.
 
 ## Adding a game
 

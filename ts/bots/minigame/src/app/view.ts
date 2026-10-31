@@ -38,7 +38,7 @@ export interface GameView {
     /** The `game` in the shared state */
     readonly id: string;
     readonly title: string;
-    /** The version of the shared state this view reads; a live state of another needs a newer page */
+    /** The version of the shared state this view reads; the page draws a live state of no other */
     readonly stateVersion: number;
     /** Attaches the view's own listeners, once, when the page learns which game it's showing */
     attach(root: HTMLElement, ctx: ViewContext): void;

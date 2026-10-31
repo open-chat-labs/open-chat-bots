@@ -5,7 +5,11 @@
 // lobby before a game starts is the page's own, the same for every game, with the game's own blurb.
 //
 // A game that's over is drawn from its end state, which the card keeps for good, so the views read
-// older versions of it too. Only a live state from a newer bot than this page asks for a reload.
+// older versions of it too. A live state is read only at the view's own version. One this page
+// can't read can only be from a newer bot, so it asks for a reload: that's a newer version, a game
+// it doesn't know, or anything but an object with a `version` and a `game`, which leaves a later
+// release free to change the encoding. One from an older bot is about to be replaced, as the bot
+// publishes every unfinished game when it starts, so the page waits for that.
 import { connectToOpenChat, type MiniAppClient } from "@open-ic/openchat-botclient-ts/mini_app";
 import { chessView } from "./chess/view";
 import { raceView } from "./race2048/view";
@@ -157,7 +161,8 @@ function render() {
     const body = byId("body");
 
     const endState = oc.endState;
-    const live = base(oc.state?.shared);
+    const state = oc.state;
+    const live = base(state?.shared);
     const current = viewFor(base(endState) ?? live);
     byId("title").textContent = current?.title ?? "Game";
     byId("clock").textContent = current?.clock() ?? "";
@@ -174,11 +179,13 @@ function render() {
     } else if (oc.finished) {
         // Opened on a finished card: its end state follows, and no one can start anything
         body.innerHTML = `<p class="notice">Loading…</p>`;
-    } else if (live === undefined || current === undefined) {
-        // Nothing from the bot yet, or a game this page doesn't know, which can only be a newer one
-        body.innerHTML = live === undefined ? lobby(undefined) : reloadNotice();
-    } else if (live.version !== current.stateVersion) {
+    } else if (state === undefined) {
+        // Nothing from the bot yet
+        body.innerHTML = lobby(undefined);
+    } else if (live === undefined || current === undefined || live.version > current.stateVersion) {
         body.innerHTML = reloadNotice();
+    } else if (live.version < current.stateVersion) {
+        body.innerHTML = `<p class="notice">Loading…</p>`;
     } else if (current.isOpen(live)) {
         body.innerHTML = lobby(current.lobby(live));
     } else {

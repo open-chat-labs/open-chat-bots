@@ -11,8 +11,7 @@
 // Once the race is over, the bot's end state is its final shared state with the names, so a
 // finished race is drawn the same way, from the end state: on connecting to a finished card, when
 // no state comes at all, and as the race finishes while the page is open. Nothing is sent to the
-// bot after that. An end state written by the first release, with the boards as arrays and the
-// names in it, is read too, as the card keeps it for good.
+// bot after that.
 import { slide, unpackBoard, type Board, type Direction } from "../../games/race2048/engine";
 import { RACE_SETTINGS } from "../../games/race2048/settings";
 import {
@@ -186,21 +185,13 @@ function unpackRacer(r: Racer, name: string): PlayerView {
     };
 }
 
-/**
- * A race from an end state the card kept: this release's, or the first release's, whose boards
- * were arrays and whose players carried their names. Undefined if it's neither.
- */
+/** A race from an end state the card kept, or undefined if this page can't read it */
 function read(state: unknown): Race | undefined {
     if (state === null || typeof state !== "object") return undefined;
-    const s = state as Partial<SharedState> & { players?: unknown };
-    if (s.version === STATE_VERSION && Array.isArray(s.racers)) {
-        return unpack(s as SharedState);
-    }
-    if ((s.version as number) === 1 && Array.isArray(s.players)) {
-        const { players, ...rest } = s as Omit<SharedState, "racers"> & { players: PlayerView[] };
-        return { ...rest, players };
-    }
-    return undefined;
+    const s = state as Partial<SharedState>;
+    return s.version === STATE_VERSION && Array.isArray(s.racers)
+        ? unpack(s as SharedState)
+        : undefined;
 }
 
 /** Asks the bot for the racers' names, once per race, and draws the page again with them */
@@ -227,14 +218,14 @@ function shortId(id: string): string {
 
 /**
  * The race as it is now: the end state once the race is over, or the latest shared state, or
- * nothing before the first one
+ * nothing before the first one, or while the latest is one this page can't read
  */
 function current(): Race | undefined {
     const oc = ctx?.oc;
     if (oc === undefined) return undefined;
     if (oc.endState !== undefined) return read(oc.endState);
     const shared = oc.state?.shared as SharedState | undefined;
-    return shared === undefined ? undefined : unpack(shared);
+    return shared?.version === STATE_VERSION ? unpack(shared) : undefined;
 }
 
 /** Takes the player's board from the shared state, unless a move is still being answered */

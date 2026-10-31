@@ -10,7 +10,7 @@ import type { Settings } from "../settings";
 import type { Board, Direction } from "./engine";
 
 /** Bumped when the shape changes, so an app left open from an older release knows to reload */
-export const STATE_VERSION = 2;
+export const STATE_VERSION = 1;
 
 export const GAME_ID = "2048";
 
