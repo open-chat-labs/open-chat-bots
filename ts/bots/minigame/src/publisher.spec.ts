@@ -140,6 +140,25 @@ describe("publisher", () => {
         expect((updates[2].endState as { fens: string[] }).fens).toHaveLength(2);
     });
 
+    it("publishes every unfinished game as the bot starts, and no finished one", async () => {
+        const { updates, store, publisher } = setUp();
+        const finished: MiniAppGame = { ...game, messageId: 2n };
+        const running: MiniAppGame = { ...game, messageId: 3n };
+        store.create(game, Race2048.create());
+        store.create(finished, finishedGame(undefined));
+        const chess = ChessGame.create();
+        chess.join("alice", "Alice");
+        chess.join("bob", "Bob");
+        chess.start();
+        store.create(running, chess);
+
+        publisher.publishUnfinished();
+        await published(updates, 2);
+
+        expect(updates.map((update) => update.game.messageId)).toEqual([1n, 3n]);
+        expect(updates.every((update) => update.status === undefined)).toBe(true);
+    });
+
     it("sends no end state over 16 KB, whatever the game, but still ends the card", async () => {
         const { updates, store, publisher } = setUp();
         const warn = vi.spyOn(console, "warn").mockImplementation(() => {});

@@ -115,8 +115,6 @@ describe("the store", () => {
         const again = loadedChess(loaded, () => later);
         expect(again.shared().clock).toEqual({ ...before, at: later });
         expect(again.deadline()).toBe(later + TIME_PER_SIDE_MS - 4000);
-        // Only the game whose clock was running is published again
-        expect(loaded.resumedOnLoad.map((e) => e.game.messageId)).toEqual([chessCard.messageId]);
         expect(loaded.get(openCard)!.play.phase).toBe("open");
         expect(loaded.get(finishedCard)!.play.phase).toBe("finished");
     });
@@ -142,21 +140,6 @@ describe("the store", () => {
         const json = JSON.parse(fs.readFileSync(file, "utf8"));
         expect(json.savedAt).toBe(later);
         expect(json.games[Object.keys(json.games)[0]].data.match.clock.since).toBe(later - 4000);
-    });
-
-    it("loads a file from before it said when it was written as just saved", () => {
-        dir = fs.mkdtempSync(path.join(os.tmpdir(), "minigame-store-"));
-        const file = path.join(dir, "games.json");
-        const { savedAt, chess } = savedMidMove(file);
-        const json = JSON.parse(fs.readFileSync(file, "utf8"));
-        delete json.savedAt;
-        fs.writeFileSync(file, JSON.stringify(json));
-
-        const later = savedAt + 5 * 60_000;
-        const loaded = new GameStore(file, () => later);
-
-        expect(loaded.resumedOnLoad).toEqual([]);
-        expect(loadedChess(loaded, () => later).deadline()).toBe(chess.deadline());
     });
 
     it("prunes finished games after two hours and unfinished ones after a day", () => {

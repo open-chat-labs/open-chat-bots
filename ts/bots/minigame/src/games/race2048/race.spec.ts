@@ -373,16 +373,6 @@ describe("shared state", () => {
         const copy = new Race2048(JSON.parse(JSON.stringify(race.data)));
         expect(copy.shared()).toEqual(race.shared());
     });
-
-    it("gives a player saved without a best their score as it", () => {
-        const { race } = started();
-        race.data.players[0].score = 20;
-        const data = JSON.parse(JSON.stringify(race.data));
-        for (const p of data.players) delete p.best;
-        const copy = new Race2048(data);
-        expect(copy.players[0].best).toBe(20);
-        expect(copy.players[1].best).toBe(0);
-    });
 });
 
 it("duration reads naturally", () => {

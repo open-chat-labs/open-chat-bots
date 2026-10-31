@@ -81,11 +81,7 @@ const deps: Deps = {
     raceSettings: config.raceSettings,
 };
 
-// A chess game that was running when the bot stopped: its clock skipped the time the bot was
-// down, so everyone with it open gets the new deadline
-for (const { game } of store.resumedOnLoad) {
-    deps.publisher.publish(game);
-}
+deps.publisher.publishUnfinished();
 
 const app = createApp(deps, config.appDir);
 app.listen(config.port, () => {

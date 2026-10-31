@@ -62,7 +62,7 @@ export interface Game {
     /**
      * The bot was down for `downMs` between saving the game and loading it back. A game with a
      * clock that runs against a player doesn't charge them for it. Whether the game changed, when
-     * its state is published again.
+     * it's saved again.
      */
     resume(downMs: number): boolean;
     /**

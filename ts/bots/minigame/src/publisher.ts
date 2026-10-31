@@ -47,6 +47,17 @@ export class Publisher {
         }
     }
 
+    /**
+     * Sends every unfinished game's state as the bot starts: a chess clock has skipped the time
+     * the bot was down, so everyone needs the new deadline, and a page from a new release can't
+     * read a state from the last one, so it waits for this. A finished game has nothing to send.
+     */
+    publishUnfinished(): void {
+        for (const { game, play } of this.store.entries()) {
+            if (play.phase !== "finished") this.publish(game);
+        }
+    }
+
     async #flush(game: MiniAppGame, pending: Pending): Promise<void> {
         const entry = this.store.get(game);
         const client = this.miniApps();

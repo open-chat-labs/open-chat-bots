@@ -103,10 +103,6 @@ export class Race2048 implements Game {
 
     constructor(data: RaceData, options: RaceOptions = {}) {
         this.#data = data;
-        // A race saved before players had a best: the current score is the best known
-        for (const p of data.players) {
-            p.best ??= p.score;
-        }
         this.#random = options.random ?? Math.random;
         this.#now = options.now ?? Date.now;
     }
