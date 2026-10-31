@@ -7,9 +7,9 @@ import type { Request, Response } from "express";
 import type { Deps } from "../deps";
 import type { ChessGame } from "../games/chess/chess";
 import type { ActionResponse } from "../games/chess/types";
-import type { Game, GameKind } from "../games/game";
+import type { Game, GameKind, NamesResponse } from "../games/game";
 import type { Race2048 } from "../games/race2048/race";
-import type { MoveResponse, RosterResponse } from "../games/race2048/types";
+import { MAX_PLAYERS, type MoveResponse } from "../games/race2048/types";
 import { gameType } from "../games/registry";
 import { parseSettings } from "../games/settings";
 
@@ -102,21 +102,30 @@ export async function settings(req: Request, res: Response, deps: Deps): Promise
     res.json({ ok: true, settings: play.settings() });
 }
 
+/** A user id, as far as it's worth asking OpenChat about */
+const USER_ID = /^[a-z0-9-]{1,63}$/;
+
 /**
- * `GET /api/2048/roster?game=<key>`: the racers' names by id, which the live state leaves out as
- * they never change once the race starts. Anyone with the game open, watching included, asks
- * once; the names are on the card and in the lobby anyway.
+ * `GET /api/names?ids=<id>,<id>`: these users' usernames by id, leaving out anyone OpenChat doesn't
+ * know, so a page shows a player's username as it is now rather than as it was when they joined.
+ * It takes no token: a spectator has none, nor does anyone opening a finished card, and usernames
+ * are public. At most a full race's worth at once.
  */
-export async function raceRoster(req: Request, res: Response, deps: Deps): Promise<void> {
-    const key = req.query.game;
-    const entry = typeof key === "string" ? deps.store.getByKey(key) : undefined;
-    if (entry === undefined || entry.play.kind !== "2048") {
-        res.status(404).json({ ok: false, error: "This game is over" });
+export async function userNames(req: Request, res: Response, deps: Deps): Promise<void> {
+    const ids = typeof req.query.ids === "string" ? req.query.ids.split(",") : [];
+    if (ids.length === 0 || ids.length > MAX_PLAYERS || !ids.every((id) => USER_ID.test(id))) {
+        res.status(400).json({ ok: false, error: `Up to ${MAX_PLAYERS} user ids, please` });
         return;
     }
-    // Fixed once the race starts; a page in the lobby has the seats' names in the state anyway
-    res.setHeader("cache-control", entry.play.phase === "open" ? "no-store" : "private, max-age=3600");
-    res.json({ names: (entry.play as Race2048).names() } satisfies RosterResponse);
+    const names: Record<string, string> = {};
+    await Promise.all(
+        ids.map(async (id) => {
+            const username = await deps.names.username(id);
+            if (username !== undefined) names[id] = username;
+        }),
+    );
+    res.setHeader("cache-control", "private, max-age=300");
+    res.json({ names } satisfies NamesResponse);
 }
 
 // The 2048 race: a move or a restart changes the board, unless the move moved nothing

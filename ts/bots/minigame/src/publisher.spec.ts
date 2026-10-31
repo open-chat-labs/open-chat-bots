@@ -87,7 +87,7 @@ describe("publisher", () => {
 
         const update = updates[0];
         expect(update.status).toBe("finished");
-        expect(update.result).toBe("Time's up after 10m 0s: Bob won with 5,432 points");
+        expect(update.result).toBe("Time's up! @UserId(bob) won with 5,432 points");
         // The end state is the final shared state: every board, the winner and the times
         const shared = race.shared();
         expect(update.endState).toEqual({ ...shared, names: { alice: "Alice", bob: "Bob" } });
