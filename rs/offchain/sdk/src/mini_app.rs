@@ -362,7 +362,8 @@ impl GameUpdate {
         self
     }
 
-    /// eg. "Bob won", of at most 200 characters, which only comes with [`Self::finished`]
+    /// eg. "Bob won", of at most 200 characters, which only comes with [`Self::finished`]. It's
+    /// markdown with links turned off, so `@UserId(<user id>)` shows a user's name as it is now.
     pub fn with_result(mut self, result: impl Into<String>) -> Self {
         self.result = Some(result.into());
         self

@@ -58,8 +58,6 @@ export type RaceData = {
     /** Who ran `/play`: the one who can change the settings */
     host?: string;
     hostName?: string;
-    /** The game's key, which the app sends back to ask for the racers' names */
-    key?: string;
     seats: Seat[];
     players: PlayerData[];
     /** The `seq` of the last state published, which each state goes above */
@@ -80,8 +78,6 @@ export type RaceOptions = {
     /** The settings to start with, eg. from the command; any left out is its default */
     settings?: Settings;
     host?: Host;
-    /** The game's key (`miniAppGameKey`), for the app to ask for the roster */
-    key?: string;
 };
 
 /** How long the publisher waits between a race's states, by how many are racing: a bigger field
@@ -119,7 +115,6 @@ export class Race2048 implements Game {
                 settings: options.settings,
                 host: options.host?.id,
                 hostName: options.host?.name,
-                key: options.key,
             },
             options,
         );
@@ -297,7 +292,7 @@ export class Race2048 implements Game {
         return ++this.#data.seq;
     }
 
-    /** The racers' names by id, once started, or the seats' before: what the app asks for once */
+    /** The racers' names by id, once started, or the seats' before: what the end state carries */
     names(): Record<string, string> {
         const names: Record<string, string> = {};
         for (const p of this.#data.phase === "open" ? this.#data.seats : this.#data.players) {
@@ -381,7 +376,6 @@ export class Race2048 implements Game {
             timeLimit: this.timeLimit,
             maxPlayers: MAX_PLAYERS,
             seats: d.seats.map((s) => ({ ...s })),
-            key: d.key,
             racers: d.players.map(pack),
             startedAt: d.startedAt,
             endsAt: d.endsAt,
@@ -407,8 +401,9 @@ export class Race2048 implements Game {
     }
 
     /**
-     * The card's result once the race is over, eg. "Alice reached 2048 in 2m 15s", or
-     * "Time's up after 10m: Alice won with 5,432 points"
+     * The card's result once the race is over, eg. "@UserId(abc) reached 2048 in 2m 15s", or
+     * "Time's up! @UserId(abc) won with 5,432 points". The winner is a mention rather than a name,
+     * so the card shows their username as it is now, whenever it's read.
      */
     result(): string | undefined {
         const d = this.#data;
@@ -417,12 +412,12 @@ export class Race2048 implements Game {
         if (winner === undefined || d.startedAt === undefined || d.finishedAt === undefined) {
             return "The race ended with no winner";
         }
-        const name = winner.name.length > 100 ? `${winner.name.slice(0, 99)}…` : winner.name;
+        const who = `@UserId(${winner.id})`;
         if (d.ended === "time") {
             const points = winner.best.toLocaleString("en-US");
-            return `Time's up after ${duration(this.timeLimit)}: ${name} won with ${points} points`;
+            return `Time's up! ${who} won with ${points} points`;
         }
-        return `${name} reached ${this.target} in ${duration(d.finishedAt - d.startedAt)}`;
+        return `${who} reached ${this.target} in ${duration(d.finishedAt - d.startedAt)}`;
     }
 }
 

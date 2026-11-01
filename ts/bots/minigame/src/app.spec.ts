@@ -1,4 +1,5 @@
-// The routes anyone can fetch without a token: the bot's definition and the app's static files
+// The routes anyone can fetch without a token: the bot's definition, the app's static files and
+// users' usernames
 import fs from "node:fs";
 import type { AddressInfo } from "node:net";
 import path from "node:path";
@@ -15,8 +16,9 @@ let base: string;
 let close: () => void;
 
 beforeAll(async () => {
-    // None of these routes reach the handlers, so they need none of their dependencies
-    const app = createApp({} as Deps, publicDir);
+    // Of the handlers' dependencies, these routes only reach the names
+    const names = { username: async (id: string) => (id === "abc" ? "abc-name" : undefined) };
+    const app = createApp({ names } as unknown as Deps, publicDir);
     const server = app.listen(0);
     await new Promise<void>((resolve) => server.once("listening", resolve));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -24,6 +26,18 @@ beforeAll(async () => {
 });
 
 afterAll(() => close());
+
+describe("GET /api/names", () => {
+    it("gives usernames by id, for a request with no token", async () => {
+        const response = await fetch(`${base}/api/names?ids=abc,nobody`);
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({ names: { abc: "abc-name" } });
+    });
+
+    it("refuses a request with no ids", async () => {
+        expect((await fetch(`${base}/api/names`)).status).toBe(400);
+    });
+});
 
 describe("GET /bot_definition", () => {
     it("lists each game's app, with its image", async () => {

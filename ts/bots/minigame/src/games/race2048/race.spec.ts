@@ -124,7 +124,7 @@ describe("moves", () => {
         expect(race.data.ended).toBe("target");
         expect(race.winner?.id).toBe("alice");
         expect(race.players[0].won).toBe(true);
-        expect(race.result()).toBe(`ALICE reached ${TARGET} in 2m 15s`);
+        expect(race.result()).toBe(`@UserId(alice) reached ${TARGET} in 2m 15s`);
         expect(race.move("bob", "left")).toEqual({ ok: false, error: "The race is over" });
         expect(race.restart("bob")).toEqual({ ok: false, error: "The race is over" });
     });
@@ -187,7 +187,7 @@ describe("time limit", () => {
         expect(race.winner?.id).toBe("bob");
         expect(race.players[1].won).toBe(true);
         expect(race.players[0].won).toBe(false);
-        expect(race.result()).toBe("Time's up after 10m 0s: BOB won with 5,432 points");
+        expect(race.result()).toBe("Time's up! @UserId(bob) won with 5,432 points");
         // Only the once
         expect(race.endIfTimeUp()).toBe(false);
         expect(race.move("alice", "left")).toEqual({ ok: false, error: "The race is over" });
@@ -239,7 +239,7 @@ describe("time limit", () => {
         expect(race.move("alice", "left")).toEqual({ ok: false, error: "The race is over" });
         expect(race.phase).toBe("finished");
         expect(race.data.ended).toBe("time");
-        expect(race.result()).toBe("Time's up after 1m 0s: ALICE won with 0 points");
+        expect(race.result()).toBe("Time's up! @UserId(alice) won with 0 points");
     });
 });
 
@@ -304,16 +304,13 @@ describe("shared state", () => {
             v: 0,
             f: 0,
         });
-        // The names aren't in it: they never change once the race starts, so the app asks once
+        // The names aren't in it: the app looks the racers' usernames up by id
         expect(shared.names).toBeUndefined();
         expect(race.names()).toEqual({ alice: "ALICE" });
     });
 
-    it("carries the key the app asks for the roster with, and flags a stuck or winning board", () => {
+    it("flags a stuck or winning board", () => {
         const { race } = started();
-        expect(race.shared().key).toBeUndefined();
-        const keyed = Race2048.create({ key: "group:abc/-/1" });
-        expect(keyed.shared().key).toBe("group:abc/-/1");
         race.data.players[0].dead = true;
         race.data.players[1].won = true;
         expect(race.shared().racers.map((r) => r.f)).toEqual([DEAD, WON]);

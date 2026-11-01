@@ -431,7 +431,8 @@ await miniApps.update({
 ```
 
 Whatever's undefined stays as it is. The only status a bot sets is "finished", which ends the game,
-whether it started or not, and a result and an end state only come with it. The end state is any
+whether it started or not, and a result and an end state only come with it. The result is markdown
+with links turned off, so `@UserId(<user id>)` shows a user's name as it is now. The end state is any
 JSON value of at most 16 KB, serialized: OpenChat writes it to the card and hands it to the app, so a
 finished card with one shows the app with it, eg. the final position and a replay, while one without
 shows the app's image and the result. `remove: [userId]` takes players off, but a bot can never put

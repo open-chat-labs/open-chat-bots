@@ -136,7 +136,10 @@ export type MiniAppGameUpdate = {
      * particular
      */
     waitingFor?: string[];
-    /** eg. "Bob won", of 1 to 200 characters, only with "finished" */
+    /**
+     * eg. "Bob won", of 1 to 200 characters, only with "finished". It's markdown with links turned
+     * off, so `@UserId(<user id>)` shows a user's name as it is now.
+     */
     result?: string;
     /**
      * How the game ended, as any JSON value but null the bot chooses, eg. the final position and
