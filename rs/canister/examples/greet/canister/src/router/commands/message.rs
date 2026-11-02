@@ -107,6 +107,7 @@ impl Message {
                     max_value: i32::MAX as i64,
                     choices: vec![],
                 }),
+                visible_when: None,
             }],
             permissions: BotPermissions::from_chat_permission(ChatPermission::ReadMessages),
             default_role: None,

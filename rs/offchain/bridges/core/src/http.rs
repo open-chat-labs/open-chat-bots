@@ -71,6 +71,7 @@ pub fn definition<P: Platform>() -> BotDefinition {
                         choices: Vec::new(),
                         multi_line: false,
                     }),
+                    visible_when: None,
                 }],
                 permissions: BotPermissions::text_only(),
                 default_role: Some(ChatRole::Admin),

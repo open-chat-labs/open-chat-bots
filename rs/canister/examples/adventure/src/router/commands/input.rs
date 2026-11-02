@@ -69,6 +69,7 @@ impl Input {
                 }),
                 required: true,
                 placeholder: None,
+                visible_when: None,
             }],
             permissions: BotPermissions::text_only(),
             default_role: None,

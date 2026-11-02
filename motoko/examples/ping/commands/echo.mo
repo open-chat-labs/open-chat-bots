@@ -34,6 +34,7 @@ module {
                     multi_line = true;
                     choices = [];
                 };
+                visible_when = null;
             }];
             permissions = {
                 community = [];

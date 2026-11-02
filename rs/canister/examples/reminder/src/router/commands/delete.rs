@@ -66,6 +66,7 @@ impl Delete {
                     min_value: 1,
                     max_value: 100,
                 }),
+                visible_when: None,
             }],
             permissions: BotPermissions::default(),
             default_role: Some(ChatRole::Admin),

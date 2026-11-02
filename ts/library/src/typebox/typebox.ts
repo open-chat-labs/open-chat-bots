@@ -445,10 +445,17 @@ export const OCError = /* @__PURE__ */ Type.Tuple([
     Type.Union([Type.String(), Type.Null()]),
 ]);
 
+export type BotCommandParamCondition = Static<typeof BotCommandParamCondition>;
+export const BotCommandParamCondition = /* @__PURE__ */ Type.Object({
+    param: Type.String(),
+    values: Type.Array(Type.String()),
+});
+
 export type BotCommandOptionChoiceF64 = Static<typeof BotCommandOptionChoiceF64>;
 export const BotCommandOptionChoiceF64 = /* @__PURE__ */ Type.Object({
     name: Type.String(),
     value: Type.Number(),
+    visible_when: Type.Optional(BotCommandParamCondition),
 });
 
 export type SubscriptionKeys = Static<typeof SubscriptionKeys>;
@@ -1105,6 +1112,7 @@ export type BotCommandOptionChoiceI128 = Static<typeof BotCommandOptionChoiceI12
 export const BotCommandOptionChoiceI128 = /* @__PURE__ */ Type.Object({
     name: Type.String(),
     value: Type.BigInt(),
+    visible_when: Type.Optional(BotCommandParamCondition),
 });
 
 export type CommunityId = Static<typeof CommunityId>;
@@ -1408,6 +1416,7 @@ export type BotCommandOptionChoiceString = Static<typeof BotCommandOptionChoiceS
 export const BotCommandOptionChoiceString = /* @__PURE__ */ Type.Object({
     name: Type.String(),
     value: Type.String(),
+    visible_when: Type.Optional(BotCommandParamCondition),
 });
 
 export type CommunityMember = Static<typeof CommunityMember>;
@@ -8382,6 +8391,7 @@ export const BotCommandParam = /* @__PURE__ */ Type.Object({
     placeholder: Type.Optional(Type.String()),
     required: Type.Boolean(),
     param_type: BotCommandParamType,
+    visible_when: Type.Optional(BotCommandParamCondition),
 });
 
 export type ChannelDeleted = Static<typeof ChannelDeleted>;
