@@ -374,10 +374,9 @@ function renderRace(body: HTMLElement, race: Race) {
             dom.otherCards.set(p.id, card);
         }
         updateCard(card, p, undefined, race, "small", hint(p));
-        // Appending in order sorts the row, moving only the cards whose place changed
-        if (dom.others.children[seen.size - 1] !== card.el) {
-            dom.others.append(card.el);
-        }
+        // Into its place, if it isn't there already
+        const at = dom.others.children[seen.size - 1] ?? null;
+        if (at !== card.el) dom.others.insertBefore(card.el, at);
     }
     for (const [id, card] of dom.otherCards) {
         if (!seen.has(id)) {
