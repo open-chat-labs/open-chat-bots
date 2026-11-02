@@ -326,3 +326,72 @@ docker build -f bots/minigame/Dockerfile -t minigame-bot .
 ```
 
 It serves on `PORT`, 3100 by default, and keeps its games in `/data`, so mount a volume there.
+
+## Deploying
+
+The bot runs on mainnet as the container `oc-minigame-bot`, on the EC2 instance
+`i-0198f9d466e519454` in us-east-1, which it shares with the Discord and Twitch bridges, the price
+service and OpenChat's MiniApp service. It holds the maze race's live sockets and keeps its games in
+memory as well as in its data file, so it runs on a host that stays up rather than on Lambda, and as
+one instance.
+
+**Deploys** are done by the *Deploy MiniGameBot* GitHub Actions workflow
+([`deploy-minigame-bot.yaml`](../../../.github/workflows/deploy-minigame-bot.yaml)), run by hand
+from `main`:
+
+- It builds the image with [`Dockerfile`](Dockerfile), on an arm runner, pushes it to ECR's
+  `oc-minigame-bot` tagged `latest` and with the commit, and through SSM installs the host's systemd
+  unit and start script from [`aws/`](aws) as they are in that commit, then restarts the bot. The
+  config in Parameter Store stays as it is, and so do the games, in `/var/lib/oc-minigame-bot` on
+  the host.
+
+- If the bot doesn't start, or doesn't stay up for 30 seconds, the deploy fails, and systemd keeps
+  restarting it.
+
+- It then checks the bot serves its definition at its `PUBLIC_URL`.
+
+- A restart drops the maze race's sockets, which the pages reopen, and the games carry on from the
+  data file, their clocks not charging anyone for the time the bot was down.
+
+- On a PR that changes the bot, the SDK, or the workflow, it only builds the image.
+
+### Setting it up
+
+Once, by hand, before the first deploy:
+
+1. **ECR:** a repository `oc-minigame-bot`.
+
+2. **Config,** in SSM Parameter Store, under `/oc-minigame-bot/`: `IDENTITY_PRIVATE` (SecureString),
+   the bot's identity, eg. `openssl ecparam -name secp256k1 -genkey -noout`; `OC_PUBLIC`, OpenChat's
+   public key, from the UserIndex's `public_key`; `MINI_APP_SERVICE_URL`, the MiniApp service's; and
+   `PUBLIC_URL`, the CloudFront distribution's url (step 5), which the deploy checks. The IC and the
+   StorageIndex are mainnet's, in the start script.
+
+3. **The host:** nothing to copy, as each deploy installs
+   [`aws/oc-minigame-bot-start`](aws/oc-minigame-bot-start) and
+   [`aws/oc-minigame-bot.service`](aws/oc-minigame-bot.service) and enables the unit. The script
+   runs the container with the bot's port on the host's 8084, as 8080 to 8083 are taken. The
+   instance's role, `oc-discord-bridge`, also needs
+   [`aws/instance-role-policy.json`](aws/instance-role-policy.json), as a policy of its own beside
+   the others: reading `/oc-minigame-bot/*`, pulling from the ECR repository, and writing to the log
+   group `/oc/minigame-bot`, which is made beforehand. Its security group admits 8084 only from
+   CloudFront: widen its CloudFront rule, `sgr-00f8bcacba0e7ed49`, to 8080 to 8084, as a second rule
+   with CloudFront's prefix list is over the group's limit.
+
+4. **The deploy role,** `GitHubActions-DeployMiniGameBot`, which GitHub can assume only from `main`:
+   trusting the OIDC provider `token.actions.githubusercontent.com`, with `aud` `sts.amazonaws.com`
+   and `sub` `repo:open-chat-labs/open-chat-bots:ref:refs/heads/main`, and allowed, as the Twitch
+   bridge's is, to push to the `oc-minigame-bot` ECR repository, `ecr:GetAuthorizationToken`,
+   `ssm:SendCommand` on the instance with the `AWS-RunShellScript` document,
+   `ssm:GetCommandInvocation`, and `ssm:GetParameter` on `/oc-minigame-bot/PUBLIC_URL`.
+
+5. **Public URL:** a CloudFront distribution of its own in front of the host's 8084, set up as the
+   Twitch bridge's is: HTTP to the origin, HTTPS only to viewers, every method, caching disabled,
+   and all the viewer's headers but `Host` forwarded, which carries the maze race's WebSocket
+   upgrade of `/live` through. OpenChat reads a bot's definition from its endpoint's root, so it
+   can't share a distribution.
+
+6. **Register the bot** with `/register_bot`, its endpoint being the `PUBLIC_URL` and its principal
+   the identity's, then install it where it'll be played, granting it the MiniApp message
+   permission. After a deploy that changes the definition, eg. a new game, which is a new app, run
+   `/update_bot`, as OpenChat refuses a card whose app isn't in the definition it holds.

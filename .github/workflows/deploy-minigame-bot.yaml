@@ -1,0 +1,121 @@
+# Deploys MiniGameBot to its EC2 host, which it shares with the Discord and Twitch bridges, the price
+# service and the MiniApp service: pushes its image to ECR as `latest`, installs the host's systemd
+# unit and start script from ts/bots/minigame/aws as they are in this commit, then restarts the bot,
+# which pulls `latest` as it starts. The bot's config, including its identity, stays as it is in SSM
+# Parameter Store, and its games in its data file on the host. The rest of the setup is in
+# ts/bots/minigame/README.md.
+on:
+  workflow_dispatch:
+  # Builds it, without deploying, when this workflow, the bot or the SDK it's built with changes
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/deploy-minigame-bot.yaml
+      - ts/bots/minigame/**
+      - ts/library/**
+
+name: Deploy MiniGameBot
+
+# Deploys queue behind each other, apart from a PR's builds, which a newer push to the PR cancels
+concurrency:
+  group: deploy-minigame-bot-${{ github.event_name == 'workflow_dispatch' && 'deploy' || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  IMAGE: 253040722768.dkr.ecr.us-east-1.amazonaws.com/oc-minigame-bot
+  INSTANCE_ID: i-0198f9d466e519454
+
+jobs:
+  deploy:
+    name: Deploy MiniGameBot
+    # The host is arm64, so this builds its image natively rather than under emulation
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      # The deploy role can only be assumed from main, so this fails early with a clearer error
+      - name: Ensure on main
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        run: |
+          echo "Deploy from main, not ${GITHUB_REF}"
+          exit 1
+      - uses: actions/checkout@v4
+      # The image is built from `ts`, as the bot needs the SDK beside it
+      - name: Build
+        run: docker build --platform linux/arm64 -f ts/bots/minigame/Dockerfile -t "$IMAGE:${GITHUB_SHA::10}" -t "$IMAGE:latest" ts
+      - name: Configure AWS credentials
+        if: github.event_name == 'workflow_dispatch'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::253040722768:role/GitHubActions-DeployMiniGameBot
+          aws-region: us-east-1
+      # The bot's public url is in its own config, so it's kept in one place. It's read before
+      # anything's pushed, so a missing parameter or permission stops the deploy there.
+      - name: Read the public url
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          public_url=$(aws ssm get-parameter --name /oc-minigame-bot/PUBLIC_URL --with-decryption --query Parameter.Value --output text)
+          echo "PUBLIC_URL=${public_url%/}" >> "$GITHUB_ENV"
+      - name: Push
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          aws ecr get-login-password | docker login --username AWS --password-stdin "${IMAGE%%/*}"
+          docker push "$IMAGE:${GITHUB_SHA::10}"
+          docker push "$IMAGE:latest"
+      # The host runs the unit and start script in this commit: they're written to it before each
+      # restart, as base64, so their quotes and newlines arrive as they are. A restart drops the
+      # live sockets, which the pages reopen, and the games carry on from the bot's data file. The
+      # deploy fails if the bot doesn't start and stay up; systemd keeps restarting it.
+      - name: Install and restart the bot
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          start=$(base64 -w0 ts/bots/minigame/aws/oc-minigame-bot-start)
+          unit=$(base64 -w0 ts/bots/minigame/aws/oc-minigame-bot.service)
+          install="set -eu
+          echo $start | base64 -d > /usr/local/bin/oc-minigame-bot-start.new
+          chmod 755 /usr/local/bin/oc-minigame-bot-start.new
+          mv /usr/local/bin/oc-minigame-bot-start.new /usr/local/bin/oc-minigame-bot-start
+          echo $unit | base64 -d > /etc/systemd/system/oc-minigame-bot.service
+          systemctl daemon-reload
+          systemctl enable -q oc-minigame-bot"
+          restart='set -eu
+          fail() {
+            echo "MiniGameBot $1. systemd keeps restarting it. Its logs are in CloudWatch, in /oc/minigame-bot."
+            exit 1
+          }
+          systemctl restart oc-minigame-bot || fail "did not start"
+          pid=$(systemctl show -p MainPID --value oc-minigame-bot)
+          sleep 30
+          if ! systemctl is-active -q oc-minigame-bot || [ "$(systemctl show -p MainPID --value oc-minigame-bot)" != "$pid" ]; then
+            fail "did not stay up"
+          fi
+          docker inspect --format "Running {{.Config.Image}} ({{.Image}})" oc-minigame-bot
+          # The previous image, which each deploy leaves untagged. Pruning fails while another
+          # deploy prunes the same host, which is no reason to fail this one.
+          docker image prune -f || true'
+          script="$install
+          $restart"
+          # A command the host doesn't pick up within 60s is dropped, rather than restarting the
+          # bot later, after this run has given up on it
+          id=$(aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name AWS-RunShellScript \
+            --timeout-seconds 60 --comment "Deploy MiniGameBot at ${GITHUB_SHA::10}" \
+            --parameters "$(jq -n --arg script "$script" '{commands: [$script]}')" \
+            --query Command.CommandId --output text)
+          # Up to 5 minutes, for the pull and the 30s check. The invocation may not exist at first.
+          for _ in $(seq 60); do
+            sleep 5
+            status=$(aws ssm get-command-invocation --command-id "$id" --instance-id "$INSTANCE_ID" --query Status --output text 2>/dev/null) || status=Pending
+            case "$status" in Pending|InProgress|Delayed) ;; *) break ;; esac
+          done
+          aws ssm get-command-invocation --command-id "$id" --instance-id "$INSTANCE_ID" \
+            --query '[StandardOutputContent, StandardErrorContent]' --output text
+          echo "Restart: $status"
+          [ "$status" = Success ]
+      # The definition is what OpenChat reads to register the bot, so it's what must be served
+      - name: Check it's up
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          curl -fsS --retry 5 --retry-delay 5 --retry-all-errors "$PUBLIC_URL/bot_definition" > /dev/null
+          echo "Deployed ${GITHUB_SHA} and it's serving ${PUBLIC_URL}"

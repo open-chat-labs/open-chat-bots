@@ -7,12 +7,15 @@ WORKDIR /src
 COPY library/package.json library/package-lock.json library/
 RUN cd library && npm ci --no-audit --no-fund --ignore-scripts
 COPY library/ library/
-RUN cd library && npm run build && npm prune --omit=dev --ignore-scripts
+RUN cd library && npm run build
 
+# The bot's install runs the SDK's `prepare`, which builds it again, so the SDK keeps its dev
+# dependencies, rollup among them, until the bot's built, and then both lose theirs
 COPY bots/minigame/package.json bots/minigame/package-lock.json bots/minigame/
 RUN cd bots/minigame && npm ci --no-audit --no-fund
 COPY bots/minigame/ bots/minigame/
-RUN cd bots/minigame && npm run build && npm prune --omit=dev --ignore-scripts
+RUN cd bots/minigame && npm run build && npm prune --omit=dev --ignore-scripts \
+    && cd ../../library && npm prune --omit=dev --ignore-scripts
 
 FROM node:22-alpine
 ENV NODE_ENV=production PORT=3100 DATA_FILE=/data/games.json APP_DIR=/app/bots/minigame/dist/app

@@ -1,0 +1,20 @@
+# MiniGameBot's systemd unit on its EC2 host: /etc/systemd/system/oc-minigame-bot.service. It runs
+# `oc-minigame-bot-start`, which pulls the image `oc-minigame-bot:latest` from ECR, writes the config
+# from SSM Parameter Store and runs the container. The deploy workflow installs both from this
+# folder, pushes a new `latest` and restarts this unit.
+[Unit]
+Description=OpenChat MiniGameBot
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+ExecStartPre=-/usr/bin/docker rm -f oc-minigame-bot
+ExecStart=/usr/local/bin/oc-minigame-bot-start
+# The bot writes its games to its data file as it stops
+ExecStop=/usr/bin/docker stop -t 20 oc-minigame-bot
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
