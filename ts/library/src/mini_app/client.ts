@@ -3,8 +3,9 @@
 // nothing else from the SDK.
 //
 // OpenChat frames the page at its URL with `oc_theme=dark` or `oc_theme=light` in the fragment, the
-// user's theme as it opens the page, which the page can draw itself in before it's initialised
-// (`initialDarkMode`). Then the page and OpenChat, the window it's framed in, talk with
+// user's theme as it opens the page, which the page can draw itself in before it's initialised: from
+// an inline script in its `<head>`, or `initialDarkMode` for a page whose first paint doesn't
+// depend on the theme. Then the page and OpenChat, the window it's framed in, talk with
 // `postMessage`:
 // - the page sends `{ kind: "mini_app_ready" }` once it's listening, to any origin, as it carries
 //   nothing secret;
@@ -184,8 +185,10 @@ export function connectToOpenChat<Shared = unknown, Private = unknown, EndState 
 /**
  * Whether the user's theme was dark as OpenChat opened the app, from the `oc_theme` in the app's
  * URL's fragment, or `undefined` if there's none, eg. from an older OpenChat. Unlike
- * `MiniAppClient.darkMode`, it's known before OpenChat's initialised the app, so the app can draw
- * itself in the user's theme from the start, rather than switch to it once it's connected.
+ * `MiniAppClient.darkMode`, it's known before OpenChat's initialised the app. But a module script
+ * can run after the browser first draws the page, so this is in time only for a page whose first
+ * paint doesn't depend on the theme, not even its background. Otherwise read `oc_theme` in an
+ * inline script in the page's `<head>`, as the README shows.
  *
  * ```ts
  * document.documentElement.dataset.theme = initialDarkMode() ? "dark" : "light";

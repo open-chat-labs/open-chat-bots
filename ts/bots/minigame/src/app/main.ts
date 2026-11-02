@@ -34,10 +34,10 @@ const VIEWS: readonly GameView[] = [
 
 const root = document.getElementById("app") as HTMLElement;
 
-// What the page shows until there's a game to: the same as index.html's, which is up before this
-// script runs. Until then the page is just the spinner, so what the frame first shows isn't a
+// The spinner index.html shows before this script runs, for when a state takes the page back to
+// it. Until there's a game to show the page is just that, so what the frame first shows isn't a
 // placeholder for the game, eg. an empty lobby before the first state comes.
-const SPINNER = `<div class="loading" role="status" aria-label="Loading the game"><span class="spinner"></span></div>`;
+const SPINNER = `<div class="loading" role="status"><span class="spinner"></span><span class="visually-hidden">Loading the game…</span></div>`;
 
 let oc: MiniAppClient<unknown, unknown, unknown> | undefined;
 /** The game's view, once the page knows which game the card is for */
@@ -65,13 +65,7 @@ async function main() {
         )}</small></p>`;
         return;
     }
-    root.innerHTML = `
-        <header id="top" class="top" hidden>
-            <h1 id="title">Game</h1>
-            <span id="clock" class="clock"></span>
-        </header>
-        <div id="toast" class="toast" hidden></div>
-        <div id="body" class="body">${SPINNER}</div>`;
+    // The page's header, toast and body are index.html's, with the spinner in the body
     applyTheme(oc.darkMode);
     oc.onDarkModeChange(applyTheme);
     oc.onStateChange(render);
