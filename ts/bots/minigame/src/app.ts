@@ -5,10 +5,13 @@ import express, { type Express, type Request, type Response } from "express";
 import path from "node:path";
 import { definition } from "./definition";
 import type { Deps } from "./deps";
+import { DUELS } from "./games/registry";
 import {
     chessDraw,
     chessMove,
     chessResign,
+    duelMove,
+    duelResign,
     raceMove,
     raceRestart,
     settings,
@@ -46,6 +49,11 @@ export function createApp(deps: Deps, appDir: string): Express {
     app.post("/api/chess/move", express.json(), handle(chessMove));
     app.post("/api/chess/resign", express.json(), handle(chessResign));
     app.post("/api/chess/draw", express.json(), handle(chessDraw));
+    // The duels' alike, but for what a move is
+    for (const kind of DUELS) {
+        app.post(`/api/${kind}/move`, express.json(), handle(duelMove(kind)));
+        app.post(`/api/${kind}/resign`, express.json(), handle(duelResign(kind)));
+    }
 
     // Anyone with a game open, watching included, and anyone opening a finished card: no token
     app.get("/api/names", handle(userNames));

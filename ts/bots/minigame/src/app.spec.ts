@@ -3,12 +3,12 @@
 import fs from "node:fs";
 import type { AddressInfo } from "node:net";
 import path from "node:path";
-import { validateMiniAppAppName } from "@open-ic/openchat-botclient-ts";
+import { TokenError, validateMiniAppAppName } from "@open-ic/openchat-botclient-ts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "./app";
 import { definition } from "./definition";
 import type { Deps } from "./deps";
-import { GAMES } from "./games/registry";
+import { DUELS, GAMES } from "./games/registry";
 
 // Vite copies this folder into `dist/app` as it is, so this is what the server serves under `/app`
 const publicDir = path.resolve(__dirname, "app/public");
@@ -19,7 +19,13 @@ let close: () => void;
 beforeAll(async () => {
     // Of the handlers' dependencies, these routes only reach the names
     const names = { username: async (id: string) => (id === "abc" ? "abc-name" : undefined) };
-    const app = createApp({ names } as unknown as Deps, publicDir);
+    // and a player's token, which is never good here: a route that's there answers 401
+    const tokens = async () => ({
+        verifyPlayer: () => {
+            throw new TokenError("invalid", "Not a token");
+        },
+    });
+    const app = createApp({ names, tokens } as unknown as Deps, publicDir);
     const server = app.listen(0);
     await new Promise<void>((resolve) => server.once("listening", resolve));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -40,6 +46,17 @@ describe("GET /api/names", () => {
     });
 });
 
+describe("a duel's requests", () => {
+    it("are routed for each duel", async () => {
+        for (const kind of DUELS) {
+            for (const action of ["move", "resign"]) {
+                const response = await fetch(`${base}/api/${kind}/${action}`, { method: "POST" });
+                expect(response.status, `/api/${kind}/${action}`).toBe(401);
+            }
+        }
+    });
+});
+
 describe("GET /bot_definition", () => {
     it("lists each game's app, with its image", async () => {
         const response = await fetch(`${base}/bot_definition`);
@@ -48,6 +65,7 @@ describe("GET /bot_definition", () => {
         expect(json.mini_apps).toEqual([
             { name: "2048", image_url: "app/2048.svg" },
             { name: "chess", image_url: "app/chess.svg" },
+            { name: "four-in-a-row", image_url: "app/four-in-a-row.svg" },
         ]);
         expect(json.mini_apps).toHaveLength(GAMES.length);
         // Each named as OpenChat takes an app's name
@@ -55,10 +73,11 @@ describe("GET /bot_definition", () => {
             expect(validateMiniAppAppName(app.name)).toBeUndefined();
         }
         expect(json.description).toContain("chess");
-        // Both games are choices of `/play`
+        // Every game is a choice of `/play`
         expect(json.commands[0].params[0].param_type.StringParam.choices).toEqual([
             { name: "2048 Race", value: "2048" },
             { name: "Chess", value: "chess" },
+            { name: "Four in a Row", value: "four-in-a-row" },
         ]);
     });
 

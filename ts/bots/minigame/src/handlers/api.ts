@@ -7,6 +7,8 @@ import type { Request, Response } from "express";
 import type { Deps } from "../deps";
 import type { ChessGame } from "../games/chess/chess";
 import type { ActionResponse } from "../games/chess/types";
+import type { Duel } from "../games/duel/duel";
+import type { Position } from "../games/duel/types";
 import type { Game, GameKind, NamesResponse } from "../games/game";
 import type { Race2048 } from "../games/race2048/race";
 import { MAX_PLAYERS, type MoveResponse } from "../games/race2048/types";
@@ -171,4 +173,28 @@ export function chessDraw(req: Request, res: Response, deps: Deps): Promise<void
     return act<ChessGame>(req, res, deps, "chess", (chess, userId) =>
         chessOutcome(chess.offerDraw(userId)),
     );
+}
+
+// The duels, Four in a Row and any other game of two taking turns (`games/duel`): each answers the
+// new shared state, `{ ok: true, shared }`, or `{ ok: false, error }` with a 409 for something the
+// game doesn't allow, eg. a move out of turn or into a full column
+
+type AnyDuel = Duel<unknown, Position<unknown>>;
+
+type Handler = (req: Request, res: Response, deps: Deps) => Promise<void>;
+
+const duelOutcome = (result: { ok: boolean }): Outcome => ({ result, changed: result.ok });
+
+/** `POST /api/<game>/move` with `{ "move": <move> }`, a move as the game writes it, eg. a column */
+export function duelMove(kind: GameKind): Handler {
+    return (req, res, deps) =>
+        act<AnyDuel>(req, res, deps, kind, (duel, userId, body) =>
+            duelOutcome(duel.play(userId, (body as { move?: unknown } | undefined)?.move)),
+        );
+}
+
+/** `POST /api/<game>/resign`: the other player wins */
+export function duelResign(kind: GameKind): Handler {
+    return (req, res, deps) =>
+        act<AnyDuel>(req, res, deps, kind, (duel, userId) => duelOutcome(duel.resign(userId)));
 }

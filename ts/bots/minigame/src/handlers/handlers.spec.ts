@@ -1,4 +1,4 @@
-// The MiniApp service's calls and the app's requests, for a chess game and a race, with the tokens'
+// The MiniApp service's calls and the app's requests, for chess, a race and a duel, with the tokens'
 // verification stubbed: what each answers, and what it does to the game
 import {
     GroupChatIdentifier,
@@ -12,6 +12,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { Deps } from "../deps";
 import { ChessGame } from "../games/chess/chess";
 import type { SharedState } from "../games/chess/types";
+import { Duel } from "../games/duel/duel";
+import type { DuelState } from "../games/duel/types";
+import { FOUR_IN_A_ROW } from "../games/fourinarow/rules";
 import { Race2048 } from "../games/race2048/race";
 import {
     MAX_PLAYERS,
@@ -19,7 +22,16 @@ import {
     type SharedState as RaceState,
 } from "../games/race2048/types";
 import { GameStore } from "../store";
-import { chessDraw, chessMove, chessResign, raceMove, raceRestart, userNames } from "./api";
+import {
+    chessDraw,
+    chessMove,
+    chessResign,
+    duelMove,
+    duelResign,
+    raceMove,
+    raceRestart,
+    userNames,
+} from "./api";
 import { join, leave, start } from "./miniApp";
 
 const game: MiniAppGame = { chat: new GroupChatIdentifier("aaaaa-aa"), messageId: 1n };
@@ -389,5 +401,60 @@ describe("a race through the same handlers", () => {
         });
         expect(publish).toHaveBeenCalledTimes(2);
         expect((store.get(game)!.play.shared() as RaceState).racers[1].r).toBe(1);
+    });
+});
+
+describe("a duel through the same handlers", () => {
+    const move = duelMove("four-in-a-row");
+    const resign = duelResign("four-in-a-row");
+
+    it("seats two, starts, plays and resigns, publishing each change", async () => {
+        const { store, publish, deps } = setUp();
+        store.create(game, Duel.create(FOUR_IN_A_ROW, { random: () => 0.9 }));
+        expect(await send(join, deps, "alice")).toEqual({ status: 200, body: { accepted: true } });
+        expect(await send(join, deps, "bob")).toEqual({ status: 200, body: { accepted: true } });
+        expect(await send(join, deps, "carol")).toEqual({
+            status: 200,
+            body: { accepted: false, message: "This game is for two" },
+        });
+        const started = (await send(start, deps, "bob")).body as MiniAppStartResponse;
+        expect(started).toMatchObject({
+            accepted: true,
+            players: ["alice", "bob"],
+            waiting_for: ["alice"],
+        });
+
+        publish.mockClear();
+        const played = await send(move, deps, "alice", { move: 3 });
+        expect(played.status).toBe(200);
+        expect((played.body as { shared: DuelState<number> }).shared.moves).toEqual([3]);
+        expect(publish).toHaveBeenCalledTimes(1);
+        // Out of turn: refused, and nothing to publish
+        expect(await send(move, deps, "alice", { move: 3 })).toEqual({
+            status: 409,
+            body: { ok: false, error: "It's not your turn" },
+        });
+        expect(await send(move, deps, "bob", {})).toEqual({
+            status: 409,
+            body: { ok: false, error: "That isn't a move" },
+        });
+        expect(await send(move, deps, "carol", { move: 3 })).toMatchObject({ status: 403 });
+        expect(publish).toHaveBeenCalledTimes(1);
+
+        expect((await send(resign, deps, "bob")).status).toBe(200);
+        expect(store.get(game)!.play.result()).toBe("@UserId(bob) resigned");
+        expect(publish).toHaveBeenCalledTimes(2);
+    });
+
+    it("refuses a duel's request for a game of another kind", async () => {
+        const { store, deps } = setUp();
+        const chess = seated(deps, store);
+        chess.join("alice", "Alice");
+        chess.join("bob", "Bob");
+        chess.start();
+        expect(await send(move, deps, "alice", { move: 3 })).toEqual({
+            status: 409,
+            body: { ok: false, error: "This isn't a four-in-a-row game" },
+        });
     });
 });

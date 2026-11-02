@@ -18,6 +18,9 @@
     --sq-target: rgba(0, 0, 0, 0.22);
     --low: #d70015;
     --error: #d70015;
+    /* A duel's two players' discs, eg. Four in a Row's: who moves first, then the other */
+    --disc-0: #e8704a;
+    --disc-1: #3f7fd0;
     color-scheme: light;
 }
 
@@ -37,6 +40,8 @@
     --sq-dark: #8f6b4a;
     --low: #ff6961;
     --error: #ff6961;
+    --disc-0: #f08a5d;
+    --disc-1: #5b9bef;
     color-scheme: dark;
 }
 
@@ -657,7 +662,8 @@ button.link {
     font-weight: 600;
 }
 
-.chess-clock {
+.chess-clock,
+.duel-clock {
     font:
         600 22px/1 ui-monospace,
         SFMono-Regular,
@@ -668,7 +674,8 @@ button.link {
     text-align: right;
 }
 
-.chess-clock.low {
+.chess-clock.low,
+.duel-clock.low {
     color: var(--low);
 }
 
@@ -885,4 +892,164 @@ button.link {
 .promotion .piece-choice {
     font-size: 32px;
     padding: 6px 12px;
+}
+
+/*
+ * A duel (duel/view.ts): the board between the two players' rows, each with its clock. The board's
+ * aspect ratio is the game's, set inline, and it's as big as the frame allows (`--board-max`).
+ */
+.duel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    justify-content: center;
+    max-width: 440px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.duel-status {
+    min-height: 1.4em;
+    margin: 0 0 8px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.duel-board {
+    width: 100%;
+    max-width: var(--board-max, 100%);
+    margin: 0 auto;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+.duel-controls {
+    margin: 10px 0 4px;
+    text-align: center;
+}
+
+.duel-error {
+    margin: 6px 0;
+    color: var(--error);
+    text-align: center;
+    font-size: 14px;
+}
+
+.duel-error:empty {
+    display: none;
+}
+
+.disc-swatch {
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    margin-right: 6px;
+    border-radius: 50%;
+    vertical-align: -0.05em;
+}
+
+.disc-swatch.seat-0,
+.disc.seat-0 {
+    background: var(--disc-0);
+}
+
+.disc-swatch.seat-1,
+.disc.seat-1 {
+    background: var(--disc-1);
+}
+
+/*
+ * Four in a Row's grid: seven columns of six square slots with no gaps, so the grid keeps the 7:6
+ * ratio it's given exactly. Each slot shows a hole, inset in it, and a disc fills the hole. The
+ * disc just played falls from the top of the grid, a slot's height at a time. (`.cell` is the
+ * race's.)
+ */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    padding: 0;
+    background: var(--board);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.grid .slot {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+}
+
+.grid .slot::before {
+    content: "";
+    position: absolute;
+    inset: 9%;
+    border-radius: 50%;
+    background: var(--empty);
+}
+
+.grid .slot.playable {
+    cursor: pointer;
+}
+
+.grid .slot.playable.hover::before {
+    filter: brightness(1.08);
+}
+
+/* Where the player's disc would land: faint, and stronger in the column under the pointer */
+.grid .slot.next::after {
+    content: "";
+    position: absolute;
+    inset: 34%;
+    border-radius: 50%;
+    opacity: 0.35;
+}
+
+.grid .slot.next.hover::after {
+    inset: 9%;
+    opacity: 0.45;
+}
+
+.grid .slot.next.seat-0::after {
+    background: var(--disc-0);
+}
+
+.grid .slot.next.seat-1::after {
+    background: var(--disc-1);
+}
+
+.grid .disc {
+    position: absolute;
+    inset: 9%;
+    z-index: 1;
+    border-radius: 50%;
+}
+
+/* A disc is 82% of its slot, so a slot is 122% of a disc */
+.grid .disc.drop {
+    animation: drop calc(70ms * var(--fall) + 120ms) cubic-bezier(0.55, 0, 1, 1);
+}
+
+@keyframes drop {
+    from {
+        transform: translateY(calc(-122% * var(--fall)));
+    }
+}
+
+.grid .disc.last::after,
+.grid .disc.win::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+}
+
+.grid .disc.last::after {
+    inset: 40%;
+    background: rgba(255, 255, 255, 0.55);
+}
+
+.grid .disc.win::after {
+    inset: 28%;
+    background: rgba(255, 255, 255, 0.9);
 }
