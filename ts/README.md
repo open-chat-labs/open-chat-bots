@@ -507,7 +507,7 @@ OpenChat sends the bot's end state, `endState`, which the app shows its end view
 step 3), `refreshToken()` and `close()`. Serve the page as static, cacheable files, as it's the only
 thing spectators fetch from the bot.
 
-OpenChat shows the card's artwork, with the page drawn unseen under it, until the page calls
+OpenChat shows the card's artwork, with the page drawn unseen meanwhile, until the page calls
 `drawn()`, and then the page in its place, so the card goes straight from the artwork to the game.
 Call it after drawing what the page is for: the game, its lobby, how it ended, or why it can't show
 them, but not a placeholder such as a spinner while the first state or the end state comes. It's

@@ -31,7 +31,7 @@
 //   bot has started the game or refused to;
 // - the page sends `{ kind: "mini_app_drawn" }` once it has drawn what it's for, eg. the game
 //   rather than a spinner while it waits for the state. OpenChat shows the card's artwork, with the
-//   page drawn unseen under it, until then, or until a second after the page has loaded if it
+//   page drawn unseen meanwhile, until then, or until a second after the page has loaded if it
 //   doesn't say, eg. as it's from an older SDK.
 //
 // Nothing here lets the app join or leave a game: only OpenChat's own buttons do.
@@ -452,7 +452,7 @@ export class MiniAppClient<Shared = unknown, Private = unknown, EndState = unkno
      * Tells OpenChat the app has drawn what it's for: the game as it is, its lobby, how it ended, or
      * why it can't show them, rather than a placeholder such as a spinner while it waits for the
      * state. OpenChat shows the card's artwork until the app says so, with the app drawn unseen
-     * under it, and then the app in its place, so the card goes straight from the artwork to the
+     * meanwhile, and then the app in its place, so the card goes straight from the artwork to the
      * game. An app that doesn't say is shown a second after its page has loaded, whatever it shows
      * then.
      *
