@@ -374,10 +374,10 @@ function renderRace(body: HTMLElement, race: Race) {
             dom.otherCards.set(p.id, card);
         }
         updateCard(card, p, undefined, race, "small", hint(p));
-        // Appending in order sorts the row, moving only the cards whose place changed
-        if (dom.others.children[seen.size - 1] !== card.el) {
-            dom.others.append(card.el);
-        }
+        // The row's in score order by each card's `order`, not by where it is: a card taken out
+        // and put back loses its tiles' slides, and they all pop in again
+        card.el.style.order = String(seen.size);
+        if (card.el.parentElement === null) dom.others.append(card.el);
     }
     for (const [id, card] of dom.otherCards) {
         if (!seen.has(id)) {
