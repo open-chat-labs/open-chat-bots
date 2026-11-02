@@ -24,11 +24,26 @@ pub struct BotDefinition {
 /// game is over without an end state, with the result over it.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MiniAppDefinition {
-    /// What a card names the app by, eg. "chess": 1 to 50 characters, unique among the bot's apps
+    /// What a card names the app by, eg. "chess": 1 to 50 characters, each a lowercase ASCII
+    /// letter, a digit, `-` or `_`, and unique among the bot's apps. See [`Self::is_valid_name`].
     pub name: String,
     /// The app's artwork: an absolute https URL, or a path relative to the bot's endpoint, eg.
     /// "app/chess.svg", of at most 500 characters
     pub image_url: String,
+}
+
+impl MiniAppDefinition {
+    pub const MAX_NAME_CHARS: usize = 50;
+
+    /// Whether OpenChat takes `name` as an app's name: 1 to 50 characters, each a lowercase ASCII
+    /// letter, a digit, `-` or `_`, eg. "chess", "2048" or "press_counter"
+    pub fn is_valid_name(name: &str) -> bool {
+        !name.is_empty()
+            && name.len() <= Self::MAX_NAME_CHARS
+            && name
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'_')
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

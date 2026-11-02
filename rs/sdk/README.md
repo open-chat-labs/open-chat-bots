@@ -315,10 +315,11 @@ client
 
 A bot can host a game, or another app, which people open from a card the bot posts in a group or
 channel. OpenChat draws the card: its markdown text, the players, whose turn it is or the result,
-buttons to join, leave and open the game, and a frame box at the app's aspect ratio. The game itself
-is the bot's own web page, which OpenChat shows in that frame. Whenever there's no app to show,
-before it loads, to someone who can't open the game, and once the game is over without an end
-state, the box shows the app's image instead, from the bot's definition.
+buttons to join, leave and open the game, and a frame box at the app's aspect ratio. Whose turn it
+is comes live from the MiniApp service, and isn't stored on the card. The game itself is the bot's
+own web page, which OpenChat shows in that frame. Whenever there's no app to show, before it loads,
+to someone who can't open the game, and once the game is over without an end state, the box shows
+the app's image instead, from the bot's definition.
 
 OpenChat's MiniApp service sits between the website and the bot. It posts the card for the bot, so
 that a card exists only for a game it knows. Only it records who joins, asking the bot to accept
@@ -355,7 +356,9 @@ BotDefinition {
 }
 ```
 
-- A name has 1 to 50 characters, and is unique among the bot's apps, of which there are at most 100.
+- A name is 1 to 50 characters, each a lowercase ASCII letter, a digit, `-` or `_`, eg. `chess`,
+  `2048` or `press_counter`, and is unique among the bot's apps, of which there are at most 100.
+  `MiniAppDefinition::is_valid_name` checks one.
 - An image URL has at most 500 characters.
 
 ### 2. Posting a card
@@ -403,8 +406,9 @@ mini_apps.post(&token, card, false, None).await?;
   the card, no one can join the game, and `update` answers `UnknownGame`.
 - `post` gives the game too, as the service recorded it: the same game the token names.
 - `MiniAppContent::validate` checks the card as OpenChat does, with its errors: it's open, its text
-  has 1 to 2,000 characters, its app's name 1 to 50, and `max_players` is 1 to 100. Only OpenChat
-  can check that the app is one of the bot's.
+  has 1 to 2,000 characters, its app's name is 1 to 50 lowercase letters, digits, hyphens or
+  underscores, and `max_players` is 1 to 100. Only OpenChat can check that the app is one of the
+  bot's.
 
 The client gets the bot's token with `Client::mini_app_token`, keeps it for its hour, and gets a new
 one when it's about to expire or the service refuses it.
@@ -496,6 +500,8 @@ mini_apps
 Whatever an update doesn't set stays as it was:
 
 - `with_waiting_for`: whose turn it is now, players, each once, or none for no one in particular.
+  OpenChat shows it live on the card rather than writing it to the card, so a bot reading the card
+  in chat events sees only the players.
 - `finished()`: ends the game, whether it started or not. An update can't start a game.
 - `with_result("Bob won")`: at most 200 characters, only with `finished()`. It's markdown with links
   turned off, so `@UserId(<user id>)` shows a user's name as it is now.

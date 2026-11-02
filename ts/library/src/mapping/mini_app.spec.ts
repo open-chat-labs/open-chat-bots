@@ -74,11 +74,11 @@ describe("MiniApp cards", () => {
         expect(read(OPEN_CARD)).toEqual({ kind: "mini_app_content", text: TEXT, ...OPEN });
     });
 
-    test("are read with their players and whose turn it is, while active", () => {
+    test("are read with their players, while active", () => {
         const card = read({
             max_players: 4,
             spectators: true,
-            status: { Active: { players: [bytes(ALICE), bytes(BOB)], waiting_for: [bytes(BOB)] } },
+            status: { Active: { players: [bytes(ALICE), bytes(BOB)] } },
         });
 
         expect(card).toEqual({
@@ -88,7 +88,22 @@ describe("MiniApp cards", () => {
             maxPlayers: 4,
             spectators: true,
             appSize: SIZE,
-            status: { kind: "active", players: [ALICE, BOB], waitingFor: [BOB] },
+            status: { kind: "active", players: [ALICE, BOB] },
+        });
+    });
+
+    // OpenChat's cards once stored whose turn it was, which a card from then still has
+    test("are read without whose turn it is, from a card which has it", () => {
+        const card = read({
+            spectators: false,
+            status: { Active: { players: [bytes(ALICE), bytes(BOB)], waiting_for: [bytes(BOB)] } },
+        });
+
+        expect(card).toEqual({
+            kind: "mini_app_content",
+            text: TEXT,
+            ...OPEN,
+            status: { kind: "active", players: [ALICE, BOB] },
         });
     });
 
@@ -97,9 +112,9 @@ describe("MiniApp cards", () => {
         expect(
             read({
                 spectators: false,
-                status: { Active: { players: [bytes(ALICE)], waiting_for: [], settings } },
+                status: { Active: { players: [bytes(ALICE)], settings } },
             }),
-        ).toMatchObject({ status: { kind: "active", players: [ALICE], waitingFor: [], settings } });
+        ).toMatchObject({ status: { kind: "active", players: [ALICE], settings } });
         expect(
             read({
                 spectators: false,
@@ -235,23 +250,36 @@ describe("validateMiniAppText", () => {
 });
 
 describe("validateMiniAppAppName", () => {
-    test("passes 1 to 50 characters, as a bot's definition names an app", () => {
-        expect(validateMiniAppAppName("chess")).toBeUndefined();
-        // Counted in code points, as OpenChat counts them
-        expect(validateMiniAppAppName("é".repeat(MINI_APP_MAX_APP_NAME_CHARS))).toBeUndefined();
-        expect(validateMiniAppAppName("😀".repeat(MINI_APP_MAX_APP_NAME_CHARS))).toBeUndefined();
+    const NAME_ERROR =
+        "The app's name must be 1 to 50 lowercase letters, digits, hyphens or underscores";
+
+    test("passes 1 to 50 lowercase letters, digits, hyphens or underscores", () => {
+        for (const app of [
+            "chess",
+            "2048",
+            "press_counter",
+            "a-b",
+            "x".repeat(MINI_APP_MAX_APP_NAME_CHARS),
+        ]) {
+            expect(validateMiniAppAppName(app)).toBeUndefined();
+            expect(new MiniAppMessage(app, TEXT, SIZE).validate()).toBeUndefined();
+        }
     });
 
-    test("refuses a blank or longer name, with OpenChat's error", () => {
-        for (const app of ["", " \n", "x".repeat(MINI_APP_MAX_APP_NAME_CHARS + 1)]) {
-            expect(validateMiniAppAppName(app)).toBe("The app must have 1 to 50 characters");
+    test("refuses any other name, with OpenChat's error", () => {
+        for (const app of [
+            "",
+            "Chess",
+            "my game",
+            "a/b",
+            "é",
+            " \n",
+            "chess\n",
+            "x".repeat(MINI_APP_MAX_APP_NAME_CHARS + 1),
+        ]) {
+            expect(validateMiniAppAppName(app)).toBe(NAME_ERROR);
+            expect(new MiniAppMessage(app, TEXT, SIZE).validate()).toBe(NAME_ERROR);
         }
-        expect(new MiniAppMessage(" ", TEXT, SIZE).validate()).toBe(
-            "The app must have 1 to 50 characters",
-        );
-        expect(new MiniAppMessage("x".repeat(51), TEXT, SIZE).validate()).toBe(
-            "The app must have 1 to 50 characters",
-        );
     });
 });
 
@@ -277,7 +305,9 @@ describe("validateMiniAppContent", () => {
             "A game has 1 to 100 players at most",
         );
         expect(error({ text: "" })).toBe("The text must have 1 to 2000 characters");
-        expect(error({ app: "" })).toBe("The app must have 1 to 50 characters");
+        expect(error({ app: "" })).toBe(
+            "The app's name must be 1 to 50 lowercase letters, digits, hyphens or underscores",
+        );
         // The text is checked first, as OpenChat checks it
         expect(error({ text: "", app: "" })).toBe("The text must have 1 to 2000 characters");
     });
@@ -285,7 +315,7 @@ describe("validateMiniAppContent", () => {
     // Only the MiniApp service writes a card's status
     test("refuses a card that isn't open", () => {
         const statuses: MiniAppStatus[] = [
-            { kind: "active", players: [ALICE], waitingFor: [] },
+            { kind: "active", players: [ALICE] },
             { kind: "finished", players: [], result: "Bob won" },
         ];
         for (const status of statuses) {

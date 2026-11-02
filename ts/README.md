@@ -255,8 +255,9 @@ a cycles cost on every send.
 
 A bot can host a game, or another app, which people open from a card the bot posts in a chat.
 OpenChat draws the card: markdown text, the players, whose turn it is or the result, and buttons to
-join, open or watch. Everything else, eg. the board, is the bot's own page, `<endpoint>/app`, which
-OpenChat shows in a sandboxed frame. The bot's definition lists the apps it hosts, each with its
+join, open or watch. Whose turn it is comes live from the MiniApp service, and isn't stored on the
+card. Everything else, eg. the board, is the bot's own page, `<endpoint>/app`, which OpenChat shows
+in a sandboxed frame. The bot's definition lists the apps it hosts, each with its
 artwork, and a card names one of them:
 
 ```ts
@@ -264,7 +265,8 @@ const definition: BotDefinition = {
     description: "Board games",
     commands: [...],
     // Each app the bot posts cards for, with its image: https, or a path relative to the bot's
-    // endpoint. At most 100, named uniquely in up to 50 characters, with URLs of up to 500.
+    // endpoint. At most 100, each named uniquely in 1 to 50 lowercase letters, digits, hyphens or
+    // underscores, with URLs of up to 500.
     mini_apps: [{ name: "chess", image_url: "app/chess.svg" }],
 };
 ```
@@ -326,9 +328,10 @@ community's scope, the thread, and the card's message id, which the SDK picks un
 one, or a chat command's token fixes it. The token lasts an hour, and needs the `MiniApp` message
 permission, so a command which posts a card asks for it. A card can't be posted in a direct chat,
 and its app, text, player limit, spectators and app size never change. The app's name is 1 to 50
-characters, and must be one of the bot's definition's `mini_apps`. The app size is what the app's
-laid out for, in CSS pixels, each 1 to 10,000 and neither more than three times the other: the card
-shows the app at that aspect ratio, sized before it loads. `setBlockLevelMarkdown` and
+lowercase ASCII letters, digits, `-` or `_`, eg. `chess`, `2048` or `press_counter`, as
+`validateMiniAppAppName` checks, and must be one of the bot's definition's `mini_apps`. The app size
+is what the app's laid out for, in CSS pixels, each 1 to 10,000 and neither more than three times
+the other: the card shows the app at that aspect ratio, sized before it loads. `setBlockLevelMarkdown` and
 `setRepliesTo` apply. Posting the same token again posts nothing new and
 gives the same game, so a bot which got no answer, eg. an `unavailable` error, posts again with the
 same token. Key the game before posting, from `miniAppGameFromPostToken(token)`: the service may
@@ -430,7 +433,8 @@ await miniApps.update({
 });
 ```
 
-Whatever's undefined stays as it is. The only status a bot sets is "finished", which ends the game,
+Whatever's undefined stays as it is. `waitingFor` is shown live on the card, rather than written to
+it, so a bot reading the card in chat events sees only its players. The only status a bot sets is "finished", which ends the game,
 whether it started or not, and a result and an end state only come with it. The result is markdown
 with links turned off, so `@UserId(<user id>)` shows a user's name as it is now. The end state is any
 JSON value of at most 16 KB, serialized: OpenChat writes it to the card and hands it to the app, so a

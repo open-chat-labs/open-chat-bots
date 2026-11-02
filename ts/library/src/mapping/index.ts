@@ -2149,7 +2149,6 @@ function miniAppStatus(value: ApiMiniAppStatus): MiniAppStatus {
         return {
             kind: "active",
             players: value.Active.players.map(principalBytesToString),
-            waitingFor: value.Active.waiting_for.map(principalBytesToString),
             settings: optional(value.Active.settings, identity),
         };
     }
@@ -2173,7 +2172,6 @@ function apiMiniAppStatus(domain: MiniAppStatus): ApiMiniAppStatus {
             return {
                 Active: {
                     players: domain.players.map(principalStringToBytes),
-                    waiting_for: domain.waitingFor.map(principalStringToBytes),
                     settings: domain.settings,
                 },
             };

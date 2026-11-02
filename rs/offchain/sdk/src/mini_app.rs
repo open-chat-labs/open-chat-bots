@@ -308,7 +308,7 @@ pub struct GameUpdate {
     pub game: MiniAppGame,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<GameStatus>,
-    /// Whose turn it is now
+    /// Whose turn it is now, which OpenChat shows live on the card rather than writing to it
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub waiting_for: Option<Vec<UserId>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -356,7 +356,8 @@ impl GameUpdate {
         self
     }
 
-    /// Whose turn it is now: players, each once, or no one, eg. when it's no one in particular
+    /// Whose turn it is now: players, each once, or no one, eg. when it's no one in particular.
+    /// OpenChat shows it live on the card, from the service, rather than writing it to the card.
     pub fn with_waiting_for(mut self, waiting_for: Vec<UserId>) -> Self {
         self.waiting_for = Some(waiting_for);
         self

@@ -70,7 +70,10 @@ export type MiniAppStart = {
      * is taken off.
      */
     players: string[];
-    /** The players whose turn it is first, each once, or none for no one in particular */
+    /**
+     * The players whose turn it is first, each once, or none for no one in particular. OpenChat
+     * shows it live on the card rather than writing it to the card.
+     */
     waitingFor: string[];
     /** The game's first state, whose `seq` is above any state the bot has already sent */
     state?: MiniAppGameState;
@@ -133,7 +136,7 @@ export type MiniAppGameUpdate = {
     status?: "finished";
     /**
      * The user ids of the players whose turn it is now, each once, or none for no one in
-     * particular
+     * particular. OpenChat shows it live on the card rather than writing it to the card.
      */
     waitingFor?: string[];
     /**
