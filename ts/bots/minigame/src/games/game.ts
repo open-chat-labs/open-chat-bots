@@ -3,7 +3,14 @@
 // sees. A game's own moves are its own, under `handlers/api.ts`.
 import type { Settings } from "./settings";
 
-export type GameKind = "2048" | "chess" | "four-in-a-row" | "reversi" | "maze" | "chatman";
+export type GameKind =
+    | "2048"
+    | "chess"
+    | "four-in-a-row"
+    | "reversi"
+    | "maze"
+    | "chatman"
+    | "minesweeper";
 
 export type ConfigureResult = { ok: true } | { ok: false; error: string };
 
@@ -95,6 +102,11 @@ export interface Game {
     nextSeq(): number;
     /** The state everyone sees, with a `version` and the `game`'s id */
     shared(): unknown;
+    /**
+     * Each player's own part of the state, by user id, which the service gives only to them, eg. a
+     * racer's board the others mustn't see. Left out by a game whose state is all shared.
+     */
+    privateState?(): Record<string, unknown> | undefined;
     /** The card's result once the game is over, eg. "White won by checkmate" */
     result(): string | undefined;
     /**

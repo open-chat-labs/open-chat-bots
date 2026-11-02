@@ -18,6 +18,9 @@ import { FOUR_IN_A_ROW } from "../games/fourinarow/rules";
 import { wayOut } from "../games/maze/maze";
 import { MazeRace } from "../games/maze/race";
 import type { SharedState as MazeState } from "../games/maze/types";
+import { mineCells } from "../games/minesweeper/field";
+import { MinesweeperRace } from "../games/minesweeper/race";
+import type { ActResponse, SharedState as MinesState } from "../games/minesweeper/types";
 import { REVERSI } from "../games/reversi/rules";
 import { Race2048 } from "../games/race2048/race";
 import {
@@ -33,6 +36,7 @@ import {
     duelMove,
     duelResign,
     mazeMove,
+    minesweeperAct,
     raceMove,
     raceRestart,
     userNames,
@@ -507,5 +511,46 @@ describe("a maze race's moves over HTTP, while a racer's socket isn't open", () 
             body: { ok: false, error: "A move is a direction and its number", changed: false },
         });
         expect((await send(mazeMove, deps, "bob", { move, n: 1 })).status).toBe(403);
+    });
+});
+
+describe("a Minesweeper racer's clicks", () => {
+    it("answers with their board alone, and publishes only how far they've got", async () => {
+        const { store, publish, deps } = setUp();
+        const race = MinesweeperRace.create({ random: () => 0.25 });
+        race.join("alice", "Alice");
+        race.join("bob", "Bob");
+        race.start();
+        store.create(game, race);
+
+        // No acts: the board as it is, which changes nothing
+        const asked = await send(minesweeperAct, deps, "alice", { acts: [] });
+        expect(asked).toEqual({ status: 200, body: { ok: true, own: race.own("alice") } });
+        expect(publish).not.toHaveBeenCalled();
+
+        const field = race.field!;
+        const cell = [...race.own("alice")!.view].findIndex(
+            (c, i) => c === "." && field.mine[i] === 0,
+        );
+        const opened = await send(minesweeperAct, deps, "alice", { acts: [{ reveal: cell }] });
+        expect(opened.status).toBe(200);
+        expect((opened.body as ActResponse).ok).toBe(true);
+        expect(publish).toHaveBeenCalledTimes(1);
+        const shared = store.get(game)!.play.shared() as MinesState;
+        expect(shared.racers[0]).toMatchObject({ id: "alice", rev: 1 });
+        expect(JSON.stringify(shared)).not.toContain(race.own("alice")!.view);
+
+        // A mine: refused from then on, with the board
+        const [mine] = mineCells(field);
+        const blown = await send(minesweeperAct, deps, "alice", {
+            acts: [{ reveal: mine }, { reveal: mine + 1 }],
+        });
+        expect(blown.status).toBe(409);
+        expect(blown.body).toMatchObject({
+            ok: false,
+            error: "You set off a mine: wait 10s",
+            own: { hits: 1 },
+        });
+        expect((await send(minesweeperAct, deps, "carol", { acts: [] })).status).toBe(403);
     });
 });

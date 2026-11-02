@@ -14,6 +14,7 @@ import {
     duelMove,
     duelResign,
     mazeMove,
+    minesweeperAct,
     raceMove,
     raceRestart,
     settings,
@@ -61,6 +62,8 @@ export function createApp(deps: Deps, appDir: string): Express {
     app.post("/api/maze/move", express.json(), handle(mazeMove));
     // A ChatMan player's turn, likewise
     app.post("/api/chatman/turn", express.json(), handle(chatmanTurn));
+    // A Minesweeper racer's clicks, answered with their board, which only they see
+    app.post("/api/minesweeper/act", express.json(), handle(minesweeperAct));
 
     // Anyone with a game open, watching included, and anyone opening a finished card: no token
     app.get("/api/names", handle(userNames));

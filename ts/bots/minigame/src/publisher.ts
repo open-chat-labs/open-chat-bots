@@ -7,6 +7,7 @@ import {
     MiniAppServiceError,
     miniAppGameKey,
     type MiniAppGame,
+    type MiniAppGameState,
     type MiniAppGameUpdate,
     type MiniAppServiceClient,
 } from "@open-ic/openchat-botclient-ts";
@@ -78,10 +79,11 @@ export class Publisher {
         pending.inFlight = true;
         pending.again = false;
         const { play } = entry;
-        const update: MiniAppGameUpdate = {
-            game,
-            state: { seq: play.nextSeq(), shared: play.shared() },
-        };
+        const state: MiniAppGameState = { seq: play.nextSeq(), shared: play.shared() };
+        // What only each player may see, for a game that has any
+        const parts = play.privateState?.();
+        if (parts !== undefined) state.private = parts;
+        const update: MiniAppGameUpdate = { game, state };
         if (play.phase === "finished") {
             update.status = "finished";
             update.result = play.result();
