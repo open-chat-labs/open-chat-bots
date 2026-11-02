@@ -180,7 +180,8 @@ every version of an end state it can, as a card keeps its end state for good. A 
 only at its own version. One it can't read can only be from a newer bot, so it asks to reload:
 that's a newer version, a game it doesn't know, or anything but an object with a `version` and a
 `game`, so a later release can change the encoding as long as the page can tell the difference.
-One from an older bot shows "Loading…" until the bot publishes it again as it starts.
+One from an older bot shows the page's spinner until the bot publishes it again as it starts, as
+does the page until it has a lobby, a live game or an end view to show.
 
 The bot's definition lists each game's app with its image, `app/2048.svg`, `app/chess.svg`,
 `app/four-in-a-row.svg`, `app/reversi.svg`, `app/maze.svg` and `app/chatman.svg`, SVGs served from

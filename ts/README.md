@@ -462,10 +462,9 @@ the LocalUserIndex gives that call's error.
 The SDK's browser entry, `@open-ic/openchat-botclient-ts/mini_app`, has no Node dependencies:
 
 ```ts
-import { connectToOpenChat, initialDarkMode } from "@open-ic/openchat-botclient-ts/mini_app";
+import { connectToOpenChat } from "@open-ic/openchat-botclient-ts/mini_app";
 
-// The user's theme, from the page's URL, so the page is drawn in it while it connects (see below)
-setTheme(initialDarkMode() ?? false);
+// The page is in the user's theme already, from an inline script in its <head> (see below)
 const openChat = await connectToOpenChat<Board, Hand, Replay>();
 // The role is "player" or "spectator", and the state undefined until the first one comes
 render(openChat.role, openChat.state);
@@ -497,19 +496,23 @@ OpenChat sends the bot's end state, `endState`, which the app shows its end view
 step 3), `refreshToken()` and `close()`. Serve the page as static, cacheable files, as it's the only
 thing spectators fetch from the bot.
 
-OpenChat shows the page as soon as the browser first draws it, which is before a module script has
-run, and can be a while before OpenChat has initialised it and sent the first state. So that the
-page is in the user's theme from the start, OpenChat puts `oc_theme=dark` or `oc_theme=light` in the
-fragment of the page's URL. Read it in an inline script in the page's `<head>`, which runs before
-anything's drawn, or with `initialDarkMode()` (`undefined` from an older OpenChat) if the page draws
-nothing until its script runs. And until the first state, or the end state, has come, show something
-that doesn't stand for the game, eg. a spinner rather than an empty board:
+OpenChat shows the page as soon as the browser first draws it, which can be before a module script
+has run, and is usually a while before OpenChat has initialised it and sent the first state. So
+that the page is in the user's theme from the start, OpenChat puts `oc_theme=dark` or
+`oc_theme=light` in the fragment of the page's URL. Read it in an inline script in the page's
+`<head>`, which runs before anything's drawn (a Content-Security-Policy has to allow it, eg. by its
+hash). `initialDarkMode()` reads it too, or gives `undefined` from an older OpenChat, but from a
+module script that's in time only for a page whose first paint doesn't depend on the theme, not even
+its background. And until the first state, or the end state, has come, show something that doesn't
+stand for the game, eg. a spinner rather than an empty board:
 
 ```html
 <head>
     <script>
         document.documentElement.dataset.theme =
-            new URLSearchParams(location.hash.slice(1)).get("oc_theme") === "dark" ? "dark" : "light";
+            new URLSearchParams(location.hash.slice(1)).get("oc_theme") === "dark"
+                ? "dark"
+                : "light";
     </script>
     <link rel="stylesheet" href="./style.css" />
 </head>
