@@ -100,7 +100,7 @@ async function play(client: BotClient, res: Response, deps: Deps): Promise<void>
     // The card, as it was posted, is the command's answer: OpenChat shows the user the answer in
     // place of the command's placeholder until the posted card reaches them, which can take a few
     // seconds. It's the command's message, so the posted card takes its place.
-    res.json({ message: card.setFinalised<MiniAppMessage>(true).toResponse() });
+    res.json({ message: card.toResponse() });
 }
 
 /** Posts the card, trying again with the same token while the service can't reach OpenChat */

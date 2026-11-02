@@ -60,30 +60,43 @@ function setUp(post: (token: string, card: MiniAppMessage) => Promise<unknown>) 
     return { store, posted, deps };
 }
 
-async function run(deps: Deps): Promise<{ status: number; body: unknown }> {
-    const answer = { status: 200, body: undefined as unknown };
+/** Every answer the command gives, of which there should be one, and when it's finished */
+function run(deps: Deps): { answers: { status: number; body: unknown }[]; done: Promise<void> } {
+    const answers: { status: number; body: unknown }[] = [];
+    let status = 200;
     const res = {
         headersSent: false,
         status(code: number) {
-            answer.status = code;
+            status = code;
             return res;
         },
-        json(value: unknown) {
-            answer.body = value;
+        json(body: unknown) {
+            answers.push({ status, body });
             return res;
         },
     } as unknown as Response;
-    await executeCommand({ headers: { "x-oc-jwt": "jwt" } } as unknown as Request, res, deps);
-    return answer;
+    const done = executeCommand(
+        { headers: { "x-oc-jwt": "jwt" } } as unknown as Request,
+        res,
+        deps,
+    );
+    return { answers, done };
 }
 
 describe("/play", () => {
     it("answers with the card it posted, as the command's message, so it shows at once", async () => {
-        const { store, posted, deps } = setUp(async () => undefined);
+        let posting: () => void = () => {};
+        const { store, posted, deps } = setUp(() => new Promise((resolve) => (posting = resolve)));
 
-        const answer = await run(deps);
+        const { answers, done } = run(deps);
+        await vi.waitFor(() => expect(posted).toHaveLength(1));
+        // Nothing's said until the card's posted, as the answer's for a card that exists
+        expect(answers).toHaveLength(0);
+        posting();
+        await done;
 
-        expect(posted).toHaveLength(1);
+        expect(answers).toHaveLength(1);
+        const [answer] = answers;
         expect(answer.status).toBe(200);
         const { message } = answer.body as {
             message: {
@@ -112,9 +125,11 @@ describe("/play", () => {
             throw new MiniAppServiceError("rejected", 400, "The chat is frozen");
         });
 
-        const answer = await run(deps);
+        const { answers, done } = run(deps);
+        await done;
 
-        expect(answer.body).toEqual({
+        expect(answers).toHaveLength(1);
+        expect(answers[0].body).toEqual({
             message: { ephemeral: true, text: "The game couldn't be set up: The chat is frozen." },
         });
         expect(

@@ -319,7 +319,7 @@ const game = miniAppGameFromPostToken(token);
 games.set(miniAppGameKey(game), newGame());
 await miniApps.post(token, card);
 // A command's answer: the card, as the command's message
-return { message: card.setFinalised(true).toResponse() };
+return { message: card.toResponse() };
 ```
 
 The service posts every card, as the bot, so that it knows each game from the moment its card
@@ -343,7 +343,9 @@ the game first.
 A command which posts a card answers with it once it's posted. OpenChat shows the user the answer in
 place of the command's placeholder until the posted card reaches them, which can take a few
 seconds, and the posted card then takes its place, as they're the same message. A command which
-answers with nothing leaves the chat without either in the meantime.
+answers with nothing leaves the chat without either in the meantime. The answer has the card's own
+`setBlockLevelMarkdown`, rather than `post`'s option, and no reply: a card posted as a reply shows
+it once the posted card arrives.
 
 A `MiniAppGame` is `{ chat, thread?, messageId }`. `miniAppGameKey` gives a key that's unique across
 chats and threads. The service client sends the bot's token, from the LocalUserIndex's
