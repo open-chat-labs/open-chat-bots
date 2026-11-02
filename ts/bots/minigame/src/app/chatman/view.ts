@@ -59,6 +59,17 @@ type Dom = {
     hint: HTMLElement;
     note: HTMLElement;
     standings: HTMLElement;
+    /** Each player's line in the standings */
+    rows: Map<string, Row>;
+};
+
+/** A player's line in the standings, with the lives it shows, or -1 for "Out" */
+type Row = {
+    li: HTMLElement;
+    who: HTMLElement;
+    lives: HTMLElement;
+    score: HTMLElement;
+    shownLives?: number;
 };
 
 /** A board played on from the latest state, as far as it's got, and the turns it hasn't reached */
@@ -382,6 +393,7 @@ function ensureDom(body: HTMLElement) {
         hint: q(".hint"),
         note: q(".note"),
         standings: q(".chatman-standings"),
+        rows: new Map(),
     };
     bar = "";
     for (const button of root.querySelectorAll<HTMLElement>(".dpad button")) {
@@ -465,27 +477,58 @@ function renderStandings(s: SharedState) {
     const me = ctx?.oc.userId;
     const spectator = !s.players.some((p) => p.id === me);
     const drawn = drawnId(s);
-    const rows = ranked(s).map(({ id, board }) => {
-        const li = document.createElement("li");
+    // A player's line is kept while they're in the standings, and only what's changed in it is
+    // touched: they're drawn four times a second, and a click on a name whose line is replaced
+    // between the press and the release goes nowhere
+    const seen = new Set<string>();
+    for (const { id, board } of ranked(s)) {
+        let row = dom.rows.get(id);
+        if (row === undefined) {
+            row = standingsRow();
+            dom.rows.set(id, row);
+        }
+        const li = row.li;
         li.classList.toggle("mine", id === me);
         li.classList.toggle("watched", spectator && id === drawn);
         if (spectator) {
             li.dataset.action = "watch";
             li.dataset.id = id;
+        } else {
+            delete li.dataset.action;
+            delete li.dataset.id;
         }
-        const who = document.createElement("span");
-        who.className = "who";
-        who.textContent = name(s, id);
-        const lives = document.createElement("span");
-        lives.className = "lives";
-        lives.innerHTML = board.out ? "Out" : lifeSvg(12).repeat(board.lives);
-        const score = document.createElement("span");
-        score.className = "score";
-        score.textContent = board.score.toLocaleString("en-US");
-        li.append(who, lives, score);
-        return li;
-    });
-    dom.standings.replaceChildren(...rows);
+        const who = name(s, id);
+        if (row.who.textContent !== who) row.who.textContent = who;
+        const lives = board.out ? -1 : board.lives;
+        if (row.shownLives !== lives) {
+            row.shownLives = lives;
+            row.lives.innerHTML = board.out ? "Out" : lifeSvg(12).repeat(board.lives);
+        }
+        const score = board.score.toLocaleString("en-US");
+        if (row.score.textContent !== score) row.score.textContent = score;
+        // Into its place, moving only the lines whose place has changed
+        const at = dom.standings.children[seen.size] ?? null;
+        if (at !== li) dom.standings.insertBefore(li, at);
+        seen.add(id);
+    }
+    for (const [id, row] of dom.rows) {
+        if (!seen.has(id)) {
+            row.li.remove();
+            dom.rows.delete(id);
+        }
+    }
+}
+
+function standingsRow(): Row {
+    const li = document.createElement("li");
+    const who = document.createElement("span");
+    who.className = "who";
+    const lives = document.createElement("span");
+    lives.className = "lives";
+    const score = document.createElement("span");
+    score.className = "score";
+    li.append(who, lives, score);
+    return { li, who, lives, score };
 }
 
 // Draws the board, and while the game's on, again every frame
