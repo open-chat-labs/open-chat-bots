@@ -34,6 +34,7 @@ import {
     type RacerState,
     type SharedState,
 } from "../../games/maze/types";
+import { LiveSocket } from "../live";
 import { fetchUsernames, usernameOf } from "../names";
 import type { GameView, Lobby, ViewContext } from "../view";
 
@@ -64,8 +65,6 @@ const KEYS: Record<string, Direction> = {
 const MOVE_EVERY_MS = 60;
 /** How often a held arrow under the maze moves */
 const HOLD_EVERY_MS = 130;
-/** A socket that's said nothing for this long, beats included, is taken to be gone */
-const SILENT_MS = 40_000;
 
 type Dom = {
     root: HTMLElement;
@@ -96,13 +95,16 @@ let animating = false;
 let focused = document.hasFocus();
 
 // The live socket, while the racer's racing
-let socket: WebSocket | undefined;
-let live = false;
-let heardAt = 0;
-let retryMs = 1000;
-let retryTimer: ReturnType<typeof setTimeout> | undefined;
-/** Set when the bot's said the socket won't do, eg. the racer's no longer in the race */
-let noSocket = false;
+const socket = new LiveSocket<SharedState>(() => ctx, {
+    wanted: () => canRace(),
+    state: (shared) => take(shared),
+    // Moves made while it was away go again: the bot takes each once
+    opened: (send) => {
+        for (const m of pending) send(m);
+    },
+    error: (text) => ctx?.notice(text),
+    changed: () => render(),
+});
 
 export const mazeView: GameView = {
     id: GAME_ID,
@@ -120,11 +122,7 @@ export const mazeView: GameView = {
             renderHint();
         });
         window.addEventListener("resize", () => draw());
-        setInterval(() => {
-            ctx?.render();
-            // A socket that's gone quiet without closing is closed, so it reconnects
-            if (socket !== undefined && live && Date.now() - heardAt > SILENT_MS) socket.close();
-        }, 1000);
+        setInterval(() => ctx?.render(), 1000);
     },
 
     isOpen(state) {
@@ -154,7 +152,7 @@ export const mazeView: GameView = {
         take(shared as SharedState);
         end = undefined;
         ensureDom(body);
-        connect();
+        socket.connect();
         render();
     },
 
@@ -164,7 +162,7 @@ export const mazeView: GameView = {
         if (endState !== endSource) {
             endSource = endState;
             end = read;
-            disconnect();
+            socket.disconnect();
         }
         ensureDom(body);
         render();
@@ -218,7 +216,7 @@ function take(state: SharedState) {
         while (pending.length > 0 && pending[0].n <= mine.ack) pending.shift();
         nextN = Math.max(nextN, mine.ack + 1);
     }
-    if (state.phase === "finished") disconnect();
+    if (state.phase === "finished") socket.disconnect();
 }
 
 function mazeOf(s: SharedState): Maze | undefined {
@@ -272,10 +270,7 @@ function move(direction: Direction) {
 }
 
 function send(message: MoveMessage) {
-    if (socket !== undefined && live) {
-        socket.send(JSON.stringify({ type: "act", body: message }));
-        return;
-    }
+    if (socket.send(message)) return;
     // No socket just now: the same move over HTTP, which answers the new state
     void (async () => {
         try {
@@ -293,73 +288,6 @@ function send(message: MoveMessage) {
             // The next state puts the dot where the bot has it
         }
     })();
-}
-
-// The live socket: opened once the race is on, for a racer, and reopened if it drops, with a
-// fresh token if the old one's expired, until the race is over
-function connect() {
-    if (socket !== undefined || noSocket || retryTimer !== undefined || !canRace()) return;
-    const token = ctx?.oc.token;
-    if (token === undefined) return;
-    const url = new URL("/live", location.href);
-    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-    const ws = new WebSocket(url);
-    socket = ws;
-    heardAt = Date.now();
-    ws.onopen = () => ws.send(JSON.stringify({ type: "hello", token }));
-    ws.onmessage = (event) => {
-        heardAt = Date.now();
-        let message: { type?: string; shared?: SharedState; error?: string };
-        try {
-            message = JSON.parse(String(event.data));
-        } catch {
-            return;
-        }
-        if (message.type === "state" && message.shared !== undefined) {
-            const first = !live;
-            live = true;
-            retryMs = 1000;
-            take(message.shared);
-            // Moves made while it was away go again: the bot takes each once
-            if (first) {
-                for (const m of pending) ws.send(JSON.stringify({ type: "act", body: m }));
-            }
-            render();
-        } else if (message.type === "error" && message.error !== undefined) {
-            ctx?.notice(message.error);
-        }
-    };
-    ws.onclose = (event) => {
-        if (socket === ws) {
-            socket = undefined;
-            live = false;
-        }
-        if (event.code === 4001 || event.code === 4003 || event.code === 4004) {
-            // The bot won't have it: moves go over HTTP, and the states through OpenChat
-            noSocket = true;
-        } else if (event.code === 4002) {
-            void ctx?.oc
-                .refreshToken()
-                .then(() => connect())
-                .catch(() => {});
-        } else if (canRace()) {
-            retryTimer = setTimeout(() => {
-                retryTimer = undefined;
-                connect();
-            }, retryMs);
-            retryMs = Math.min(10_000, retryMs * 2);
-        }
-        render();
-    };
-}
-
-function disconnect() {
-    clearTimeout(retryTimer);
-    retryTimer = undefined;
-    const ws = socket;
-    socket = undefined;
-    live = false;
-    ws?.close(1000);
 }
 
 function ensureDom(body: HTMLElement) {
@@ -453,7 +381,8 @@ function render() {
     }
 
     dom.controls.hidden = !racing;
-    dom.note.textContent = racing && !live && !noSocket ? "Reconnecting for live updates…" : "";
+    dom.note.textContent =
+        racing && !socket.live && !socket.unavailable ? "Reconnecting for live updates…" : "";
     renderHint();
 
     // Everyone, closest to the way out first

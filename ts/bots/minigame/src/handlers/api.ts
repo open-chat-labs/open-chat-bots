@@ -5,6 +5,7 @@
 import { MINI_APP_TOKEN_HEADER, TokenError } from "@open-ic/openchat-botclient-ts";
 import type { Request, Response } from "express";
 import type { Deps } from "../deps";
+import type { ChatManRace } from "../games/chatman/race";
 import type { ChessGame } from "../games/chess/chess";
 import type { ActionResponse } from "../games/chess/types";
 import type { Duel } from "../games/duel/duel";
@@ -210,6 +211,21 @@ export function mazeMove(req: Request, res: Response, deps: Deps): Promise<void>
         const result = maze.receive(userId, body);
         return {
             result: result.ok ? { ok: true, shared: maze.shared() } : result,
+            changed: result.changed,
+        };
+    });
+}
+
+/**
+ * `POST /api/chatman/turn` with `{ "turn": "left", "n": 7, "tick": 1234 }`: a player's turn while
+ * their live socket (`live.ts`) isn't open, eg. as it reconnects, taken as the socket takes it.
+ * Answers the new state, which also goes to everyone live.
+ */
+export function chatmanTurn(req: Request, res: Response, deps: Deps): Promise<void> {
+    return act<ChatManRace>(req, res, deps, "chatman", (game, userId, body) => {
+        const result = game.receive(userId, body);
+        return {
+            result: result.ok ? { ok: true, shared: game.shared() } : result,
             changed: result.changed,
         };
     });

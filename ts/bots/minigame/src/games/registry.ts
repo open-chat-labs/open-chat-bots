@@ -2,6 +2,9 @@
 // limits, and how to make one and read one back from the store. Another game adds an entry here,
 // its rules under `games/`, its requests under `handlers/api.ts` and its view under `app/`.
 import type { MiniAppSize } from "@open-ic/openchat-botclient-ts";
+import { ChatManRace, type ChatManData } from "./chatman/race";
+import { CHATMAN_SETTINGS } from "./chatman/settings";
+import { GAME_ID as CHATMAN_ID, MAX_PLAYERS as CHATMAN_MAX_PLAYERS } from "./chatman/types";
 import { ChessGame, type ChessData } from "./chess/chess";
 import { CHESS_SETTINGS } from "./chess/settings";
 import { GAME_ID as CHESS_ID } from "./chess/types";
@@ -137,7 +140,22 @@ export const MAZE: GameType = {
     fromJson: (data) => new MazeRace(data as MazeData),
 };
 
-export const GAMES: readonly GameType[] = [RACE_2048, CHESS, FOUR, REVERSI_GAME, MAZE];
+export const CHATMAN: GameType = {
+    id: CHATMAN_ID,
+    title: "ChatMan",
+    image: "app/chatman.svg",
+    // One line, as the others': the time and the lives are settings, shown in the lobby
+    cardText: `**ChatMan** · up to ${CHATMAN_MAX_PLAYERS} players, live`,
+    maxPlayers: CHATMAN_MAX_PLAYERS,
+    spectators: true,
+    settings: CHATMAN_SETTINGS,
+    // A portrait frame: the maze, with everyone's scores under it
+    appSize: { width: 440, height: 720 },
+    create: (_config, host) => ChatManRace.create({ host }),
+    fromJson: (data) => new ChatManRace(data as ChatManData),
+};
+
+export const GAMES: readonly GameType[] = [RACE_2048, CHESS, FOUR, REVERSI_GAME, MAZE, CHATMAN];
 
 /** The games played as a duel (`games/duel`), whose moves and resignations are the same requests */
 export const DUELS: readonly GameKind[] = [FOUR_IN_A_ROW.kind, REVERSI.kind];

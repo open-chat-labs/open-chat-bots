@@ -15,7 +15,8 @@ export const definition = {
         "unless the host sets them in the lobby), or play chess, Four in a Row or Reversi, two " +
         "players which anyone in the chat can watch, with the time and who goes first set the " +
         "same way, or race up to 10 players through the same maze, live, where the first out " +
-        "wins.",
+        "wins, or play ChatMan, up to 10 players eating the dots in the same mazes, live, " +
+        "dodging the spam bots, where the top score wins.",
     commands: [
         {
             name: "play",
