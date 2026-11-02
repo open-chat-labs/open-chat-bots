@@ -12,7 +12,11 @@
 // it doesn't know, or anything but an object with a `version` and a `game`, which leaves a later
 // release free to change the encoding. One from an older bot is about to be replaced, as the bot
 // publishes every unfinished game when it starts, so the page waits for that.
-import { connectToOpenChat, type MiniAppClient } from "@open-ic/openchat-botclient-ts/mini_app";
+import {
+    connectToOpenChat,
+    initialDarkMode,
+    type MiniAppClient,
+} from "@open-ic/openchat-botclient-ts/mini_app";
 import { chatmanView } from "./chatman/view";
 import { chessView } from "./chess/view";
 import { fourInARowView } from "./fourinarow/view";
@@ -48,6 +52,9 @@ const ctx: ViewContext = {
 };
 
 async function main() {
+    // In the user's theme from the start, rather than once OpenChat's opened the game, which can
+    // take a moment after the page shows: OpenChat says which in the page's URL
+    applyTheme(initialDarkMode() ?? false);
     try {
         oc = await connectToOpenChat();
     } catch (err) {

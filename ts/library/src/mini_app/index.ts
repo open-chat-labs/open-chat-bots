@@ -4,6 +4,7 @@ export {
     MINI_APP_TOKEN_HEADER,
     MiniAppClient,
     connectToOpenChat,
+    initialDarkMode,
     tokenExpiry,
     type ConnectOptions,
     type MiniAppMessageEvent,
