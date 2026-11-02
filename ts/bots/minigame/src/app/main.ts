@@ -180,7 +180,10 @@ function showNotice(text: string) {
 }
 
 function applyTheme(dark: boolean) {
-    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    const theme = dark ? "dark" : "light";
+    document.documentElement.dataset.theme = theme;
+    // The URL says so too, so that a reload, eg. for a newer version, starts in the theme as it is
+    history.replaceState(history.state, "", `#oc_theme=${theme}`);
 }
 
 function byId(id: string): HTMLElement {
