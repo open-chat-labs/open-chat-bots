@@ -12,7 +12,6 @@
 // finished race is drawn the same way, from the end state: on connecting to a finished card, when
 // no state comes at all, and as the race finishes while the page is open. The usernames are all
 // that's asked of the bot after that; the end state's names stand in if it doesn't answer.
-import type { NamesResponse } from "../../games/game";
 import { slide, unpackBoard, type Board, type Direction } from "../../games/race2048/engine";
 import { RACE_SETTINGS } from "../../games/race2048/settings";
 import {
@@ -25,6 +24,7 @@ import {
     type Racer,
     type SharedState,
 } from "../../games/race2048/types";
+import { fetchUsernames, usernameOf } from "../names";
 import type { BaseState, GameView, Lobby, ViewContext } from "../view";
 import { BoardView } from "./board";
 
@@ -45,13 +45,6 @@ let sending = false;
 let queued: Direction | undefined;
 // The frame only gets the keys once the player has clicked in it, as it's in the chat
 let focused = document.hasFocus();
-/** Racers' usernames by id, from the bot, once the race has started */
-const usernames = new Map<string, string>();
-/** The ids the bot's been asked about, or is being */
-const usernamesAsked = new Set<string>();
-/** How long to leave the bot after it doesn't answer: the page redraws far more often than this */
-const USERNAMES_RETRY_MS = 30_000;
-let usernamesRetryAt = 0;
 
 const KEYS: Record<string, Direction> = {
     ArrowUp: "up",
@@ -166,10 +159,15 @@ export const raceView: GameView = {
 /** The state's racers unpacked, named by their usernames, or else the end state or the seats */
 function unpack(shared: SharedState): Race {
     const { racers, ...rest } = shared;
-    if (shared.phase !== "open") fetchUsernames(racers.map((r) => r.i));
+    if (shared.phase !== "open" && ctx !== undefined) {
+        fetchUsernames(
+            ctx,
+            racers.map((r) => r.i),
+        );
+    }
     const seats = new Map(shared.seats.map((s) => [s.id, s.name]));
     const name = (id: string) =>
-        usernames.get(id) ?? shared.names?.[id] ?? seats.get(id) ?? shortId(id);
+        usernameOf(id) ?? shared.names?.[id] ?? seats.get(id) ?? shortId(id);
     return { ...rest, players: racers.map((r) => unpackRacer(r, name(r.i))) };
 }
 
@@ -194,27 +192,6 @@ function read(state: unknown): Race | undefined {
     return s.version === STATE_VERSION && Array.isArray(s.racers)
         ? unpack(s as SharedState)
         : undefined;
-}
-
-/** Asks the bot for these users' usernames, once each, and draws the page again with them */
-function fetchUsernames(ids: string[]) {
-    const wanted = ids.filter((id) => !usernamesAsked.has(id));
-    if (wanted.length === 0 || ctx === undefined || Date.now() < usernamesRetryAt) return;
-    for (const id of wanted) usernamesAsked.add(id);
-    void (async () => {
-        try {
-            const query = encodeURIComponent(wanted.join(","));
-            const response = await ctx.oc.fetch(`/api/names?ids=${query}`);
-            if (!response.ok) throw new Error(`${response.status}`);
-            const { names } = (await response.json()) as NamesResponse;
-            for (const [id, username] of Object.entries(names)) usernames.set(id, username);
-            ctx.render();
-        } catch {
-            // Asked again in a while; the boards show the names they have
-            for (const id of wanted) usernamesAsked.delete(id);
-            usernamesRetryAt = Date.now() + USERNAMES_RETRY_MS;
-        }
-    })();
 }
 
 function shortId(id: string): string {

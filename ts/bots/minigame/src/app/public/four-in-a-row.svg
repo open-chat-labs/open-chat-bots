@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 600" width="440" height="600" role="img" aria-label="Four in a Row">
+  <!--
+    Four in a Row's image, at the app's aspect ratio (440 by 600): OpenChat shows it in the card's
+    frame box whenever there's no app to show. Its background is opaque, so it reads the same on a
+    light or a dark page. No fonts, scripts or references. The colours are the page's (style.css).
+  -->
+  <rect width="440" height="600" fill="#faf8ef"/>
+  <!-- The grid, seven by six cells of 50, with a winning line on the rising diagonal -->
+  <rect x="33" y="64" width="374" height="324" rx="10" fill="#bbada0"/>
+  <circle cx="70" cy="351" r="20" fill="#cdc1b4"/>
+  <circle cx="120" cy="351" r="20" fill="#e8704a"/>
+  <circle cx="170" cy="351" r="20" fill="#3f7fd0"/>
+  <circle cx="220" cy="351" r="20" fill="#3f7fd0"/>
+  <circle cx="270" cy="351" r="20" fill="#e8704a"/>
+  <circle cx="320" cy="351" r="20" fill="#3f7fd0"/>
+  <circle cx="370" cy="351" r="20" fill="#cdc1b4"/>
+  <circle cx="70" cy="301" r="20" fill="#cdc1b4"/>
+  <circle cx="120" cy="301" r="20" fill="#cdc1b4"/>
+  <circle cx="170" cy="301" r="20" fill="#e8704a"/>
+  <circle cx="220" cy="301" r="20" fill="#e8704a"/>
+  <circle cx="270" cy="301" r="20" fill="#3f7fd0"/>
+  <circle cx="320" cy="301" r="20" fill="#cdc1b4"/>
+  <circle cx="370" cy="301" r="20" fill="#cdc1b4"/>
+  <circle cx="70" cy="251" r="20" fill="#cdc1b4"/>
+  <circle cx="120" cy="251" r="20" fill="#cdc1b4"/>
+  <circle cx="170" cy="251" r="20" fill="#cdc1b4"/>
+  <circle cx="220" cy="251" r="20" fill="#e8704a"/>
+  <circle cx="270" cy="251" r="20" fill="#3f7fd0"/>
+  <circle cx="320" cy="251" r="20" fill="#cdc1b4"/>
+  <circle cx="370" cy="251" r="20" fill="#cdc1b4"/>
+  <circle cx="70" cy="201" r="20" fill="#cdc1b4"/>
+  <circle cx="120" cy="201" r="20" fill="#cdc1b4"/>
+  <circle cx="170" cy="201" r="20" fill="#cdc1b4"/>
+  <circle cx="220" cy="201" r="20" fill="#3f7fd0"/>
+  <circle cx="270" cy="201" r="20" fill="#e8704a"/>
+  <circle cx="320" cy="201" r="20" fill="#cdc1b4"/>
+  <circle cx="370" cy="201" r="20" fill="#cdc1b4"/>
+  <circle cx="70" cy="151" r="20" fill="#cdc1b4"/>
+  <circle cx="120" cy="151" r="20" fill="#cdc1b4"/>
+  <circle cx="170" cy="151" r="20" fill="#cdc1b4"/>
+  <circle cx="220" cy="151" r="20" fill="#cdc1b4"/>
+  <circle cx="270" cy="151" r="20" fill="#cdc1b4"/>
+  <circle cx="320" cy="151" r="20" fill="#cdc1b4"/>
+  <circle cx="370" cy="151" r="20" fill="#cdc1b4"/>
+  <circle cx="70" cy="101" r="20" fill="#cdc1b4"/>
+  <circle cx="120" cy="101" r="20" fill="#cdc1b4"/>
+  <circle cx="170" cy="101" r="20" fill="#cdc1b4"/>
+  <circle cx="220" cy="101" r="20" fill="#cdc1b4"/>
+  <circle cx="270" cy="101" r="20" fill="#cdc1b4"/>
+  <circle cx="320" cy="101" r="20" fill="#cdc1b4"/>
+  <circle cx="370" cy="101" r="20" fill="#cdc1b4"/>
+  <circle cx="120" cy="351" r="11" fill="none" stroke="#ffffff" stroke-width="4"/>
+  <circle cx="170" cy="301" r="11" fill="none" stroke="#ffffff" stroke-width="4"/>
+  <circle cx="220" cy="251" r="11" fill="none" stroke="#ffffff" stroke-width="4"/>
+  <circle cx="270" cy="201" r="11" fill="none" stroke="#ffffff" stroke-width="4"/>
+  <!-- The name, under the grid -->
+  <text x="220" y="484" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="56" font-weight="bold" fill="#776e65" text-anchor="middle">Four in a Row</text>
+  <text x="220" y="528" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="22" fill="#8f877d" text-anchor="middle">Two players, three minutes each</text>
+</svg>

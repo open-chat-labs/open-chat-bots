@@ -1,8 +1,9 @@
 // The bot's page, which OpenChat shows in a game's card, in a frame at the size the card declares
 // (`appSize` in the registry), or full screen. It connects to OpenChat with the SDK's browser
 // client and shows whichever game the card is for, by the `game` in the shared state, or in the end
-// state once the game's over: the 2048 race (`race2048/view.ts`) or chess (`chess/view.ts`). The
-// lobby before a game starts is the page's own, the same for every game, with the game's own blurb.
+// state once the game's over: the 2048 race (`race2048/view.ts`), chess (`chess/view.ts`) or Four
+// in a Row (`fourinarow/view.ts`). The lobby before a game starts is the page's own, the same for
+// every game, with the game's own blurb.
 //
 // A game that's over is drawn from its end state, which the card keeps for good, so the views read
 // older versions of it too. A live state is read only at the view's own version. One this page
@@ -12,10 +13,11 @@
 // publishes every unfinished game when it starts, so the page waits for that.
 import { connectToOpenChat, type MiniAppClient } from "@open-ic/openchat-botclient-ts/mini_app";
 import { chessView } from "./chess/view";
+import { fourInARowView } from "./fourinarow/view";
 import { raceView } from "./race2048/view";
 import type { BaseState, GameView, Lobby, Seat, ViewContext } from "./view";
 
-const VIEWS: readonly GameView[] = [raceView, chessView];
+const VIEWS: readonly GameView[] = [raceView, chessView, fourInARowView];
 
 const root = document.getElementById("app") as HTMLElement;
 

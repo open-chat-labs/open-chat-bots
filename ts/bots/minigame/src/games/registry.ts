@@ -5,6 +5,8 @@ import type { MiniAppSize } from "@open-ic/openchat-botclient-ts";
 import { ChessGame, type ChessData } from "./chess/chess";
 import { CHESS_SETTINGS } from "./chess/settings";
 import { GAME_ID as CHESS_ID } from "./chess/types";
+import { Duel, type DuelData } from "./duel/duel";
+import { FOUR_IN_A_ROW } from "./fourinarow/rules";
 import type { Game, GameKind, Host } from "./game";
 import { Race2048, type RaceData } from "./race2048/race";
 import { RACE_SETTINGS } from "./race2048/settings";
@@ -88,7 +90,25 @@ export const CHESS: GameType = {
     fromJson: (data) => new ChessGame(data as ChessData),
 };
 
-export const GAMES: readonly GameType[] = [RACE_2048, CHESS];
+export const FOUR: GameType = {
+    id: FOUR_IN_A_ROW.kind,
+    title: FOUR_IN_A_ROW.title,
+    image: "app/four-in-a-row.svg",
+    // One line, as chess's: who goes first and the time are settings, shown in the lobby
+    cardText: "**Four in a Row** · two players, anyone can watch",
+    maxPlayers: 2,
+    spectators: true,
+    settings: FOUR_IN_A_ROW.settings,
+    // A portrait frame: a player above the grid and a player below it
+    appSize: { width: 440, height: 600 },
+    create: (_config, settings, host) => Duel.create(FOUR_IN_A_ROW, { settings, host }),
+    fromJson: (data) => new Duel(FOUR_IN_A_ROW, data as DuelData<number>),
+};
+
+export const GAMES: readonly GameType[] = [RACE_2048, CHESS, FOUR];
+
+/** The games played as a duel (`games/duel`), whose moves and resignations are the same requests */
+export const DUELS: readonly GameKind[] = [FOUR_IN_A_ROW.kind];
 
 export function gameType(id: string | undefined): GameType | undefined {
     return GAMES.find((game) => game.id === id);
