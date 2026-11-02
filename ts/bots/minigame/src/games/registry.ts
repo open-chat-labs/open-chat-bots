@@ -22,7 +22,7 @@ import type { SettingSpec, Settings } from "./settings";
 
 /** What a game can be made with, from the bot's config */
 export type GameConfig = {
-    /** A race's settings unless the command or the host sets them, eg. a quick race for a test */
+    /** A race's settings unless the host sets them, eg. a quick race for a test */
     raceSettings?: Settings;
 };
 
@@ -47,8 +47,8 @@ export type GameType = {
     /** Whether people who aren't playing can watch */
     spectators: boolean;
     /**
-     * What can be set, each a choice among a few values with a default: `/play`'s parameters,
-     * and the host's form in the lobby. The page draws the form from the same declaration.
+     * What can be set, each a choice among a few values with a default: the host's form in the
+     * lobby, which the page draws from the declaration.
      */
     settings: readonly SettingSpec[];
     /**
@@ -57,10 +57,10 @@ export type GameType = {
      */
     appSize: MiniAppSize;
     /**
-     * A new game, as `/play` posts one, with the settings its parameters gave, each one of its
-     * choices, and the host, the user who ran it
+     * A new game, as `/play` posts one, with its default settings and the host, the user who ran
+     * it
      */
-    create: (config: GameConfig, settings: Settings, host: Host | undefined) => Game;
+    create: (config: GameConfig, host: Host | undefined) => Game;
     /** A game from what the store wrote of it, `Game.toJson()` */
     fromJson: (data: unknown) => Game;
 };
@@ -77,8 +77,7 @@ export const RACE_2048: GameType = {
     settings: RACE_SETTINGS,
     // A portrait frame: the lobby, or a player's board above a row of the others'
     appSize: { width: 480, height: 720 },
-    create: (config, settings, host) =>
-        Race2048.create({ settings: { ...config.raceSettings, ...settings }, host }),
+    create: (config, host) => Race2048.create({ settings: config.raceSettings, host }),
     fromJson: (data) => new Race2048(data as RaceData),
 };
 
@@ -93,7 +92,7 @@ export const CHESS: GameType = {
     settings: CHESS_SETTINGS,
     // A portrait frame: a clock each side of the board, with the moves under it
     appSize: { width: 440, height: 740 },
-    create: (_config, settings, host) => ChessGame.create({ settings, host }),
+    create: (_config, host) => ChessGame.create({ host }),
     fromJson: (data) => new ChessGame(data as ChessData),
 };
 
@@ -108,7 +107,7 @@ export const FOUR: GameType = {
     settings: FOUR_IN_A_ROW.settings,
     // A portrait frame: a player above the grid and a player below it
     appSize: { width: 440, height: 600 },
-    create: (_config, settings, host) => Duel.create(FOUR_IN_A_ROW, { settings, host }),
+    create: (_config, host) => Duel.create(FOUR_IN_A_ROW, { host }),
     fromJson: (data) => new Duel(FOUR_IN_A_ROW, data as DuelData<number>),
 };
 
@@ -122,7 +121,7 @@ export const REVERSI_GAME: GameType = {
     settings: REVERSI.settings,
     // A portrait frame: a player above the board and a player below it
     appSize: { width: 440, height: 640 },
-    create: (_config, settings, host) => Duel.create(REVERSI, { settings, host }),
+    create: (_config, host) => Duel.create(REVERSI, { host }),
     fromJson: (data) => new Duel(REVERSI, data as DuelData<string>),
 };
 
@@ -137,7 +136,7 @@ export const MAZE: GameType = {
     settings: MAZE_SETTINGS,
     // A portrait frame: the maze, with the racers under it
     appSize: { width: 440, height: 640 },
-    create: (_config, settings, host) => MazeRace.create({ settings, host }),
+    create: (_config, host) => MazeRace.create({ host }),
     fromJson: (data) => new MazeRace(data as MazeData),
 };
 
@@ -152,7 +151,7 @@ export const CHATMAN: GameType = {
     settings: CHATMAN_SETTINGS,
     // A portrait frame: the maze, with everyone's scores under it
     appSize: { width: 440, height: 720 },
-    create: (_config, settings, host) => ChatManRace.create({ settings, host }),
+    create: (_config, host) => ChatManRace.create({ host }),
     fromJson: (data) => new ChatManRace(data as ChatManData),
 };
 

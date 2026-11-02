@@ -85,6 +85,8 @@ describe("GET /bot_definition", () => {
             { name: "Maze Race", value: "maze" },
             { name: "ChatMan", value: "chatman" },
         ]);
+        // And the only parameter: the settings are the host's, in the lobby
+        expect(json.commands[0].params).toHaveLength(1);
     });
 
     it("has each image where the server serves it from", () => {

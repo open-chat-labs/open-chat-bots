@@ -46,11 +46,12 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    and has the MiniApp service post the card. The service is the only thing that posts a card or
    writes its status; the protocol is open-chat's `backend/docs/mini_app_service_protocol.md`. The
    empty lobby is published once the card is up, so the page knows which game it's showing. The
-   command's other parameters are the game's settings, the race's winning tile and time limit,
-   which are the defaults if left out; the game's host, who ran the command, can change them in
-   the lobby until the start (`POST /api/settings`), and everyone in the lobby sees them. A game
-   declares its settings (`src/games/settings.ts`), which gives it the parameters, the check on a
-   change, and the lobby's form.
+   game starts with its default settings, eg. the race's winning tile and time limit; the game's
+   host, who ran the command, can change them in the lobby until the start (`POST /api/settings`),
+   and everyone in the lobby sees them. They aren't the command's parameters: they differ by game,
+   and OpenChat's form for a command shows every parameter whichever game is chosen. A game
+   declares its settings (`src/games/settings.ts`), which gives it the check on a change and the
+   lobby's form.
 2. **Joining** goes through OpenChat's buttons on the card. The service asks the bot at
    `POST /mini_app/join`, which looks the user's name up and gives them a seat: up to 100 in a race,
    10 in a maze race or at ChatMan, two at chess, Four in a Row and Reversi ("This game is for two" after that,
@@ -371,8 +372,8 @@ group, and run `/play`.
 | `OC_API_GATEWAY` | A LocalUserIndex to get the bot's service token from. Optional: the bot remembers the last command's. |
 | `DATA_FILE` | Where the games are kept, `./data/games.json` if not set. |
 | `APP_DIR` | The built page, `./dist/app` if not set. |
-| `RACE_TARGET` | The winning tile unless the command or the host sets it, 2048 if not set. Set it low, eg. 16, to test a race end to end. |
-| `RACE_SECONDS` | The time limit unless the command or the host sets it, 600 if not set. Set it short to see the time run out. |
+| `RACE_TARGET` | The winning tile unless the host sets it, 2048 if not set. Set it low, eg. 16, to test a race end to end. |
+| `RACE_SECONDS` | The time limit unless the host sets it, 600 if not set. Set it short to see the time run out. |
 
 ## Docker
 

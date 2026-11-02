@@ -75,7 +75,7 @@ export type RaceData = {
 export type RaceOptions = {
     random?: () => number;
     now?: () => number;
-    /** The settings to start with, eg. from the command; any left out is its default */
+    /** The settings to start with, eg. from the config; any left out is its default */
     settings?: Settings;
     host?: Host;
 };

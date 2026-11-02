@@ -1,14 +1,11 @@
 // A game's settings, as a game declares them: each is a choice among a few values, with a
-// default. The `/play` command takes them as its parameters, the game's host changes them from
-// the lobby, and the page draws the lobby's form from the same declaration, so a game adds a
-// setting by declaring it.
+// default. A game starts with the defaults, the game's host changes them from the lobby, and the
+// page draws the lobby's form from the same declaration, so a game adds a setting by declaring it.
 
 export type SettingSpec = {
-    /** The `/play` parameter's name, the key in the game's settings, and the form field's */
+    /** The key in the game's settings, and the form field's name */
     id: string;
     label: string;
-    /** What the parameter and the form say it's for */
-    description: string;
     choices: { value: number; label: string }[];
     default: number;
 };
