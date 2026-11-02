@@ -7,6 +7,9 @@ import { CHESS_SETTINGS } from "./chess/settings";
 import { GAME_ID as CHESS_ID } from "./chess/types";
 import { Duel, type DuelData } from "./duel/duel";
 import { FOUR_IN_A_ROW } from "./fourinarow/rules";
+import { MazeRace, type MazeData } from "./maze/race";
+import { MAZE_SETTINGS } from "./maze/settings";
+import { GAME_ID as MAZE_ID, MAX_PLAYERS as MAZE_MAX_PLAYERS } from "./maze/types";
 import { REVERSI } from "./reversi/rules";
 import type { Game, GameKind, Host } from "./game";
 import { Race2048, type RaceData } from "./race2048/race";
@@ -120,7 +123,22 @@ export const REVERSI_GAME: GameType = {
     fromJson: (data) => new Duel(REVERSI, data as DuelData<string>),
 };
 
-export const GAMES: readonly GameType[] = [RACE_2048, CHESS, FOUR, REVERSI_GAME];
+export const MAZE: GameType = {
+    id: MAZE_ID,
+    title: "Maze Race",
+    image: "app/maze.svg",
+    // One line, as the others': the maze's size and the time are settings, shown in the lobby
+    cardText: `**Maze Race** · up to ${MAZE_MAX_PLAYERS} players, live`,
+    maxPlayers: MAZE_MAX_PLAYERS,
+    spectators: true,
+    settings: MAZE_SETTINGS,
+    // A portrait frame: the maze, with the racers under it
+    appSize: { width: 440, height: 640 },
+    create: (_config, settings, host) => MazeRace.create({ settings, host }),
+    fromJson: (data) => new MazeRace(data as MazeData),
+};
+
+export const GAMES: readonly GameType[] = [RACE_2048, CHESS, FOUR, REVERSI_GAME, MAZE];
 
 /** The games played as a duel (`games/duel`), whose moves and resignations are the same requests */
 export const DUELS: readonly GameKind[] = [FOUR_IN_A_ROW.kind, REVERSI.kind];

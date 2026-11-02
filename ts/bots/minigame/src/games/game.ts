@@ -3,9 +3,17 @@
 // sees. A game's own moves are its own, under `handlers/api.ts`.
 import type { Settings } from "./settings";
 
-export type GameKind = "2048" | "chess" | "four-in-a-row" | "reversi";
+export type GameKind = "2048" | "chess" | "four-in-a-row" | "reversi" | "maze";
 
 export type ConfigureResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * What a player's live message did: whether the game changed, and why not, if it was refused. A
+ * refusal can change the game too, eg. a move into a wall is still counted as taken.
+ */
+export type LiveResult =
+    | { ok: true; changed: boolean }
+    | { ok: false; error: string; changed: boolean };
 
 /** Who ran `/play`, with their name, as the lobby names them before they've joined */
 export type Host = { id: string; name: string };
@@ -86,6 +94,13 @@ export interface Game {
     endState(): unknown;
     /** The game's whole state, for the store to write; the registry's `fromJson` reads it back */
     toJson(): unknown;
+    /**
+     * A player's message over the live socket (`live.ts`), for a game played live, eg. a move: the
+     * socket's checked their token and that they're seated. Every change goes to everyone connected
+     * at once, as the shared state, as well as through the service. Left out by a game that isn't
+     * live.
+     */
+    receive?(userId: string, message: unknown): LiveResult;
 }
 
 /** The bot's answer to `GET /api/names?ids=<id>,<id>`: users' usernames by id */

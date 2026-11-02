@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 640" width="440" height="640" role="img" aria-label="Maze Race">
+  <!--
+    The maze race's image, at the app's aspect ratio (440 by 640): OpenChat shows it in the card's
+    frame box whenever there's no app to show. Its background is opaque, so it reads the same on a
+    light or a dark page. No fonts, scripts or references. The maze is a real one, carved as the
+    game carves them (src/games/maze/maze.ts), with three racers on their way out.
+  -->
+  <rect width="440" height="640" fill="#faf8ef"/>
+  <rect x="25" y="44" width="390" height="390" rx="8" fill="#ffffff"/>
+  <rect x="373" y="392" width="34" height="34" fill="#2fa36b" fill-opacity="0.28"/>
+  <path d="M33 52h34M33 52v34M67 52h34M67 52v34M101 52h34M135 52h34M169 52h34M203 52h34M237 52h34M271 52h34M271 52v34M305 52h34M339 52h34M373 52h34M407 52v34M33 86v34M67 86h34M101 86h34M135 86h34M203 86h34M203 86v34M271 86h34M271 86v34M305 86h34M373 86v34M407 86v34M33 120h34M33 120v34M67 120h34M101 120h34M135 120h34M169 120h34M203 120v34M237 120h34M237 120v34M305 120h34M305 120v34M339 120h34M373 120v34M407 120v34M33 154v34M67 154h34M101 154h34M135 154h34M169 154h34M237 154v34M271 154h34M271 154v34M339 154v34M407 154v34M33 188v34M67 188h34M67 188v34M101 188h34M135 188h34M169 188h34M203 188h34M237 188v34M271 188h34M305 188v34M339 188h34M339 188v34M373 188h34M407 188v34M33 222v34M67 222v34M101 222h34M101 222v34M169 222h34M169 222v34M237 222h34M237 222v34M305 222v34M339 222v34M373 222h34M407 222v34M33 256v34M67 256v34M101 256v34M135 256h34M169 256h34M203 256v34M271 256h34M271 256v34M305 256v34M339 256h34M373 256v34M407 256v34M33 290v34M67 290h34M101 290v34M135 290h34M135 290v34M203 290h34M203 290v34M237 290h34M305 290h34M339 290v34M407 290v34M33 324h34M33 324v34M101 324v34M135 324v34M169 324h34M203 324v34M237 324v34M271 324v34M305 324h34M305 324v34M339 324h34M407 324v34M33 358v34M67 358h34M67 358v34M101 358h34M135 358h34M135 358v34M203 358v34M237 358v34M271 358h34M271 358v34M339 358h34M339 358v34M373 358h34M407 358v34M33 392v34M33 426h34M67 426h34M101 392v34M101 426h34M135 426h34M169 392h34M169 392v34M169 426h34M203 426h34M237 392v34M237 426h34M271 426h34M305 392h34M305 426h34M339 392h34M339 426h34M407 392v34M373 426h34" stroke="#3b3630" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+  <circle cx="356" cy="103" r="10.2" fill="#e8704a"/>
+  <circle cx="186" cy="307" r="10.2" fill="#3f7fd0"/>
+  <circle cx="50" cy="273" r="10.2" fill="#2fa36b"/>
+  <text x="220" y="518" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="58" font-weight="bold" fill="#776e65" text-anchor="middle">Maze Race</text>
+  <text x="220" y="562" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="22" fill="#8f877d" text-anchor="middle">Up to 10 players, live</text>
+</svg>

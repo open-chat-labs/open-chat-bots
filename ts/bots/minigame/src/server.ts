@@ -8,6 +8,7 @@ import {
 import { createApp } from "./app";
 import { configFromEnv } from "./config";
 import type { Deps } from "./deps";
+import { LiveHub } from "./live";
 import { Names } from "./names";
 import { Publisher } from "./publisher";
 import { GameStore } from "./store";
@@ -83,10 +84,15 @@ const deps: Deps = {
 
 deps.publisher.publishUnfinished();
 
+// Players of a live game get each change at once over a socket, wherever the change came from
+const live = new LiveHub(deps);
+deps.publisher.onPublish((game) => live.changed(game));
+
 const app = createApp(deps, config.appDir);
-app.listen(config.port, () => {
+const server = app.listen(config.port, () => {
     console.log(`MiniGameBot listening on port ${config.port}, with ${store.size} games`);
 });
+live.attach(server);
 
 setInterval(() => endGamesOutOfTime(store, deps.publisher), SWEEP_EVERY_MS).unref();
 

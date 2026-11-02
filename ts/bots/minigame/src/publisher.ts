@@ -21,6 +21,7 @@ const MAX_RETRIES = 5;
 
 export class Publisher {
     readonly #pending = new Map<string, Pending>();
+    readonly #listeners: ((game: MiniAppGame) => void)[] = [];
 
     /** `delayMs` overrides every game's own pace, eg. 0 in a test */
     constructor(
@@ -29,8 +30,14 @@ export class Publisher {
         private readonly delayMs?: number,
     ) {}
 
+    /** Also tells `listener` of each change at once, eg. to send it to live players */
+    onPublish(listener: (game: MiniAppGame) => void): void {
+        this.#listeners.push(listener);
+    }
+
     /** Sends the game's latest state shortly. When it's finished, that ends the card too. */
     publish(game: MiniAppGame): void {
+        for (const listener of this.#listeners) listener(game);
         const key = miniAppGameKey(game);
         const pending = this.#pending.get(key) ?? { inFlight: false, again: false, retries: 0 };
         this.#pending.set(key, pending);

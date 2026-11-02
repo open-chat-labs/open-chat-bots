@@ -1,7 +1,7 @@
 # MiniGameBot
 
 Games played from MiniApp cards in OpenChat chats. `/play <game>` posts a card; people join from the
-card, a player starts the game, and it's played in the card, in the bot's own page. Four games:
+card, a player starts the game, and it's played in the card, in the bot's own page. Five games:
 
 - a **2048 race**: up to 100 players, each on their own board, and the first to make a 2048 tile
   wins, or the top score when 10 minutes are up. A player whose board gets stuck restarts on a fresh
@@ -20,7 +20,11 @@ card, a player starts the game, and it's played in the card, in the bot's own pa
   minutes each on the clock and who plays Black, and goes first, chosen at random, unless the host
   sets otherwise. A disc flips every line of the other player's discs it flanks, a player with no
   move passes, and when neither can move the one with more discs wins. Its rules are built from
-  scratch, and it's a duel too.
+  scratch, and it's a duel too;
+- a **maze race**: up to 10 players race through the same maze, 15 by 15 unless the host sets
+  otherwise, from the top left to the bottom right, and everyone sees everyone else move, live. The
+  first out wins, or whoever's closest to the way out when the 3 minutes are up. The mazes are
+  carved from a seed, from scratch, and moves go over a WebSocket to the bot (see "Live games").
 
 The bot is a TypeScript Express server, built on the SDK in [`ts/library`](../../library), and the
 page is a small browser app built with Vite from the same source tree, so the server and the page
@@ -43,11 +47,11 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    change, and the lobby's form.
 2. **Joining** goes through OpenChat's buttons on the card. The service asks the bot at
    `POST /mini_app/join`, which looks the user's name up and gives them a seat: up to 100 in a race,
-   two at chess, Four in a Row and Reversi ("This game is for two" after that, "The game has
-   started" once it has). Leaving, `POST /mini_app/leave`, frees the seat before the start. After
-   it, a race goes on without them; a game of two can't, so it ends, the result being that they
-   "left the game". The lobby's seats are published as the game's state, so the page shows who's
-   joined.
+   10 in a maze race, two at chess, Four in a Row and Reversi ("This game is for two" after that,
+   "The game has started" once it has). Leaving, `POST /mini_app/leave`, frees the seat before the
+   start. After it, a race goes on without them; a game of two can't, so it ends, the result being
+   that they "left the game". The lobby's seats are published as the game's state, so the page shows
+   who's joined.
 3. **Starting**: a player presses Start in the page, OpenChat asks the bot at
    `POST /mini_app/start`, and the bot answers with the players, the first state and the game's
    settings, which the card keeps from then on and OpenChat hands to the app. A race deals
@@ -71,6 +75,10 @@ which the store, the handlers, the sweep and the publisher use, and which each g
      from 0 on the left, and `POST /api/four-in-a-row/resign`, each answering as chess's do.
    - **Reversi**: `POST /api/reversi/move` with `{ "move": "d3" }`, the square, its column a to h
      and its row 1 to 8 from the top, and `POST /api/reversi/resign`, answering the same way.
+   - **Maze race**: each move goes over the live socket,
+     `{ "type": "act", "body": { "move": "left", "n": 7 } }`, where `n` counts the racer's moves
+     from 1, and the bot sends the new state to every racer at once; `POST /api/maze/move` with the
+     same body takes a move while the socket's reconnecting.
 5. **The clock**. The bot checks every game's clock every second, and before every request, so a
    game ends on time whether or not anyone's still playing, and so does one that was running when
    the bot last stopped. A race ends when its 10 minutes are up, and the top score wins: a player's
@@ -80,22 +88,24 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    from the state's `clock.at`, and when the side to move's flag falls the other side wins "on
    time", or it's a draw if they haven't the material to mate with. Four in a Row's and Reversi's
    clocks are the same, with three and five minutes each unless set, and a flag falling always
-   loses.
+   loses. A maze race ends when its 3 minutes are up, and whoever's closest to the way out wins.
 6. **The end**. The bot publishes the final state with `status: "finished"` and the result, which
    the card shows: "@alice reached 2048 in 2m 15s", "Time's up! @alice won with 5,432 points",
    "White won by checkmate", "Black won on time", "Draw by agreement", "Draw by stalemate", "@alice
    won with four in a row", "@bob resigned", "Draw: the grid is full", "@alice won 40 to 24", "Draw,
-   32 discs each" and so on. The race's and a duel's results name players with `@UserId(<id>)`
-   mentions, so the card shows their usernames as they are now. With it goes the game's **end
-   state**, which OpenChat keeps in the card and hands to the page, so anyone opening a finished
-   card sees how it went, read-only, and a page open as the game finishes shows the same. The 2048
-   end state is the final shared state, every board, the winner and the times. The chess end state
-   is the result, who played, the moves, and the position before each move and after the last, as
-   the placement field of its FEN, the pieces on the board, which the page steps through with
-   Previous and Next, the arrow keys, or a tap on a move; a game too long for the service's 16 KB
-   keeps only its final position, marked `truncated`, and one too long even for that sends no end
-   state, so the card shows the image and the result. A duel's end state is its final shared state,
-   whose moves the page replays to step through.
+   32 discs each", "@alice got out in 1m 12s", "Time's up! @alice got closest to the way out" and so
+   on. The race's and a duel's results name players with `@UserId(<id>)` mentions, so the card shows
+   their usernames as they are now. With it goes the game's **end state**, which OpenChat keeps in
+   the card and hands to the page, so anyone opening a finished card sees how it went, read-only,
+   and a page open as the game finishes shows the same. The 2048 end state is the final shared
+   state, every board, the winner and the times. The chess end state is the result, who played, the
+   moves, and the position before each move and after the last, as the placement field of its FEN,
+   the pieces on the board, which the page steps through with Previous and Next, the arrow keys, or
+   a tap on a move; a game too long for the service's 16 KB keeps only its final position, marked
+   `truncated`, and one too long even for that sends no end state, so the card shows the image and
+   the result. A duel's end state is its final shared state, whose moves the page replays to step
+   through, and a maze race's is too, with the maze's seed, so the page carves the maze again and
+   draws the way out.
 
 The chess state everyone sees is the Rust ChessBot's, with the players' names added:
 
@@ -148,9 +158,9 @@ that's a newer version, a game it doesn't know, or anything but an object with a
 One from an older bot shows "Loading…" until the bot publishes it again as it starts.
 
 The bot's definition lists each game's app with its image, `app/2048.svg`, `app/chess.svg`,
-`app/four-in-a-row.svg` and `app/reversi.svg`, hand-drawn SVGs served from `src/app/public`, which
-OpenChat shows in the card's frame whenever there's no page to show: before it loads, to someone who
-can't open the game, and over a finished game with no end state.
+`app/four-in-a-row.svg`, `app/reversi.svg` and `app/maze.svg`, hand-drawn SVGs served from
+`src/app/public`, which OpenChat shows in the card's frame whenever there's no page to show: before
+it loads, to someone who can't open the game, and over a finished game with no end state.
 
 Games are kept in memory and written to `DATA_FILE` (`./data/games.json` by default) on every
 change, each with its `kind`, so a restart doesn't end them. The file says when it was written, and
@@ -213,6 +223,41 @@ where `players` are in seat order once the game starts, the first to move first,
 `clock` is there once the game has started, and `ending` once it's over, a `null` winner being a
 draw.
 
+## Live games
+
+A state goes from the bot to the MiniApp service, to each player's OpenChat, to their page, and the
+bot sends a few a second at most, which is fine for turns and for racing your own board but too slow
+for players to see each other move. So a game played live, which implements `Game.receive`, as the
+maze race does, also has a WebSocket from each player's page straight to the bot (`src/live.ts`), at
+`/live` on the bot's own origin, on the same port. The card's frame runs the page as the bot's own
+site, so this needs nothing of OpenChat.
+
+The page's first message is its player token, `{ "type": "hello", "token": ".." }`, checked as a
+request's is, and the bot answers with the state, `{ "type": "state", "shared": {..} }`, then sends
+it again on every change, from wherever the change came: a move over the socket or HTTP, a join, the
+start, or the clock running out, as the publisher tells the socket of each. A move is
+`{ "type": "act", "body": {..} }`, which the game's `receive` takes; one it refuses is answered
+`{ "type": "error", "error": ".." }`. A token outlives a removal from the game by up to an hour, so
+every message is checked against the game's own list of who's in it.
+
+The bot pings each socket every 15 seconds, dropping one that didn't answer, and sends
+`{ "type": "beat" }`, by which the page knows its socket's still there. A socket has 10 seconds to
+say hello, may send 20 messages a second on average, 40 at once, of 4 KB at most, and is closed with
+a reason otherwise: 4000 for what isn't a message, or anything before the hello; 4001 for no hello,
+or a token that isn't the bot's; 4002 for an expired token, when the page gets a fresh one from
+OpenChat and comes back; 4003 for someone not in the game; 4004 for a game that's over or isn't
+live; and 4008 for too many messages. The page reconnects after anything else, waiting longer each
+time, and sends again the moves the bot hadn't taken: each move is numbered, so the bot takes each
+once.
+
+Spectators have no token, so they've no socket: they get the states through the service, at most
+every 250 ms, which the page draws sliding from cell to cell. The bot publishes a live game through
+the service as it does any other, for spectators, latecomers and the card.
+
+The bot runs as one long-lived process, so the sockets live alongside the games in memory.
+Whatever's in front of it has to pass WebSocket upgrades through: CloudFront does, if its
+distribution forwards the handshake's headers to the origin.
+
 ## Adding a game
 
 - Add its rules under `src/games/<game>/`, as a class implementing `Game` (`src/games/game.ts`):
@@ -231,6 +276,8 @@ draw.
   which picks the view by the state's `game` and shows the lobby for every game itself.
 - A game of two taking turns is quicker as a duel (see "Duels"): its `DuelRules`, a registry entry
   made with `Duel` and listed in `DUELS`, which routes its requests, and a `DuelBoard` for the page.
+- A game whose players need each other's moves at once implements `receive`, and its page opens the
+  live socket (see "Live games" and `src/app/maze/view.ts`).
 
 ## Running it locally
 
