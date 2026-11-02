@@ -143,14 +143,23 @@ async function configure(id: string, value: number) {
         });
         const result = (await response.json()) as { ok: boolean; error?: string };
         if (!result.ok) {
-            // The dropdown shows what the host picked, so it's put back to what the game has
-            redrawSettings();
+            undoSetting(id);
             showNotice(result.error ?? "The setting wasn't changed");
         }
     } catch {
-        redrawSettings();
+        undoSetting(id);
         showNotice("Couldn't reach the game");
     }
+}
+
+/**
+ * Puts a setting's dropdown, which shows what the host picked, back to what the game has: the
+ * option it was last drawn with selected
+ */
+function undoSetting(id: string) {
+    const select = document.querySelector<HTMLSelectElement>(`select[data-setting="${id}"]`);
+    if (select === null) return;
+    for (const option of Array.from(select.options)) option.selected = option.defaultSelected;
 }
 
 function showNotice(text: string) {
@@ -220,14 +229,18 @@ type LobbyInfo = ReturnType<GameView["lobby"]>;
 
 const LOBBY_PARTS = ["blurb", "settings", "seats", "action"] as const;
 
+/** A setting's dropdown, with its label, in the host's form */
+type Field = { id: string; html: string };
+
 /** What each part of the lobby last drew */
 const drawn = new WeakMap<Element, string>();
 
 /**
  * The lobby: who's joined, the host's settings, and the Start button for a player. Before the first
  * state, just that. It's drawn in parts, and a part is only replaced when what it shows has changed:
- * the page redraws often, eg. every second for a live game's clock, and replacing the host's
- * settings would close a dropdown they have open.
+ * the page redraws often, eg. every second for a live game's clock, and replacing a dropdown closes
+ * it. The host's form is drawn a setting at a time, so a change to one, which comes back in the
+ * state, doesn't close another they've opened since.
  */
 function renderLobby(body: HTMLElement, info: LobbyInfo | undefined) {
     let section = body.querySelector<HTMLElement>(":scope > section.lobby");
@@ -241,20 +254,32 @@ function renderLobby(body: HTMLElement, info: LobbyInfo | undefined) {
     const parts = lobbyParts(info);
     for (const name of LOBBY_PARTS) {
         const part = section.querySelector<HTMLElement>(`[data-part="${name}"]`)!;
-        if (drawn.get(part) !== parts[name]) {
-            drawn.set(part, parts[name]);
-            part.innerHTML = parts[name];
+        const content = parts[name];
+        if (typeof content === "string") {
+            draw(part, content);
+        } else {
+            draw(
+                part,
+                `<div class="settings">${content.map((f) => `<label data-field="${f.id}"></label>`).join("")}</div>`,
+            );
+            for (const field of content) {
+                draw(part.querySelector(`[data-field="${field.id}"]`)!, field.html);
+            }
         }
     }
 }
 
-/** Has the lobby draw the host's settings again at its next redraw, from the state */
-function redrawSettings() {
-    const part = document.querySelector('[data-part="settings"]');
-    if (part !== null) drawn.delete(part);
+/** Replaces what's in a part of the lobby, unless it's what's there already */
+function draw(part: Element, html: string) {
+    if (drawn.get(part) !== html) {
+        drawn.set(part, html);
+        part.innerHTML = html;
+    }
 }
 
-function lobbyParts(info: LobbyInfo | undefined): Record<(typeof LOBBY_PARTS)[number], string> {
+function lobbyParts(
+    info: LobbyInfo | undefined,
+): Record<(typeof LOBBY_PARTS)[number], string | Field[]> {
     const player = oc?.role === "player";
     const seats = info?.seats ?? [];
     return {
@@ -279,7 +304,11 @@ function lobbyParts(info: LobbyInfo | undefined): Record<(typeof LOBBY_PARTS)[nu
 }
 
 /** The host's form for the game's settings; everyone else sees who can change them */
-function settingsForm(settings: NonNullable<Lobby["settings"]>, seats: Seat[], player: boolean) {
+function settingsForm(
+    settings: NonNullable<Lobby["settings"]>,
+    seats: Seat[],
+    player: boolean,
+): string | Field[] {
     const { specs, current, host, hostName } = settings;
     const what = specs.map((spec) => spec.label.toLowerCase()).join(" and the ");
     if (host !== undefined && host === oc?.userId && !player) {
@@ -292,7 +321,7 @@ function settingsForm(settings: NonNullable<Lobby["settings"]>, seats: Seat[], p
         const name = seats.find((s) => s.id === host)?.name ?? hostName;
         return `<p class="muted small">${name === undefined ? "The host" : escape(name)} can change the ${what}.</p>`;
     }
-    const fields = specs.map((spec) => {
+    return specs.map((spec) => {
         const value = current[spec.id] ?? spec.default;
         // A value set outside the choices, eg. for a test, is shown as it is
         const choices = spec.choices.some((c) => c.value === value)
@@ -301,9 +330,11 @@ function settingsForm(settings: NonNullable<Lobby["settings"]>, seats: Seat[], p
         const options = choices
             .map((c) => `<option value="${c.value}" ${c.value === value ? "selected" : ""}>${escape(c.label)}</option>`)
             .join("");
-        return `<label><span>${escape(spec.label)}</span><select data-setting="${spec.id}">${options}</select></label>`;
+        return {
+            id: spec.id,
+            html: `<span>${escape(spec.label)}</span><select data-setting="${spec.id}">${options}</select>`,
+        };
     });
-    return `<div class="settings">${fields.join("")}</div>`;
 }
 
 function escape(text: string): string {

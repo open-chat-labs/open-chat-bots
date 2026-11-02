@@ -186,11 +186,6 @@ button.link {
     box-shadow: var(--shadow);
 }
 
-/* The lobby's parts, which are drawn separately, are laid out as if they weren't there */
-.lobby > .part {
-    display: contents;
-}
-
 .settings {
     display: flex;
     flex-wrap: wrap;
