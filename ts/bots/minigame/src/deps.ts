@@ -20,6 +20,6 @@ export type Deps = {
     useApiGateway: (gateway: string) => MiniAppServiceClient;
     /** The verifier of the service's tokens, made on first use: it needs the bot's id */
     tokens: () => Promise<MiniAppTokens>;
-    /** A race's settings unless the command or the host sets them, eg. a quick race for a test */
+    /** A race's settings unless the host sets them, eg. a quick race for a test */
     raceSettings?: Settings;
 };

@@ -43,7 +43,7 @@ export type ChessData = {
 export type ChessOptions = {
     random?: () => number;
     now?: () => number;
-    /** The settings to start with, eg. from the command; any left out is its default */
+    /** The settings to start with, eg. for a test; any left out is its default */
     settings?: Settings;
     host?: Host;
 };

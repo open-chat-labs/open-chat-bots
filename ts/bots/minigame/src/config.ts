@@ -15,7 +15,7 @@ export type Config = {
     dataFile?: string;
     /** The built app, served at `/app` */
     appDir: string;
-    /** A race's settings unless the command or the host sets them: the defaults are 2048 and 10 minutes */
+    /** A race's settings unless the host sets them: the defaults are 2048 and 10 minutes */
     raceSettings?: Settings;
 };
 

@@ -50,7 +50,7 @@ export type DuelData<M> = {
 export type DuelOptions = {
     random?: () => number;
     now?: () => number;
-    /** The settings to start with, eg. from the command; any left out is its default */
+    /** The settings to start with, eg. for a test; any left out is its default */
     settings?: Settings;
     host?: Host;
 };
