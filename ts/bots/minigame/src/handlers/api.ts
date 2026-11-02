@@ -10,6 +10,7 @@ import type { ActionResponse } from "../games/chess/types";
 import type { Duel } from "../games/duel/duel";
 import type { Position } from "../games/duel/types";
 import type { Game, GameKind, NamesResponse } from "../games/game";
+import type { MazeRace } from "../games/maze/race";
 import type { Race2048 } from "../games/race2048/race";
 import { MAX_PLAYERS, type MoveResponse } from "../games/race2048/types";
 import { gameType } from "../games/registry";
@@ -197,4 +198,19 @@ export function duelMove(kind: GameKind): Handler {
 export function duelResign(kind: GameKind): Handler {
     return (req, res, deps) =>
         act<AnyDuel>(req, res, deps, kind, (duel, userId) => duelOutcome(duel.resign(userId)));
+}
+
+/**
+ * `POST /api/maze/move` with `{ "move": "left", "n": 7 }`: a racer's move while their live socket
+ * (`live.ts`) isn't open, eg. as it reconnects, taken as the socket takes it. Answers the new
+ * state, which also goes to everyone live.
+ */
+export function mazeMove(req: Request, res: Response, deps: Deps): Promise<void> {
+    return act<MazeRace>(req, res, deps, "maze", (maze, userId, body) => {
+        const result = maze.receive(userId, body);
+        return {
+            result: result.ok ? { ok: true, shared: maze.shared() } : result,
+            changed: result.changed,
+        };
+    });
 }

@@ -12,6 +12,7 @@ import {
     chessResign,
     duelMove,
     duelResign,
+    mazeMove,
     raceMove,
     raceRestart,
     settings,
@@ -54,6 +55,9 @@ export function createApp(deps: Deps, appDir: string): Express {
         app.post(`/api/${kind}/move`, express.json(), handle(duelMove(kind)));
         app.post(`/api/${kind}/resign`, express.json(), handle(duelResign(kind)));
     }
+
+    // A racer's move in a maze race while their socket's not open; it's usually live (`live.ts`)
+    app.post("/api/maze/move", express.json(), handle(mazeMove));
 
     // Anyone with a game open, watching included, and anyone opening a finished card: no token
     app.get("/api/names", handle(userNames));

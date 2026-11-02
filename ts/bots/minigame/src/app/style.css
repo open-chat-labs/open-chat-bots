@@ -1183,3 +1183,73 @@ button.link {
     border-radius: 50%;
     background: var(--accent);
 }
+
+/*
+ * The maze race: the maze on a square canvas, as big as the frame allows, the arrows under it on
+ * a phone, and everyone's progress under that
+ */
+.maze {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    max-width: 440px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.maze-status {
+    min-height: 1.4em;
+    margin: 0 0 8px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.maze-board {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    margin: 0 auto;
+    border-radius: 6px;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.maze-standings {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    font-size: 14px;
+}
+
+.maze-standings li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 6px;
+    border-radius: 6px;
+}
+
+.maze-standings li.mine {
+    background: var(--panel);
+    font-weight: 600;
+}
+
+.maze-standings .swatch {
+    width: 0.8em;
+    height: 0.8em;
+    border-radius: 50%;
+    flex: none;
+}
+
+.maze-standings .who {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.maze-standings .steps {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}

@@ -15,6 +15,9 @@ import type { SharedState } from "../games/chess/types";
 import { Duel } from "../games/duel/duel";
 import type { DuelState } from "../games/duel/types";
 import { FOUR_IN_A_ROW } from "../games/fourinarow/rules";
+import { wayOut } from "../games/maze/maze";
+import { MazeRace } from "../games/maze/race";
+import type { SharedState as MazeState } from "../games/maze/types";
 import { REVERSI } from "../games/reversi/rules";
 import { Race2048 } from "../games/race2048/race";
 import {
@@ -29,6 +32,7 @@ import {
     chessResign,
     duelMove,
     duelResign,
+    mazeMove,
     raceMove,
     raceRestart,
     userNames,
@@ -479,5 +483,29 @@ describe("a duel through the same handlers", () => {
             status: 409,
             body: { ok: false, error: "This isn't a four-in-a-row game" },
         });
+    });
+});
+
+describe("a maze race's moves over HTTP, while a racer's socket isn't open", () => {
+    it("takes a move as the socket does, answering the new state, and publishes it", async () => {
+        const { store, publish, deps } = setUp();
+        const race = MazeRace.create({ random: () => 0.25 });
+        race.join("alice", "Alice");
+        race.start();
+        store.create(game, race);
+        const [move] = wayOut(race.maze!);
+
+        const moved = await send(mazeMove, deps, "alice", { move, n: 1 });
+        expect(moved.status).toBe(200);
+        expect((moved.body as { shared: MazeState }).shared.racers[0]).toMatchObject({ ack: 1 });
+        expect(publish).toHaveBeenCalledTimes(1);
+        // The same move again changes nothing, and publishes nothing
+        expect((await send(mazeMove, deps, "alice", { move, n: 1 })).status).toBe(200);
+        expect(publish).toHaveBeenCalledTimes(1);
+        expect(await send(mazeMove, deps, "alice", { move: "sideways", n: 2 })).toEqual({
+            status: 409,
+            body: { ok: false, error: "A move is a direction and its number", changed: false },
+        });
+        expect((await send(mazeMove, deps, "bob", { move, n: 1 })).status).toBe(403);
     });
 });

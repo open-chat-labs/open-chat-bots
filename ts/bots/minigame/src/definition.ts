@@ -70,7 +70,8 @@ export const definition = {
         "make the target tile wins, or the top score when the time's up (2048 and 10 minutes " +
         "unless set, with the command or by the host in the lobby), or play chess, Four in a " +
         "Row or Reversi, two players which anyone in the chat can watch, with the time and who " +
-        "goes first set the same way.",
+        "goes first set the same way, or race up to 10 players through the same maze, live, " +
+        "where the first out wins.",
     commands: [
         {
             name: "play",
