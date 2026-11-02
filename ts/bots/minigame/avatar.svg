@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" shape-rendering="crispEdges">
+  <rect width="512" height="512" fill="#e8704a"/>
+  <!-- The pad is centred, on the widest part of the round avatar -->
+  <path fill="#2d2f36" d="M76 156h360v20h20v20h20v120h-20v20h-20v20h-80v-20h-20v-20h-20v-20h-120v20h-20v20h-20v20h-80v-20h-20v-20h-20v-120h20v-20h20z"/>
+  <path fill="#43464f" d="M76 156h360v20H76z M56 176h20v20H56z M436 176h20v20h-20z"/>
+  <!-- D-pad -->
+  <path fill="#e9ecf1" d="M116 196h40v40h40v40h-40v40h-40v-40h-40v-40h40z"/>
+  <rect x="116" y="236" width="40" height="40" fill="#c9ccd3"/>
+  <!-- Buttons, square as pixels are -->
+  <rect x="356" y="196" width="40" height="40" fill="#4c8ff0"/>
+  <rect x="396" y="236" width="40" height="40" fill="#2fa36b"/>
+  <rect x="316" y="236" width="40" height="40" fill="#f5b82e"/>
+  <rect x="356" y="276" width="40" height="40" fill="#e8443a"/>
+  <!-- Start and select -->
+  <rect x="206" y="216" width="40" height="20" fill="#8d929c"/>
+  <rect x="266" y="216" width="40" height="20" fill="#8d929c"/>
+</svg>

@@ -391,7 +391,9 @@ Once, by hand, before the first deploy:
    upgrade of `/live` through. OpenChat reads a bot's definition from its endpoint's root, so it
    can't share a distribution.
 
-6. **Register the bot** with `/register_bot`, its endpoint being the `PUBLIC_URL` and its principal
-   the identity's, then install it where it'll be played, granting it the MiniApp message
-   permission. After a deploy that changes the definition, eg. a new game, which is a new app, run
+6. **Register the bot** with `/register_bot`, its endpoint being the `PUBLIC_URL`, its principal
+   the identity's and its avatar [`avatar.png`](avatar.png), a 512-pixel render of
+   [`avatar.svg`](avatar.svg), whose gamepad sits on the middle row as OpenChat shows the avatar in
+   a circle. Then install it where it'll be played, granting it the MiniApp message permission.
+   After a deploy that changes the definition, eg. a new game, which is a new app, run
    `/update_bot`, as OpenChat refuses a card whose app isn't in the definition it holds.
