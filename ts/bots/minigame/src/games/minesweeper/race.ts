@@ -1,9 +1,10 @@
 // The Minesweeper race: up to ten racers, each with their own board of the same minefield, laid at
 // the start so that it can be cleared without a guess (`field.ts`), with the same cells open to
 // begin with. The first to open every safe cell wins, or, when the time's up, whoever's opened the
-// most. A racer who sets off a mine can't open another cell for a few seconds, and goes on from
-// there. Only the bot knows where the mines are: a racer's page sends what they click, and the bot
-// answers with their board, which no one else sees until the race is over.
+// most. A racer who sets off a mine can do nothing for a few seconds, and goes on from there. Only
+// the bot knows where the mines are: a racer's page sends what they click, and the bot answers
+// with their board, which also comes in their private part of each state, and which no one else
+// sees until the race is over.
 import { PUBLISH_EVERY_MS, type ConfigureResult, type Game, type Host } from "../game";
 import { duration } from "../race2048/race";
 import { defaultSettings, type Settings } from "../settings";
@@ -33,7 +34,7 @@ export type Racer = Seat & {
     cleared: number;
     hits: number;
     rev: number;
-    /** When they can open a cell again, after setting off a mine */
+    /** When they can do anything again, after setting off a mine */
     frozenUntil?: number;
     /** When they last opened a safe cell, which breaks a tie when the time runs out */
     clearedAt?: number;
@@ -356,6 +357,12 @@ export class MinesweeperRace implements Game {
 
     #changed(): void {
         this.#data.rev++;
+    }
+
+    /** Each racer's own board while the race is on, which the service gives only to them */
+    privateState(): Record<string, OwnBoard> | undefined {
+        if (this.#data.phase !== "active") return undefined;
+        return Object.fromEntries(this.#data.players.map((p) => [p.id, this.own(p.id)!]));
     }
 
     /** What everyone sees: how far each racer's got, and, once it's over, their boards too */

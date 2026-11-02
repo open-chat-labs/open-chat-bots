@@ -1473,6 +1473,11 @@ button.link {
     -webkit-touch-callout: none;
 }
 
+/* The grid's rows, there for its roles: the cells are laid out as the board's own */
+.ms-row {
+    display: contents;
+}
+
 .ms-cell {
     position: relative;
     display: flex;

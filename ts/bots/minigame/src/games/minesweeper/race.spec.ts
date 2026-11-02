@@ -87,6 +87,17 @@ describe("a Minesweeper race", () => {
         expect(race.own("carol")).toBeUndefined();
     });
 
+    it("gives each racer their own board in their private part of the state, while it's on", () => {
+        const { race } = seated();
+        expect(race.privateState()).toBeUndefined();
+        race.start();
+        act(race, "alice", { reveal: safeHidden(race, "alice", true) });
+        expect(race.privateState()).toEqual({ alice: race.own("alice"), bob: race.own("bob") });
+        clearAll(race, "bob");
+        // Once it's over, every board is shared
+        expect(race.privateState()).toBeUndefined();
+    });
+
     it("opens a cell, and every cell round one that touches no mine", () => {
         const { race } = started();
         const field = race.field!;

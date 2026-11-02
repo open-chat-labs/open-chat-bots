@@ -69,6 +69,9 @@ export function lay(size: number, mines: number, seed: number): Field {
         field = layOnce(size, mines, next);
         if (solves(field)) return field;
     }
+    console.warn(
+        `No field ${size} by ${size} with ${mines} mines could be cleared without a guess in ${MAX_ATTEMPTS} tries`,
+    );
     return field!;
 }
 

@@ -4,7 +4,8 @@
 // as it says opens the rest round it; the flag button swaps what a tap and a long press do, for a
 // phone. The page doesn't know where the mines are, so a cell opens when the bot answers, which is
 // quick, and clicks made while it's answering go together in the next request. A flag shows at
-// once. Someone watching sees how far everyone's got: the boards would show where it's safe.
+// once. The board also comes in the racer's private part of each state, so it's there as the page
+// opens. Someone watching sees how far everyone's got: the boards would show where it's safe.
 //
 // Once the race is over, the card's end state is its final state: every board, with the mines,
 // and a click on a name in the standings shows theirs.
@@ -94,7 +95,7 @@ export const minesweeperView: GameView = {
 
     attach(_root, context) {
         ctx = context;
-        window.addEventListener("resize", () => fitBoard());
+        window.addEventListener("resize", () => fitBoard(true));
         setInterval(() => ctx?.render(), 1000);
     },
 
@@ -181,19 +182,32 @@ function readEnd(state: unknown): SharedState | undefined {
         : undefined;
 }
 
-/** Takes a state from OpenChat, and asks for the racer's board if theirs is behind it */
+/**
+ * Takes a state from OpenChat, with the racer's board from their private part of it, and asks the
+ * bot for the board if the page's is still behind, eg. as the service hasn't sent one
+ */
 function take(state: SharedState) {
     latest = state;
-    const mine = myRacer();
-    if (
-        mine !== undefined &&
-        state.phase === "active" &&
-        (own === undefined || mine.rev > own.board.rev) &&
-        Date.now() >= retryAt
-    ) {
+    const part = ctx?.oc.state?.private;
+    // Only a newer one: its wait after a mine was worked out when it was sent
+    if (isOwnBoard(part) && (own === undefined || part.rev > own.board.rev)) takeOwn(part);
+    if (state.phase === "active" && behind() && Date.now() >= retryAt) {
         wantBoard = true;
         void flush();
     }
+}
+
+function isOwnBoard(value: unknown): value is OwnBoard {
+    const b = value as Partial<OwnBoard> | null | undefined;
+    return (
+        typeof b?.view === "string" && typeof b.rev === "number" && typeof b.frozenMs === "number"
+    );
+}
+
+/** Whether the racer's board on the page is older than the one the state says the bot has */
+function behind(): boolean {
+    const mine = myRacer();
+    return mine !== undefined && (own === undefined || mine.rev > own.board.rev);
 }
 
 function myRacer(): RacerState | undefined {
@@ -223,6 +237,8 @@ function takeOwn(board: OwnBoard) {
 /** Sends the clicks waiting, or asks for the board, unless the bot's answering already */
 async function flush() {
     if (ctx === undefined || sending || !canRace()) return;
+    // Clicks made before the answer that set off a mine: the bot would refuse them now
+    if (frozenMs() > 0) queue = [];
     if (queue.length === 0 && !wantBoard) return;
     sending = true;
     wantBoard = false;
@@ -235,11 +251,16 @@ async function flush() {
         });
         const result = (await response.json()) as ActResponse;
         if (result.own !== undefined) takeOwn(result.own);
+        // No board, eg. the game's gone: the page leaves the bot a while before asking again
+        else retryAt = Date.now() + RETRY_MS;
         if (!result.ok) ctx.notice(result.error);
     } catch {
         ctx.notice("Couldn't reach the game");
         retryAt = Date.now() + RETRY_MS;
     }
+    // A state may have said the board was behind while this was being answered, which it may be
+    // no longer
+    if (!behind()) wantBoard = false;
     sent = [];
     sending = false;
     render();
@@ -279,7 +300,7 @@ const isNumber = (c: string | undefined) => c !== undefined && c >= "1" && c <= 
 function primary(cell: number) {
     const cells = myCells();
     if (!canRace() || cells === undefined || frozenMs() > 0) return;
-    if (isNumber(cells[cell])) chord(cells, cell);
+    if (isNumber(cells[cell])) chord(cells, cell, latest!.size);
     else if (flagMode) toggleFlag(cells, cell);
     else if (cells[cell] === HIDDEN) send({ reveal: cell });
 }
@@ -288,7 +309,7 @@ function primary(cell: number) {
 function secondary(cell: number) {
     const cells = myCells();
     if (!canRace() || cells === undefined || frozenMs() > 0) return;
-    if (isNumber(cells[cell])) chord(cells, cell);
+    if (isNumber(cells[cell])) chord(cells, cell, latest!.size);
     else if (!flagMode) toggleFlag(cells, cell);
     else if (cells[cell] === HIDDEN) send({ reveal: cell });
 }
@@ -299,8 +320,8 @@ function toggleFlag(cells: string[], cell: number) {
 }
 
 /** Opens round a number, if it has as many flags round it as it says, and anything to open */
-function chord(cells: string[], cell: number) {
-    const around = neighbours(Math.sqrt(cells.length), cell);
+function chord(cells: string[], cell: number, size: number) {
+    const around = neighbours(size, cell);
     const marked = around.filter((n) => cells[n] === FLAG || cells[n] === BOOM).length;
     if (marked === Number(cells[cell]) && around.some((n) => cells[n] === HIDDEN)) {
         send({ chord: cell });
@@ -340,11 +361,12 @@ function ensureDom(body: HTMLElement) {
         drawn: [],
         rows: new Map(),
     };
+    fitted = "";
     listen(dom.board);
 }
 
-// A press on a cell: a tap or a left click is the primary action, a long press or a right click
-// the other. A press that wanders is a scroll, and does nothing.
+// A press on a cell: a tap or a left click is the primary action, a long press with a finger or a
+// pen, or a right click, the other. A press that wanders is a scroll, and does nothing.
 function listen(board: HTMLElement) {
     let press:
         | { cell: number; id: number; x: number; y: number; long: boolean; timer: number }
@@ -366,6 +388,17 @@ function listen(board: HTMLElement) {
             return;
         }
         if (event.button !== 0) return;
+        if (event.pointerType === "mouse") {
+            press = {
+                cell,
+                id: event.pointerId,
+                x: event.clientX,
+                y: event.clientY,
+                long: false,
+                timer: 0,
+            };
+            return;
+        }
         const timer = window.setTimeout(() => {
             if (press === undefined) return;
             press.long = true;
@@ -402,7 +435,11 @@ function name(s: SharedState, id: string | undefined): string {
 
 /** Everyone, the furthest on first: the most cleared, then the fewest mines */
 function ranked(s: SharedState): RacerState[] {
-    return [...s.racers].sort((a, b) => b.cleared - a.cleared || a.hits - b.hits);
+    // Level on both, the winner first: the bot gives a tie to whoever got there first
+    const won = (r: RacerState) => (r.id === s.winner ? 1 : 0);
+    return [...s.racers].sort(
+        (a, b) => b.cleared - a.cleared || a.hits - b.hits || won(b) - won(a),
+    );
 }
 
 function render() {
@@ -477,34 +514,57 @@ function drawBoard(s: SharedState, cells: string[], finished: boolean) {
             return el;
         });
         dom.drawn = dom.cells.map(() => "");
-        dom.board.replaceChildren(...dom.cells);
+        // A row a line of cells, for the grid's roles, laid out as if they weren't there
+        const rows = Array.from({ length: n }, (_, y) => {
+            const row = document.createElement("div");
+            row.className = "ms-row";
+            row.setAttribute("role", "row");
+            row.append(...dom!.cells.slice(y * n, (y + 1) * n));
+            return row;
+        });
+        dom.board.replaceChildren(...rows);
     }
     const mines = finished ? new Set(s.mineCells ?? []) : undefined;
     const opening = finished ? new Set<number>() : pressed();
     cells.forEach((c, i) => {
         const look = cellLook(c, mines?.has(i), opening.has(i));
-        if (dom!.drawn[i] === look) return;
-        dom!.drawn[i] = look;
-        const [cls, html] = look.split("|");
+        const key = `${look.cls}:${look.label}`;
+        if (dom!.drawn[i] === key) return;
+        dom!.drawn[i] = key;
         const el = dom!.cells[i];
-        el.className = cls;
-        el.innerHTML = html;
+        el.className = look.cls;
+        el.innerHTML = look.html;
+        el.setAttribute("aria-label", look.label);
     });
 }
 
+type Look = { cls: string; html: string; label: string };
+
 /**
- * What a cell is drawn as, its classes and content: `mine` once the race is over, to show the
- * mines left hidden and the flags in the wrong place
+ * What a cell is drawn as, its classes and content, and what it's called: `mine` once the race is
+ * over, to show the mines left hidden and the flags in the wrong place
  */
-function cellLook(c: string, mine: boolean | undefined, opening: boolean): string {
+function cellLook(c: string, mine: boolean | undefined, opening: boolean): Look {
     if (c === HIDDEN) {
-        if (mine === true) return `ms-cell ms-hidden ms-mine|${MINE_SVG}`;
-        return `ms-cell ms-hidden${opening ? " ms-pressed" : ""}|`;
+        if (mine === true)
+            return { cls: "ms-cell ms-hidden ms-mine", html: MINE_SVG, label: "Mine" };
+        const cls = `ms-cell ms-hidden${opening ? " ms-pressed" : ""}`;
+        return { cls, html: "", label: "Hidden" };
     }
-    if (c === FLAG)
-        return `ms-cell ms-hidden ms-flag${mine === false ? " ms-wrong" : ""}|${FLAG_SVG}`;
-    if (c === BOOM) return `ms-cell ms-boom|${MINE_SVG}`;
-    return `ms-cell ms-open ms-n${c}|${c === "0" ? "" : c}`;
+    if (c === FLAG) {
+        const wrong = mine === false;
+        return {
+            cls: `ms-cell ms-hidden ms-flag${wrong ? " ms-wrong" : ""}`,
+            html: FLAG_SVG,
+            label: wrong ? "Flag, no mine" : "Flag",
+        };
+    }
+    if (c === BOOM) return { cls: "ms-cell ms-boom", html: MINE_SVG, label: "Mine, set off" };
+    return {
+        cls: `ms-cell ms-open ms-n${c}`,
+        html: c === "0" ? "" : c,
+        label: c === "0" ? "Open" : c,
+    };
 }
 
 function renderFrozen(racing: boolean) {
@@ -600,9 +660,22 @@ function standingsRow(): Row {
 }
 
 // The field is square: as wide as the frame, unless what's around it leaves less height than that.
-// Its numbers are sized to its cells.
-function fitBoard() {
+// Its numbers are sized to its cells. Measuring lays the page out, so it's done again only when
+// what's round the field has changed, or the frame has.
+let fitted = "";
+
+function fitBoard(force = false) {
     if (dom === undefined || dom.wrap.hidden || !document.body.contains(dom.root)) return;
+    const around = [
+        dom.cells.length,
+        dom.status.textContent,
+        dom.bar.hidden,
+        dom.mode.hidden,
+        dom.hint.textContent,
+        dom.rows.size,
+    ].join("|");
+    if (!force && around === fitted) return;
+    fitted = around;
     let used = 0;
     for (const el of dom.root.children) {
         if (el === dom.wrap) continue;

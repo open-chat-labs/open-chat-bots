@@ -1,8 +1,8 @@
 // The Minesweeper race's shared state, as the bot publishes it through the MiniApp service and the
 // page reads. Everyone races on the same field, so while the race is on the state says only how far
 // each racer's got: where they've been would show the others where it's safe. Each racer's own
-// board comes to them alone, in the answer to their requests (`POST /api/minesweeper/act`). Once
-// the race is over, the state has every board and the mines.
+// board comes to them alone, in the answer to their requests (`POST /api/minesweeper/act`) and in
+// their private part of each state. Once the race is over, the state has every board and the mines.
 import type { Settings } from "../settings";
 
 /** Bumped when the shape changes, so an app left open from an older release knows to reload */
@@ -13,7 +13,7 @@ export const GAME_ID = "minesweeper";
 /** The most racers, as the standings are drawn under the field */
 export const MAX_PLAYERS = 10;
 
-/** How long a racer who sets off a mine waits before they can open another cell */
+/** How long a racer who sets off a mine waits before the bot takes anything more from them */
 export const PENALTY_MS = 10_000;
 
 /** The most actions in a request: the page sends what was clicked while the last was answered */
@@ -85,7 +85,7 @@ export type OwnBoard = {
     rev: number;
     cleared: number;
     hits: number;
-    /** How long until they can open a cell again, after setting off a mine */
+    /** How long until they can do anything again, after setting off a mine */
     frozenMs: number;
 };
 

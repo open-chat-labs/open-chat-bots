@@ -340,8 +340,11 @@ race is on only the bot knows where the mines are, and only each racer sees thei
 - **The shared state says only how far each racer's got**: the safe cells they've opened, the mines
   they've set off, and their board's `rev`. Anything more, even which cells they've opened, would
   show everyone else where it's safe. Each racer's board comes in the answer to their own requests
-  (`own`), and their page asks for it again if the state says it has an older one, eg. from another
-  device. Once the race is over, the state has every board and the mines.
+  (`own`), and in their private part of each state, which the service gives only to them
+  (`Game.privateState`, which the publisher sends for a game that has one), so it's there as the
+  page opens. The page asks the bot for it only when the state says the bot has a newer one than
+  the page, eg. if the service hasn't sent it. Once the race is over, the state has every board and
+  the mines.
 - **A click goes to the bot**, as the page doesn't know what's under a cell. Clicks made while the
   bot's answering go together in the next request, up to 32, so requests go one at a time and in
   order. A flag shows at once, and a cell being opened looks pressed until the answer comes.
@@ -351,15 +354,17 @@ race is on only the bot knows where the mines are, and only each racer sees thei
 - **The page** draws the racer's own board, a cell an element, with the mines left to flag and how
   far everyone's got under it. A tap opens a cell, a long press flags it, and a tap on a number with
   its flags all placed opens round it; the flag button swaps a tap and a long press, and on a
-  computer a right click flags. Someone watching sees how far everyone's got, and once it's over a
-  click on a name shows their board, with the mines nobody found and the flags in the wrong place.
+  computer a right click flags, as a long press is only for a finger or a pen. Someone watching
+  sees how far everyone's got, and once it's over a click on a name shows their board, with the
+  mines nobody found and the flags in the wrong place.
 
 ## Adding a game
 
 - Add its rules under `src/games/<game>/`, as a class implementing `Game` (`src/games/game.ts`):
   seats, start, whose turn it is, its clock, a shared state carrying a `version` and the `game`'s
   id, its result, its end state, which the publisher sends only within 16 KB (`jsonBytes` measures
-  it), so a game which can run long cuts its own down first, and its data for the store.
+  it), so a game which can run long cuts its own down first, and its data for the store. A game with
+  anything only each player may see gives it as `privateState`, by user id.
 - Add it to `src/games/registry.ts`, with its `create` and `fromJson`: that's the `/play` choice,
   the card's one-line text and limits, its settings, each a choice among a few values with a
   default, the size the page is laid out for, which gives the frame in the card
