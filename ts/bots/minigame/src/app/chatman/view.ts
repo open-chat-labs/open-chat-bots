@@ -506,7 +506,7 @@ function renderStandings(s: SharedState) {
         }
         const score = board.score.toLocaleString("en-US");
         if (row.score.textContent !== score) row.score.textContent = score;
-        // Into its place, moving only the lines whose place has changed
+        // Into its place, if it isn't there already
         const at = dom.standings.children[seen.size] ?? null;
         if (at !== li) dom.standings.insertBefore(li, at);
         seen.add(id);
