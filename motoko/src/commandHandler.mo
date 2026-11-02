@@ -88,14 +88,16 @@ module {
                 return false;
             };
 
-            label l for (param in params.values()) {
+            label l for (index in params.keys()) {
+                let param = params[index];
                 let ?arg = Array.find(
                     args,
                     func(arg : Command.CommandArg) : Bool {
                         arg.name == param.name;
                     },
                 ) else {
-                    if (param.required) {
+                    // OpenChat doesn't send a param its condition hides, so it's only required while shown
+                    if (param.required and isShown(index, params, args)) {
                         return false;
                     };
 
@@ -183,6 +185,81 @@ module {
             };
 
             true;
+        };
+
+        // Whether OpenChat's form shows the param at `index`, given the args: while its condition,
+        // if it has one, holds, and while one of its choices is shown, if it has choices
+        func isShown(index : Nat, params : [Definition.CommandParam], args : [Command.CommandArg]) : Bool {
+            let holds = func(condition : ?Definition.CommandParamCondition) : Bool {
+                switch (condition) {
+                    case (null) true;
+                    case (?c) conditionHolds(c, index, params, args);
+                };
+            };
+            let param = params[index];
+            if (not holds(param.visible_when)) {
+                return false;
+            };
+            switch (param.param_type) {
+                case (#StringParam p) anyChoiceShown(p.choices, holds);
+                case (#IntegerParam p) anyChoiceShown(p.choices, holds);
+                case (#DecimalParam p) anyChoiceShown(p.choices, holds);
+                case _ true;
+            };
+        };
+
+        // A param without choices has none to hide
+        func anyChoiceShown<T>(
+            choices : [Definition.BotCommandOptionChoice<T>],
+            holds : ?Definition.CommandParamCondition -> Bool,
+        ) : Bool {
+            if (choices.size() == 0) {
+                return true;
+            };
+            for (choice in choices.values()) {
+                if (holds(choice.visible_when)) {
+                    return true;
+                };
+            };
+            false;
+        };
+
+        // Whether a condition on the param at `index` holds: the earlier param it names is shown,
+        // and that param's arg is one of the condition's values
+        func conditionHolds(
+            condition : Definition.CommandParamCondition,
+            index : Nat,
+            params : [Definition.CommandParam],
+            args : [Command.CommandArg],
+        ) : Bool {
+            var named : ?Nat = null;
+            label find for (i in params.keys()) {
+                if (i >= index) {
+                    break find;
+                };
+                if (params[i].name == condition.param) {
+                    named := ?i;
+                    break find;
+                };
+            };
+            let ?i = named else {
+                return false;
+            };
+            if (not isShown(i, params, args)) {
+                return false;
+            };
+            let ?arg = Array.find(
+                args,
+                func(arg : Command.CommandArg) : Bool {
+                    arg.name == condition.param;
+                },
+            ) else {
+                return false;
+            };
+            switch (arg.value) {
+                case (#String(value)) Array.find(condition.values, func(v : Text) : Bool { v == value }) != null;
+                case _ false;
+            };
         };
 
         func isValidChoice<T>(array : [Definition.BotCommandOptionChoice<T>], value : T, valueEq : (T, T) -> Bool) : Bool {
