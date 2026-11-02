@@ -464,7 +464,7 @@ The SDK's browser entry, `@open-ic/openchat-botclient-ts/mini_app`, has no Node 
 ```ts
 import { connectToOpenChat, initialDarkMode } from "@open-ic/openchat-botclient-ts/mini_app";
 
-// The user's theme, from the page's URL, so the page is drawn in it while it connects
+// The user's theme, from the page's URL, so the page is drawn in it while it connects (see below)
 setTheme(initialDarkMode() ?? false);
 const openChat = await connectToOpenChat<Board, Hand, Replay>();
 // The role is "player" or "spectator", and the state undefined until the first one comes
@@ -494,10 +494,26 @@ own origin. When the app is opened on a game that's over, `finished` is true fro
 no token, the role is "player" if the user was one of the game's players, no state comes, and
 OpenChat sends the bot's end state, `endState`, which the app shows its end view from. It also has
 `userId`, `token`, `darkMode`, `locale`, `settings` (what the bot gave when it started the game, see
-step 3), `refreshToken()` and `close()`. OpenChat shows the page as soon as it's loaded, which can be
-a moment before it's initialised, so `initialDarkMode()` gives the user's theme beforehand, from the
-`oc_theme` OpenChat puts in the page's URL's fragment, or `undefined` from an older OpenChat. Serve
-the page as static, cacheable files, as it's the only thing spectators fetch from the bot.
+step 3), `refreshToken()` and `close()`. Serve the page as static, cacheable files, as it's the only
+thing spectators fetch from the bot.
+
+OpenChat shows the page as soon as the browser first draws it, which is before a module script has
+run, and can be a while before OpenChat has initialised it and sent the first state. So that the
+page is in the user's theme from the start, OpenChat puts `oc_theme=dark` or `oc_theme=light` in the
+fragment of the page's URL. Read it in an inline script in the page's `<head>`, which runs before
+anything's drawn, or with `initialDarkMode()` (`undefined` from an older OpenChat) if the page draws
+nothing until its script runs. And until the first state, or the end state, has come, show something
+that doesn't stand for the game, eg. a spinner rather than an empty board:
+
+```html
+<head>
+    <script>
+        document.documentElement.dataset.theme =
+            new URLSearchParams(location.hash.slice(1)).get("oc_theme") === "dark" ? "dark" : "light";
+    </script>
+    <link rel="stylesheet" href="./style.css" />
+</head>
+```
 
 ### 6. Verify player tokens on the app's requests
 
