@@ -462,7 +462,12 @@ the LocalUserIndex gives that call's error.
 The SDK's browser entry, `@open-ic/openchat-botclient-ts/mini_app`, has no Node dependencies:
 
 ```ts
-import { connectToOpenChat, initialDarkMode } from "@open-ic/openchat-botclient-ts/mini_app";
+import {
+    connectToOpenChat,
+    initialDarkMode,
+    type MiniAppRole,
+    type MiniAppState,
+} from "@open-ic/openchat-botclient-ts/mini_app";
 
 // The user's theme, from the page's URL, so the page is drawn in it while it connects (see below)
 setTheme(initialDarkMode() ?? false);
@@ -475,6 +480,13 @@ openChat.onDarkModeChange(setTheme);
 // Once the game is over, with an end state: right after connecting to a finished card, or as the
 // game finishes while the app is open. No state follows it.
 openChat.onEndState(renderReplay);
+
+function render(role: MiniAppRole, state: MiniAppState<Board, Hand> | undefined) {
+    if (state === undefined) return showSpinner();
+    drawBoard(role, state);
+    // The card shows the app's artwork until the page says it has drawn what it's for
+    openChat.drawn();
+}
 
 // The Start button, for players. The bot decides, and OpenChat says what it decided.
 startButton.onclick = async () => {
@@ -497,13 +509,21 @@ OpenChat sends the bot's end state, `endState`, which the app shows its end view
 step 3), `refreshToken()` and `close()`. Serve the page as static, cacheable files, as it's the only
 thing spectators fetch from the bot.
 
-OpenChat shows the page as soon as the browser first draws it, which is before a module script has
-run, and can be a while before OpenChat has initialised it and sent the first state. So that the
-page is in the user's theme from the start, OpenChat puts `oc_theme=dark` or `oc_theme=light` in the
-fragment of the page's URL. Read it in an inline script in the page's `<head>`, which runs before
-anything's drawn, or with `initialDarkMode()` (`undefined` from an older OpenChat) if the page draws
-nothing until its script runs. And until the first state, or the end state, has come, show something
-that doesn't stand for the game, eg. a spinner rather than an empty board:
+OpenChat shows the card's artwork, with the page drawn unseen under it, until the page calls
+`drawn()`, and then the page in its place, so the card goes straight from the artwork to the game.
+Call it after drawing what the page is for: the game, its lobby, how it ended, or why it can't show
+them, but not a placeholder such as a spinner while the first state or the end state comes. It's
+sent once, after the browser has painted.
+
+The page can still be seen before then. OpenChat shows a page that hasn't called `drawn()` a second
+after it has loaded, eg. as it's waiting for a slow state, and an older OpenChat shows the page as
+soon as the browser first draws it, which is before a module script has run, and can be a while
+before OpenChat has initialised it and sent the first state. So that the page is in the user's theme
+from the start, OpenChat puts `oc_theme=dark` or `oc_theme=light` in the fragment of the page's URL.
+Read it in an inline script in the page's `<head>`, which runs before anything's drawn, or with
+`initialDarkMode()` (`undefined` from an older OpenChat) if the page draws nothing until its script
+runs. And until the first state, or the end state, has come, show something that doesn't stand for
+the game, eg. a spinner rather than an empty board:
 
 ```html
 <head>
