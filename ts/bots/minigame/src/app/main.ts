@@ -182,8 +182,13 @@ function showNotice(text: string) {
 function applyTheme(dark: boolean) {
     const theme = dark ? "dark" : "light";
     document.documentElement.dataset.theme = theme;
-    // The URL says so too, so that a reload, eg. for a newer version, starts in the theme as it is
-    history.replaceState(history.state, "", `#oc_theme=${theme}`);
+    // The URL says so too, so that a reload, eg. for a newer version, starts in the theme as it is.
+    // That's only nice to have, so a browser that won't change the URL is left as it is.
+    try {
+        history.replaceState(history.state, "", `#oc_theme=${theme}`);
+    } catch {
+        // eg. too many changes too quickly
+    }
 }
 
 function byId(id: string): HTMLElement {
