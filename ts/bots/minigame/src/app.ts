@@ -67,15 +67,16 @@ export function createApp(deps: Deps, appDir: string): Express {
 
     // The app, which OpenChat opens in a frame, and frames afresh each time its card is back on
     // screen: its files are the only thing spectators fetch from the bot, so they're cached.
-    // Vite names the page's bundles by their content, so a release's are new files, which the
-    // browser keeps for good. The page, which names them, is kept a minute, then shown from the
-    // cache for ten more while the browser checks it's current: so a release reaches everyone
-    // within minutes, and the bundles a page from before it names are the ones the browser kept
-    // with it. The rest, eg. the cards' artwork, for an hour.
+    // Vite names the page's bundles by their content, so a release's are new files, which
+    // browsers and CloudFront keep for good. The page, which names them, only the browser keeps,
+    // for a minute, along with the bundles it fetched for it. CloudFront asks the bot for it each
+    // time, as a page it kept from before a release would name bundles the bot no longer has, and
+    // the page's Reload button, for a newer page, would get it back. The rest, eg. the cards'
+    // artwork, for an hour.
     const index = path.resolve(appDir, "index.html");
     app.get(["/app", "/app/", "/app/index.html"], (_req, res) => {
-        res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=600");
-        res.sendFile(index);
+        // Only on the page: an error, eg. no page in a broken build, isn't kept
+        res.sendFile(index, { headers: { "Cache-Control": "private, max-age=60" } });
     });
     app.use(
         "/app/assets",

@@ -130,35 +130,44 @@ describe("GET /app/chess.svg", () => {
     });
 });
 
+/** A server for an app folder as `files` lays it out, at its base URL, and a way to close it */
+async function serveApp(files: Record<string, string>): Promise<{ base: string; close(): void }> {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "minigame-app-"));
+    for (const [name, content] of Object.entries(files)) {
+        fs.mkdirSync(path.dirname(path.join(dir, name)), { recursive: true });
+        fs.writeFileSync(path.join(dir, name), content);
+    }
+    const server = createApp({} as Deps, dir).listen(0);
+    await new Promise<void>((resolve) => server.once("listening", resolve));
+    return {
+        base: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+        close: () => {
+            server.close();
+            fs.rmSync(dir, { recursive: true, force: true });
+        },
+    };
+}
+
 describe("the app's page and bundles", () => {
     // A built app, as Vite leaves it in `dist/app`: the page, and its bundles named by content
     let appBase: string;
     let closeApp: () => void;
 
     beforeAll(async () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), "minigame-app-"));
-        fs.writeFileSync(path.join(dir, "index.html"), "<!doctype html><title>MiniGameBot</title>");
-        fs.mkdirSync(path.join(dir, "assets"));
-        fs.writeFileSync(path.join(dir, "assets", "index-Ck2qTBk0.js"), "export {};");
-        const server = createApp({} as Deps, dir).listen(0);
-        await new Promise<void>((resolve) => server.once("listening", resolve));
-        appBase = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-        closeApp = () => {
-            server.close();
-            fs.rmSync(dir, { recursive: true, force: true });
-        };
+        ({ base: appBase, close: closeApp } = await serveApp({
+            "index.html": "<!doctype html><title>MiniGameBot</title>",
+            "assets/index-Ck2qTBk0.js": "export {};",
+        }));
     });
 
     afterAll(() => closeApp());
 
-    it("keeps the page a minute, then shows it while checking it's current", async () => {
+    it("lets only the browser keep the page, for a minute", async () => {
         for (const route of ["/app", "/app/", "/app/index.html"]) {
             const response = await fetch(`${appBase}${route}`);
             expect(response.status, route).toBe(200);
             expect(response.headers.get("content-type"), route).toMatch(/^text\/html/);
-            expect(response.headers.get("cache-control"), route).toBe(
-                "public, max-age=60, stale-while-revalidate=600",
-            );
+            expect(response.headers.get("cache-control"), route).toBe("private, max-age=60");
         }
     });
 
@@ -167,13 +176,15 @@ describe("the app's page and bundles", () => {
         expect(etag).not.toBeNull();
         // As a browser checks what it has: `fetch` would add `Cache-Control: no-cache` to a
         // request with its own `If-None-Match`, which asks for the page whatever
-        const status = await new Promise<number | undefined>((resolve, reject) => {
+        const response = await new Promise<http.IncomingMessage>((resolve, reject) => {
             http.get(`${appBase}/app`, { headers: { "if-none-match": etag! } }, (response) => {
                 response.resume();
-                resolve(response.statusCode);
+                resolve(response);
             }).on("error", reject);
         });
-        expect(status).toBe(304);
+        expect(response.statusCode).toBe(304);
+        // and for another minute
+        expect(response.headers["cache-control"]).toBe("private, max-age=60");
     });
 
     it("keeps the bundles for good, as a release's are new files", async () => {
@@ -182,7 +193,25 @@ describe("the app's page and bundles", () => {
         expect(response.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
     });
 
-    it("doesn't find a bundle that isn't there", async () => {
-        expect((await fetch(`${appBase}/app/assets/index-gone.js`)).status).toBe(404);
+    it("doesn't find a bundle that isn't there, and doesn't say to keep that", async () => {
+        const response = await fetch(`${appBase}/app/assets/index-gone.js`);
+        expect(response.status).toBe(404);
+        expect(response.headers.get("cache-control")).toBeNull();
+    });
+});
+
+describe("an app folder with no page", () => {
+    it("doesn't say to keep the error", async () => {
+        // eg. a broken build
+        const { base, close } = await serveApp({ "assets/index-Ck2qTBk0.js": "export {};" });
+        try {
+            for (const route of ["/app", "/app/index.html"]) {
+                const response = await fetch(`${base}${route}`);
+                expect(response.status, route).toBe(404);
+                expect(response.headers.get("cache-control"), route).toBeNull();
+            }
+        } finally {
+            close();
+        }
     });
 });
