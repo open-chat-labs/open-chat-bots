@@ -86,7 +86,9 @@ function run(deps: Deps): { answers: { status: number; body: unknown }[]; done: 
 describe("/play", () => {
     it("answers with the card it posted, as the command's message, so it shows at once", async () => {
         let posting: () => void = () => {};
-        const { store, posted, deps } = setUp(() => new Promise((resolve) => (posting = resolve)));
+        const { store, posted, deps } = setUp(
+            () => new Promise<void>((resolve) => (posting = resolve)),
+        );
 
         const { answers, done } = run(deps);
         await vi.waitFor(() => expect(posted).toHaveLength(1));
@@ -122,7 +124,7 @@ describe("/play", () => {
 
     it("answers with only an ephemeral message if the card couldn't be posted", async () => {
         const { store, deps } = setUp(async () => {
-            throw new MiniAppServiceError("rejected", 400, "The chat is frozen");
+            throw new MiniAppServiceError("invalid", 400, "The chat is frozen");
         });
 
         const { answers, done } = run(deps);
