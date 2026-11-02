@@ -2,6 +2,7 @@ use super::{
     CanisterId, Chat, CompletedCryptoTransaction, CryptoTransaction, MessageId, MessageIndex,
     Milliseconds, NnsNeuronId, ProposalId, SnsNeuronId, TimestampMillis, UserId, VideoCallType,
 };
+use crate::api::definition::MiniAppDefinition;
 use crate::utils::{serialize_large_uint, serialize_principal_as_bytes, tolerant_enum};
 use ic_principal::Principal;
 use serde::{Deserialize, Serialize};
@@ -333,9 +334,9 @@ pub struct PriceChartSource {
 ///
 /// Its text, app, player limit and whether others can watch are set when it's posted and never
 /// change. Its status is written only by OpenChat's MiniApp service: the players the game starts
-/// with, who joined through the service and whom the bot started it with when a player asked,
-/// whose turn it is, and then its result. The bot tells the service how its game goes, and the
-/// service updates the card.
+/// with, who joined through the service and whom the bot started it with when a player asked, and
+/// then its result. The bot tells the service how its game goes, and the service updates the card.
+/// Whose turn it is isn't stored: the card shows it live, from the service.
 ///
 /// A bot posts one through the MiniApp service, eg. with the offchain SDK's
 /// `MiniAppServiceClient::post`, which posts it as the bot and records its game together, so
@@ -347,9 +348,10 @@ pub struct MiniAppContent {
     /// in notifications, previews and search.
     pub text: String,
     /// Which of the bot's apps the card opens, by its name in the bot's definition
-    /// (`BotDefinition::mini_apps`), eg. "chess", of 1 to 50 characters. OpenChat refuses a card
-    /// whose app isn't in the definition as OpenChat holds it, so after adding an app, update the
-    /// bot's registration.
+    /// (`BotDefinition::mini_apps`), eg. "chess": 1 to 50 characters, each a lowercase ASCII
+    /// letter, a digit, `-` or `_` (see `MiniAppDefinition::is_valid_name`). OpenChat refuses a
+    /// card whose app isn't in the definition as OpenChat holds it, so after adding an app, update
+    /// the bot's registration.
     pub app: String,
     /// The most who can play, 1 to 100, if there's a limit, so the card can show eg. "2 of 4"
     pub max_players: Option<u32>,
@@ -381,10 +383,9 @@ pub enum MiniAppStatus {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MiniAppActive {
-    /// Who the game started with, in the order they joined
+    /// Who the game started with, in the order they joined. Whose turn it is isn't stored: the card
+    /// shows it live, from the MiniApp service.
     pub players: Vec<UserId>,
-    /// The players whose turn it is, or no one in particular, eg. in a game without turns
-    pub waiting_for: Vec<UserId>,
     /// The game's settings as JSON text, if the bot gave any when it started the game, eg. what
     /// the host chose in the lobby: at most 4 KB. OpenChat keeps them and hands them to the app,
     /// and never reads them itself.
@@ -436,7 +437,7 @@ impl MiniAppContent {
     pub const MAX_APP_SIZE: u32 = 10_000;
     pub const MAX_APP_SIZE_RATIO: u32 = 3;
     /// The longest name of one of the bot's apps, as in its definition
-    pub const MAX_APP_NAME_CHARS: usize = 50;
+    pub const MAX_APP_NAME_CHARS: usize = MiniAppDefinition::MAX_NAME_CHARS;
     /// The most an end state, as the bot's JSON serialized, can take up
     pub const MAX_END_STATE_BYTES: usize = 16 * 1024;
 
@@ -482,7 +483,12 @@ impl MiniAppContent {
             return Err("A game is posted open".to_string());
         }
         check_chars("text", &self.text, Self::MAX_TEXT_CHARS)?;
-        check_chars("app", &self.app, Self::MAX_APP_NAME_CHARS)?;
+        if !MiniAppDefinition::is_valid_name(&self.app) {
+            return Err(format!(
+                "The app's name must be 1 to {} lowercase letters, digits, hyphens or underscores",
+                Self::MAX_APP_NAME_CHARS
+            ));
+        }
         if self
             .max_players
             .is_some_and(|max| max == 0 || max as usize > Self::MAX_PLAYERS)
@@ -513,8 +519,8 @@ impl MiniAppContent {
                 ));
             }
         }
-        // OpenChat's other checks are of the players, whose turn it is, the result and the end
-        // state, which an open card has none of
+        // OpenChat's other checks are of the players, the result and the end state, which an open
+        // card has none of
         Ok(())
     }
 }
@@ -1106,7 +1112,6 @@ mod tests {
             MiniAppStatus::Open,
             MiniAppStatus::Active(MiniAppActive {
                 players: vec![user(1), user(2)],
-                waiting_for: vec![user(2)],
                 settings: Some("{\"target\":2048}".to_string()),
             }),
             MiniAppStatus::Finished(MiniAppFinished {
@@ -1182,7 +1187,6 @@ mod tests {
             Open,
             Active {
                 players: Vec<UserId>,
-                waiting_for: Vec<UserId>,
                 settings: Option<String>,
             },
             Finished {
@@ -1201,7 +1205,6 @@ mod tests {
             OpenChatStatus::Open,
             OpenChatStatus::Active {
                 players: vec![user(1), user(2)],
-                waiting_for: vec![user(2)],
                 settings: Some("{\"target\":2048}".to_string()),
             },
             OpenChatStatus::Finished {
@@ -1269,6 +1272,33 @@ mod tests {
         ));
     }
 
+    // OpenChat's cards once stored whose turn it was, which a card from then still has, and which
+    // is ignored
+    #[test]
+    fn an_active_mini_app_which_says_whose_turn_it_is_still_decodes() {
+        #[derive(Serialize)]
+        struct OlderActive {
+            players: Vec<UserId>,
+            waiting_for: Vec<UserId>,
+            settings: Option<String>,
+        }
+        #[derive(Serialize)]
+        enum OlderStatus {
+            Active(OlderActive),
+        }
+
+        let bytes = msgpack::serialize_then_unwrap(OlderStatus::Active(OlderActive {
+            players: vec![user(1), user(2)],
+            waiting_for: vec![user(2)],
+            settings: Some("{\"target\":2048}".to_string()),
+        }));
+
+        assert_eq!(
+            msgpack::deserialize_then_unwrap::<MiniAppStatus>(&bytes),
+            mini_app_statuses()[1]
+        );
+    }
+
     // OpenChat needs every field but the player limit, and reads a nil as none
     #[test]
     fn a_mini_app_is_sent_with_every_field() {
@@ -1325,29 +1355,30 @@ mod tests {
         }
     }
 
-    // Which of the bot's apps it is: OpenChat checks the name's there, and that it's one of the
-    // bot's, which only it can
+    // Which of the bot's apps it is: OpenChat checks the name's a valid one, and that it's one of
+    // the bot's, which only it can
     #[test]
-    fn a_mini_app_names_an_app_in_1_to_50_characters() {
-        assert_eq!(
-            MiniAppContent::new(
-                "é".repeat(MiniAppContent::MAX_APP_NAME_CHARS),
-                "x",
-                440,
-                740
-            )
-            .validate(),
-            Ok(())
-        );
-
-        for app in [
-            String::new(),
-            " \n".to_string(),
-            "x".repeat(MiniAppContent::MAX_APP_NAME_CHARS + 1),
-        ] {
+    fn a_mini_app_names_an_app_in_1_to_50_lowercase_letters_digits_hyphens_or_underscores() {
+        let longest = "x".repeat(MiniAppContent::MAX_APP_NAME_CHARS);
+        for app in ["chess", "2048", "press_counter", "a-b", &longest] {
+            assert!(MiniAppDefinition::is_valid_name(app), "{app}");
             assert_eq!(
                 MiniAppContent::new(app, "x", 440, 740).validate(),
-                Err("The app must have 1 to 50 characters".to_string())
+                Ok(()),
+                "{app}"
+            );
+        }
+
+        let too_long = "x".repeat(MiniAppContent::MAX_APP_NAME_CHARS + 1);
+        for app in ["", "Chess", "my game", "a/b", "é", " \n", &too_long] {
+            assert!(!MiniAppDefinition::is_valid_name(app), "{app}");
+            assert_eq!(
+                MiniAppContent::new(app, "x", 440, 740).validate(),
+                Err(
+                    "The app's name must be 1 to 50 lowercase letters, digits, hyphens or underscores"
+                        .to_string()
+                ),
+                "{app}"
             );
         }
     }

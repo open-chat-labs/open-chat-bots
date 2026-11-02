@@ -6670,7 +6670,6 @@ export const CommunityOrGroup = /* @__PURE__ */ Type.Union([
 export type MiniAppActive = Static<typeof MiniAppActive>;
 export const MiniAppActive = /* @__PURE__ */ Type.Object({
     players: Type.Array(UserId),
-    waiting_for: Type.Array(UserId),
     settings: Type.Optional(Type.String()),
 });
 

@@ -893,16 +893,17 @@ export type PriceChartSource = {
 // without an end state, with its result over it. Its text, app, player limit and whether others
 // can watch are set when it's posted and never change. Its status is written only by OpenChat's
 // MiniApp service: the players the game starts with, who joined through OpenChat and were accepted
-// by the bot, whose turn it is, and then its result and how it ended. Only a bot installed in the
-// chat can send one, needing the MiniApp permission, and it can't be sent in a direct chat nor
-// forwarded. See `MiniAppMessage`.
+// by the bot, and then its result and how it ended. Whose turn it is isn't stored: the card shows it
+// live, from the service. Only a bot installed in the chat can send one, needing the MiniApp
+// permission, and it can't be sent in a direct chat nor forwarded. See `MiniAppMessage`.
 export type MiniAppContent = {
     kind: "mini_app_content";
     // Markdown, eg. "**Uno** · 2 to 4 players", of 1 to 2,000 characters. It's the message's text
     // in notifications, previews and search.
     text: string;
-    // The name of one of the bot's apps in its definition, eg. "chess", of 1 to 50 characters.
-    // OpenChat refuses a card whose app isn't in the bot's definition.
+    // The name of one of the bot's apps in its definition, eg. "chess": 1 to 50 characters, each a
+    // lowercase ASCII letter, a digit, "-" or "_". OpenChat refuses a card whose app isn't in the
+    // bot's definition.
     app: string;
     // The most who can play, 1 to 100, if there's a limit, so the card can show eg. "2 of 4"
     maxPlayers?: number;
@@ -930,10 +931,9 @@ export type MiniAppOpen = {
 
 export type MiniAppActive = {
     kind: "active";
-    // The user ids of those the game started with, in the order they joined
+    // The user ids of those the game started with, in the order they joined. Whose turn it is isn't
+    // stored: the card shows it live, from the MiniApp service.
     players: string[];
-    // The players whose turn it is, or no one in particular, eg. in a game without turns
-    waitingFor: string[];
     // The game's settings as JSON text, if the bot gave any when it started the game. OpenChat
     // keeps them and hands them to the app, and never reads them itself.
     settings?: string;

@@ -20,7 +20,8 @@ export type GameConfig = {
 export type GameType = {
     /**
      * The `/play` command's value, the `game` in the shared state, the `kind` in the store and the
-     * app's name in the bot's definition, which its card names
+     * app's name in the bot's definition, which its card names: 1 to 50 lowercase letters, digits,
+     * hyphens or underscores
      */
     id: GameKind;
     title: string;

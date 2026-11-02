@@ -254,7 +254,10 @@ export class PriceChartMessage extends Message {
 /** The most characters a MiniApp card's text can have */
 export const MINI_APP_MAX_TEXT_CHARS = 2_000;
 
-/** The most characters an app's name, in the bot's definition and on its cards, can have */
+/**
+ * The most characters an app's name, in the bot's definition and on its cards, can have, each a
+ * lowercase ASCII letter, a digit, `-` or `_`
+ */
 export const MINI_APP_MAX_APP_NAME_CHARS = 50;
 
 /** The most players a game can have */
@@ -335,8 +338,8 @@ export class MiniAppMessage extends Message {
  * undefined if it's valid.
  */
 export function validateMiniAppContent(content: Omit<MiniAppContent, "kind">): string | undefined {
-    // OpenChat's other checks are of the players, whose turn it is and the result, which an open
-    // card has none of
+    // OpenChat's other checks are of the players, the result and the end state, which an open card
+    // has none of
     if (content.status.kind !== "open") {
         return "A game is posted open";
     }
@@ -375,13 +378,19 @@ export function validateMiniAppText(text: string): string | undefined {
     return checkChars("text", text, MINI_APP_MAX_TEXT_CHARS);
 }
 
+const MINI_APP_NAME = new RegExp(`^[a-z0-9_-]{1,${MINI_APP_MAX_APP_NAME_CHARS}}$`);
+
 /**
- * Checks the name of a card's app as OpenChat does: not blank, and at most 50 characters. Returns
- * the error OpenChat would give, or undefined if it's valid. Whether the bot's definition has an
- * app of that name is only checked by OpenChat.
+ * Checks the name of a card's app as OpenChat does: 1 to 50 characters, each a lowercase ASCII
+ * letter, a digit, `-` or `_`, eg. "chess", "2048" or "press_counter". Returns the error OpenChat
+ * gives a card, or undefined if it's valid. The same rule applies to the names in the bot's
+ * definition, where OpenChat words its error differently. Whether the bot's definition has an app
+ * of that name is only checked by OpenChat.
  */
 export function validateMiniAppAppName(app: string): string | undefined {
-    return checkChars("app", app, MINI_APP_MAX_APP_NAME_CHARS);
+    return MINI_APP_NAME.test(app)
+        ? undefined
+        : `The app's name must be 1 to ${MINI_APP_MAX_APP_NAME_CHARS} lowercase letters, digits, hyphens or underscores`;
 }
 
 // Not blank, and at most `max` characters, counted in code points, as OpenChat counts Rust's chars

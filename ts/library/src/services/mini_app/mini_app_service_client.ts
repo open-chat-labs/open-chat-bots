@@ -108,11 +108,12 @@ export class MiniAppServiceClient {
     }
 
     /**
-     * Updates one of the bot's games: whose turn it is, its players (only to take some off) and its
-     * state, or ends it, with its result and, as any JSON of at most 16 KB, its end state, which
-     * OpenChat writes to the card and hands to the bot's app, so the card shows how the game ended.
-     * The service writes the card and relays the state. A player starts a game, which the bot
-     * answers at `POST <endpoint>/mini_app/start`.
+     * Updates one of the bot's games: whose turn it is, which the live card shows, its players (only
+     * to take some off) and its state, or ends it, with its result and, as any JSON of at most 16
+     * KB, its end state, which OpenChat writes to the card and hands to the bot's app, so the card
+     * shows how the game ended. The service relays the state, and writes the card in the chat only
+     * when the game finishes. A player starts a game, which the bot answers at
+     * `POST <endpoint>/mini_app/start`.
      */
     async update(update: MiniAppGameUpdate): Promise<void> {
         await this.#call("/bot/update", apiMiniAppGameUpdate(update));

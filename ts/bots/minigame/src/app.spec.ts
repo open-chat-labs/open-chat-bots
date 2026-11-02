@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import type { AddressInfo } from "node:net";
 import path from "node:path";
+import { validateMiniAppAppName } from "@open-ic/openchat-botclient-ts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "./app";
 import { definition } from "./definition";
@@ -49,6 +50,10 @@ describe("GET /bot_definition", () => {
             { name: "chess", image_url: "app/chess.svg" },
         ]);
         expect(json.mini_apps).toHaveLength(GAMES.length);
+        // Each named as OpenChat takes an app's name
+        for (const app of json.mini_apps ?? []) {
+            expect(validateMiniAppAppName(app.name)).toBeUndefined();
+        }
         expect(json.description).toContain("chess");
         // Both games are choices of `/play`
         expect(json.commands[0].params[0].param_type.StringParam.choices).toEqual([
