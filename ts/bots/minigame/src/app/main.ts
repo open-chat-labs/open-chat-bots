@@ -2,7 +2,8 @@
 // (`appSize` in the registry), or full screen. It connects to OpenChat with the SDK's browser
 // client and shows whichever game the card is for, by the `game` in the shared state, or in the end
 // state once the game's over: the 2048 race (`race2048/view.ts`), chess (`chess/view.ts`), Four in
-// a Row (`fourinarow/view.ts`), Reversi (`reversi/view.ts`) or the maze race (`maze/view.ts`). The
+// a Row (`fourinarow/view.ts`), Reversi (`reversi/view.ts`), the maze race (`maze/view.ts`) or
+// ChatMan (`chatman/view.ts`). The
 // lobby before a game starts is the page's own, the same for every game, with the game's own blurb.
 //
 // A game that's over is drawn from its end state, which the card keeps for good, so the views read
@@ -12,6 +13,7 @@
 // release free to change the encoding. One from an older bot is about to be replaced, as the bot
 // publishes every unfinished game when it starts, so the page waits for that.
 import { connectToOpenChat, type MiniAppClient } from "@open-ic/openchat-botclient-ts/mini_app";
+import { chatmanView } from "./chatman/view";
 import { chessView } from "./chess/view";
 import { fourInARowView } from "./fourinarow/view";
 import { mazeView } from "./maze/view";
@@ -19,7 +21,14 @@ import { raceView } from "./race2048/view";
 import { reversiView } from "./reversi/view";
 import type { BaseState, GameView, Lobby, Seat, ViewContext } from "./view";
 
-const VIEWS: readonly GameView[] = [raceView, chessView, fourInARowView, reversiView, mazeView];
+const VIEWS: readonly GameView[] = [
+    raceView,
+    chessView,
+    fourInARowView,
+    reversiView,
+    mazeView,
+    chatmanView,
+];
 
 const root = document.getElementById("app") as HTMLElement;
 

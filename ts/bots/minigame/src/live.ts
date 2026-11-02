@@ -110,16 +110,20 @@ export class LiveHub {
 
     /**
      * Sends the game's state to everyone connected to it, once, however many changes come in
-     * meanwhile: called for each change, from wherever it came
+     * meanwhile: called for each change, from wherever it came. That's at once, or after the
+     * game's own `liveEveryMs`.
      */
     changed(game: MiniAppGame): void {
         const key = miniAppGameKey(game);
         if (!this.#rooms.has(key) || this.#due.has(key)) return;
         this.#due.add(key);
-        setImmediate(() => {
+        const send = () => {
             this.#due.delete(key);
             this.#sendState(game, key);
-        });
+        };
+        const delay = this.#deps.store.get(game)?.play.liveEveryMs?.() ?? 0;
+        if (delay > 0) setTimeout(send, delay);
+        else setImmediate(send);
     }
 
     close(): void {

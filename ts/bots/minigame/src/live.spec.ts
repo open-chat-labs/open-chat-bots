@@ -126,6 +126,21 @@ describe("the live socket", () => {
         expect((await alice.next()).shared?.racers[0].ack).toBe(1);
     });
 
+    it("waits the game's own pace before sending a change, for a game that asks to", async () => {
+        const { race, hub, url } = await setUp();
+        const alice = await hello(url);
+        Object.assign(race, { liveEveryMs: () => 60 });
+        const from = Date.now();
+        race.data.players[1].x = 1;
+        hub.changed(game);
+        race.data.players[1].x = 2;
+        hub.changed(game);
+        const sent = await alice.next();
+        expect(Date.now() - from).toBeGreaterThanOrEqual(50);
+        // Both changes, in the one message
+        expect(sent.shared?.racers[1].x).toBe(2);
+    });
+
     it("says why a move was refused", async () => {
         const { url } = await setUp();
         const alice = await hello(url);

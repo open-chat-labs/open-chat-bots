@@ -1,7 +1,7 @@
 # MiniGameBot
 
 Games played from MiniApp cards in OpenChat chats. `/play <game>` posts a card; people join from the
-card, a player starts the game, and it's played in the card, in the bot's own page. Five games:
+card, a player starts the game, and it's played in the card, in the bot's own page. Six games:
 
 - a **2048 race**: up to 100 players, each on their own board, and the first to make a 2048 tile
   wins, or the top score when 10 minutes are up. A player whose board gets stuck restarts on a fresh
@@ -24,7 +24,13 @@ card, a player starts the game, and it's played in the card, in the bot's own pa
 - a **maze race**: up to 10 players race through the same maze, 15 by 15 unless the host sets
   otherwise, from the top left to the bottom right, and everyone sees everyone else move, live. The
   first out wins, or whoever's closest to the way out when the 3 minutes are up. The mazes are
-  carved from a seed, from scratch, and moves go over a WebSocket to the bot (see "Live games").
+  carved from a seed, from scratch, and moves go over a WebSocket to the bot (see "Live games");
+- **ChatMan**: up to 10 players, each with their own ChatMan, the OpenChat logo, in the same mazes
+  with the same spam bots, at the same time. ChatMan eats the dots and dodges the spam bots, and a
+  power pellet frightens them for a few seconds, when he can eat them too. A cleared maze leads to
+  the next level's. The top score wins when the 3 minutes are up, or when everyone's out of their 3
+  lives, unless the host sets otherwise. It's built from scratch, its mazes, spam bots and look its
+  own, and it's played live (see "ChatMan").
 
 The bot is a TypeScript Express server, built on the SDK in [`ts/library`](../../library), and the
 page is a small browser app built with Vite from the same source tree, so the server and the page
@@ -47,7 +53,7 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    change, and the lobby's form.
 2. **Joining** goes through OpenChat's buttons on the card. The service asks the bot at
    `POST /mini_app/join`, which looks the user's name up and gives them a seat: up to 100 in a race,
-   10 in a maze race, two at chess, Four in a Row and Reversi ("This game is for two" after that,
+   10 in a maze race or at ChatMan, two at chess, Four in a Row and Reversi ("This game is for two" after that,
    "The game has started" once it has). Leaving, `POST /mini_app/leave`, frees the seat before the
    start. After it, a race goes on without them; a game of two can't, so it ends, the result being
    that they "left the game". The lobby's seats are published as the game's state, so the page shows
@@ -79,6 +85,9 @@ which the store, the handlers, the sweep and the publisher use, and which each g
      `{ "type": "act", "body": { "move": "left", "n": 7 } }`, where `n` counts the racer's moves
      from 1, and the bot sends the new state to every racer at once; `POST /api/maze/move` with the
      same body takes a move while the socket's reconnecting.
+   - **ChatMan**: each turn goes over the live socket too,
+     `{ "type": "act", "body": { "turn": "left", "n": 7, "tick": 1234 } }`, with the tick it was
+     taken at, and `POST /api/chatman/turn` takes one while the socket's reconnecting.
 5. **The clock**. The bot checks every game's clock every second, and before every request, so a
    game ends on time whether or not anyone's still playing, and so does one that was running when
    the bot last stopped. A race ends when its 10 minutes are up, and the top score wins: a player's
@@ -89,11 +98,15 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    time", or it's a draw if they haven't the material to mate with. Four in a Row's and Reversi's
    clocks are the same, with three and five minutes each unless set, and a flag falling always
    loses. A maze race ends when its 3 minutes are up, and whoever's closest to the way out wins.
+   ChatMan's boards play on by themselves, so the bot plays them on every second too, and
+   publishes them; a game ends when its 3 minutes are up, or everyone's out of lives, and the top
+   score wins, ties going to whoever joined first.
 6. **The end**. The bot publishes the final state with `status: "finished"` and the result, which
    the card shows: "@alice reached 2048 in 2m 15s", "Time's up! @alice won with 5,432 points",
    "White won by checkmate", "Black won on time", "Draw by agreement", "Draw by stalemate", "@alice
    won with four in a row", "@bob resigned", "Draw: the grid is full", "@alice won 40 to 24", "Draw,
-   32 discs each", "@alice got out in 1m 12s", "Time's up! @alice got closest to the way out" and so
+   32 discs each", "@alice got out in 1m 12s", "Time's up! @alice got closest to the way out",
+   "@alice won with 1,240 points", "@alice scored 980 points" for ChatMan played alone, and so
    on. The race's and a duel's results name players with `@UserId(<id>)` mentions, so the card shows
    their usernames as they are now. With it goes the game's **end state**, which OpenChat keeps in
    the card and hands to the page, so anyone opening a finished card sees how it went, read-only,
@@ -105,7 +118,7 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    `truncated`, and one too long even for that sends no end state, so the card shows the image and
    the result. A duel's end state is its final shared state, whose moves the page replays to step
    through, and a maze race's is too, with the maze's seed, so the page carves the maze again and
-   draws the way out.
+   draws the way out. ChatMan's is its final state, every board as it finished.
 
 The chess state everyone sees is the Rust ChessBot's, with the players' names added:
 
@@ -158,7 +171,7 @@ that's a newer version, a game it doesn't know, or anything but an object with a
 One from an older bot shows "Loading…" until the bot publishes it again as it starts.
 
 The bot's definition lists each game's app with its image, `app/2048.svg`, `app/chess.svg`,
-`app/four-in-a-row.svg`, `app/reversi.svg` and `app/maze.svg`, hand-drawn SVGs served from
+`app/four-in-a-row.svg`, `app/reversi.svg`, `app/maze.svg` and `app/chatman.svg`, SVGs served from
 `src/app/public`, which OpenChat shows in the card's frame whenever there's no page to show: before
 it loads, to someone who can't open the game, and over a finished game with no end state.
 
@@ -254,9 +267,51 @@ Spectators have no token, so they've no socket: they get the states through the 
 every 250 ms, which the page draws sliding from cell to cell. The bot publishes a live game through
 the service as it does any other, for spectators, latecomers and the card.
 
+The socket sends each change at once, unless the game asks it to wait (`Game.liveEveryMs`) and
+coalesce what comes meanwhile, as ChatMan does, whose pages play the boards on between states. On
+the page, `src/app/live.ts` keeps the socket: it says hello, reconnects, refreshes an expired token,
+and tells the view when it's back, for the moves to go again.
+
 The bot runs as one long-lived process, so the sockets live alongside the games in memory.
 Whatever's in front of it has to pass WebSocket upgrades through: CloudFront does, if its
 distribution forwards the handshake's headers to the origin.
+
+## ChatMan
+
+Everyone has their own board, in the same mazes with the same spam bots, and the rules
+(`src/games/chatman/rules.ts`) play a board a tick at a time, 20 ticks a second, from its turns
+alone, in whole numbers, so the bot and the page play it the same way. The spam bots' wandering comes
+from a seeded source the board carries.
+
+- **The page plays first.** A turn takes effect on the page at once, and goes to the bot with the
+  tick it was taken at. The bot plays every board itself, 10 ticks behind the game's clock
+  (`LAG_TICKS`, half a second), taking each turn at its tick, so it doesn't take a page's word for a
+  score. A turn that arrives later than that is taken at the tick the bot's got to, and one more
+  than 2 seconds ahead of the bot's clock is refused; the bot holds 32 at most that it hasn't
+  reached.
+- **The state has every board** as the bot has it, packed (`pack`: its numbers, the dots left as a
+  bit each, the actors as arrays), about 300 bytes each, with the turns the bot has had but not
+  reached, and the bot's clock as it sent it. The page sets its clock by that: as a state can only
+  arrive late, the most any state says is the best guess. It plays its own board on from the
+  bot's with its own turns the bot hasn't had, so a late turn puts ChatMan where the bot has him,
+  and everyone else's with what the bot's had of theirs, as far as the bot will have them.
+- **The mazes** (`src/games/chatman/maze.ts`) come from the game's seed and the level: the left half
+  carved as the maze race's mazes are, its dead ends opened into loops and a few more walls taken
+  out, then mirrored, with the spam bots' pen in the middle and ChatMan's start below it. A test
+  pins a seed's maze, so the page and the bot agree in any engine.
+- **The spam bots** leave the pen three seconds apart, then make for their corners for 5 seconds and
+  chase for 20, three times, then only chase: one at ChatMan, one at the tiles ahead of him, one
+  wandering, and one at him from afar, which makes for its corner once it's close. A power pellet
+  frightens them for 8 seconds, a second less each level and 3 at least, when they slow down and
+  wander, and each eaten is worth double the last, from 100 to 800. From the third level they're
+  quicker.
+- **The page** draws the player's board, and a spectator's choice of anyone's, the leader's unless
+  they pick, every frame, each actor part of the way to its next tile, with everyone's scores and
+  lives under it. ChatMan is the OpenChat logo, its purple segment his lips.
+
+The game plays on without anyone moving, so it implements `Game.tick`, which the bot calls every
+second, publishing the game when its boards have moved, and `Game.liveEveryMs`, so the socket sends a
+state 10 times a second at most however many turns come in.
 
 ## Adding a game
 
@@ -277,7 +332,9 @@ distribution forwards the handshake's headers to the origin.
 - A game of two taking turns is quicker as a duel (see "Duels"): its `DuelRules`, a registry entry
   made with `Duel` and listed in `DUELS`, which routes its requests, and a `DuelBoard` for the page.
 - A game whose players need each other's moves at once implements `receive`, and its page opens the
-  live socket (see "Live games" and `src/app/maze/view.ts`).
+  live socket with `src/app/live.ts` (see "Live games" and `src/app/maze/view.ts`).
+- A game that plays on by itself, with no one moving, implements `tick`, and may pace its live
+  states with `liveEveryMs`, as ChatMan does.
 
 ## Running it locally
 

@@ -1253,3 +1253,126 @@ button.link {
     color: var(--muted);
     font-variant-numeric: tabular-nums;
 }
+
+/*
+ * ChatMan: the score, level and lives over the maze, the maze on a canvas as big as the frame
+ * allows, with what's going on over it, the arrows under it on a phone, and everyone's scores
+ */
+.chatman {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    max-width: 440px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.chatman-status {
+    margin: 0 0 6px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.chatman-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+    font-variant-numeric: tabular-nums;
+}
+
+.chatman-score {
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.chatman-level {
+    flex: 1;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.chatman-lives,
+.chatman-standings .lives {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.chatman-stage {
+    position: relative;
+}
+
+.chatman-board {
+    display: block;
+    width: 100%;
+    aspect-ratio: 19 / 21;
+    margin: 0 auto;
+    border-radius: 8px;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.chatman-banner {
+    position: absolute;
+    left: 50%;
+    top: 45%;
+    transform: translate(-50%, -50%);
+    padding: 6px 16px;
+    border-radius: 10px;
+    background: rgba(15, 16, 22, 0.85);
+    color: #ffd9a8;
+    font-size: 22px;
+    font-weight: 700;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.chatman-standings {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    font-size: 14px;
+}
+
+.chatman-standings li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 6px;
+    border-radius: 6px;
+}
+
+.chatman-standings li.mine,
+.chatman-standings li.watched {
+    background: var(--panel);
+    font-weight: 600;
+}
+
+.chatman-standings li[data-action] {
+    cursor: pointer;
+}
+
+.chatman-standings .who {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chatman-standings .lives {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.chatman-standings .score {
+    min-width: 4em;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.life {
+    display: block;
+    flex: none;
+}

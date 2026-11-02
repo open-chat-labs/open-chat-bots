@@ -68,6 +68,7 @@ describe("GET /bot_definition", () => {
             { name: "four-in-a-row", image_url: "app/four-in-a-row.svg" },
             { name: "reversi", image_url: "app/reversi.svg" },
             { name: "maze", image_url: "app/maze.svg" },
+            { name: "chatman", image_url: "app/chatman.svg" },
         ]);
         expect(json.mini_apps).toHaveLength(GAMES.length);
         // Each named as OpenChat takes an app's name
@@ -82,6 +83,7 @@ describe("GET /bot_definition", () => {
             { name: "Four in a Row", value: "four-in-a-row" },
             { name: "Reversi", value: "reversi" },
             { name: "Maze Race", value: "maze" },
+            { name: "ChatMan", value: "chatman" },
         ]);
     });
 

@@ -1,5 +1,6 @@
 import { GroupChatIdentifier, type MiniAppGame } from "@open-ic/openchat-botclient-ts";
 import { describe, expect, it, vi } from "vitest";
+import { ChatManRace } from "./games/chatman/race";
 import { ChessGame } from "./games/chess/chess";
 import { TIME_PER_SIDE_MS } from "./games/chess/types";
 import { Race2048 } from "./games/race2048/race";
@@ -51,5 +52,31 @@ describe("the sweep", () => {
         expect(publish).toHaveBeenLastCalledWith(raceCard);
         expect(race.result()).toBe("Time's up! @UserId(carol) won with 0 points");
         expect(endGamesOutOfTime(store, publisher)).toBe(0);
+    });
+
+    it("publishes a game that's moved on by itself, as ChatMan's boards do, and saves it", () => {
+        let now = 1_000_000;
+        const clock = () => now;
+        const store = new GameStore(undefined, clock);
+        const save = vi.spyOn(store, "save");
+        const publish = vi.fn();
+        const publisher = { publish } as unknown as Publisher;
+        const chatman = ChatManRace.create({ now: clock });
+        chatman.join("alice", "Alice");
+        chatman.start();
+        store.create(raceCard, chatman);
+        save.mockClear();
+
+        // Still counting down: nothing's moved
+        expect(endGamesOutOfTime(store, publisher)).toBe(0);
+        expect(publish).not.toHaveBeenCalled();
+
+        now = chatman.data.playsAt! + 2000;
+        expect(endGamesOutOfTime(store, publisher)).toBe(0);
+        expect(publish).toHaveBeenCalledWith(raceCard);
+        expect(save).toHaveBeenCalled();
+        // Not again until it moves again
+        expect(endGamesOutOfTime(store, publisher)).toBe(0);
+        expect(publish).toHaveBeenCalledTimes(1);
     });
 });

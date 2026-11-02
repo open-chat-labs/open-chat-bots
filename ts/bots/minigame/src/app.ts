@@ -7,6 +7,7 @@ import { definition } from "./definition";
 import type { Deps } from "./deps";
 import { DUELS } from "./games/registry";
 import {
+    chatmanTurn,
     chessDraw,
     chessMove,
     chessResign,
@@ -58,6 +59,8 @@ export function createApp(deps: Deps, appDir: string): Express {
 
     // A racer's move in a maze race while their socket's not open; it's usually live (`live.ts`)
     app.post("/api/maze/move", express.json(), handle(mazeMove));
+    // A ChatMan player's turn, likewise
+    app.post("/api/chatman/turn", express.json(), handle(chatmanTurn));
 
     // Anyone with a game open, watching included, and anyone opening a finished card: no token
     app.get("/api/names", handle(userNames));

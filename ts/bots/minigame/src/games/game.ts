@@ -3,7 +3,7 @@
 // sees. A game's own moves are its own, under `handlers/api.ts`.
 import type { Settings } from "./settings";
 
-export type GameKind = "2048" | "chess" | "four-in-a-row" | "reversi" | "maze";
+export type GameKind = "2048" | "chess" | "four-in-a-row" | "reversi" | "maze" | "chatman";
 
 export type ConfigureResult = { ok: true } | { ok: false; error: string };
 
@@ -68,6 +68,12 @@ export interface Game {
      */
     endIfTimeUp(): boolean;
     /**
+     * Moves a game that plays itself on in real time, eg. ChatMan's spam bots, on to now: called
+     * every second by the bot, which publishes the game when this says it changed. Left out by a
+     * game that only changes when someone moves.
+     */
+    tick?(): boolean;
+    /**
      * The bot was down for `downMs` between saving the game and loading it back. A game with a
      * clock that runs against a player doesn't charge them for it. Whether the game changed, when
      * it's saved again.
@@ -79,6 +85,12 @@ export interface Game {
      * game says otherwise.
      */
     publishEveryMs(): number;
+    /**
+     * How long the live socket waits to send a change to the players connected, coalescing those
+     * that come meanwhile, for a game whose pages play on between states. At once unless the
+     * game says otherwise.
+     */
+    liveEveryMs?(): number;
     /** The next state's `seq`, above every state published before */
     nextSeq(): number;
     /** The state everyone sees, with a `version` and the `game`'s id */
