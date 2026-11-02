@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 640" width="440" height="640" role="img" aria-label="Reversi">
+  <!--
+    Reversi's image, at the app's aspect ratio (440 by 640): OpenChat shows it in the card's frame
+    box whenever there's no app to show. Its background is opaque, so it reads the same on a light
+    or a dark page. No fonts, scripts or references. The colours are the page's (style.css).
+  -->
+  <rect width="440" height="640" fill="#faf8ef"/>
+  <!-- The board, eight by eight squares of 44, mid-game -->
+  <rect x="34" y="56" width="372" height="372" rx="8" fill="#bbada0"/>
+  <rect x="44" y="66" width="352" height="352" fill="#2f7d4f"/>
+  <g stroke="#000000" stroke-opacity="0.3" stroke-width="1">
+    <line x1="88" y1="66" x2="88" y2="418"/>
+    <line x1="44" y1="110" x2="396" y2="110"/>
+    <line x1="132" y1="66" x2="132" y2="418"/>
+    <line x1="44" y1="154" x2="396" y2="154"/>
+    <line x1="176" y1="66" x2="176" y2="418"/>
+    <line x1="44" y1="198" x2="396" y2="198"/>
+    <line x1="220" y1="66" x2="220" y2="418"/>
+    <line x1="44" y1="242" x2="396" y2="242"/>
+    <line x1="264" y1="66" x2="264" y2="418"/>
+    <line x1="44" y1="286" x2="396" y2="286"/>
+    <line x1="308" y1="66" x2="308" y2="418"/>
+    <line x1="44" y1="330" x2="396" y2="330"/>
+    <line x1="352" y1="66" x2="352" y2="418"/>
+    <line x1="44" y1="374" x2="396" y2="374"/>
+  </g>
+  <circle cx="154" cy="176" r="17" fill="#f4f4f2"/>
+  <circle cx="198" cy="176" r="17" fill="#f4f4f2"/>
+  <circle cx="242" cy="176" r="17" fill="#f4f4f2"/>
+  <circle cx="154" cy="220" r="17" fill="#1d1d1f"/>
+  <circle cx="198" cy="220" r="17" fill="#1d1d1f"/>
+  <circle cx="242" cy="220" r="17" fill="#f4f4f2"/>
+  <circle cx="286" cy="220" r="17" fill="#1d1d1f"/>
+  <circle cx="198" cy="264" r="17" fill="#1d1d1f"/>
+  <circle cx="242" cy="264" r="17" fill="#f4f4f2"/>
+  <circle cx="286" cy="264" r="17" fill="#f4f4f2"/>
+  <circle cx="198" cy="308" r="17" fill="#1d1d1f"/>
+  <circle cx="242" cy="308" r="17" fill="#1d1d1f"/>
+  <circle cx="286" cy="308" r="17" fill="#1d1d1f"/>
+  <circle cx="330" cy="308" r="17" fill="#f4f4f2"/>
+  <circle cx="242" cy="352" r="17" fill="#1d1d1f"/>
+  <!-- The name, under the board -->
+  <text x="220" y="520" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="60" font-weight="bold" fill="#776e65" text-anchor="middle">Reversi</text>
+  <text x="220" y="564" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="22" fill="#8f877d" text-anchor="middle">Two players, five minutes each</text>
+</svg>

@@ -7,6 +7,7 @@ import { CHESS_SETTINGS } from "./chess/settings";
 import { GAME_ID as CHESS_ID } from "./chess/types";
 import { Duel, type DuelData } from "./duel/duel";
 import { FOUR_IN_A_ROW } from "./fourinarow/rules";
+import { REVERSI } from "./reversi/rules";
 import type { Game, GameKind, Host } from "./game";
 import { Race2048, type RaceData } from "./race2048/race";
 import { RACE_SETTINGS } from "./race2048/settings";
@@ -105,10 +106,24 @@ export const FOUR: GameType = {
     fromJson: (data) => new Duel(FOUR_IN_A_ROW, data as DuelData<number>),
 };
 
-export const GAMES: readonly GameType[] = [RACE_2048, CHESS, FOUR];
+export const REVERSI_GAME: GameType = {
+    id: REVERSI.kind,
+    title: REVERSI.title,
+    image: "app/reversi.svg",
+    cardText: "**Reversi** · two players, anyone can watch",
+    maxPlayers: 2,
+    spectators: true,
+    settings: REVERSI.settings,
+    // A portrait frame: a player above the board and a player below it
+    appSize: { width: 440, height: 640 },
+    create: (_config, settings, host) => Duel.create(REVERSI, { settings, host }),
+    fromJson: (data) => new Duel(REVERSI, data as DuelData<string>),
+};
+
+export const GAMES: readonly GameType[] = [RACE_2048, CHESS, FOUR, REVERSI_GAME];
 
 /** The games played as a duel (`games/duel`), whose moves and resignations are the same requests */
-export const DUELS: readonly GameKind[] = [FOUR_IN_A_ROW.kind];
+export const DUELS: readonly GameKind[] = [FOUR_IN_A_ROW.kind, REVERSI.kind];
 
 export function gameType(id: string | undefined): GameType | undefined {
     return GAMES.find((game) => game.id === id);

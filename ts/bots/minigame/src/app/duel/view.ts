@@ -40,11 +40,16 @@ export type DuelBoard<M, P extends Position<M>> = {
     ): void;
     /** The move a tapped element with `data-move` stands for */
     moveOf(el: HTMLElement): M | undefined;
+    /** What a seat has on the board, eg. Reversi's discs, shown by the player's name */
+    score?(position: P, seat: Seat): number;
+    /** Something about the position worth saying under whose move it is, eg. that a player passed */
+    note?(position: P, name: (seat: Seat) => string): string | undefined;
 };
 
 type Dom = {
     root: HTMLElement;
     status: HTMLElement;
+    note: HTMLElement;
     rows: [HTMLElement, HTMLElement];
     board: HTMLElement;
     controls: HTMLElement;
@@ -117,8 +122,9 @@ export function duelView<M, P extends Position<M>>(
         const row = (seat: Seat) =>
             `<div class="player-row" data-seat="${seat}"><span class="name"></span><span class="duel-clock"></span></div>`;
         body.innerHTML = `
-            <div class="duel">
+            <div class="duel duel-${board.className}">
                 <p class="duel-status"></p>
+                <p class="duel-note"></p>
                 ${row(1)}
                 <div class="duel-board ${board.className}" role="grid" aria-label="${rules.title}"></div>
                 ${row(0)}
@@ -138,6 +144,7 @@ export function duelView<M, P extends Position<M>>(
         dom = {
             root,
             status: q(".duel-status"),
+            note: q(".duel-note"),
             // The row under the board first: the viewer's, or the first to move's
             rows: [rows[1], rows[0]],
             board: q(".duel-board"),
@@ -234,6 +241,11 @@ export function duelView<M, P extends Position<M>>(
                     : `${name(s, s.players[position.turn])} to move`;
         }
 
+        dom.note.textContent =
+            s.phase === "open"
+                ? ""
+                : (board.note?.(position, (seat) => name(s, s.players[seat])) ?? "");
+
         // The viewer's seat at the bottom, or the first to move if they're watching
         const bottom: Seat = mine ?? 0;
         const running = end !== undefined ? null : (s.clock?.running ?? null);
@@ -241,8 +253,12 @@ export function duelView<M, P extends Position<M>>(
             const seat = (i === 0 ? bottom : 1 - bottom) as Seat;
             row.dataset.seat = String(seat);
             const id = s.phase === "open" ? undefined : s.players[seat];
+            const score =
+                board.score === undefined || s.phase === "open"
+                    ? ""
+                    : `<span class="score">${board.score(position, seat)}</span>`;
             row.querySelector(".name")!.innerHTML =
-                `<span class="disc-swatch seat-${seat}"></span>${escape(name(s, id))}`;
+                `<span class="disc-swatch seat-${seat}"></span>${escape(name(s, id))}${score}`;
             row.classList.toggle("active", running === seat);
             (row.querySelector(".duel-clock") as HTMLElement).hidden = end !== undefined;
         }

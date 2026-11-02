@@ -21,6 +21,8 @@
     /* A duel's two players' discs, eg. Four in a Row's: who moves first, then the other */
     --disc-0: #e8704a;
     --disc-1: #3f7fd0;
+    /* Reversi's board */
+    --felt: #2f7d4f;
     color-scheme: light;
 }
 
@@ -42,6 +44,7 @@
     --error: #ff6961;
     --disc-0: #f08a5d;
     --disc-1: #5b9bef;
+    --felt: #286b44;
     color-scheme: dark;
 }
 
@@ -915,6 +918,24 @@ button.link {
     font-weight: 600;
 }
 
+/* Something about the position, eg. that a player passed: no room taken when there's nothing */
+.duel-note {
+    margin: -4px 0 8px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.duel-note:empty {
+    display: none;
+}
+
+.player-row .score {
+    margin-left: 8px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
 .duel-board {
     width: 100%;
     max-width: var(--board-max, 100%);
@@ -1052,4 +1073,113 @@ button.link {
 .grid .disc.win::after {
     inset: 28%;
     background: rgba(255, 255, 255, 0.9);
+}
+
+/*
+ * Reversi's board: eight by eight squares with no gaps, so it stays square. Black and White are
+ * the duel's two discs here. A disc that's flipped turns over edgeways, changing colour halfway.
+ */
+.duel-reversi {
+    --disc-0: #1d1d1f;
+    --disc-1: #f4f4f2;
+}
+
+.duel-reversi .disc-swatch {
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.reversi {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    background: var(--felt);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.reversi .square {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.3);
+}
+
+.reversi .square.playable {
+    cursor: pointer;
+}
+
+/* A square the player can take: a dot, and their disc, faint, under the pointer */
+.reversi .square.hint::after {
+    content: "";
+    position: absolute;
+    inset: 41%;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.reversi .square.hint:hover::after {
+    inset: 10%;
+    opacity: 0.45;
+}
+
+.reversi .square.hint.seat-0:hover::after {
+    background: var(--disc-0);
+}
+
+.reversi .square.hint.seat-1:hover::after {
+    background: var(--disc-1);
+}
+
+.reversi .disc {
+    position: absolute;
+    inset: 10%;
+    z-index: 1;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.reversi .disc.seat-0.flip {
+    --flip-from: var(--disc-1);
+}
+
+.reversi .disc.seat-1.flip {
+    --flip-from: var(--disc-0);
+}
+
+.reversi .disc.flip {
+    animation: reversi-flip 380ms ease-in-out;
+}
+
+@keyframes reversi-flip {
+    0% {
+        transform: scaleX(1);
+        background: var(--flip-from);
+    }
+    50% {
+        transform: scaleX(0);
+        background: var(--flip-from);
+    }
+    51% {
+        transform: scaleX(0);
+    }
+}
+
+.reversi .disc.placed {
+    animation: reversi-place 180ms ease-out;
+}
+
+@keyframes reversi-place {
+    from {
+        transform: scale(0.4);
+        opacity: 0.4;
+    }
+}
+
+/* The disc just put down */
+.reversi .disc.last::after {
+    content: "";
+    position: absolute;
+    inset: 40%;
+    border-radius: 50%;
+    background: var(--accent);
 }

@@ -1,7 +1,7 @@
 # MiniGameBot
 
-Games played from MiniApp cards in OpenChat chats. `/play <game>` posts a card; people join from
-the card, a player starts the game, and it's played in the card, in the bot's own page. Three games:
+Games played from MiniApp cards in OpenChat chats. `/play <game>` posts a card; people join from the
+card, a player starts the game, and it's played in the card, in the bot's own page. Four games:
 
 - a **2048 race**: up to 100 players, each on their own board, and the first to make a 2048 tile
   wins, or the top score when 10 minutes are up. A player whose board gets stuck restarts on a fresh
@@ -15,7 +15,12 @@ the card, a player starts the game, and it's played in the card, in the bot's ow
 - **Four in a Row**: two players, which everyone else can watch, taking turns to drop a disc into a
   grid seven wide and six high, with three minutes each on the clock and who goes first chosen at
   random, unless the host sets otherwise. Four in a line, across, up or on a diagonal, wins, and a
-  full grid is a draw. Its rules are built from scratch, and it's the first duel (see "Duels").
+  full grid is a draw. Its rules are built from scratch, and it's the first duel (see "Duels");
+- **Reversi**: two players, which everyone else can watch, on an eight by eight board, with five
+  minutes each on the clock and who plays Black, and goes first, chosen at random, unless the host
+  sets otherwise. A disc flips every line of the other player's discs it flanks, a player with no
+  move passes, and when neither can move the one with more discs wins. Its rules are built from
+  scratch, and it's a duel too.
 
 The bot is a TypeScript Express server, built on the SDK in [`ts/library`](../../library), and the
 page is a small browser app built with Vite from the same source tree, so the server and the page
@@ -38,11 +43,11 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    change, and the lobby's form.
 2. **Joining** goes through OpenChat's buttons on the card. The service asks the bot at
    `POST /mini_app/join`, which looks the user's name up and gives them a seat: up to 100 in a race,
-   two at chess and Four in a Row ("This game is for two" after that, "The game has started" once
-   it has). Leaving, `POST /mini_app/leave`, frees the seat before the start. After it, a race goes
-   on without them; a game of two can't, so it ends, the result being that they "left the game".
-   The lobby's seats are
-   published as the game's state, so the page shows who's joined.
+   two at chess, Four in a Row and Reversi ("This game is for two" after that, "The game has
+   started" once it has). Leaving, `POST /mini_app/leave`, frees the seat before the start. After
+   it, a race goes on without them; a game of two can't, so it ends, the result being that they
+   "left the game". The lobby's seats are published as the game's state, so the page shows who's
+   joined.
 3. **Starting**: a player presses Start in the page, OpenChat asks the bot at
    `POST /mini_app/start`, and the bot answers with the players, the first state and the game's
    settings, which the card keeps from then on and OpenChat hands to the app. A race deals
@@ -64,29 +69,33 @@ which the store, the handlers, the sweep and the publisher use, and which each g
      something the game doesn't allow, eg. a move out of turn, or after the time has run out.
    - **Four in a Row**: `POST /api/four-in-a-row/move` with `{ "move": 3 }`, the column, counting
      from 0 on the left, and `POST /api/four-in-a-row/resign`, each answering as chess's do.
+   - **Reversi**: `POST /api/reversi/move` with `{ "move": "d3" }`, the square, its column a to h
+     and its row 1 to 8 from the top, and `POST /api/reversi/resign`, answering the same way.
 5. **The clock**. The bot checks every game's clock every second, and before every request, so a
    game ends on time whether or not anyone's still playing, and so does one that was running when
    the bot last stopped. A race ends when its 10 minutes are up, and the top score wins: a player's
    best from any of their boards, as a restart doesn't lose it, ties going to the higher score now,
    then the higher tile, then the fewer restarts. In chess each side has ten minutes for the whole
-   game; each state carries what each side has left and whose clock is running, the page counts
-   down from the state's `clock.at`, and when the side to move's flag falls the other side wins "on
-   time", or it's a draw if they haven't the material to mate with. Four in a Row's clocks are the
-   same, with three minutes each unless set, and a flag falling always loses.
+   game; each state carries what each side has left and whose clock is running, the page counts down
+   from the state's `clock.at`, and when the side to move's flag falls the other side wins "on
+   time", or it's a draw if they haven't the material to mate with. Four in a Row's and Reversi's
+   clocks are the same, with three and five minutes each unless set, and a flag falling always
+   loses.
 6. **The end**. The bot publishes the final state with `status: "finished"` and the result, which
    the card shows: "@alice reached 2048 in 2m 15s", "Time's up! @alice won with 5,432 points",
    "White won by checkmate", "Black won on time", "Draw by agreement", "Draw by stalemate", "@alice
-   won with four in a row", "@bob resigned", "Draw: the grid is full" and so on. The race's and a
-   duel's results name players with `@UserId(<id>)` mentions, so the card shows their usernames as
-   they are now. With it goes the game's **end state**, which OpenChat keeps in the card and hands
-   to the page, so anyone opening a finished card sees how it went, read-only, and a page open as
-   the game finishes shows the same. The 2048 end state is the final shared state, every board, the
-   winner and the times. The chess end state is the result, who played, the moves, and the position
-   before each move and after the last, as the placement field of its FEN, the pieces on the board,
-   which the page steps through with Previous and Next, the arrow keys, or a tap on a move; a game
-   too long for the service's 16 KB keeps only its final position, marked `truncated`, and one too
-   long even for that sends no end state, so the card shows the image and the result. A duel's end
-   state is its final shared state, whose moves the page replays to step through.
+   won with four in a row", "@bob resigned", "Draw: the grid is full", "@alice won 40 to 24", "Draw,
+   32 discs each" and so on. The race's and a duel's results name players with `@UserId(<id>)`
+   mentions, so the card shows their usernames as they are now. With it goes the game's **end
+   state**, which OpenChat keeps in the card and hands to the page, so anyone opening a finished
+   card sees how it went, read-only, and a page open as the game finishes shows the same. The 2048
+   end state is the final shared state, every board, the winner and the times. The chess end state
+   is the result, who played, the moves, and the position before each move and after the last, as
+   the placement field of its FEN, the pieces on the board, which the page steps through with
+   Previous and Next, the arrow keys, or a tap on a move; a game too long for the service's 16 KB
+   keeps only its final position, marked `truncated`, and one too long even for that sends no end
+   state, so the card shows the image and the result. A duel's end state is its final shared state,
+   whose moves the page replays to step through.
 
 The chess state everyone sees is the Rust ChessBot's, with the players' names added:
 
@@ -138,10 +147,10 @@ that's a newer version, a game it doesn't know, or anything but an object with a
 `game`, so a later release can change the encoding as long as the page can tell the difference.
 One from an older bot shows "Loading…" until the bot publishes it again as it starts.
 
-The bot's definition lists each game's app with its image, `app/2048.svg`, `app/chess.svg` and
-`app/four-in-a-row.svg`, hand-drawn SVGs served from `src/app/public`, which OpenChat shows in the
-card's frame whenever there's no page to show: before it loads, to someone who can't open the game,
-and over a finished game with no end state.
+The bot's definition lists each game's app with its image, `app/2048.svg`, `app/chess.svg`,
+`app/four-in-a-row.svg` and `app/reversi.svg`, hand-drawn SVGs served from `src/app/public`, which
+OpenChat shows in the card's frame whenever there's no page to show: before it loads, to someone who
+can't open the game, and over a finished game with no end state.
 
 Games are kept in memory and written to `DATA_FILE` (`./data/games.json` by default) on every
 change, each with its `kind`, so a restart doesn't end them. The file says when it was written, and
@@ -172,15 +181,16 @@ service's 16 KB. The page draws the top twenty boards and lists the rest with th
 
 ## Duels
 
-Four in a Row is a duel: a game for two who take turns, each with a clock for the whole game. What
-every duel shares is in `src/games/duel`: the seats, who goes first (the `first` setting, "Turn
-order" in the lobby: random, the host, or the host's opponent), the clocks, resigning, leaving, and
-the result, naming the players with mentions. A game brings its rules, a `Position` that the bot
-and the page both replay from the moves (eg. `src/games/fourinarow/grid.ts`), as `DuelRules`, and
-its board, a `DuelBoard` drawn into the duel's page (`src/app/duel/view.ts`). Its requests are
-`POST /api/<game>/move` and `POST /api/<game>/resign`, routed for each game in `DUELS`. The state
-carries the moves rather than the board, so it stays small, and the page shows players by their
-usernames, looked up by id (`GET /api/names`), as the card names them:
+Four in a Row and Reversi are duels: games for two who take turns, each with a clock for the whole
+game. What every duel shares is in `src/games/duel`: the seats, who goes first (the `first` setting,
+"Turn order" in the lobby: random, the host, or the host's opponent), the clocks, resigning,
+leaving, and the result, naming the players with mentions. A game brings its rules, a `Position`
+that the bot and the page both replay from the moves (eg. `src/games/fourinarow/grid.ts`), as
+`DuelRules`, and its board, a `DuelBoard` drawn into the duel's page (`src/app/duel/view.ts`), which
+can also give a count to show by each player's name and a note under whose move it is, as Reversi's
+discs and passes. Its requests are `POST /api/<game>/move` and `POST /api/<game>/resign`, routed for
+each game in `DUELS`. The state carries the moves rather than the board, so it stays small, and the
+page shows players by their usernames, looked up by id (`GET /api/names`), as the card names them:
 
 ```json
 {
