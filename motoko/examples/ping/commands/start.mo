@@ -56,6 +56,7 @@ module {
                     min_value = 2;
                     choices = [];
                 };
+                visible_when = null;
             }];
             permissions = {
                 community = [];

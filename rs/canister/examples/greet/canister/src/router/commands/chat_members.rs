@@ -87,11 +87,13 @@ impl ChatMembers {
                             BotCommandOptionChoice {
                                 name: choice.clone(),
                                 value: choice,
+                                visible_when: None,
                             }
                         })
                         .collect(),
                     multi_line: false,
                 }),
+                visible_when: None,
             }],
             permissions: BotPermissions::from_chat_permission(ChatPermission::ReadMembership),
             default_role: None,

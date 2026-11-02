@@ -18,6 +18,7 @@ module {
         public type Command = DefinitionInternal.Command;
         public type AutonomousConfig = DefinitionInternal.AutonomousConfig;
         public type CommandOptionChoice<T> = DefinitionInternal.BotCommandOptionChoice<T>;
+        public type CommandParamCondition = DefinitionInternal.CommandParamCondition;
         public let serialize = DefinitionInternal.serialize;
     };
 
