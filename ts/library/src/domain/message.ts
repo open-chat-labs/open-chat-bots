@@ -381,10 +381,11 @@ export function validateMiniAppText(text: string): string | undefined {
 const MINI_APP_NAME = new RegExp(`^[a-z0-9_-]{1,${MINI_APP_MAX_APP_NAME_CHARS}}$`);
 
 /**
- * Checks the name of a card's app, or of an app in the bot's definition, as OpenChat does: 1 to 50
- * characters, each a lowercase ASCII letter, a digit, `-` or `_`, eg. "chess", "2048" or
- * "press_counter". Returns the error OpenChat would give, or undefined if it's valid. Whether the
- * bot's definition has an app of that name is only checked by OpenChat.
+ * Checks the name of a card's app as OpenChat does: 1 to 50 characters, each a lowercase ASCII
+ * letter, a digit, `-` or `_`, eg. "chess", "2048" or "press_counter". Returns the error OpenChat
+ * gives a card, or undefined if it's valid. The same rule applies to the names in the bot's
+ * definition, where OpenChat words its error differently. Whether the bot's definition has an app
+ * of that name is only checked by OpenChat.
  */
 export function validateMiniAppAppName(app: string): string | undefined {
     return MINI_APP_NAME.test(app)

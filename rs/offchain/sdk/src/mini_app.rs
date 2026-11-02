@@ -118,9 +118,10 @@ impl<R: Runtime> MiniAppServiceClient<R> {
         Ok(posted.game)
     }
 
-    /// Tells the service how one of the bot's games goes: whose turn it is, players to take off it,
-    /// its state for everyone with it open, and when it's finished, its result. The service writes
-    /// the card from it. A player starts the game, through the service, so an update can't.
+    /// Tells the service how one of the bot's games goes: whose turn it is, which the live card
+    /// shows, players to take off it, its state for everyone with it open, and when it's finished,
+    /// its result. The service writes the card in the chat only when the game finishes. A player
+    /// starts the game, through the service, so an update can't.
     pub async fn update(&self, update: GameUpdate) -> Result<(), MiniAppServiceError> {
         self.call("bot/update", &update).await?;
 

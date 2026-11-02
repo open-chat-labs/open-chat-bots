@@ -331,8 +331,8 @@ and its app, text, player limit, spectators and app size never change. The app's
 lowercase ASCII letters, digits, `-` or `_`, eg. `chess`, `2048` or `press_counter`, as
 `validateMiniAppAppName` checks, and must be one of the bot's definition's `mini_apps`. The app size
 is what the app's laid out for, in CSS pixels, each 1 to 10,000 and neither more than three times
-the other: the card shows the app at that aspect ratio, sized before it loads. `setBlockLevelMarkdown` and
-`setRepliesTo` apply. Posting the same token again posts nothing new and
+the other: the card shows the app at that aspect ratio, sized before it loads.
+`setBlockLevelMarkdown` and `setRepliesTo` apply. Posting the same token again posts nothing new and
 gives the same game, so a bot which got no answer, eg. an `unavailable` error, posts again with the
 same token. Key the game before posting, from `miniAppGameFromPostToken(token)`: the service may
 have posted the card and forwarded a join before the bot hears its answer, so the bot should know
@@ -434,8 +434,9 @@ await miniApps.update({
 ```
 
 Whatever's undefined stays as it is. `waitingFor` is shown live on the card, rather than written to
-it, so a bot reading the card in chat events sees only its players. The only status a bot sets is "finished", which ends the game,
-whether it started or not, and a result and an end state only come with it. The result is markdown
+it, so a bot reading the card in chat events sees only its players. The only status a bot sets is
+"finished", which ends the game, whether it started or not, and a result and an end state only come
+with it. The result is markdown
 with links turned off, so `@UserId(<user id>)` shows a user's name as it is now. The end state is any
 JSON value of at most 16 KB, serialized: OpenChat writes it to the card and hands it to the app, so a
 finished card with one shows the app with it, eg. the final position and a replay, while one without
