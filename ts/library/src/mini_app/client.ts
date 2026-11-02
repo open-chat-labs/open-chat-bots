@@ -2,7 +2,10 @@
 // opens in a sandboxed frame from the bot's MiniApp card. It runs in the browser, so it imports
 // nothing else from the SDK.
 //
-// The page and OpenChat, the window it's framed in, talk with `postMessage`:
+// OpenChat frames the page at its URL with `oc_theme=dark` or `oc_theme=light` in the fragment, the
+// user's theme as it opens the page, which the page can draw itself in before it's initialised
+// (`initialDarkMode`). Then the page and OpenChat, the window it's framed in, talk with
+// `postMessage`:
 // - the page sends `{ kind: "mini_app_ready" }` once it's listening, to any origin, as it carries
 //   nothing secret;
 // - OpenChat answers `{ kind: "initialise_mini_app", role, user_id, token, dark_mode, locale,
@@ -168,6 +171,31 @@ export function connectToOpenChat<Shared = unknown, Private = unknown, EndState 
         win.addEventListener("message", listener);
         win.parent.postMessage({ kind: "mini_app_ready" }, "*");
     });
+}
+
+/**
+ * Whether the user's theme was dark as OpenChat opened the app, from the `oc_theme` in the app's
+ * URL's fragment, or `undefined` if there's none, eg. from an older OpenChat. Unlike
+ * `MiniAppClient.darkMode`, it's known before OpenChat's initialised the app, so the app can draw
+ * itself in the user's theme from the start, rather than switch to it once it's connected.
+ *
+ * ```ts
+ * document.documentElement.dataset.theme = initialDarkMode() ? "dark" : "light";
+ * const openChat = await connectToOpenChat();
+ * ```
+ */
+export function initialDarkMode(
+    win: Pick<MiniAppWindow, "location"> | undefined = (
+        globalThis as unknown as { window?: MiniAppWindow }
+    ).window,
+): boolean | undefined {
+    if (win === undefined) return undefined;
+    try {
+        const theme = new URLSearchParams(new URL(win.location.href).hash.slice(1)).get("oc_theme");
+        return theme === "dark" ? true : theme === "light" ? false : undefined;
+    } catch {
+        return undefined;
+    }
 }
 
 /** The app's connection to OpenChat, from `connectToOpenChat` */

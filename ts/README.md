@@ -462,8 +462,10 @@ the LocalUserIndex gives that call's error.
 The SDK's browser entry, `@open-ic/openchat-botclient-ts/mini_app`, has no Node dependencies:
 
 ```ts
-import { connectToOpenChat } from "@open-ic/openchat-botclient-ts/mini_app";
+import { connectToOpenChat, initialDarkMode } from "@open-ic/openchat-botclient-ts/mini_app";
 
+// The user's theme, from the page's URL, so the page is drawn in it while it connects
+setTheme(initialDarkMode() ?? false);
 const openChat = await connectToOpenChat<Board, Hand, Replay>();
 // The role is "player" or "spectator", and the state undefined until the first one comes
 render(openChat.role, openChat.state);
@@ -492,8 +494,10 @@ own origin. When the app is opened on a game that's over, `finished` is true fro
 no token, the role is "player" if the user was one of the game's players, no state comes, and
 OpenChat sends the bot's end state, `endState`, which the app shows its end view from. It also has
 `userId`, `token`, `darkMode`, `locale`, `settings` (what the bot gave when it started the game, see
-step 3), `refreshToken()` and `close()`. Serve the page as static, cacheable files, as it's the only
-thing spectators fetch from the bot.
+step 3), `refreshToken()` and `close()`. OpenChat shows the page as soon as it's loaded, which can be
+a moment before it's initialised, so `initialDarkMode()` gives the user's theme beforehand, from the
+`oc_theme` OpenChat puts in the page's URL's fragment, or `undefined` from an older OpenChat. Serve
+the page as static, cacheable files, as it's the only thing spectators fetch from the bot.
 
 ### 6. Verify player tokens on the app's requests
 

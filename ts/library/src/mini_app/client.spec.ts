@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
     MiniAppClient,
     connectToOpenChat,
+    initialDarkMode,
     tokenExpiry,
     type MiniAppMessageEvent,
     type MiniAppRole,
@@ -204,6 +205,30 @@ describe("connectToOpenChat", () => {
         Object.defineProperty(win, "parent", { value: win });
 
         await expect(connectToOpenChat({ window: win })).rejects.toThrow("isn't in a frame");
+    });
+});
+
+describe("initialDarkMode", () => {
+    const at = (href: string) => ({ location: { href } });
+
+    test("is the theme OpenChat framed the app with", () => {
+        expect(initialDarkMode(at(`${APP}#oc_theme=dark`))).toBe(true);
+        expect(initialDarkMode(at(`${APP}#oc_theme=light`))).toBe(false);
+    });
+
+    test("is found among the app's own fragment", () => {
+        expect(initialDarkMode(at(`${APP}?game=1#/board&oc_theme=dark`))).toBe(true);
+    });
+
+    test("is undefined if OpenChat didn't say, or isn't understood", () => {
+        expect(initialDarkMode(at(APP))).toBeUndefined();
+        expect(initialDarkMode(at(`${APP}#oc_theme=sepia`))).toBeUndefined();
+        expect(initialDarkMode(at(`${APP}?oc_theme=dark`))).toBeUndefined();
+        expect(initialDarkMode(at("not a url"))).toBeUndefined();
+    });
+
+    test("is undefined outside a browser", () => {
+        expect(initialDarkMode()).toBeUndefined();
     });
 });
 
