@@ -142,8 +142,13 @@ async function configure(id: string, value: number) {
             body: JSON.stringify({ [id]: value }),
         });
         const result = (await response.json()) as { ok: boolean; error?: string };
-        if (!result.ok) showNotice(result.error ?? "The setting wasn't changed");
+        if (!result.ok) {
+            // The dropdown shows what the host picked, so it's put back to what the game has
+            redrawSettings();
+            showNotice(result.error ?? "The setting wasn't changed");
+        }
     } catch {
+        redrawSettings();
         showNotice("Couldn't reach the game");
     }
 }
@@ -194,13 +199,13 @@ function render() {
         body.innerHTML = `<p class="notice">Loading…</p>`;
     } else if (state === undefined) {
         // Nothing from the bot yet
-        body.innerHTML = lobby(undefined);
+        renderLobby(body, undefined);
     } else if (live === undefined || current === undefined || live.version > current.stateVersion) {
         body.innerHTML = reloadNotice();
     } else if (live.version < current.stateVersion) {
         body.innerHTML = `<p class="notice">Loading…</p>`;
     } else if (current.isOpen(live)) {
-        body.innerHTML = lobby(current.lobby(live));
+        renderLobby(body, current.lobby(live));
     } else {
         current.renderLive(body, live);
     }
@@ -211,28 +216,66 @@ function reloadNotice(): string {
         <p class="center"><button class="primary" data-action="reload">Reload</button></p>`;
 }
 
-/** The lobby: who's joined, and the Start button for a player. Before the first state, just that. */
-function lobby(info: ReturnType<GameView["lobby"]> | undefined): string {
+type LobbyInfo = ReturnType<GameView["lobby"]>;
+
+const LOBBY_PARTS = ["blurb", "settings", "seats", "action"] as const;
+
+/** What each part of the lobby last drew */
+const drawn = new WeakMap<Element, string>();
+
+/**
+ * The lobby: who's joined, the host's settings, and the Start button for a player. Before the first
+ * state, just that. It's drawn in parts, and a part is only replaced when what it shows has changed:
+ * the page redraws often, eg. every second for a live game's clock, and replacing the host's
+ * settings would close a dropdown they have open.
+ */
+function renderLobby(body: HTMLElement, info: LobbyInfo | undefined) {
+    let section = body.querySelector<HTMLElement>(":scope > section.lobby");
+    if (section === null) {
+        body.innerHTML = `<section class="lobby">
+            <h2>Waiting to start</h2>
+            ${LOBBY_PARTS.map((name) => `<div class="part" data-part="${name}"></div>`).join("")}
+        </section>`;
+        section = body.querySelector<HTMLElement>(":scope > section.lobby")!;
+    }
+    const parts = lobbyParts(info);
+    for (const name of LOBBY_PARTS) {
+        const part = section.querySelector<HTMLElement>(`[data-part="${name}"]`)!;
+        if (drawn.get(part) !== parts[name]) {
+            drawn.set(part, parts[name]);
+            part.innerHTML = parts[name];
+        }
+    }
+}
+
+/** Has the lobby draw the host's settings again at its next redraw, from the state */
+function redrawSettings() {
+    const part = document.querySelector('[data-part="settings"]');
+    if (part !== null) drawn.delete(part);
+}
+
+function lobbyParts(info: LobbyInfo | undefined): Record<(typeof LOBBY_PARTS)[number], string> {
     const player = oc?.role === "player";
     const seats = info?.seats ?? [];
-    const names =
-        seats.length === 0
-            ? `<p class="muted">Nobody has joined yet.</p>`
-            : `<ul class="seats">${seats
-                  .map((s) => `<li>${escape(s.name)}${s.id === oc?.userId ? " <em>(you)</em>" : ""}</li>`)
-                  .join("")}</ul>`;
-    const action = player
-        ? `<p class="center"><button class="primary" data-action="start" ${starting ? "disabled" : ""}>
+    return {
+        blurb: info === undefined ? "" : `<p class="muted">${info.blurb}</p>`,
+        settings:
+            info?.settings === undefined ? "" : settingsForm(info.settings, info.seats, player),
+        seats:
+            seats.length === 0
+                ? `<p class="muted">Nobody has joined yet.</p>`
+                : `<ul class="seats">${seats
+                      .map(
+                          (s) =>
+                              `<li>${escape(s.name)}${s.id === oc?.userId ? " <em>(you)</em>" : ""}</li>`,
+                      )
+                      .join("")}</ul>`,
+        action: player
+            ? `<p class="center"><button class="primary" data-action="start" ${starting ? "disabled" : ""}>
                ${starting ? "Starting…" : "Start the game"}</button></p>
            <p class="muted center">${info?.hint ?? "Start when everyone has joined."}</p>`
-        : `<p class="muted center">Join from the card in the chat to play. Watching starts when a player does.</p>`;
-    return `<section class="lobby">
-        <h2>Waiting to start</h2>
-        ${info === undefined ? "" : `<p class="muted">${info.blurb}</p>`}
-        ${info?.settings === undefined ? "" : settingsForm(info.settings, info.seats, player)}
-        ${names}
-        ${action}
-    </section>`;
+            : `<p class="muted center">Join from the card in the chat to play. Watching starts when a player does.</p>`,
+    };
 }
 
 /** The host's form for the game's settings; everyone else sees who can change them */
