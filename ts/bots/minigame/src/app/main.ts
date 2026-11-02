@@ -142,10 +142,24 @@ async function configure(id: string, value: number) {
             body: JSON.stringify({ [id]: value }),
         });
         const result = (await response.json()) as { ok: boolean; error?: string };
-        if (!result.ok) showNotice(result.error ?? "The setting wasn't changed");
+        if (!result.ok) {
+            undoSetting(id, value);
+            showNotice(result.error ?? "The setting wasn't changed");
+        }
     } catch {
+        undoSetting(id, value);
         showNotice("Couldn't reach the game");
     }
+}
+
+/**
+ * Puts a setting's dropdown, which shows what the host picked, back to what the game has: the
+ * option it was last drawn with selected. Unless the host has picked another value since.
+ */
+function undoSetting(id: string, value: number) {
+    const select = document.querySelector<HTMLSelectElement>(`select[data-setting="${id}"]`);
+    if (select === null || select.value !== String(value)) return;
+    for (const option of Array.from(select.options)) option.selected = option.defaultSelected;
 }
 
 function showNotice(text: string) {
@@ -194,13 +208,13 @@ function render() {
         body.innerHTML = `<p class="notice">Loading…</p>`;
     } else if (state === undefined) {
         // Nothing from the bot yet
-        body.innerHTML = lobby(undefined);
+        renderLobby(body, undefined);
     } else if (live === undefined || current === undefined || live.version > current.stateVersion) {
         body.innerHTML = reloadNotice();
     } else if (live.version < current.stateVersion) {
         body.innerHTML = `<p class="notice">Loading…</p>`;
     } else if (current.isOpen(live)) {
-        body.innerHTML = lobby(current.lobby(live));
+        renderLobby(body, current.lobby(live));
     } else {
         current.renderLive(body, live);
     }
@@ -211,32 +225,90 @@ function reloadNotice(): string {
         <p class="center"><button class="primary" data-action="reload">Reload</button></p>`;
 }
 
-/** The lobby: who's joined, and the Start button for a player. Before the first state, just that. */
-function lobby(info: ReturnType<GameView["lobby"]> | undefined): string {
+type LobbyInfo = ReturnType<GameView["lobby"]>;
+
+const LOBBY_PARTS = ["blurb", "settings", "seats", "action"] as const;
+
+/** A setting's dropdown, with its label, in the host's form */
+type Field = { id: string; html: string };
+
+/** What each part of the lobby last drew */
+const drawn = new WeakMap<Element, string>();
+
+/**
+ * The lobby: who's joined, the host's settings, and the Start button for a player. Before the first
+ * state, just that. It's drawn in parts, and a part is only replaced when what it shows has changed:
+ * the page redraws often, eg. every second for a live game's clock, and replacing a dropdown closes
+ * it. The host's form is drawn a setting at a time, so a change to one, which comes back in the
+ * state, doesn't close another they've opened since.
+ */
+function renderLobby(body: HTMLElement, info: LobbyInfo | undefined) {
+    let section = body.querySelector<HTMLElement>(":scope > section.lobby");
+    if (section === null) {
+        body.innerHTML = `<section class="lobby">
+            <h2>Waiting to start</h2>
+            ${LOBBY_PARTS.map((name) => `<div class="part" data-part="${name}"></div>`).join("")}
+        </section>`;
+        section = body.querySelector<HTMLElement>(":scope > section.lobby")!;
+    }
+    const parts = lobbyParts(info);
+    for (const name of LOBBY_PARTS) {
+        const part = section.querySelector<HTMLElement>(`[data-part="${name}"]`)!;
+        const content = parts[name];
+        if (typeof content === "string") {
+            draw(part, content);
+        } else {
+            draw(
+                part,
+                `<div class="settings">${content.map((f) => `<label data-field="${f.id}"></label>`).join("")}</div>`,
+            );
+            for (const field of content) {
+                draw(part.querySelector(`[data-field="${field.id}"]`)!, field.html);
+            }
+        }
+    }
+}
+
+/** Replaces what's in a part of the lobby, unless it's what's there already */
+function draw(part: Element, html: string) {
+    if (drawn.get(part) !== html) {
+        drawn.set(part, html);
+        part.innerHTML = html;
+    }
+}
+
+function lobbyParts(
+    info: LobbyInfo | undefined,
+): Record<(typeof LOBBY_PARTS)[number], string | Field[]> {
     const player = oc?.role === "player";
     const seats = info?.seats ?? [];
-    const names =
-        seats.length === 0
-            ? `<p class="muted">Nobody has joined yet.</p>`
-            : `<ul class="seats">${seats
-                  .map((s) => `<li>${escape(s.name)}${s.id === oc?.userId ? " <em>(you)</em>" : ""}</li>`)
-                  .join("")}</ul>`;
-    const action = player
-        ? `<p class="center"><button class="primary" data-action="start" ${starting ? "disabled" : ""}>
+    return {
+        blurb: info === undefined ? "" : `<p class="muted">${info.blurb}</p>`,
+        settings:
+            info?.settings === undefined ? "" : settingsForm(info.settings, info.seats, player),
+        seats:
+            seats.length === 0
+                ? `<p class="muted">Nobody has joined yet.</p>`
+                : `<ul class="seats">${seats
+                      .map(
+                          (s) =>
+                              `<li>${escape(s.name)}${s.id === oc?.userId ? " <em>(you)</em>" : ""}</li>`,
+                      )
+                      .join("")}</ul>`,
+        action: player
+            ? `<p class="center"><button class="primary" data-action="start" ${starting ? "disabled" : ""}>
                ${starting ? "Starting…" : "Start the game"}</button></p>
            <p class="muted center">${info?.hint ?? "Start when everyone has joined."}</p>`
-        : `<p class="muted center">Join from the card in the chat to play. Watching starts when a player does.</p>`;
-    return `<section class="lobby">
-        <h2>Waiting to start</h2>
-        ${info === undefined ? "" : `<p class="muted">${info.blurb}</p>`}
-        ${info?.settings === undefined ? "" : settingsForm(info.settings, info.seats, player)}
-        ${names}
-        ${action}
-    </section>`;
+            : `<p class="muted center">Join from the card in the chat to play. Watching starts when a player does.</p>`,
+    };
 }
 
 /** The host's form for the game's settings; everyone else sees who can change them */
-function settingsForm(settings: NonNullable<Lobby["settings"]>, seats: Seat[], player: boolean) {
+function settingsForm(
+    settings: NonNullable<Lobby["settings"]>,
+    seats: Seat[],
+    player: boolean,
+): string | Field[] {
     const { specs, current, host, hostName } = settings;
     const what = specs.map((spec) => spec.label.toLowerCase()).join(" and the ");
     if (host !== undefined && host === oc?.userId && !player) {
@@ -249,7 +321,7 @@ function settingsForm(settings: NonNullable<Lobby["settings"]>, seats: Seat[], p
         const name = seats.find((s) => s.id === host)?.name ?? hostName;
         return `<p class="muted small">${name === undefined ? "The host" : escape(name)} can change the ${what}.</p>`;
     }
-    const fields = specs.map((spec) => {
+    return specs.map((spec) => {
         const value = current[spec.id] ?? spec.default;
         // A value set outside the choices, eg. for a test, is shown as it is
         const choices = spec.choices.some((c) => c.value === value)
@@ -258,9 +330,11 @@ function settingsForm(settings: NonNullable<Lobby["settings"]>, seats: Seat[], p
         const options = choices
             .map((c) => `<option value="${c.value}" ${c.value === value ? "selected" : ""}>${escape(c.label)}</option>`)
             .join("");
-        return `<label><span>${escape(spec.label)}</span><select data-setting="${spec.id}">${options}</select></label>`;
+        return {
+            id: spec.id,
+            html: `<span>${escape(spec.label)}</span><select data-setting="${spec.id}">${options}</select>`,
+        };
     });
-    return `<div class="settings">${fields.join("")}</div>`;
 }
 
 function escape(text: string): string {
