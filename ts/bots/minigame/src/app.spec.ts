@@ -1,7 +1,9 @@
 // The routes anyone can fetch without a token: the bot's definition, the app's static files and
 // users' usernames
 import fs from "node:fs";
+import http from "node:http";
 import type { AddressInfo } from "node:net";
+import os from "node:os";
 import path from "node:path";
 import { TokenError, validateMiniAppAppName } from "@open-ic/openchat-botclient-ts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -125,5 +127,62 @@ describe("GET /app/chess.svg", () => {
         expect(body).toContain('viewBox="0 0 440 740"');
         expect(body).not.toMatch(/https?:\/\/(?!www\.w3\.org\/2000\/svg)/);
         expect(body).not.toContain("<script");
+    });
+});
+
+describe("the app's page and bundles", () => {
+    // A built app, as Vite leaves it in `dist/app`: the page, and its bundles named by content
+    let appBase: string;
+    let closeApp: () => void;
+
+    beforeAll(async () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), "minigame-app-"));
+        fs.writeFileSync(path.join(dir, "index.html"), "<!doctype html><title>MiniGameBot</title>");
+        fs.mkdirSync(path.join(dir, "assets"));
+        fs.writeFileSync(path.join(dir, "assets", "index-Ck2qTBk0.js"), "export {};");
+        const server = createApp({} as Deps, dir).listen(0);
+        await new Promise<void>((resolve) => server.once("listening", resolve));
+        appBase = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+        closeApp = () => {
+            server.close();
+            fs.rmSync(dir, { recursive: true, force: true });
+        };
+    });
+
+    afterAll(() => closeApp());
+
+    it("keeps the page a minute, then shows it while checking it's current", async () => {
+        for (const route of ["/app", "/app/", "/app/index.html"]) {
+            const response = await fetch(`${appBase}${route}`);
+            expect(response.status, route).toBe(200);
+            expect(response.headers.get("content-type"), route).toMatch(/^text\/html/);
+            expect(response.headers.get("cache-control"), route).toBe(
+                "public, max-age=60, stale-while-revalidate=600",
+            );
+        }
+    });
+
+    it("answers a check that the page is current without sending it again", async () => {
+        const etag = (await fetch(`${appBase}/app`)).headers.get("etag");
+        expect(etag).not.toBeNull();
+        // As a browser checks what it has: `fetch` would add `Cache-Control: no-cache` to a
+        // request with its own `If-None-Match`, which asks for the page whatever
+        const status = await new Promise<number | undefined>((resolve, reject) => {
+            http.get(`${appBase}/app`, { headers: { "if-none-match": etag! } }, (response) => {
+                response.resume();
+                resolve(response.statusCode);
+            }).on("error", reject);
+        });
+        expect(status).toBe(304);
+    });
+
+    it("keeps the bundles for good, as a release's are new files", async () => {
+        const response = await fetch(`${appBase}/app/assets/index-Ck2qTBk0.js`);
+        expect(response.status).toBe(200);
+        expect(response.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
+    });
+
+    it("doesn't find a bundle that isn't there", async () => {
+        expect((await fetch(`${appBase}/app/assets/index-gone.js`)).status).toBe(404);
     });
 });

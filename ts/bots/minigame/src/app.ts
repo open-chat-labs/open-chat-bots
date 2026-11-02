@@ -65,12 +65,26 @@ export function createApp(deps: Deps, appDir: string): Express {
     // Anyone with a game open, watching included, and anyone opening a finished card: no token
     app.get("/api/names", handle(userNames));
 
-    // The app, which OpenChat opens in a frame. Its files are static and cacheable: the page is
-    // the only thing spectators fetch from the bot.
+    // The app, which OpenChat opens in a frame, and frames afresh each time its card is back on
+    // screen: its files are the only thing spectators fetch from the bot, so they're cached.
+    // Vite names the page's bundles by their content, so a release's are new files, which the
+    // browser keeps for good. The page, which names them, is kept a minute, then shown from the
+    // cache for ten more while the browser checks it's current: so a release reaches everyone
+    // within minutes, and the bundles a page from before it names are the ones the browser kept
+    // with it. The rest, eg. the cards' artwork, for an hour.
     const index = path.resolve(appDir, "index.html");
-    app.get(["/app", "/app/"], (_req, res) => {
+    app.get(["/app", "/app/", "/app/index.html"], (_req, res) => {
+        res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=600");
         res.sendFile(index);
     });
+    app.use(
+        "/app/assets",
+        express.static(path.resolve(appDir, "assets"), {
+            index: false,
+            immutable: true,
+            maxAge: "1y",
+        }),
+    );
     app.use("/app", express.static(path.resolve(appDir), { index: false, maxAge: "1h" }));
 
     return app;
