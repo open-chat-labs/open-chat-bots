@@ -16,7 +16,8 @@ export const definition = {
         "players which anyone in the chat can watch, with the time and who goes first set the " +
         "same way, or race up to 10 players through the same maze, live, where the first out " +
         "wins, or play ChatMan, up to 10 players eating the dots in the same mazes, live, " +
-        "dodging the spam bots, where the top score wins.",
+        "dodging the spam bots, where the top score wins, or race up to 10 players to clear " +
+        "the same minefield, each on their own board, where the first to clear it wins.",
     commands: [
         {
             name: "play",

@@ -12,6 +12,7 @@ import type { Duel } from "../games/duel/duel";
 import type { Position } from "../games/duel/types";
 import type { Game, GameKind, NamesResponse } from "../games/game";
 import type { MazeRace } from "../games/maze/race";
+import type { MinesweeperRace } from "../games/minesweeper/race";
 import type { Race2048 } from "../games/race2048/race";
 import { MAX_PLAYERS, type MoveResponse } from "../games/race2048/types";
 import { gameType } from "../games/registry";
@@ -229,4 +230,15 @@ export function chatmanTurn(req: Request, res: Response, deps: Deps): Promise<vo
             changed: result.changed,
         };
     });
+}
+
+/**
+ * `POST /api/minesweeper/act` with `{ "acts": [{ "reveal": 12 }, { "flag": 30, "on": true }] }`: a
+ * racer's clicks, in order, answered with their board, which only they see while the race is on.
+ * No acts at all asks for the board, eg. as the page opens.
+ */
+export function minesweeperAct(req: Request, res: Response, deps: Deps): Promise<void> {
+    return act<MinesweeperRace>(req, res, deps, "minesweeper", (race, userId, body) =>
+        race.act(userId, body),
+    );
 }

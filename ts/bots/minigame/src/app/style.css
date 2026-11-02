@@ -1376,3 +1376,300 @@ button.link {
     display: block;
     flex: none;
 }
+
+/*
+ * The Minesweeper race: the mines left and the flag button over the field, the field as big as
+ * the frame allows, a cell a square, and how far everyone's got under it
+ */
+.ms {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    max-width: 440px;
+    width: 100%;
+    margin: 0 auto;
+    --ms-n1: #2f6fd0;
+    --ms-n2: #2f8f4e;
+    --ms-n3: #d6453d;
+    --ms-n4: #6a3fb5;
+    --ms-n5: #a5462a;
+    --ms-n6: #1f8f8f;
+    --ms-n7: #3b3630;
+    --ms-n8: #7a7267;
+    --ms-boom: #e5484d;
+}
+
+:root[data-theme="dark"] .ms {
+    --ms-n1: #7fb0ff;
+    --ms-n2: #6fcf8e;
+    --ms-n3: #ff7b72;
+    --ms-n4: #c3a3ff;
+    --ms-n5: #f0a070;
+    --ms-n6: #5fd3d3;
+    --ms-n7: #ece7dd;
+    --ms-n8: #a39b8f;
+}
+
+.ms-status {
+    min-height: 1.4em;
+    margin: 0 0 6px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.ms-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-variant-numeric: tabular-nums;
+}
+
+.ms-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ms-left svg,
+.ms-mode svg {
+    width: 18px;
+    height: 18px;
+    flex: none;
+}
+
+.ms-mode {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+}
+
+.ms-mode.on {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-color: transparent;
+}
+
+.ms-wrap {
+    position: relative;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.ms-board {
+    display: grid;
+    /* Every row and column the same, whatever's in its cells */
+    grid-template-columns: repeat(var(--n, 12), minmax(0, 1fr));
+    grid-template-rows: repeat(var(--n, 12), minmax(0, 1fr));
+    gap: 2px;
+    width: 100%;
+    aspect-ratio: 1;
+    padding: 4px;
+    box-sizing: border-box;
+    background: var(--board);
+    border-radius: 8px;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+}
+
+/* The grid's rows, there for its roles: the cells are laid out as the board's own */
+.ms-row {
+    display: contents;
+}
+
+.ms-cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    font-size: var(--cell-font, 16px);
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+}
+
+.ms-cell svg {
+    width: 72%;
+    height: 72%;
+}
+
+.ms-hidden {
+    background: var(--empty);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.35),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+}
+
+.ms-pressed {
+    background: var(--panel);
+    box-shadow: none;
+    opacity: 0.7;
+}
+
+.ms-open {
+    background: var(--panel);
+}
+
+.ms-n1 {
+    color: var(--ms-n1);
+}
+.ms-n2 {
+    color: var(--ms-n2);
+}
+.ms-n3 {
+    color: var(--ms-n3);
+}
+.ms-n4 {
+    color: var(--ms-n4);
+}
+.ms-n5 {
+    color: var(--ms-n5);
+}
+.ms-n6 {
+    color: var(--ms-n6);
+}
+.ms-n7 {
+    color: var(--ms-n7);
+}
+.ms-n8 {
+    color: var(--ms-n8);
+}
+
+/* A mine nobody found, once the race is over, where it was hidden */
+.ms-mine {
+    color: var(--fg);
+    cursor: default;
+}
+
+.ms-boom {
+    background: var(--ms-boom);
+    color: #1b1a19;
+}
+
+/* A flag where there was no mine, once the race is over: struck through */
+.ms-wrong::after {
+    content: "";
+    position: absolute;
+    inset: 14%;
+    background: linear-gradient(
+        to top right,
+        transparent 44%,
+        var(--error) 44%,
+        var(--error) 56%,
+        transparent 56%
+    );
+}
+
+.ms-frozen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border-radius: 8px;
+    background: rgba(229, 72, 77, 0.28);
+    color: var(--fg);
+    font-size: 18px;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+}
+
+.ms-frozen svg {
+    width: 36px;
+    height: 36px;
+}
+
+.ms-frozen strong {
+    font-size: 24px;
+}
+
+.ms-hint {
+    min-height: 1.4em;
+    margin: 6px 0 0;
+    text-align: center;
+}
+
+.ms-standings {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+    font-size: 14px;
+    max-height: 140px;
+    overflow-y: auto;
+}
+
+/* Watching while the race is on: no board, so the standings have the room */
+.ms-watching .ms-standings {
+    max-height: none;
+}
+
+.ms-standings li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 6px;
+    border-radius: 6px;
+}
+
+.ms-standings li.mine,
+.ms-standings li.picked {
+    background: var(--panel);
+    font-weight: 600;
+}
+
+.ms-standings li[data-action] {
+    cursor: pointer;
+}
+
+.ms-standings .who {
+    flex: 0 1 34%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ms-standings li.winner .who::after {
+    content: " 🏆";
+}
+
+.ms-progress {
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--border);
+    overflow: hidden;
+}
+
+.ms-progress span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.3s ease;
+}
+
+.ms-standings .count {
+    min-width: 4.5em;
+    text-align: right;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.ms-hits {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    color: var(--muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.ms-hits svg {
+    width: 12px;
+    height: 12px;
+}
