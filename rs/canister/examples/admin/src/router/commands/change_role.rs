@@ -62,6 +62,7 @@ impl ChangeRole {
                     param_type: BotCommandParamType::UserParam,
                     required: true,
                     placeholder: None,
+                    visible_when: None,
                 },
                 BotCommandParam {
                     name: "New role".to_string(),
@@ -74,12 +75,14 @@ impl ChangeRole {
                             .map(|role| BotCommandOptionChoice {
                                 name: role.to_string(),
                                 value: role.to_string(),
+                                visible_when: None,
                             })
                             .collect(),
                         multi_line: false,
                     }),
                     required: true,
                     placeholder: None,
+                    visible_when: None,
                 },
             ],
             permissions: BotPermissions::from_chat_permission(ChatPermission::ChangeRoles),

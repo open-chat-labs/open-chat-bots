@@ -60,6 +60,7 @@ impl Roll {
                         max_value: 1_000_000_000,
                         choices: Vec::new(),
                     }),
+                    visible_when: None,
                 },
                 BotCommandParam {
                     name: "count".to_string(),
@@ -71,6 +72,7 @@ impl Roll {
                         max_value: 10,
                         choices: Vec::new(),
                     }),
+                    visible_when: None,
                 },
             ],
             permissions: BotPermissions::text_only(),

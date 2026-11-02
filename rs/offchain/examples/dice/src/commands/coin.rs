@@ -58,6 +58,7 @@ impl Coin {
                     max_value: 10,
                     choices: Vec::new(),
                 }),
+                visible_when: None,
             }],
             permissions: BotPermissions::text_only(),
             default_role: None,

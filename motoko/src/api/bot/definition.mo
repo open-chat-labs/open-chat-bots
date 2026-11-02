@@ -40,6 +40,19 @@ module Definition {
         placeholder : ?Text;
         required : Bool;
         param_type : CommandParamType;
+        // Shown only while an earlier param has one of the condition's values; shown always if null
+        visible_when : ?CommandParamCondition;
+    };
+
+    // When OpenChat's form for a command shows a param, or one of a param's choices: while an
+    // earlier param, a #StringParam with choices, has one of `values`, eg. a game's settings once
+    // that game is chosen. A hidden param's arg isn't sent. An OpenChat which doesn't read
+    // conditions shows every param and choice, so a bot still checks the args it's given.
+    public type CommandParamCondition = {
+        // An earlier param's name
+        param : Text;
+        // Its values which show this param or choice
+        values : [Text];
     };
 
     public type CommandParamType = {
@@ -77,6 +90,7 @@ module Definition {
     public type BotCommandOptionChoice<T> = {
         name : Text;
         value : T;
+        visible_when : ?CommandParamCondition;
     };
 
     public type  BotSubscriptions = {
@@ -166,6 +180,10 @@ module Definition {
             case (null) ();
             case (?placeholder) fields := Array.append(fields, [("placeholder", #string(placeholder))]);
         };
+        switch (param.visible_when) {
+            case (null) ();
+            case (?condition) fields := Array.append(fields, [("visible_when", serializeCondition(condition))]);
+        };
 
         #object_(fields);
     };
@@ -182,7 +200,7 @@ module Definition {
     };
 
     private func serializeStringParam(param : StringParam) : Json.Json {
-        let choiceSerializer = func(choice : BotCommandOptionChoice<Text>) : Json.Json = serializeChoice<Text>(choice.name, #string(choice.value));
+        let choiceSerializer = func(choice : BotCommandOptionChoice<Text>) : Json.Json = serializeChoice(choice.name, #string(choice.value), choice.visible_when);
         #object_([
             ("min_length", #number(#int(param.min_length))),
             ("max_length", #number(#int(param.max_length))),
@@ -192,7 +210,7 @@ module Definition {
     };
 
     private func serializeIntegerParam(param : IntegerParam) : Json.Json {
-        let choiceSerializer = func(choice : BotCommandOptionChoice<Int>) : Json.Json = serializeChoice<Int>(choice.name, #number(#int(choice.value)));
+        let choiceSerializer = func(choice : BotCommandOptionChoice<Int>) : Json.Json = serializeChoice(choice.name, #number(#int(choice.value)), choice.visible_when);
         #object_([
             ("min_value", #number(#int(param.min_value))),
             ("max_value", #number(#int(param.max_value))),
@@ -201,7 +219,7 @@ module Definition {
     };
 
     private func serializeDecimalParam(param : DecimalParam) : Json.Json {
-        let choiceSerializer = func(choice : BotCommandOptionChoice<Float>) : Json.Json = serializeChoice<Float>(choice.name, #number(#float(choice.value)));
+        let choiceSerializer = func(choice : BotCommandOptionChoice<Float>) : Json.Json = serializeChoice(choice.name, #number(#float(choice.value)), choice.visible_when);
         #object_([
             ("min_value", #number(#float(param.min_value))),
             ("max_value", #number(#float(param.max_value))),
@@ -215,10 +233,23 @@ module Definition {
         ]);
     };
 
-    private func serializeChoice<T>(name : Text, value : Json.Json) : Json.Json {
-        #object_([
+    private func serializeChoice(name : Text, value : Json.Json, visibleWhen : ?CommandParamCondition) : Json.Json {
+        var fields : [(Text, Json.Json)] = [
             ("name", #string(name)),
             ("value", value),
+        ];
+        switch (visibleWhen) {
+            case (null) ();
+            case (?condition) fields := Array.append(fields, [("visible_when", serializeCondition(condition))]);
+        };
+
+        #object_(fields);
+    };
+
+    private func serializeCondition(condition : CommandParamCondition) : Json.Json {
+        #object_([
+            ("param", #string(condition.param)),
+            ("values", Serialize.arrayOfValues(condition.values, func(value : Text) : Json.Json = #string(value))),
         ]);
     };
 

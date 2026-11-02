@@ -1,5 +1,8 @@
 use crate::api::command::*;
-use crate::api::definition::{BotCommandDefinition, BotCommandParam, BotCommandParamType};
+use crate::api::definition::{
+    BotCommandDefinition, BotCommandOptionChoice, BotCommandParam, BotCommandParamCondition,
+    BotCommandParamType,
+};
 use crate::oc_api::Runtime;
 use crate::oc_api::client::{Client, ClientFactory};
 use crate::types::{BotCommandContext, TimestampMillis, TokenError};
@@ -104,9 +107,10 @@ fn check_args_internal(
         return false;
     }
 
-    for param in params.iter() {
+    for (index, param) in params.iter().enumerate() {
         let Some(arg) = args.iter().find(|a| a.name == param.name) else {
-            if param.required {
+            // OpenChat doesn't send a param its condition hides, so it's only required while shown
+            if param.required && is_shown(index, params, args) {
                 return false;
             }
 
@@ -188,4 +192,154 @@ fn check_args_internal(
     }
 
     true
+}
+
+/// Whether OpenChat's form shows the param at `index`, given the args: while its condition, if it
+/// has one, holds, and while one of its choices is shown, if it has choices
+fn is_shown(index: usize, params: &[BotCommandParam], args: &[CommandArg]) -> bool {
+    let holds =
+        |condition: &BotCommandParamCondition| condition_holds(condition, index, params, args);
+    let param = &params[index];
+    if !param.visible_when.as_ref().is_none_or(holds) {
+        return false;
+    }
+    match &param.param_type {
+        BotCommandParamType::StringParam(p) => any_choice_shown(&p.choices, holds),
+        BotCommandParamType::IntegerParam(p) => any_choice_shown(&p.choices, holds),
+        BotCommandParamType::DecimalParam(p) => any_choice_shown(&p.choices, holds),
+        _ => true,
+    }
+}
+
+// A param without choices has none to hide
+fn any_choice_shown<T>(
+    choices: &[BotCommandOptionChoice<T>],
+    holds: impl Fn(&BotCommandParamCondition) -> bool,
+) -> bool {
+    choices.is_empty()
+        || choices
+            .iter()
+            .any(|c| c.visible_when.as_ref().is_none_or(&holds))
+}
+
+/// Whether a condition on the param at `index` holds: the earlier param it names is shown, and
+/// that param's arg is one of the condition's values
+fn condition_holds(
+    condition: &BotCommandParamCondition,
+    index: usize,
+    params: &[BotCommandParam],
+    args: &[CommandArg],
+) -> bool {
+    let Some(named) = params[..index]
+        .iter()
+        .position(|p| p.name == condition.param)
+    else {
+        return false;
+    };
+    is_shown(named, params, args)
+        && args
+            .iter()
+            .find(|a| a.name == condition.param)
+            .and_then(|a| a.value.as_string())
+            .is_some_and(|value| condition.values.iter().any(|v| v == value))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::api::definition::{IntegerParam, StringParam};
+
+    fn when(values: &[&str]) -> Option<BotCommandParamCondition> {
+        Some(BotCommandParamCondition {
+            param: "game".to_string(),
+            values: values.iter().map(|v| v.to_string()).collect(),
+        })
+    }
+
+    fn param(
+        name: &str,
+        param_type: BotCommandParamType,
+        visible_when: Option<BotCommandParamCondition>,
+    ) -> BotCommandParam {
+        BotCommandParam {
+            name: name.to_string(),
+            description: None,
+            placeholder: None,
+            required: true,
+            param_type,
+            visible_when,
+        }
+    }
+
+    fn minutes(choices: Vec<(i64, Option<BotCommandParamCondition>)>) -> BotCommandParamType {
+        BotCommandParamType::IntegerParam(IntegerParam {
+            min_value: 1,
+            max_value: 60,
+            choices: choices
+                .into_iter()
+                .map(|(value, visible_when)| BotCommandOptionChoice {
+                    name: value.to_string(),
+                    value,
+                    visible_when,
+                })
+                .collect(),
+        })
+    }
+
+    fn params(increment: BotCommandParam) -> Vec<BotCommandParam> {
+        let game = BotCommandParamType::StringParam(StringParam {
+            min_length: 1,
+            max_length: 10,
+            choices: ["chess", "maze"]
+                .map(|v| BotCommandOptionChoice {
+                    name: v.to_string(),
+                    value: v.to_string(),
+                    visible_when: None,
+                })
+                .into(),
+            multi_line: false,
+        });
+        vec![param("game", game, None), increment]
+    }
+
+    fn args(game: &str, increment: Option<i64>) -> Vec<CommandArg> {
+        let mut args = vec![CommandArg {
+            name: "game".to_string(),
+            value: CommandArgValue::String(game.to_string()),
+        }];
+        if let Some(increment) = increment {
+            args.push(CommandArg {
+                name: "increment".to_string(),
+                value: CommandArgValue::Integer(increment),
+            });
+        }
+        args
+    }
+
+    #[test]
+    fn a_required_param_is_required_only_while_its_condition_holds() {
+        let params = params(param("increment", minutes(Vec::new()), when(&["chess"])));
+        assert!(check_args_internal(&args("chess", Some(5)), &params, 0));
+        assert!(!check_args_internal(&args("chess", None), &params, 0));
+        // hidden for the maze, so OpenChat doesn't send it
+        assert!(check_args_internal(&args("maze", None), &params, 0));
+    }
+
+    #[test]
+    fn a_required_param_none_of_whose_choices_is_shown_is_hidden() {
+        let params = params(param(
+            "increment",
+            minutes(vec![(60, when(&["chess"]))]),
+            None,
+        ));
+        assert!(!check_args_internal(&args("chess", None), &params, 0));
+        assert!(check_args_internal(&args("maze", None), &params, 0));
+        // a choice without a condition is always shown
+        let params = self::params(param(
+            "increment",
+            minutes(vec![(1, None), (60, when(&["chess"]))]),
+            None,
+        ));
+        assert!(!check_args_internal(&args("maze", None), &params, 0));
+    }
 }

@@ -65,11 +65,12 @@ impl Start {
                 param_type: BotCommandParamType::StringParam(StringParam {
                     min_length: 3,
                     max_length: 30,
-                    choices: GAMES.keys().map(|g| BotCommandOptionChoice { name: g.to_string(), value: g.to_string() }).collect(),
+                    choices: GAMES.keys().map(|g| BotCommandOptionChoice { name: g.to_string(), value: g.to_string(), visible_when: None }).collect(),
                     multi_line: false,
                 }),
                 required: true,
                 placeholder: None,
+                visible_when: None,
             }],
             permissions: BotPermissions::text_only(),
             default_role: None,
