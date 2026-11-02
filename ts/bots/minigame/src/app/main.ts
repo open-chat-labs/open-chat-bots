@@ -143,22 +143,22 @@ async function configure(id: string, value: number) {
         });
         const result = (await response.json()) as { ok: boolean; error?: string };
         if (!result.ok) {
-            undoSetting(id);
+            undoSetting(id, value);
             showNotice(result.error ?? "The setting wasn't changed");
         }
     } catch {
-        undoSetting(id);
+        undoSetting(id, value);
         showNotice("Couldn't reach the game");
     }
 }
 
 /**
  * Puts a setting's dropdown, which shows what the host picked, back to what the game has: the
- * option it was last drawn with selected
+ * option it was last drawn with selected. Unless the host has picked another value since.
  */
-function undoSetting(id: string) {
+function undoSetting(id: string, value: number) {
     const select = document.querySelector<HTMLSelectElement>(`select[data-setting="${id}"]`);
-    if (select === null) return;
+    if (select === null || select.value !== String(value)) return;
     for (const option of Array.from(select.options)) option.selected = option.defaultSelected;
 }
 
