@@ -139,6 +139,7 @@ impl Fractal {
                         max_value: 1.0,
                         choices: vec![],
                     }),
+                    visible_when: None,
                 },
                 BotCommandParam {
                     name: "imaginary".to_string(),
@@ -150,6 +151,7 @@ impl Fractal {
                         max_value: 1.0,
                         choices: vec![],
                     }),
+                    visible_when: None,
                 },
             ],
             permissions: BotPermissions::from_message_permission(MessagePermission::Image),

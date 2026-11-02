@@ -103,6 +103,7 @@ impl RemindRecurring {
                         max_length: 5000,
                         multi_line: true,
                     }),
+                    visible_when: None,
                 },
                 BotCommandParam {
                     name: "when".to_string(),
@@ -117,6 +118,7 @@ impl RemindRecurring {
                         max_length: 200,
                         multi_line: false,
                     }),
+                    visible_when: None,
                 },
             ],
             permissions: BotPermissions::default(),

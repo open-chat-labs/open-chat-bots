@@ -53,6 +53,7 @@ impl SetWelcomeMessage {
                 }),
                 required: true,
                 placeholder: None,
+                visible_when: None,
             }],
             permissions: BotPermissions::empty(),
             default_role: Some(ChatRole::Admin),

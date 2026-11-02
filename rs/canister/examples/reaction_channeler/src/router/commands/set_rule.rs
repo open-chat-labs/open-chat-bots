@@ -66,6 +66,7 @@ impl SetRule {
                 }),
                 required: true,
                 placeholder: None,
+                visible_when: None,
             }, BotCommandParam {
                 name: "channel".to_string(),
                 description: Some("The channel to map the emoji to".to_string()),
@@ -75,7 +76,8 @@ impl SetRule {
                     min_value: 0,
                     max_value: u32::MAX.into(),
                     choices: Vec::new(),
-                })
+                }),
+                visible_when: None,
             }],
             permissions: BotPermissions::empty(),
             default_role: Some(ChatRole::Admin),

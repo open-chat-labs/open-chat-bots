@@ -68,6 +68,7 @@ pub struct BotCommandParam {
     pub placeholder: Option<String>,
     pub required: bool,
     pub param_type: BotCommandParamType,
+    pub visible_when: Option<BotCommandParamCondition>,
 }
 ```
 
@@ -85,6 +86,17 @@ pub enum BotCommandParamType {
 ```
 
 A parameter can be either a boolean, a string, an integer, a decimal, a datetime, or an open chat user id. In the case of strings, integers and decimals, the range of possible inputs can be specified and a list of possible `choices` provided. If `choices` are specified, then OpenChat will show a drop down list for this parameter with the possible options.
+
+A parameter, or one of its choices, can have a `visible_when` condition, so that OpenChat shows it only while an earlier parameter has one of a set of values. For instance, a `/play` command whose first parameter picks a game can show each game's settings only once that game is chosen, and offer a time limit of an hour only for chess:
+
+```
+pub struct BotCommandParamCondition {
+    pub param: String,       // an earlier string parameter with choices
+    pub values: Vec<String>, // its values which show this parameter or choice
+}
+```
+
+A hidden parameter's argument isn't sent to the bot. OpenChat refuses a definition whose condition names a parameter which isn't an earlier string parameter with choices, or gives a value which isn't one of its choices. Versions of OpenChat without conditions show every parameter and choice, so a bot should still check the arguments it's given. Leave `visible_when` as `None` for a parameter or choice which is always shown.
 
 Next up, are the command [permissions](#bot-permissions). This is the set of permissions the bot requires to take action(s) within OpenChat when this command is executed. For simplicity, the `BotPermissions` type includes permissions for all types of OpenChat action, whether at community, chat, or message scope regardless of whether this makes sense when used in a particular context. For instance, commands can currently only be issued within chats so community permissions like `CreatePrivateChannel`, don't apply, whereas they _do_ make sense for a bot acting with a community scoped API key. When the owner of a particular location (community/group/direct chat) installs a bot, they can choose which permissions to grant to the bot and this will determine which commands are available for use within this location.
 

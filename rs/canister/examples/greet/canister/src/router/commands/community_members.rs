@@ -84,11 +84,13 @@ impl CommunityMembers {
                             BotCommandOptionChoice {
                                 name: choice.clone(),
                                 value: choice,
+                                visible_when: None,
                             }
                         })
                         .collect(),
                     multi_line: false,
                 }),
+                visible_when: None,
             }],
             permissions: BotPermissions::from_community_permission(
                 CommunityPermission::ReadMembership,

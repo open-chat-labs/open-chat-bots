@@ -69,6 +69,21 @@ pub struct BotCommandParam {
     pub placeholder: Option<String>,
     pub required: bool,
     pub param_type: BotCommandParamType,
+    /// Shown only while an earlier param has one of the condition's values; shown always if `None`
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub visible_when: Option<BotCommandParamCondition>,
+}
+
+/// When OpenChat's form for a command shows a param, or one of a param's choices: while an
+/// earlier param, a `StringParam` with choices, has one of `values`, eg. a game's settings once
+/// that game is chosen. A hidden param's arg isn't sent. An OpenChat which doesn't read conditions
+/// shows every param and choice, so a bot still checks the args it's given.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct BotCommandParamCondition {
+    /// An earlier param's name
+    pub param: String,
+    /// Its values which show this param or choice
+    pub values: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -108,6 +123,9 @@ pub struct DecimalParam {
 pub struct BotCommandOptionChoice<T> {
     pub name: String,
     pub value: T,
+    /// Shown only while an earlier param has one of the condition's values; shown always if `None`
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub visible_when: Option<BotCommandParamCondition>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -135,6 +153,66 @@ mod tests {
             restricted_locations: None,
             mini_apps: Vec::new(),
         }
+    }
+
+    // A param, or a choice, with a condition carries it; one without is served as before conditions
+    #[test]
+    fn a_condition_is_served_only_when_there_is_one() {
+        let when = |values: &[&str]| {
+            Some(BotCommandParamCondition {
+                param: "game".to_string(),
+                values: values.iter().map(|v| v.to_string()).collect(),
+            })
+        };
+        let param = BotCommandParam {
+            name: "minutes".to_string(),
+            description: None,
+            placeholder: None,
+            required: false,
+            param_type: BotCommandParamType::IntegerParam(IntegerParam {
+                min_value: 1,
+                max_value: 60,
+                choices: vec![
+                    BotCommandOptionChoice {
+                        name: "1 minute".to_string(),
+                        value: 1,
+                        visible_when: None,
+                    },
+                    BotCommandOptionChoice {
+                        name: "An hour".to_string(),
+                        value: 60,
+                        visible_when: when(&["chess"]),
+                    },
+                ],
+            }),
+            visible_when: when(&["chess", "maze"]),
+        };
+        let json = serde_json::to_value(&param).unwrap();
+        assert_eq!(
+            json["visible_when"],
+            json!({ "param": "game", "values": ["chess", "maze"] })
+        );
+        let choices = &json["param_type"]["IntegerParam"]["choices"];
+        assert_eq!(choices[0], json!({ "name": "1 minute", "value": 1 }));
+        assert_eq!(
+            choices[1]["visible_when"],
+            json!({ "param": "game", "values": ["chess"] })
+        );
+        let read = serde_json::from_value::<BotCommandParam>(json).unwrap();
+        assert_eq!(read.visible_when, when(&["chess", "maze"]));
+
+        let without = serde_json::to_value(BotCommandParam {
+            visible_when: None,
+            ..param
+        })
+        .unwrap();
+        assert_eq!(without.get("visible_when"), None);
+        assert!(
+            serde_json::from_value::<BotCommandParam>(without)
+                .unwrap()
+                .visible_when
+                .is_none()
+        );
     }
 
     // As `/bot_definition` serves it: in snake_case, and without `mini_apps` for a bot with none, so

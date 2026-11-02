@@ -177,9 +177,33 @@
         "param_type": {
           "$ref": "#/definitions/CommandParamType",
           "description": "The type of parameter (e.g., string, number, boolean, or user)."
+        },
+        "visible_when": {
+          "$ref": "#/definitions/CommandParamCondition",
+          "description": "Shows the parameter only while an earlier parameter has one of the given values. Shown always if left out."
         }
       },
       "required": ["name", "description", "required", "param_type"],
+      "additionalProperties": false
+    },
+    "CommandParamCondition": {
+      "type": "object",
+      "description": "When OpenChat's form for a command shows a parameter, or one of a parameter's choices: while an earlier parameter, a string parameter with choices, has one of the values, e.g. a game's settings once that game is chosen. A hidden parameter's argument isn't sent. A version of OpenChat which doesn't read conditions shows every parameter and choice, so a bot should still check the arguments it's given.",
+      "properties": {
+        "param": {
+          "type": "string",
+          "description": "The name of an earlier string parameter with choices."
+        },
+        "values": {
+          "type": "array",
+          "description": "The values of that parameter which show this parameter or choice, each one of its choices.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["param", "values"],
       "additionalProperties": false
     },
     "CommandParamType": {
@@ -344,6 +368,10 @@
           "description": "The value of the choice.",
           "minLength": 1,
           "maxLength": 100
+        },
+        "visible_when": {
+          "$ref": "#/definitions/CommandParamCondition",
+          "description": "Shows the choice only while an earlier parameter has one of the given values. Shown always if left out."
         }
       },
       "required": ["name", "value"],
@@ -363,6 +391,10 @@
           "type": "integer",
           "description": "The value of the choice.",
           "minimum": 0
+        },
+        "visible_when": {
+          "$ref": "#/definitions/CommandParamCondition",
+          "description": "Shows the choice only while an earlier parameter has one of the given values. Shown always if left out."
         }
       },
       "required": ["name", "value"],
@@ -382,6 +414,10 @@
           "type": "number",
           "description": "The value of the choice.",
           "minimum": 0
+        },
+        "visible_when": {
+          "$ref": "#/definitions/CommandParamCondition",
+          "description": "Shows the choice only while an earlier parameter has one of the given values. Shown always if left out."
         }
       },
       "required": ["name", "value"],

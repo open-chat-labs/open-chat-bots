@@ -51,6 +51,7 @@ module {
                     placeholder = null;
                     required = true;
                     param_type = #UserParam;
+                    visible_when = null;
                 },
                 {
                     name = "New role";
@@ -61,8 +62,9 @@ module {
                         min_length = 5;
                         max_length = 16;
                         multi_line = false;
-                        choices = roles |> Array.map(_, func(value) = { name = value; value; });
+                        choices = roles |> Array.map(_, func(value) = { name = value; value; visible_when = null });
                     };
+                    visible_when = null;
                 }
             ];
             permissions = {

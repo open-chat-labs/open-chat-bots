@@ -102,6 +102,7 @@ impl RemindAt {
                         max_length: 5000,
                         multi_line: true,
                     }),
+                    visible_when: None,
                 },
                 BotCommandParam {
                     name: "when".to_string(),
@@ -113,6 +114,7 @@ impl RemindAt {
                     param_type: BotCommandParamType::DateTimeParam(DateTimeParam {
                         future_only: true,
                     }),
+                    visible_when: None,
                 },
             ],
             permissions: BotPermissions::default(),

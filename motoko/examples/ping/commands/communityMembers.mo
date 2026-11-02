@@ -58,8 +58,9 @@ module {
                     multi_line = false;
                     choices = MemberType.toArray() 
                         |> Array.map(_, MemberType.toText) 
-                        |> Array.map(_, func(text : Text) : Sdk.Definition.CommandOptionChoice<Text> = { name = text; value = text; });
+                        |> Array.map(_, func(text : Text) : Sdk.Definition.CommandOptionChoice<Text> = { name = text; value = text; visible_when = null });
                 };
+                visible_when = null;
             }];
             permissions = {
                 community = [#ReadMembership];
