@@ -15,6 +15,7 @@ import type { SharedState } from "../games/chess/types";
 import { Duel } from "../games/duel/duel";
 import type { DuelState } from "../games/duel/types";
 import { FOUR_IN_A_ROW } from "../games/fourinarow/rules";
+import { REVERSI } from "../games/reversi/rules";
 import { Race2048 } from "../games/race2048/race";
 import {
     MAX_PLAYERS,
@@ -444,6 +445,28 @@ describe("a duel through the same handlers", () => {
         expect((await send(resign, deps, "bob")).status).toBe(200);
         expect(store.get(game)!.play.result()).toBe("@UserId(bob) resigned");
         expect(publish).toHaveBeenCalledTimes(2);
+    });
+
+    it("plays Reversi through the same requests, a move being a square", async () => {
+        const { store, deps } = setUp();
+        const reversi = Duel.create(REVERSI, { random: () => 0.9 });
+        store.create(game, reversi);
+        reversi.join("alice", "Alice");
+        reversi.join("bob", "Bob");
+        reversi.start();
+        const reversiMove = duelMove("reversi");
+        const played = await send(reversiMove, deps, "alice", { move: "d3" });
+        expect((played.body as { shared: DuelState<string> }).shared.moves).toEqual(["d3"]);
+        expect(await send(reversiMove, deps, "bob", { move: "a1" })).toEqual({
+            status: 409,
+            body: { ok: false, error: "A disc has to flip at least one of the other player's" },
+        });
+        expect(await send(reversiMove, deps, "bob", { move: 3 })).toEqual({
+            status: 409,
+            body: { ok: false, error: "That isn't a move" },
+        });
+        // A Four in a Row request for a Reversi game is refused
+        expect((await send(move, deps, "bob", { move: 3 })).status).toBe(409);
     });
 
     it("refuses a duel's request for a game of another kind", async () => {

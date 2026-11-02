@@ -68,9 +68,9 @@ export const definition = {
         "Play games with the people in your chat. `/play` posts a game card: join from the card, " +
         "and the game opens in OpenChat. Race to 2048 with up to 100 players, where the first to " +
         "make the target tile wins, or the top score when the time's up (2048 and 10 minutes " +
-        "unless set, with the command or by the host in the lobby), or play chess or Four in a " +
-        "Row, two players which anyone in the chat can watch, with the time and who goes first " +
-        "set the same way.",
+        "unless set, with the command or by the host in the lobby), or play chess, Four in a " +
+        "Row or Reversi, two players which anyone in the chat can watch, with the time and who " +
+        "goes first set the same way.",
     commands: [
         {
             name: "play",

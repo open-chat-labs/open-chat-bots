@@ -3,7 +3,7 @@
 // sees. A game's own moves are its own, under `handlers/api.ts`.
 import type { Settings } from "./settings";
 
-export type GameKind = "2048" | "chess" | "four-in-a-row";
+export type GameKind = "2048" | "chess" | "four-in-a-row" | "reversi";
 
 export type ConfigureResult = { ok: true } | { ok: false; error: string };
 
