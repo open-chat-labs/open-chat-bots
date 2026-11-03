@@ -17,6 +17,7 @@ import type { Race2048 } from "../games/race2048/race";
 import { MAX_PLAYERS, type MoveResponse } from "../games/race2048/types";
 import { gameType } from "../games/registry";
 import { parseSettings } from "../games/settings";
+import type { WordRace } from "../games/words/race";
 
 /** What a request did to the game: its answer, and whether the game changed, so it's published */
 type Outcome = { result: { ok: boolean }; changed: boolean };
@@ -241,4 +242,13 @@ export function minesweeperAct(req: Request, res: Response, deps: Deps): Promise
     return act<MinesweeperRace>(req, res, deps, "minesweeper", (race, userId, body) =>
         race.act(userId, body),
     );
+}
+
+/**
+ * `POST /api/words/guess` with `{ "guess": "crane" }`: a Word racer's guess, answered with their
+ * guesses, marked, which only they see while the race is on. No guess at all asks for them, eg. as
+ * the page opens.
+ */
+export function wordsGuess(req: Request, res: Response, deps: Deps): Promise<void> {
+    return act<WordRace>(req, res, deps, "words", (race, userId, body) => race.guess(userId, body));
 }

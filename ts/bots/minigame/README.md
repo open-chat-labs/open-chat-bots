@@ -1,7 +1,7 @@
 # MiniGameBot
 
 Games played from MiniApp cards in OpenChat chats. `/play <game>` posts a card; people join from the
-card, a player starts the game, and it's played in the card, in the bot's own page. Eight games:
+card, a player starts the game, and it's played in the card, in the bot's own page. Nine games:
 
 - a **2048 race**: up to 100 players, each on their own board, and the first to make a 2048 tile
   wins, or the top score when 10 minutes are up. A player whose board gets stuck restarts on a fresh
@@ -44,7 +44,12 @@ card, a player starts the game, and it's played in the card, in the bot's own pa
   unless the host sets otherwise, each on their own board. The field can always be cleared by
   working it out, without a guess, and a mine set off stops its racer for 10 seconds. The first to
   clear the field wins, or whoever's cleared the most when the 3 minutes are up. It's built from
-  scratch (see "Minesweeper race").
+  scratch (see "Minesweeper race");
+- a **Word Race**: up to 20 players race to guess the same five-letter word, each with six guesses.
+  Each guess's letters are marked: in the word in that place, in the word elsewhere, or not in it.
+  The first to guess the word wins, or whoever came closest when the 3 minutes are up, unless the
+  host sets otherwise, or when everyone's had all their guesses. Its words are SCOWL's, and the
+  rest is built from scratch (see "Word Race").
 
 The bot is a TypeScript Express server, built on the SDK in [`ts/library`](../../library), and the
 page is a small browser app built with Vite from the same source tree, so the server and the page
@@ -68,11 +73,11 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    lobby's form.
 2. **Joining** goes through OpenChat's buttons on the card. The service asks the bot at
    `POST /mini_app/join`, which looks the user's name up and gives them a seat: up to 100 in a race,
-   10 in a maze race, at ChatMan or in a Minesweeper race, two at chess, Four in a Row, Reversi and Hex ("This game is for two" after that,
-   "The game has started" once it has). Leaving, `POST /mini_app/leave`, frees the seat before the
-   start. After it, a race goes on without them; a game of two can't, so it ends, the result being
-   that they "left the game". The lobby's seats are published as the game's state, so the page shows
-   who's joined.
+   10 in a maze race, at ChatMan or in a Minesweeper race, 20 in a Word Race, two at chess, Four in
+   a Row, Reversi and Hex ("This game is for two" after that, "The game has started" once it has).
+   Leaving, `POST /mini_app/leave`, frees the seat before the start. After it, a race goes on
+   without them; a game of two can't, so it ends, the result being that they "left the game". The
+   lobby's seats are published as the game's state, so the page shows who's joined.
 3. **Starting**: a player presses Start in the page, OpenChat asks the bot at
    `POST /mini_app/start`, and the bot answers with the players, the first state and the game's
    settings, which the card keeps from then on and OpenChat hands to the app. A race deals
@@ -111,6 +116,11 @@ which the store, the handlers, the sweep and the publisher use, and which each g
      `{ "ok": true, "own": { "view": "..0f12..", "rev": 3, "cleared": 40, "hits": 0, "frozenMs": 0 } }`,
      or `{ "ok": false, "error": "..", "own": .. }` with a 409 if one was refused, eg. while they
      wait after setting off a mine. No acts at all asks for the board.
+   - **Word Race**: `POST /api/words/guess` with `{ "guess": "crane" }` answers with the racer's
+     own guesses, marked,
+     `{ "ok": true, "own": { "guesses": ["trace", "crane"], "marks": ["02212", "22222"] } }`, or
+     `{ "ok": false, "error": "..", "own": .. }` with a 409 for a guess that isn't in the word list,
+     or one they've made already, which doesn't count. No guess at all asks for them.
 5. **The clock**. The bot checks every game's clock every second, and before every request, so a
    game ends on time whether or not anyone's still playing, and so does one that was running when
    the bot last stopped. A race ends when its 10 minutes are up, and the top score wins: a player's
@@ -384,6 +394,35 @@ race is on only the bot knows where the mines are, and only each racer sees thei
   computer a right click flags, as a long press is only for a finger or a pen. Someone watching
   sees how far everyone's got, and once it's over a click on a name shows their board, with the
   mines nobody found and the flags in the wrong place.
+
+## Word Race
+
+Everyone guesses the same word, so while the race is on only the bot knows it, and only each racer
+sees their own guesses.
+
+- **The words** (`src/games/words/words.ts`) are SCOWL's (http://wordlist.aspell.net/), as the
+  wordlist-english package has its lists, with SCOWL's notice in the file and the rest of it in
+  `scowl-copyright.txt` beside it. A race's word is one of about 1900 answers: SCOWL's common
+  five-letter words, its levels 10 to 35 in no one dialect, less plurals and other inflections of
+  a common word, slang, odd comparatives and words likely to offend. A guess may be any of its 6500
+  five-letter words, levels 10 to 70 in any dialect, so a plural or an odd word is a fine guess.
+- **A guess is marked** (`src/games/words/marks.ts`) a digit a letter: `2` in the word in that
+  place, `1` in the word elsewhere, `0` not in it. A letter the guess has more often than the word
+  is marked in the word only as often as the word has it, its places first, then from the left. A
+  guess that isn't in the list, or that the racer's made already, is refused, and doesn't count.
+- **The shared state says only how each racer's guesses were marked**, as their letters would give
+  the word away. Each racer's guesses come in the answer to their own requests (`own`), and in their
+  private part of each state, as a Minesweeper racer's board does, so they're there as the page
+  opens, and the page asks for them only when the state says the bot has more. Once the race is
+  over, the state has everyone's guesses and the word.
+- **The first to guess the word wins**, and the race ends there. When the time's up, or everyone's
+  had all six guesses, whoever came closest wins: their closest guess had the most letters in
+  place, then the most in the word elsewhere, and they made it first.
+- **The page** draws the racer's guesses, a row each, with the one they're typing, and a keyboard
+  under them whose keys are marked as their guesses have them; they can type with their own too. A
+  letter in place is filled, one elsewhere is ringed, with a dot, and one not in the word faded.
+  Under them, everyone's marks, as small cards. Someone watching sees just those, bigger, and once
+  it's over a click on a name shows their guesses.
 
 ## Adding a game
 

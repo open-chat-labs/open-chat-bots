@@ -26,6 +26,9 @@ import { Race2048, type RaceData } from "./race2048/race";
 import { RACE_SETTINGS } from "./race2048/settings";
 import { GAME_ID as RACE_ID, MAX_PLAYERS } from "./race2048/types";
 import type { SettingSpec, Settings } from "./settings";
+import { WordRace, type WordsData } from "./words/race";
+import { WORDS_SETTINGS } from "./words/settings";
+import { GAME_ID as WORDS_ID, MAX_PLAYERS as WORDS_MAX_PLAYERS } from "./words/types";
 
 /** What a game can be made with, from the bot's config */
 export type GameConfig = {
@@ -192,6 +195,21 @@ export const MINESWEEPER: GameType = {
     fromJson: (data) => new MinesweeperRace(data as MinesData),
 };
 
+export const WORD_RACE: GameType = {
+    id: WORDS_ID,
+    title: "Word Race",
+    image: "app/words.svg",
+    // One line, as the others': the time is a setting, shown in the lobby
+    cardText: `**Word Race** · up to ${WORDS_MAX_PLAYERS} players`,
+    maxPlayers: WORDS_MAX_PLAYERS,
+    spectators: true,
+    settings: WORDS_SETTINGS,
+    // A portrait frame: the racer's guesses and keyboard, with everyone's marks under them
+    appSize: { width: 440, height: 720 },
+    create: (_config, host) => WordRace.create({ host }),
+    fromJson: (data) => new WordRace(data as WordsData),
+};
+
 export const GAMES: readonly GameType[] = [
     RACE_2048,
     CHESS,
@@ -201,6 +219,7 @@ export const GAMES: readonly GameType[] = [
     CHATMAN,
     MINESWEEPER,
     HEX_GAME,
+    WORD_RACE,
 ];
 
 /** The games played as a duel (`games/duel`), whose moves and resignations are the same requests */

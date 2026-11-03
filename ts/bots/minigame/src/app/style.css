@@ -2041,3 +2041,277 @@ button.link {
     stroke-width: 1.6;
     pointer-events: none;
 }
+
+/*
+ * The Word Race (words/view.ts): the racer's guesses, a row of tiles each, and the keyboard. A
+ * letter in the word in its place is filled, one in the word elsewhere is ringed, with a dot, and
+ * one not in it is faded, on the keys as on the tiles. Everyone's marks are small cards under them.
+ */
+.wr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.wr-status {
+    margin: 4px 0 8px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.wr-grid {
+    --tile: 52px;
+    display: grid;
+    grid-template-rows: repeat(6, var(--tile));
+    gap: 6px;
+}
+
+.wr-row {
+    display: grid;
+    grid-template-columns: repeat(5, var(--tile));
+    gap: 6px;
+}
+
+.wr-tile {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    font-size: calc(var(--tile) * 0.5);
+    font-weight: 700;
+    text-transform: uppercase;
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease;
+}
+
+.wr-tile.wr-typed {
+    border-color: var(--muted);
+    animation: wr-pop 0.1s ease-out;
+}
+
+.wr-tile.wr-sending {
+    animation: wr-pulse 0.8s ease-in-out infinite;
+}
+
+.wr-row.wr-shake {
+    animation: wr-shake 0.35s ease;
+}
+
+.wr-tile.wr-m2,
+.wr-key.wr-m2,
+.wr-mini.wr-m2 {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-fg);
+}
+
+.wr-tile.wr-m1,
+.wr-key.wr-m1 {
+    border: 3px solid var(--accent);
+    background: var(--panel);
+    color: var(--accent);
+}
+
+.wr-tile.wr-m1::after {
+    content: "";
+    position: absolute;
+    top: 9%;
+    right: 9%;
+    width: 13%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+.wr-tile.wr-m0 {
+    background: var(--empty);
+    border-color: var(--empty);
+    color: color-mix(in srgb, var(--fg) 55%, transparent);
+}
+
+@keyframes wr-pop {
+    from {
+        transform: scale(0.88);
+    }
+    to {
+        transform: scale(1);
+    }
+}
+
+@keyframes wr-pulse {
+    50% {
+        opacity: 0.55;
+    }
+}
+
+@keyframes wr-shake {
+    20%,
+    60% {
+        transform: translateX(-6px);
+    }
+    40%,
+    80% {
+        transform: translateX(6px);
+    }
+}
+
+.wr-keys {
+    width: 100%;
+    max-width: 440px;
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.wr-key-row {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+}
+
+.wr-key {
+    flex: 1 1 0;
+    max-width: 40px;
+    height: 44px;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    background: var(--board);
+    color: var(--fg);
+    font: inherit;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.wr-key.wide {
+    flex-grow: 1.6;
+    max-width: 64px;
+    font-size: 12px;
+}
+
+.wr-key svg {
+    width: 22px;
+    height: 22px;
+    vertical-align: middle;
+}
+
+.wr-key.wr-m0 {
+    opacity: 0.45;
+}
+
+.wr-key:disabled {
+    cursor: default;
+}
+
+.wr-hint {
+    margin: 8px 0 0;
+    text-align: center;
+}
+
+.wr-others {
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    /* A few rows of cards, so a race of twenty leaves the guesses room; the rest scroll */
+    max-height: 136px;
+    overflow-y: auto;
+}
+
+.wr-others li {
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-rows: auto auto;
+    column-gap: 6px;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 13px;
+    max-width: 128px;
+}
+
+.wr-others li.mine,
+.wr-others li.picked {
+    background: var(--panel);
+    font-weight: 600;
+}
+
+.wr-others li[data-action] {
+    cursor: pointer;
+}
+
+.wr-others .wr-minis {
+    grid-row: span 2;
+    display: grid;
+    gap: 2px;
+}
+
+.wr-others .who {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wr-others li.winner .who::after {
+    content: " 🏆";
+}
+
+.wr-others .count {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.wr-mini-row {
+    display: flex;
+    gap: 2px;
+}
+
+.wr-mini {
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+}
+
+.wr-mini.wr-m1 {
+    border: 2px solid var(--accent);
+}
+
+.wr-mini.wr-m0 {
+    background: var(--empty);
+    border-color: var(--empty);
+}
+
+/* Watching while the race is on: no guesses of their own, so everyone's marks have the room */
+.wr-watching .wr-others {
+    max-height: none;
+    gap: 10px;
+}
+
+.wr-watching .wr-minis,
+.wr-watching .wr-mini-row {
+    gap: 3px;
+}
+
+.wr-watching .wr-mini {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+}
+
+.wr-watching .wr-others li {
+    max-width: 200px;
+    font-size: 15px;
+}
