@@ -662,7 +662,7 @@ button.link {
 
 .chess-status {
     min-height: 1.4em;
-    margin: 0 0 8px;
+    margin: 0 0 4px;
     text-align: center;
     font-weight: 600;
 }
@@ -684,9 +684,9 @@ button.link {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    margin: 6px 0;
+    gap: 6px;
+    padding: 4px 8px;
+    margin: 4px 0;
     border-radius: 8px;
     background: var(--panel);
     border: 2px solid var(--border);
@@ -696,25 +696,44 @@ button.link {
     border-color: var(--accent);
 }
 
-.player-row .name {
+/*
+ * The side, then who plays it, eg. "White · Bob". The side's always shown whole, and when the row's
+ * short of room, who plays it gives way, and is left out by the view rather than cut to a letter
+ * or two.
+ */
+.player-row .side,
+.player-row .who {
     font-size: 14px;
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .player-row .side {
+    flex: none;
     font-weight: 600;
 }
 
+.player-row .who {
+    flex: 0 100 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.player-row .who.cramped {
+    display: none;
+}
+
 /*
- * The pieces a player has taken, just after their name, a kind's overlapping, then their lead in
- * pawns. They keep their room, and a long name gives way.
+ * The pieces a player has taken, just after their name, cheapest first, then their lead in pawns.
+ * A piece takes the room its picture does, and the next of a kind starts --step of a piece along
+ * it: a little under half, or less if the view finds the row's short of room.
  */
 .player-row .taken {
+    --size: 20px;
+    --step: 0.45;
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
     flex: none;
     margin-right: auto;
 }
@@ -723,17 +742,18 @@ button.link {
     display: flex;
 }
 
-/* A piece's box, its picture centred in it as on the board, a little taller than the name */
+/* A piece is drawn as it is on a square --size wide, less the room round it */
 .taken .piece {
     position: relative;
     inset: auto;
-    width: 20px;
-    height: 20px;
+    width: calc(var(--w) * var(--size));
+    height: var(--size);
+    background-size: 100% calc(var(--h) * 100%);
     filter: none;
 }
 
 .taken .piece + .piece {
-    margin-left: -11px;
+    margin-left: calc((var(--step) - var(--w)) * var(--size));
 }
 
 /* Black's pieces have a black edge, so on the dark panel they get a light one */
@@ -848,8 +868,8 @@ button.link {
 
 /*
  * A piece is JohnPablok's improved Cburnett set's (chess/pieces, CC-BY-SA 3.0), centred on whatever
- * it's drawn in, at the size the set draws it on its 451-unit squares: its SVG's viewBox width and
- * height over 451
+ * it's drawn in, at the size the set draws it on its 451-unit squares: --w and --h, its SVG's
+ * viewBox width and height over 451
  */
 .piece {
     position: absolute;
@@ -857,31 +877,38 @@ button.link {
     z-index: 1;
     background-position: center;
     background-repeat: no-repeat;
+    background-size: calc(var(--w) * 100%) calc(var(--h) * 100%);
     filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
 }
 
 .piece.k {
-    background-size: 85.3% 86.1%;
+    --w: 0.853;
+    --h: 0.861;
 }
 
 .piece.q {
-    background-size: 84.6% 77.1%;
+    --w: 0.846;
+    --h: 0.771;
 }
 
 .piece.r {
-    background-size: 65.8% 72.8%;
+    --w: 0.658;
+    --h: 0.728;
 }
 
 .piece.b {
-    background-size: 79.8% 80.5%;
+    --w: 0.798;
+    --h: 0.805;
 }
 
 .piece.n {
-    background-size: 68.7% 76.9%;
+    --w: 0.687;
+    --h: 0.769;
 }
 
 .piece.p {
-    background-size: 52.7% 64.8%;
+    --w: 0.527;
+    --h: 0.648;
 }
 
 .piece.white.k {
@@ -950,11 +977,14 @@ button.link {
 }
 
 .chess-controls {
-    margin: 10px 0 4px;
+    margin: 6px 0 0;
     text-align: center;
 }
 
-.chess-controls button,
+.chess-controls button {
+    margin: 0 3px;
+}
+
 .replay-row button {
     margin: 3px;
 }
@@ -996,6 +1026,23 @@ button.link {
     max-height: 7em;
 }
 
+/*
+ * Chess's get what room the board leaves them (--moves-room, from the view), and none at all if
+ * that's not enough for a couple of rows: the board comes first, and a finished game can be stepped
+ * through without them
+ */
+.chess .moves {
+    max-height: min(4.5em, var(--moves-room, 4.5em));
+}
+
+.chess .moves.replay {
+    max-height: min(7em, var(--moves-room, 7em));
+}
+
+.chess .moves.cramped {
+    display: none;
+}
+
 .moves.replay .m {
     cursor: pointer;
     border-radius: 3px;
@@ -1016,15 +1063,15 @@ button.link {
 
 /*
  * Chess's has PGN after the buttons to step, apart from them. In a narrow card those buttons are
- * only their arrows, so PGN fits beside them, and in a narrower one still, it goes under them
- * rather than squeezing them.
+ * only their arrows, and where the viewer is in the game gives way rather than PGN going under
+ * them, which would take the room from the board.
  */
 .chess .replay-row {
-    flex-wrap: wrap;
-    row-gap: 0;
+    margin-top: 6px;
 }
 
 .chess .replay-row button {
+    margin: 0;
     white-space: nowrap;
 }
 
@@ -1032,9 +1079,20 @@ button.link {
     margin-left: 8px;
 }
 
+/* In a narrow card, the rows round the board are tighter, so the board can be as wide as the card */
 @media (max-width: 400px) {
     .chess .replay-row .word {
         display: none;
+    }
+
+    .chess .replay-row button,
+    .chess .chess-controls button {
+        padding: 6px 12px;
+    }
+
+    .chess .chess-clock {
+        font-size: 18px;
+        min-width: 3.6em;
     }
 }
 
@@ -1044,6 +1102,14 @@ button.link {
     color: var(--muted);
     font-size: 14px;
     font-variant-numeric: tabular-nums;
+}
+
+.chess .replay-row .ply {
+    flex: 0 1 7em;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .promotion,
