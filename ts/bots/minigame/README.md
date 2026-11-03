@@ -1,7 +1,7 @@
 # MiniGameBot
 
 Games played from MiniApp cards in OpenChat chats. `/play <game>` posts a card; people join from the
-card, a player starts the game, and it's played in the card, in the bot's own page. Six games:
+card, a player starts the game, and it's played in the card, in the bot's own page. Seven games:
 
 - a **2048 race**: up to 100 players, each on their own board, and the first to make a 2048 tile
   wins, or the top score when 10 minutes are up. A player whose board gets stuck restarts on a fresh
@@ -30,7 +30,12 @@ card, a player starts the game, and it's played in the card, in the bot's own pa
   power pellet frightens them for a few seconds, when he can eat them too. A cleared maze leads to
   the next level's. The top score wins when the 3 minutes are up, or when everyone's out of their 3
   lives, unless the host sets otherwise. It's built from scratch, its mazes, spam bots and look its
-  own, and it's played live (see "ChatMan").
+  own, and it's played live (see "ChatMan");
+- a **Minesweeper race**: up to 10 players race to clear the same minefield, 12 by 12 with 22 mines
+  unless the host sets otherwise, each on their own board. The field can always be cleared by
+  working it out, without a guess, and a mine set off stops its racer for 10 seconds. The first to
+  clear the field wins, or whoever's cleared the most when the 3 minutes are up. It's built from
+  scratch (see "Minesweeper race").
 
 The bot is a TypeScript Express server, built on the SDK in [`ts/library`](../../library), and the
 page is a small browser app built with Vite from the same source tree, so the server and the page
@@ -54,7 +59,7 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    lobby's form.
 2. **Joining** goes through OpenChat's buttons on the card. The service asks the bot at
    `POST /mini_app/join`, which looks the user's name up and gives them a seat: up to 100 in a race,
-   10 in a maze race or at ChatMan, two at chess, Four in a Row and Reversi ("This game is for two" after that,
+   10 in a maze race, at ChatMan or in a Minesweeper race, two at chess, Four in a Row and Reversi ("This game is for two" after that,
    "The game has started" once it has). Leaving, `POST /mini_app/leave`, frees the seat before the
    start. After it, a race goes on without them; a game of two can't, so it ends, the result being
    that they "left the game". The lobby's seats are published as the game's state, so the page shows
@@ -89,6 +94,12 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    - **ChatMan**: each turn goes over the live socket too,
      `{ "type": "act", "body": { "turn": "left", "n": 7, "tick": 1234 } }`, with the tick it was
      taken at, and `POST /api/chatman/turn` takes one while the socket's reconnecting.
+   - **Minesweeper race**: `POST /api/minesweeper/act` with
+     `{ "acts": [{ "reveal": 12 }, { "flag": 30, "on": true }, { "chord": 41 }] }`, the cells
+     counted from 0 along the top row, answers with the racer's own board,
+     `{ "ok": true, "own": { "view": "..0f12..", "rev": 3, "cleared": 40, "hits": 0, "frozenMs": 0 } }`,
+     or `{ "ok": false, "error": "..", "own": .. }` with a 409 if one was refused, eg. while they
+     wait after setting off a mine. No acts at all asks for the board.
 5. **The clock**. The bot checks every game's clock every second, and before every request, so a
    game ends on time whether or not anyone's still playing, and so does one that was running when
    the bot last stopped. A race ends when its 10 minutes are up, and the top score wins: a player's
@@ -314,12 +325,46 @@ The game plays on without anyone moving, so it implements `Game.tick`, which the
 second, publishing the game when its boards have moved, and `Game.liveEveryMs`, so the socket sends a
 state 10 times a second at most however many turns come in.
 
+## Minesweeper race
+
+Everyone races on the same field, so it's skill that wins rather than a lucky board, and while the
+race is on only the bot knows where the mines are, and only each racer sees their own board.
+
+- **The field** (`src/games/minesweeper/field.ts`) is laid at the start with its mines clear of a
+  starting cell and its neighbours, which every racer has open from the first, and kept only if a
+  solver can clear it from there without a guess, or laid again. The solver works as a player
+  does: a number with all its mines found has the rest of its neighbours safe, one with as many
+  hidden neighbours as mines left has them all mines, two numbers whose neighbours overlap can
+  settle the cells only one of them touches, and with every mine found the rest is safe. Laying one
+  takes a millisecond or so, even 16 by 16. The store keeps the mines, not the seed.
+- **The shared state says only how far each racer's got**: the safe cells they've opened, the mines
+  they've set off, and their board's `rev`. Anything more, even which cells they've opened, would
+  show everyone else where it's safe. Each racer's board comes in the answer to their own requests
+  (`own`), and in their private part of each state, which the service gives only to them
+  (`Game.privateState`, which the publisher sends for a game that has one), so it's there as the
+  page opens. The page asks the bot for it only when the state says the bot has a newer one than
+  the page, eg. if the service hasn't sent it. Once the race is over, the state has every board and
+  the mines.
+- **A click goes to the bot**, as the page doesn't know what's under a cell. Clicks made while the
+  bot's answering go together in the next request, up to 32, so requests go one at a time and in
+  order. A flag shows at once, and a cell being opened looks pressed until the answer comes.
+- **A mine** shows on the racer's board, counts against them, and stops them for 10 seconds
+  (`PENALTY_MS`), when the bot refuses anything they send. When the time's up, the most cleared
+  wins, then the fewest mines set off, then whoever got there first.
+- **The page** draws the racer's own board, a cell an element, with the mines left to flag and how
+  far everyone's got under it. A tap opens a cell, a long press flags it, and a tap on a number with
+  its flags all placed opens round it; the flag button swaps a tap and a long press, and on a
+  computer a right click flags, as a long press is only for a finger or a pen. Someone watching
+  sees how far everyone's got, and once it's over a click on a name shows their board, with the
+  mines nobody found and the flags in the wrong place.
+
 ## Adding a game
 
 - Add its rules under `src/games/<game>/`, as a class implementing `Game` (`src/games/game.ts`):
   seats, start, whose turn it is, its clock, a shared state carrying a `version` and the `game`'s
   id, its result, its end state, which the publisher sends only within 16 KB (`jsonBytes` measures
-  it), so a game which can run long cuts its own down first, and its data for the store.
+  it), so a game which can run long cuts its own down first, and its data for the store. A game with
+  anything only each player may see gives it as `privateState`, by user id.
 - Add it to `src/games/registry.ts`, with its `create` and `fromJson`: that's the `/play` choice,
   the card's one-line text and limits, its settings, each a choice among a few values with a
   default, the size the page is laid out for, which gives the frame in the card

@@ -7,6 +7,7 @@ import {
 import { describe, expect, it, vi } from "vitest";
 import { ChessGame } from "./games/chess/chess";
 import { MAX_END_STATE_BYTES, type Game } from "./games/game";
+import { MinesweeperRace } from "./games/minesweeper/race";
 import { Race2048 } from "./games/race2048/race";
 import { TIME_LIMIT_MS } from "./games/race2048/types";
 import { Publisher } from "./publisher";
@@ -67,6 +68,23 @@ describe("publisher", () => {
         expect(updates[0]).toEqual({ game, state: { seq: 1, shared: race.shared() } });
         expect(updates[0].status).toBeUndefined();
         expect(updates[0].endState).toBeUndefined();
+    });
+
+    it("sends each player their own part, for a game that has one", async () => {
+        const { updates, store, publisher } = setUp();
+        const race = MinesweeperRace.create();
+        race.join("alice", "Alice");
+        race.start();
+        store.create(game, race);
+
+        publisher.publish(game);
+        await published(updates, 1);
+
+        expect(updates[0].state).toEqual({
+            seq: 1,
+            shared: race.shared(),
+            private: { alice: race.own("alice") },
+        });
     });
 
     it("ends the card with the result and the final shared state as the end state", async () => {

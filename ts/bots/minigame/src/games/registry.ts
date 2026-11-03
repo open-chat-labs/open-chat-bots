@@ -13,6 +13,12 @@ import { FOUR_IN_A_ROW } from "./fourinarow/rules";
 import { MazeRace, type MazeData } from "./maze/race";
 import { MAZE_SETTINGS } from "./maze/settings";
 import { GAME_ID as MAZE_ID, MAX_PLAYERS as MAZE_MAX_PLAYERS } from "./maze/types";
+import { MinesweeperRace, type MinesData } from "./minesweeper/race";
+import { MINESWEEPER_SETTINGS } from "./minesweeper/settings";
+import {
+    GAME_ID as MINESWEEPER_ID,
+    MAX_PLAYERS as MINESWEEPER_MAX_PLAYERS,
+} from "./minesweeper/types";
 import { REVERSI } from "./reversi/rules";
 import type { Game, GameKind, Host } from "./game";
 import { Race2048, type RaceData } from "./race2048/race";
@@ -155,7 +161,30 @@ export const CHATMAN: GameType = {
     fromJson: (data) => new ChatManRace(data as ChatManData),
 };
 
-export const GAMES: readonly GameType[] = [RACE_2048, CHESS, FOUR, REVERSI_GAME, MAZE, CHATMAN];
+export const MINESWEEPER: GameType = {
+    id: MINESWEEPER_ID,
+    title: "Minesweeper Race",
+    image: "app/minesweeper.svg",
+    // One line, as the others': the field's size and the time are settings, shown in the lobby
+    cardText: `**Minesweeper Race** · up to ${MINESWEEPER_MAX_PLAYERS} players`,
+    maxPlayers: MINESWEEPER_MAX_PLAYERS,
+    spectators: true,
+    settings: MINESWEEPER_SETTINGS,
+    // A portrait frame: the field, with how far everyone's got under it
+    appSize: { width: 440, height: 720 },
+    create: (_config, host) => MinesweeperRace.create({ host }),
+    fromJson: (data) => new MinesweeperRace(data as MinesData),
+};
+
+export const GAMES: readonly GameType[] = [
+    RACE_2048,
+    CHESS,
+    FOUR,
+    REVERSI_GAME,
+    MAZE,
+    CHATMAN,
+    MINESWEEPER,
+];
 
 /** The games played as a duel (`games/duel`), whose moves and resignations are the same requests */
 export const DUELS: readonly GameKind[] = [FOUR_IN_A_ROW.kind, REVERSI.kind];
