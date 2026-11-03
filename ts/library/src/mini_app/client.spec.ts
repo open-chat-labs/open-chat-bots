@@ -34,6 +34,8 @@ class FakeWindow implements MiniAppWindow {
         },
     };
     #listeners = new Set<(event: MiniAppMessageEvent) => void>();
+    // What's to run just before the next paint
+    #frame: (() => void)[] = [];
 
     addEventListener(_: "message", listener: (event: MiniAppMessageEvent) => void) {
         this.#listeners.add(listener);
@@ -45,6 +47,20 @@ class FakeWindow implements MiniAppWindow {
 
     get listening(): number {
         return this.#listeners.size;
+    }
+
+    // Undefined for a window that can't say when it paints
+    requestAnimationFrame?: (callback: () => void) => void = (callback) => {
+        this.#frame.push(callback);
+    };
+
+    // The browser's next frame: its callbacks run, then it's painted
+    paint() {
+        const callbacks = this.#frame;
+        this.#frame = [];
+        for (const callback of callbacks) {
+            callback();
+        }
     }
 
     // A message from OpenChat, unless another source or origin is given
@@ -585,6 +601,59 @@ describe("MiniAppClient.start", () => {
 
         await expect(started).rejects.toThrow("closed");
         await expect(client.start()).rejects.toThrow("closed");
+    });
+});
+
+describe("MiniAppClient.drawn", () => {
+    test("tells OpenChat, at its origin, once the browser has painted what's drawn", async () => {
+        const [client, win] = await connected("spectator");
+
+        client.drawn();
+        expect(win.kinds()).not.toContain("mini_app_drawn");
+        win.paint();
+        expect(win.kinds()).not.toContain("mini_app_drawn");
+        vi.advanceTimersByTime(0);
+        expect(win.posted.at(-1)).toEqual({
+            message: { kind: "mini_app_drawn" },
+            targetOrigin: OPENCHAT,
+        });
+    });
+
+    test("tells OpenChat once, however often the app draws", async () => {
+        const [client, win] = await connected();
+
+        client.drawn();
+        client.drawn();
+        win.paint();
+        vi.advanceTimersByTime(0);
+        client.drawn();
+        win.paint();
+        vi.advanceTimersByTime(0);
+
+        expect(win.kinds().filter((k) => k === "mini_app_drawn")).toHaveLength(1);
+    });
+
+    test("tells OpenChat at once in a window that can't say when it paints", async () => {
+        const win = new FakeWindow();
+        win.requestAnimationFrame = undefined;
+        const connecting = connectToOpenChat({ window: win });
+        initialise(win);
+        const client = await connecting;
+
+        client.drawn();
+        expect(win.kinds()).toContain("mini_app_drawn");
+    });
+
+    test("doesn't once the client's closed", async () => {
+        const [client, win] = await connected();
+
+        client.drawn();
+        client.close();
+        win.paint();
+        vi.advanceTimersByTime(0);
+        client.drawn();
+
+        expect(win.kinds()).not.toContain("mini_app_drawn");
     });
 });
 

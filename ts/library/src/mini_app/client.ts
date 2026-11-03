@@ -28,7 +28,11 @@
 // - OpenChat sends `{ kind: "set_dark_mode", dark_mode }` when the user's theme changes;
 // - a player's page sends `{ kind: "mini_app_start" }` to ask to start the game, eg. from a Start
 //   button, and OpenChat answers `{ kind: "mini_app_start_result", accepted, message }`, once the
-//   bot has started the game or refused to.
+//   bot has started the game or refused to;
+// - the page sends `{ kind: "mini_app_drawn" }` once it has drawn what it's for, eg. the game
+//   rather than a spinner while it waits for the state. OpenChat shows the card's artwork, with the
+//   page drawn unseen meanwhile, until then, or until a second after the page has loaded if it
+//   doesn't say, eg. as it's from an older SDK.
 //
 // Nothing here lets the app join or leave a game: only OpenChat's own buttons do.
 
@@ -58,7 +62,8 @@ export type MiniAppStartResult = { accepted: boolean; message?: string };
 export type MiniAppToOpenChat =
     | { kind: "mini_app_ready" }
     | { kind: "mini_app_token_request" }
-    | { kind: "mini_app_start" };
+    | { kind: "mini_app_start" }
+    | { kind: "mini_app_drawn" };
 
 /** What OpenChat sends the app */
 export type OpenChatToMiniApp =
@@ -94,6 +99,9 @@ export interface MiniAppWindow {
     readonly location: { readonly href: string };
     addEventListener(type: "message", listener: (event: MiniAppMessageEvent) => void): void;
     removeEventListener(type: "message", listener: (event: MiniAppMessageEvent) => void): void;
+    // Calls back just before the browser next paints, which `drawn` waits for. Without it, `drawn`
+    // tells OpenChat at once.
+    requestAnimationFrame?(callback: () => void): unknown;
 }
 
 export type ConnectOptions = {
@@ -232,6 +240,7 @@ export class MiniAppClient<Shared = unknown, Private = unknown, EndState = unkno
         timer: ReturnType<typeof setTimeout>;
     };
     #refreshTimer?: ReturnType<typeof setTimeout>;
+    #drawn = false;
     #closed = false;
     #timeoutMs: number;
     #refreshBeforeExpiryMs: number;
@@ -437,6 +446,31 @@ export class MiniAppClient<Shared = unknown, Private = unknown, EndState = unkno
         }
         await this.refreshToken();
         return send();
+    }
+
+    /**
+     * Tells OpenChat the app has drawn what it's for: the game as it is, its lobby, how it ended, or
+     * why it can't show them, rather than a placeholder such as a spinner while it waits for the
+     * state. OpenChat shows the card's artwork until the app says so, with the app drawn unseen
+     * meanwhile, and then the app in its place, so the card goes straight from the artwork to the
+     * game. An app that doesn't say is shown a second after its page has loaded, whatever it shows
+     * then.
+     *
+     * Call it after drawing, eg. after each render that isn't a placeholder: it's sent once, after
+     * the browser has painted what's drawn, so OpenChat doesn't show the page a frame early.
+     */
+    drawn(): void {
+        if (this.#closed || this.#drawn) return;
+        this.#drawn = true;
+        const send = () => {
+            if (!this.#closed) this.#post({ kind: "mini_app_drawn" });
+        };
+        if (this.#window.requestAnimationFrame === undefined) {
+            send();
+        } else {
+            // A frame's callbacks run just before it's painted, and a task they queue after that
+            this.#window.requestAnimationFrame(() => setTimeout(send, 0));
+        }
     }
 
     /** Stops listening to OpenChat, and rejects a token request or a start still waiting */

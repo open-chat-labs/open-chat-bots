@@ -233,6 +233,9 @@ function render() {
     byId("top").hidden = loading;
     // Drawn only if it isn't up already, which would start it spinning afresh
     if (loading && body.querySelector(":scope > .loading") === null) body.innerHTML = SPINNER;
+    // OpenChat shows the card's artwork until the page has drawn the game, so the card goes
+    // straight from that to the game, without the spinner
+    if (!loading) oc.drawn();
 }
 
 function reloadNotice(): string {
