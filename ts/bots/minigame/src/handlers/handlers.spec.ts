@@ -28,6 +28,8 @@ import {
     type MoveResponse,
     type SharedState as RaceState,
 } from "../games/race2048/types";
+import { WordRace } from "../games/words/race";
+import type { SharedState as WordsState } from "../games/words/types";
 import { GameStore } from "../store";
 import {
     chessDraw,
@@ -40,6 +42,7 @@ import {
     raceMove,
     raceRestart,
     userNames,
+    wordsGuess,
 } from "./api";
 import { join, leave, start } from "./miniApp";
 
@@ -552,5 +555,42 @@ describe("a Minesweeper racer's clicks", () => {
             own: { hits: 1 },
         });
         expect((await send(minesweeperAct, deps, "carol", { acts: [] })).status).toBe(403);
+    });
+});
+
+describe("a Word racer's guesses", () => {
+    it("answers with their guesses alone, and publishes only their marks", async () => {
+        const { store, publish, deps } = setUp();
+        const race = WordRace.create();
+        race.join("alice", "Alice");
+        race.join("bob", "Bob");
+        race.start();
+        race.data.word = "crane";
+        store.create(game, race);
+
+        // No guess: the guesses as they are, which changes nothing
+        expect(await send(wordsGuess, deps, "alice", {})).toEqual({
+            status: 200,
+            body: { ok: true, own: { guesses: [], marks: [] } },
+        });
+        expect(publish).not.toHaveBeenCalled();
+
+        const own = { guesses: ["trace"], marks: ["02212"] };
+        expect(await send(wordsGuess, deps, "alice", { guess: "trace" })).toEqual({
+            status: 200,
+            body: { ok: true, own },
+        });
+        expect(publish).toHaveBeenCalledTimes(1);
+        const shared = store.get(game)!.play.shared() as WordsState;
+        expect(shared.racers[0]).toEqual({ id: "alice", marks: ["02212"] });
+        expect(JSON.stringify(shared)).not.toMatch(/trace|crane/);
+
+        // A word that isn't in the list: refused, with the guesses, and nothing published
+        expect(await send(wordsGuess, deps, "alice", { guess: "qxzvj" })).toEqual({
+            status: 409,
+            body: { ok: false, error: "That isn't in the word list", own },
+        });
+        expect(publish).toHaveBeenCalledTimes(1);
+        expect((await send(wordsGuess, deps, "carol", {})).status).toBe(403);
     });
 });

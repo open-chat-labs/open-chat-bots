@@ -6,9 +6,9 @@
 // guess, and the bot answers with their guesses, marked, which also come in their private part of
 // each state. Everyone else sees only the marks until the race is over.
 import { PUBLISH_EVERY_MS, type ConfigureResult, type Game, type Host } from "../game";
-import { duration } from "../race2048/race";
 import { defaultSettings, type Settings } from "../settings";
 import { closer, guessed, mark } from "./marks";
+import { describeResult } from "./result";
 import { WORDS_SETTINGS } from "./settings";
 import {
     GAME_ID,
@@ -234,8 +234,9 @@ export class WordRace implements Game {
         const racer = d.players.find((p) => p.id === userId);
         if (racer === undefined) return fail("You aren't in this race");
         const raw = (body as { guess?: unknown } | undefined)?.guess;
-        if (raw === undefined)
+        if (raw === undefined) {
             return { result: { ok: true, own: this.own(userId)! }, changed: false };
+        }
         if (d.phase === "finished") return fail("The race is over");
         if (typeof raw !== "string" || !GUESS.test(raw)) {
             return fail(`A guess is a word of ${LENGTH} letters`);
@@ -328,20 +329,8 @@ export class WordRace implements Game {
     result(): string | undefined {
         const d = this.#data;
         if (d.phase !== "finished") return undefined;
-        const word = (d.word ?? "").toUpperCase();
-        if (d.winner === undefined) {
-            return d.ended === "time"
-                ? `Time's up! Nobody guessed ${word}`
-                : `Nobody guessed ${word}`;
-        }
-        const who = `@UserId(${d.winner})`;
-        if (d.ended === "guessed" && d.startedAt !== undefined && d.finishedAt !== undefined) {
-            const tries = d.players.find((p) => p.id === d.winner)?.guesses.length ?? 0;
-            return `${who} guessed ${word} in ${duration(d.finishedAt - d.startedAt)}, with ${tries} guess${tries === 1 ? "" : "es"}`;
-        }
-        return d.ended === "time"
-            ? `Time's up! Nobody guessed ${word}, and ${who} came closest`
-            : `Nobody guessed ${word}, and ${who} came closest`;
+        const tries = d.players.find((p) => p.id === d.winner)?.guesses.length ?? 0;
+        return describeResult(d, tries, (id) => `@UserId(${id})`);
     }
 
     /** How the race ended is its final state: everyone's guesses, and the word */

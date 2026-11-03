@@ -8,8 +8,8 @@
 //
 // Once the race is over, the card's end state is its final state: everyone's guesses and the word,
 // and a click on a name shows theirs.
-import { duration } from "../../games/race2048/race";
-import { closer, letterMarks } from "../../games/words/marks";
+import { closer, guessed, letterMarks } from "../../games/words/marks";
+import { describeResult } from "../../games/words/result";
 import { WORDS_SETTINGS } from "../../games/words/settings";
 import {
     GAME_ID,
@@ -36,7 +36,14 @@ const KEY_ROWS = ["qwertyuiop", "asdfghjkl", "+zxcvbnm-"];
 
 const BACK_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6-7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m11.5 9.5 5 5m0-5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
 
-type Card = { li: HTMLElement; who: HTMLElement; marks: HTMLElement; count: HTMLElement };
+type Card = {
+    li: HTMLElement;
+    who: HTMLElement;
+    marks: HTMLElement;
+    count: HTMLElement;
+    /** The marks the card was last drawn with, none before it's first drawn */
+    drawn: string | undefined;
+};
 
 type Dom = {
     root: HTMLElement;
@@ -67,9 +74,10 @@ let endSource: unknown;
 let own: OwnGuesses | undefined;
 /** What the racer's typed of their next guess */
 let typed = "";
-/** A request on its way to the bot, and the guess it carries, if any */
-let sending = false;
+/** The racer's guess on its way to the bot, if any */
 let sendingGuess: string | undefined;
+/** Whether the page is asking the bot for the racer's guesses, which doesn't stop their typing */
+let asking = false;
 let retryAt = 0;
 /** Whose guesses are shown once the race is over */
 let picked: string | undefined;
@@ -179,7 +187,7 @@ function take(state: SharedState) {
     latest = state;
     const part = ctx?.oc.state?.private;
     if (isOwn(part)) takeOwn(part);
-    if (state.phase === "active" && behind() && Date.now() >= retryAt) void send(undefined);
+    if (state.phase === "active" && behind() && Date.now() >= retryAt) void ask();
 }
 
 function isOwn(value: unknown): value is OwnGuesses {
@@ -187,9 +195,20 @@ function isOwn(value: unknown): value is OwnGuesses {
     return Array.isArray(o?.guesses) && Array.isArray(o.marks);
 }
 
-/** Only newer guesses: the bot's answer and the private part of a state can come in any order */
+/**
+ * Only newer guesses: the bot's answers and the private parts of states can come in any order.
+ * What the racer's typed goes once it's among them, eg. a guess the bot took but whose answer
+ * was lost.
+ */
 function takeOwn(guesses: OwnGuesses) {
-    if (own === undefined || guesses.guesses.length > own.guesses.length) own = guesses;
+    if (own !== undefined && guesses.guesses.length <= own.guesses.length) return;
+    own = guesses;
+    if (own.guesses.includes(typed)) typed = "";
+}
+
+/** Whether the racer's last guess was the word, before the state says the race is over */
+function won(): boolean {
+    return own !== undefined && guessed(own.marks.at(-1) ?? "");
 }
 
 /** Whether the racer's guesses on the page are fewer than the state says the bot has */
@@ -213,9 +232,18 @@ function canRace(): boolean {
     );
 }
 
-/** Whether the racer can type a guess: they're racing, with guesses left, and none on its way */
+/**
+ * Whether the racer can type a guess: they're racing, with guesses left, they haven't guessed the
+ * word, and their last guess isn't on its way still
+ */
 function canType(): boolean {
-    return canRace() && own !== undefined && own.guesses.length < TRIES && !sending;
+    return (
+        canRace() &&
+        own !== undefined &&
+        own.guesses.length < TRIES &&
+        !won() &&
+        sendingGuess === undefined
+    );
 }
 
 // A key, on the page's keyboard or the racer's: a letter, "-" to rub one out, or "+" to guess
@@ -226,7 +254,7 @@ function press(key: string) {
     } else if (key === "+") {
         if (typed.length < LENGTH) refuse(`A guess is a word of ${LENGTH} letters`);
         else if (own!.guesses.includes(typed)) refuse("You've guessed that already");
-        else void send(typed);
+        else void submit(typed);
         return;
     } else if (typed.length < LENGTH && /^[a-z]$/.test(key)) {
         typed += key;
@@ -248,32 +276,54 @@ function shake() {
     row.classList.add("wr-shake");
 }
 
-/** Sends a guess, or with none, asks for the racer's guesses, unless the bot's answering already */
-async function send(guess: string | undefined) {
-    if (ctx === undefined || sending || !canRace()) return;
-    sending = true;
+/** Asks the bot for the racer's guesses, eg. as the page opens and the service hasn't sent them */
+async function ask() {
+    if (asking || !canRace()) return;
+    asking = true;
+    const result = await request({});
+    asking = false;
+    if (result?.ok === false) ctx?.notice(result.error);
+    render();
+}
+
+/**
+ * Sends the racer's guess. The bot's answer has their guesses, the new one marked, unless it was
+ * refused, when what they typed stays for them to change.
+ */
+async function submit(guess: string) {
     sendingGuess = guess;
     render();
+    const result = await request({ guess });
+    sendingGuess = undefined;
+    if (result?.ok === true) {
+        typed = "";
+    } else if (result !== undefined) {
+        ctx?.notice(result.error);
+        shake();
+    }
+    render();
+}
+
+// A request to the bot, whose answer's guesses the page takes: the answer, or none if it couldn't
+// reach the bot. Requests can overlap, as only the newest guesses are kept.
+async function request(body: { guess?: string }): Promise<GuessResponse | undefined> {
+    if (ctx === undefined) return undefined;
     try {
         const response = await ctx.oc.fetch("/api/words/guess", {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify(guess === undefined ? {} : { guess }),
+            body: JSON.stringify(body),
         });
         const result = (await response.json()) as GuessResponse;
         if (result.own !== undefined) takeOwn(result.own);
         // No guesses, eg. the game's gone: the page leaves the bot a while before asking again
         else retryAt = Date.now() + RETRY_MS;
-        if (result.ok && guess !== undefined) typed = "";
-        if (!result.ok) ctx.notice(result.error);
-        if (!result.ok && guess !== undefined) shake();
+        return result;
     } catch {
         ctx.notice("Couldn't reach the game");
         retryAt = Date.now() + RETRY_MS;
+        return undefined;
     }
-    sending = false;
-    sendingGuess = undefined;
-    render();
 }
 
 function ensureDom(body: HTMLElement) {
@@ -332,6 +382,9 @@ function ensureDom(body: HTMLElement) {
         const key = el.dataset.key!;
         if (/^[a-z]$/.test(key)) dom.letterKeys.set(key, el);
     }
+    // A key pressed with the mouse doesn't take the focus, which a Space on the racer's own
+    // keyboard would press again
+    dom.keys.addEventListener("mousedown", (event) => event.preventDefault());
     fitted = "";
 }
 
@@ -361,25 +414,6 @@ function ranked(s: SharedState): RacerState[] {
             ca === undefined || cb === undefined ? (cb ? 1 : 0) - (ca ? 1 : 0) : closer(ca, cb);
         return won(b) - won(a) || close || a.marks.length - b.marks.length;
     });
-}
-
-function resultText(s: SharedState): string {
-    const word = (s.word ?? "").toUpperCase();
-    if (s.winner === undefined) {
-        return s.ended === "time" ? `Time's up! Nobody guessed ${word}` : `Nobody guessed ${word}`;
-    }
-    const who = name(s, s.winner);
-    if (s.ended === "guessed") {
-        const tries = s.racers.find((r) => r.id === s.winner)?.marks.length ?? 0;
-        const time =
-            s.startedAt !== undefined && s.finishedAt !== undefined
-                ? ` in ${duration(s.finishedAt - s.startedAt)}`
-                : "";
-        return `${who} guessed ${word}${time}, with ${tries} guess${tries === 1 ? "" : "es"}`;
-    }
-    return s.ended === "time"
-        ? `Time's up! Nobody guessed ${word}, and ${who} came closest`
-        : `Nobody guessed ${word}, and ${who} came closest`;
 }
 
 function render() {
@@ -414,7 +448,11 @@ function render() {
 
     const left = TRIES - (own?.guesses.length ?? 0);
     if (finished) {
-        dom.status.textContent = resultText(s);
+        const tries = s.racers.find((r) => r.id === s.winner)?.marks.length ?? 0;
+        dom.status.textContent = describeResult(s, tries, (id) => name(s, id));
+    } else if (racing && won()) {
+        // Until the state says the race is over, as the bot's answer comes first
+        dom.status.textContent = `You guessed ${own!.guesses.at(-1)!.toUpperCase()}!`;
     } else if (racing && own !== undefined && left === 0) {
         dom.status.textContent = "You've had all your guesses";
     } else if (racing) {
@@ -427,7 +465,7 @@ function render() {
     dom.grid.hidden = !showGrid;
     dom.root.classList.toggle("wr-watching", !showGrid);
     if (showGrid) drawGrid(guesses!, marks, racing);
-    const typing = racing && own !== undefined && left > 0;
+    const typing = racing && own !== undefined && left > 0 && !won();
     dom.keys.hidden = !typing;
     if (typing) drawKeys();
     renderHint(s, racing, finished, whose);
@@ -476,7 +514,7 @@ function drawKeys() {
         const cls = `wr-key${m === undefined ? "" : ` wr-m${m}`}`;
         if (el.className !== cls) el.className = cls;
     }
-    const disabled = sending;
+    const disabled = sendingGuess !== undefined;
     for (const el of dom.keys.querySelectorAll<HTMLButtonElement>("button")) {
         if (el.disabled !== disabled) el.disabled = disabled;
     }
@@ -519,16 +557,19 @@ function renderOthers(s: SharedState, finished: boolean, whose: string | undefin
         }
         const who = name(s, r.id);
         if (card.who.textContent !== who) card.who.textContent = who;
-        const html = Array.from(
-            { length: TRIES },
-            (_, row) =>
-                `<span class="wr-mini-row">${Array.from(
-                    { length: LENGTH },
-                    (_, i) =>
-                        `<span class="wr-mini${r.marks[row] === undefined ? "" : ` wr-m${r.marks[row][i]}`}"></span>`,
-                ).join("")}</span>`,
-        ).join("");
-        if (card.marks.innerHTML !== html) card.marks.innerHTML = html;
+        const drawn = r.marks.join(",");
+        if (card.drawn !== drawn) {
+            card.drawn = drawn;
+            card.marks.innerHTML = Array.from(
+                { length: TRIES },
+                (_, row) =>
+                    `<span class="wr-mini-row">${Array.from(
+                        { length: LENGTH },
+                        (_, i) =>
+                            `<span class="wr-mini${r.marks[row] === undefined ? "" : ` wr-m${r.marks[row][i]}`}"></span>`,
+                    ).join("")}</span>`,
+            ).join("");
+        }
         const count =
             finished && r.id === s.winner && s.ended === "guessed"
                 ? "Got it"
@@ -558,7 +599,7 @@ function othersCard(): Card {
     const count = document.createElement("span");
     count.className = "count";
     li.append(marks, who, count);
-    return { li, who, marks, count };
+    return { li, who, marks, count, drawn: undefined };
 }
 
 // The tiles are as big as the frame leaves room for: the grid's six rows, with what's around it.
