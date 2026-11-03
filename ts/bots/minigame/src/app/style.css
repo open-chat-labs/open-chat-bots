@@ -766,7 +766,8 @@ button.link {
 
 /*
  * A piece is JohnPablok's improved Cburnett set's (chess/pieces, CC-BY-SA 3.0), centred on whatever
- * it's drawn in, at the size the set draws it on its 451-unit squares
+ * it's drawn in, at the size the set draws it on its 451-unit squares: its SVG's viewBox width and
+ * height over 451
  */
 .piece {
     position: absolute;
@@ -960,6 +961,7 @@ button.link {
     margin: 0 0 8px;
 }
 
+/* On the board's light square, so either side's pieces stand out in either theme */
 .promotion .piece-choice {
     position: relative;
     width: 56px;
@@ -967,6 +969,7 @@ button.link {
     margin: 0 2px;
     padding: 0;
     vertical-align: middle;
+    background: var(--sq-light);
 }
 
 /*

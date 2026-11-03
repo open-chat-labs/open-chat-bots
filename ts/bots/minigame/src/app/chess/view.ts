@@ -184,12 +184,10 @@ export const chessView: GameView = {
                 break;
             case "promote":
                 if (promotion !== undefined) sendMove(promotion + el.dataset.piece);
-                promotion = undefined;
-                if (dom !== undefined) dom.promotion.hidden = true;
+                hidePromotion();
                 break;
             case "cancel-promotion":
-                promotion = undefined;
-                if (dom !== undefined) dom.promotion.hidden = true;
+                hidePromotion();
                 break;
             case "previous":
                 step(ply - 1);
@@ -402,6 +400,11 @@ function showPromotion() {
     dom.promotion.hidden = false;
 }
 
+function hidePromotion() {
+    promotion = undefined;
+    if (dom !== undefined) dom.promotion.hidden = true;
+}
+
 function shortId(id: string): string {
     return id.length > 13 ? `${id.slice(0, 5)}…${id.slice(-5)}` : id;
 }
@@ -462,6 +465,9 @@ function fitBoard() {
 
 function render() {
     if (dom === undefined) return;
+    // A promotion waits only while the player can still make the move, eg. not once their flag's
+    // fallen
+    if (!canMove()) hidePromotion();
     renderStatus();
     renderPlayers();
     renderBoard();

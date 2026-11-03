@@ -8,3 +8,8 @@ letter (`K`, `Q`, `R`, `B`, `N`, `P`).
 
 Each is drawn to the scale of the set's 451-unit squares, so the pieces differ in size: a pawn's
 smaller than a king. `style.css` sizes them to match.
+
+The card's artwork, [`../../public/chess.svg`](../../public/chess.svg), draws the same pieces from
+copies of these files, changed only to fit in one image: each file's `cls-N` classes are renamed
+after the piece, its ids are dropped, and it's centred on a 451-unit square. As that artwork
+adapts the set, it's shared under CC-BY-SA 3.0 too.
