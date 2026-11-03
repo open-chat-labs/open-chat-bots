@@ -135,6 +135,12 @@ export type NamesResponse = { names: Record<string, string> };
 /** How long the publisher waits to send a change, unless a game says otherwise */
 export const PUBLISH_EVERY_MS = 80;
 
+/**
+ * How long a player in a game for two, chess or a duel, has to make their first move, which their
+ * clock doesn't run for: the game's called off if they don't
+ */
+export const FIRST_MOVE_MS = 60_000;
+
 /** The most the service takes for how a game ended, serialized */
 export const MAX_END_STATE_BYTES = 16 * 1024;
 

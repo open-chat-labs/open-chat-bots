@@ -1,5 +1,6 @@
 // A duel's seats, start, turns, clocks and endings, through Four in a Row, the first duel
 import { describe, expect, it } from "vitest";
+import { FIRST_MOVE_MS } from "../game";
 import { FOUR_IN_A_ROW, MINUTES } from "../fourinarow/rules";
 import { Duel, type DuelData } from "./duel";
 import { FIRST_IS_HOST, FIRST_IS_OPPONENT } from "./settings";
@@ -28,6 +29,14 @@ function started() {
     return s;
 }
 
+/** Started, once each player has made their first move, which their clocks don't run for */
+function opened() {
+    const s = started();
+    expect(s.game.play("alice", 3).ok).toBe(true);
+    expect(s.game.play("bob", 3).ok).toBe(true);
+    return s;
+}
+
 describe("a duel", () => {
     it("seats two, refuses a third, and frees a seat left before the start", () => {
         const { game } = seated();
@@ -52,7 +61,7 @@ describe("a duel", () => {
         expect(seated({ random: 0.1 }).game.start()).toEqual(["bob", "alice"]);
     });
 
-    it("takes turns, each player's clock running on their turn", () => {
+    it("takes turns, each player's clock running on their turns after their first move", () => {
         const { game, clock } = started();
         expect(game.phase).toBe("active");
         expect(game.waitingFor()).toEqual(["alice"]);
@@ -65,10 +74,30 @@ describe("a duel", () => {
         const played = game.play("alice", 3);
         expect(played.ok).toBe(true);
         expect(game.waitingFor()).toEqual(["bob"]);
+        // Neither clock ran for alice's first move, and neither runs for bob's, though bob has a
+        // minute to make it
         clock.now += 2000;
-        expect(game.timeLeft(0)).toBe(MINUTES * MINUTE - 5000);
-        expect(game.timeLeft(1)).toBe(MINUTES * MINUTE - 2000);
-        expect(game.deadline()).toBe(clock.now - 2000 + MINUTES * MINUTE);
+        expect(game.timeLeft(0)).toBe(MINUTES * MINUTE);
+        expect(game.timeLeft(1)).toBe(MINUTES * MINUTE);
+        expect(game.deadline()).toBe(clock.now - 2000 + FIRST_MOVE_MS);
+        expect(game.firstMoveLeft()).toBe(FIRST_MOVE_MS - 2000);
+        expect(game.shared().clock).toEqual({
+            at: clock.now,
+            ms: [MINUTES * MINUTE, MINUTES * MINUTE],
+            running: null,
+            firstMoveMs: FIRST_MOVE_MS - 2000,
+        });
+        expect(game.play("bob", 3).ok).toBe(true);
+
+        // From here on, the side to move's clock runs
+        clock.now += 4000;
+        expect(game.timeLeft(0)).toBe(MINUTES * MINUTE - 4000);
+        expect(game.deadline()).toBe(clock.now - 4000 + MINUTES * MINUTE);
+        expect(game.play("alice", 4).ok).toBe(true);
+        clock.now += 3000;
+        expect(game.timeLeft(0)).toBe(MINUTES * MINUTE - 4000);
+        expect(game.timeLeft(1)).toBe(MINUTES * MINUTE - 3000);
+        expect(game.deadline()).toBe(clock.now - 3000 + MINUTES * MINUTE);
         expect(game.shared()).toMatchObject({
             version: 1,
             game: "four-in-a-row",
@@ -76,10 +105,10 @@ describe("a duel", () => {
             players: ["alice", "bob"],
             names: { alice: "Alice", bob: "Bob" },
             settings: { first: 0, minutes: MINUTES },
-            moves: [3],
+            moves: [3, 3, 4],
             clock: {
                 at: clock.now,
-                ms: [MINUTES * MINUTE - 5000, MINUTES * MINUTE - 2000],
+                ms: [MINUTES * MINUTE - 4000, MINUTES * MINUTE - 3000],
                 running: 1,
             },
         });
@@ -114,8 +143,8 @@ describe("a duel", () => {
     });
 
     it("loses on time, to the side to move", () => {
-        const { game, clock } = started();
-        game.play("alice", 3);
+        const { game, clock } = opened();
+        game.play("alice", 4);
         clock.now += MINUTES * MINUTE - 1;
         expect(game.endIfTimeUp()).toBe(false);
         clock.now += 1;
@@ -125,10 +154,38 @@ describe("a duel", () => {
         expect(game.timeLeft(1)).toBe(0);
         expect(game.endIfTimeUp()).toBe(false);
         // A move after the flag fell is refused, as the flag comes first
-        const late = started();
+        const late = opened();
         late.clock.now += MINUTES * MINUTE;
-        expect(late.game.play("alice", 3)).toEqual({ ok: false, error: "The game has finished" });
+        expect(late.game.play("alice", 4)).toEqual({ ok: false, error: "The game has finished" });
         expect(late.game.ending).toEqual({ kind: "timeout", winner: 1 });
+    });
+
+    it("is called off, with no winner, if a first move isn't made within a minute", () => {
+        const { game, clock } = started();
+        clock.now += FIRST_MOVE_MS - 1;
+        expect(game.endIfTimeUp()).toBe(false);
+        expect(game.play("alice", 3).ok).toBe(true);
+        // bob's minute starts from alice's move
+        clock.now += FIRST_MOVE_MS - 1;
+        expect(game.endIfTimeUp()).toBe(false);
+        clock.now += 1;
+        expect(game.endIfTimeUp()).toBe(true);
+        expect(game.ending).toEqual({ kind: "aborted", seat: 1 });
+        expect(game.result()).toBe("Called off: @UserId(bob) didn't make a first move");
+        expect(game.finishedAt).toBe(clock.now);
+        expect(game.timeLeft(0)).toBe(MINUTES * MINUTE);
+        expect(game.timeLeft(1)).toBe(MINUTES * MINUTE);
+        expect(game.firstMoveLeft()).toBeUndefined();
+        expect(game.endState()?.clock).toEqual({
+            at: clock.now,
+            ms: [MINUTES * MINUTE, MINUTES * MINUTE],
+            running: null,
+        });
+        // A first move after the minute's up is refused, as the call-off comes first
+        const late = started();
+        late.clock.now += FIRST_MOVE_MS;
+        expect(late.game.play("alice", 3)).toEqual({ ok: false, error: "The game has finished" });
+        expect(late.game.ending).toEqual({ kind: "aborted", seat: 0 });
     });
 
     it("ends on a resignation, whoever's turn it is, or when a player leaves", () => {
@@ -143,12 +200,19 @@ describe("a duel", () => {
     });
 
     it("doesn't charge the side to move for the time the bot was down", () => {
-        const { game, clock } = started();
+        const { game, clock } = opened();
         clock.now += 10_000;
         expect(game.resume(60_000)).toBe(true);
         clock.now += 60_000;
         expect(game.timeLeft(0)).toBe(MINUTES * MINUTE - 10_000);
         expect(seated().game.resume(1000)).toBe(false);
+        // Nor for the time a first move has
+        const first = started();
+        first.clock.now += 10_000;
+        expect(first.game.resume(FIRST_MOVE_MS)).toBe(true);
+        first.clock.now += FIRST_MOVE_MS;
+        expect(first.game.firstMoveLeft()).toBe(FIRST_MOVE_MS - 10_000);
+        expect(first.game.endIfTimeUp()).toBe(false);
     });
 
     it("lets only the host change the settings, and only before the start", () => {

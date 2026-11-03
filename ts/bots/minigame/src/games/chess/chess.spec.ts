@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { jsonBytes, MAX_END_STATE_BYTES } from "../game";
+import { FIRST_MOVE_MS, jsonBytes, MAX_END_STATE_BYTES } from "../game";
 import { ChessGame, fitEndState } from "./chess";
 import { STATE_VERSION, TIME_PER_SIDE_MS, type EndState } from "./types";
 
@@ -17,6 +17,14 @@ function started(firstIsWhite = true) {
     expect(game.join("alice", "Alice")).toBeUndefined();
     expect(game.join("bob", "Bob")).toBeUndefined();
     game.start();
+    return { game, time };
+}
+
+/** As `started`, once each side has made its first move, which the clocks don't run for */
+function opened() {
+    const { game, time } = started();
+    expect(game.move("alice", "e2e4").ok).toBe(true);
+    expect(game.move("bob", "e7e5").ok).toBe(true);
     return { game, time };
 }
 
@@ -59,14 +67,24 @@ describe("settings", () => {
         game.join("bob", "Bob");
         game.start();
         expect(game.shared().clock).toMatchObject({ white_ms: 180_000, black_ms: 180_000 });
+        // Each side's first move is free, and adds nothing
         time.tick(5000);
         expect(game.move("alice", "e2e4")).toMatchObject({ ok: true });
+        time.tick(5000);
+        expect(game.move("bob", "e7e5")).toMatchObject({ ok: true });
+        expect(game.shared().clock).toMatchObject({
+            white_ms: 180_000,
+            black_ms: 180_000,
+            running: "white",
+        });
+        time.tick(5000);
+        expect(game.move("alice", "g1f3")).toMatchObject({ ok: true });
         // Five seconds spent, two given back
         expect(game.shared().clock).toMatchObject({ white_ms: 177_000, running: "black" });
         // The data keeps the increment, so a reload keeps it
         const copy = new ChessGame(JSON.parse(JSON.stringify(game.data)), { now: time.now });
         time.tick(1000);
-        expect(copy.move("bob", "e7e5")).toMatchObject({ ok: true });
+        expect(copy.move("bob", "b8c6")).toMatchObject({ ok: true });
         expect(copy.shared().clock).toMatchObject({ black_ms: 181_000 });
     });
 
@@ -144,7 +162,12 @@ describe("joining and starting", () => {
             draw_offer: null,
             result: null,
         });
-        expect(shared.clock).toMatchObject({ white_ms: TIME_PER_SIDE_MS, running: "white" });
+        // White's first move is free, so its clock isn't running, but White has a minute to make it
+        expect(shared.clock).toMatchObject({
+            white_ms: TIME_PER_SIDE_MS,
+            running: null,
+            first_move_ms: FIRST_MOVE_MS,
+        });
         expect(shared.legal_moves).toHaveLength(20);
         // Once started, no one else gets in, and starting again changes nothing
         expect(game.join("carol", "Carol")).toBe("The game has started");
@@ -155,7 +178,8 @@ describe("joining and starting", () => {
         const { game } = started(true);
         expect(game.white).toBe("alice");
         expect(game.black).toBe("bob");
-        expect(game.deadline()).toBe(START + TIME_PER_SIDE_MS);
+        // The game's called off if White doesn't move within a minute
+        expect(game.deadline()).toBe(START + FIRST_MOVE_MS);
     });
 });
 
@@ -170,20 +194,34 @@ describe("playing", () => {
         expect(moved.shared.moves).toEqual(["e4"]);
         expect(moved.shared.turn).toBe("black");
         expect(game.waitingFor()).toEqual(["bob"]);
-        expect(game.deadline()).toBe(START + 1000 + TIME_PER_SIDE_MS);
+        // Black's first move is free too, and Black has a minute to make it
+        expect(game.deadline()).toBe(START + 1000 + FIRST_MOVE_MS);
         time.tick(2000);
         const again = game.move("bob", "e7e5");
         expect(again.ok).toBe(true);
         if (!again.ok) return;
         expect(again.shared.clock).toEqual({
             at: START + 3000,
-            white_ms: TIME_PER_SIDE_MS - 1000,
-            black_ms: TIME_PER_SIDE_MS - 2000,
+            white_ms: TIME_PER_SIDE_MS,
+            black_ms: TIME_PER_SIDE_MS,
             running: "white",
+            first_move_ms: null,
+        });
+        expect(game.deadline()).toBe(START + 3000 + TIME_PER_SIDE_MS);
+        time.tick(4000);
+        const third = game.move("alice", "g1f3");
+        expect(third.ok).toBe(true);
+        if (!third.ok) return;
+        expect(third.shared.clock).toEqual({
+            at: START + 7000,
+            white_ms: TIME_PER_SIDE_MS - 4000,
+            black_ms: TIME_PER_SIDE_MS,
+            running: "black",
+            first_move_ms: null,
         });
         expect(game.move("carol", "a2a3")).toEqual({ ok: false, error: "You're not playing" });
-        expect(game.move("alice", 42)).toEqual({ ok: false, error: "Send the move as UCI" });
-        expect(game.move("alice", "a2a5")).toEqual({ ok: false, error: "a2a5 isn't a legal move" });
+        expect(game.move("bob", 42)).toEqual({ ok: false, error: "Send the move as UCI" });
+        expect(game.move("bob", "a7a4")).toEqual({ ok: false, error: "a7a4 isn't a legal move" });
     });
 
     it("ends with the result and an end state on checkmate", () => {
@@ -254,9 +292,9 @@ describe("playing", () => {
     });
 
     it("flags the side to move at its deadline, through the sweep or any request", () => {
-        const { game, time } = started();
+        const { game, time } = opened();
         time.tick(1000);
-        game.move("alice", "e2e4");
+        game.move("alice", "g1f3");
         const deadline = game.deadline()!;
         time.tick(deadline - time.now() - 1);
         expect(game.endIfTimeUp()).toBe(false);
@@ -268,14 +306,37 @@ describe("playing", () => {
         expect(game.shared().clock).toMatchObject({ black_ms: 0, running: null });
 
         // A request that finds the time up ends the game instead
-        const late = started();
+        const late = opened();
         late.time.tick(TIME_PER_SIDE_MS);
-        expect(late.game.move("alice", "e2e4")).toEqual({
+        expect(late.game.move("alice", "g1f3")).toEqual({
             ok: false,
             error: "The game has finished",
         });
         expect(late.game.result()).toBe("Black won on time");
-        expect(late.game.endState()).toMatchObject({ moves: [], fens: [expect.any(String)] });
+        expect(late.game.endState()).toMatchObject({ moves: ["e4", "e5"] });
+
+        // A first move costs nothing, but one not made within a minute calls the game off
+        const slow = started();
+        slow.time.tick(FIRST_MOVE_MS - 1);
+        expect(slow.game.endIfTimeUp()).toBe(false);
+        expect(slow.game.move("alice", "e2e4").ok).toBe(true);
+        slow.time.tick(FIRST_MOVE_MS);
+        expect(slow.game.move("bob", "e7e5")).toEqual({
+            ok: false,
+            error: "The game has finished",
+        });
+        expect(slow.game.result()).toBe("Called off: Black didn't make a first move");
+        expect(slow.game.finishedAt).toBe(slow.time.now());
+        expect(slow.game.shared().clock).toMatchObject({
+            white_ms: TIME_PER_SIDE_MS,
+            black_ms: TIME_PER_SIDE_MS,
+            running: null,
+            first_move_ms: null,
+        });
+        // No one won or drew, so the end state names no winner, and a PGN scores it "*"
+        const end = slow.game.endState()!;
+        expect(end).toMatchObject({ moves: ["e4"] });
+        expect("winner" in JSON.parse(JSON.stringify(end))).toBe(false);
     });
 
     it("a player who leaves a started game loses it by abandonment", () => {
@@ -290,7 +351,7 @@ describe("playing", () => {
     });
 
     it("a leave after the flag fell leaves the result on time", () => {
-        const { game, time } = started();
+        const { game, time } = opened();
         time.tick(TIME_PER_SIDE_MS);
         // White's flag fell first: the game changed, but not to abandonment
         expect(game.leave("alice")).toBe(true);
@@ -301,9 +362,9 @@ describe("playing", () => {
     });
 
     it("doesn't charge the side to move for the time the bot was down", () => {
-        const { game, time } = started();
+        const { game, time } = opened();
         time.tick(1000);
-        game.move("alice", "e2e4");
+        game.move("alice", "g1f3");
         time.tick(4000);
         // Down for five minutes from here
         time.tick(5 * 60_000);

@@ -82,8 +82,9 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    `POST /mini_app/start`, and the bot answers with the players, the first state and the game's
    settings, which the card keeps from then on and OpenChat hands to the app. A race deals
    everyone seated a board with two tiles, and it's everyone's turn at once. Chess needs two,
-   picks White at random unless set, lists the players White first, says it's waiting for White, and White's
-   clock runs.
+   picks White at random unless set, lists the players White first, and says it's waiting for
+   White, though White's clock doesn't run until White's second move: White has a minute to make
+   the first, and Black a minute after that for theirs, or the game's called off.
 4. **Moves** go from the page straight to the bot, with the player's token in `x-oc-jwt`, which
    checks the game's own player list on every request and publishes the whole game's state through
    the service after each change, coalescing fast moves into one update every 80 ms. The service
@@ -126,14 +127,16 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    the bot last stopped. A race ends when its 10 minutes are up, and the top score wins: a player's
    best from any of their boards, as a restart doesn't lose it, ties going to the higher score now,
    then the higher tile, then the fewer restarts. In chess each side has ten minutes for the whole
-   game; each state carries what each side has left and whose clock is running, the page counts down
-   from the state's `clock.at`, and when the side to move's flag falls the other side wins "on
-   time", or it's a draw if they haven't the material to mate with. Four in a Row's and Reversi's
-   clocks are the same, with three and five minutes each unless set, and a flag falling always
-   loses. A maze race ends when its 3 minutes are up, and whoever's closest to the way out wins.
-   ChatMan's boards play on by themselves, so the bot plays them on every second too, and
-   publishes them; a game ends when its 3 minutes are up, or everyone's out of lives, and the top
-   score wins, ties going to whoever joined first.
+   game, which its clock runs down on its turns once it's made its first move. That one's free, but
+   has to be made within a minute (`FIRST_MOVE_MS`), or the game's called off, with no winner. Each
+   state carries what each side has left, whose clock is running, and the time left for a first
+   move while one's awaited; the page counts down from the state's `clock.at`, and when the side to
+   move's flag falls the other side wins "on time", or it's a draw if they haven't the material to
+   mate with. The duels' clocks are the same, with three or five minutes each unless set, and a
+   flag falling always loses. A maze race ends when its 3 minutes are up, and whoever's closest to
+   the way out wins. ChatMan's boards play on by themselves, so the bot plays them on every second
+   too, and publishes them; a game ends when its 3 minutes are up, or everyone's out of lives, and
+   the top score wins, ties going to whoever joined first.
 6. **The end**. The bot publishes the final state with `status: "finished"` and the result, which
    the card shows: "@alice reached 2048 in 2m 15s", "Time's up! @alice won with 5,432 points",
    "White won by checkmate", "Black won on time", "Draw by agreement", "Draw by stalemate", "@alice
@@ -176,7 +179,13 @@ has taken added:
   "captured": { "white": "pn", "black": "p" },
   "check": false,
   "legal_moves": ["b8a6", "b8c6", ...],
-  "clock": { "at": 1761800000000, "white_ms": 594000, "black_ms": 600000, "running": "black" | null },
+  "clock": {
+    "at": 1761800000000,
+    "white_ms": 594000,
+    "black_ms": 600000,
+    "running": "black" | null,
+    "first_move_ms": 42000 | null
+  },
   "draw_offer": "white" | "black" | null,
   "result": "White won by checkmate" | null
 }
@@ -204,7 +213,8 @@ empty once the game's over, and nothing is private. Its end state is:
 }
 ```
 
-where `winner` is null for a draw, `fens` are the positions' placement fields, one more than there
+where `winner` is null for a draw, and left out of a game called off as a first move wasn't made
+in time, `fens` are the positions' placement fields, one more than there
 are moves, or only the final position with `truncated` set; otherwise `truncated` is left out. The
 page works out what had been taken by each position from the positions before it
 (`src/games/chess/material.ts`), and uses `captured` for a game whose positions were cut. The 2048 end state is its shared
@@ -274,7 +284,7 @@ usernames, looked up by id (`GET /api/names`), as the card names them:
   "settings": { "first": 0, "minutes": 3 },
   "host": "<user id>",
   "moves": [3, 3, 4],
-  "clock": { "at": 1761800000000, "ms": [176000, 178000], "running": 1 | null },
+  "clock": { "at": 1761800000000, "ms": [176000, 178000], "running": 1 | null, "firstMoveMs": 42000 },
   "ending": { "kind": "board" | "resignation" | "timeout" | "abandonment", "winner": 0 | 1 | null },
   "startedAt": 1761799990000,
   "finishedAt": 1761800090000
@@ -282,8 +292,10 @@ usernames, looked up by id (`GET /api/names`), as the card names them:
 ```
 
 where `players` are in seat order once the game starts, the first to move first, a seat is 0 or 1,
-`clock` is there once the game has started, and `ending` once it's over, a `null` winner being a
-draw.
+`clock` is there once the game has started, with `firstMoveMs` while the side to move has yet to
+make its first move, and `ending` once it's over, a `null` winner being a draw. A game called off
+as a first move wasn't made in time ends `{ "kind": "aborted", "seat": 0 | 1 }`, the seat that
+didn't move.
 
 ## Live games
 

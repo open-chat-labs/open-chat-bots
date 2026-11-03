@@ -23,8 +23,11 @@ describe("the sweep", () => {
         chess.join("alice", "Alice");
         chess.join("bob", "Bob");
         chess.start();
-        now += 1000;
+        // Each side's first move, which their clocks don't run for, then White's second
         chess.move("alice", "e2e4");
+        chess.move("bob", "e7e5");
+        now += 1000;
+        chess.move("alice", "g1f3");
         store.create(chessCard, chess);
         // A race with longer than the chess clocks, so the two end at different sweeps
         const race = Race2048.create({ now: clock, settings: { minutes: (2 * TIME_PER_SIDE_MS) / 60_000 } });

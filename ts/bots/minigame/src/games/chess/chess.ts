@@ -1,7 +1,8 @@
 // A game of chess between two members of a chat, which everyone else can watch. Two join; when a
-// player starts the game, White is whoever the settings say, or is chosen at random, and White's clock
-// runs, with each side's time and the increment from the settings. The rules and the clocks are the
-// `Match`'s; this knows who plays each side, and what the card and the app are told.
+// player starts the game, White is whoever the settings say, or is chosen at random, and it's
+// White's move, with each side's time and the increment from the settings, though a side's clock
+// doesn't run for its first move. The rules and the clocks are the `Match`'s; this knows who plays
+// each side, and what the card and the app are told.
 import {
     jsonBytes,
     MAX_END_STATE_BYTES,
@@ -212,7 +213,7 @@ export class ChessGame implements Game {
         return { ok: true };
     }
 
-    /** When the side to move's flag falls, unless it moves first */
+    /** When the game ends unless the side to move moves first, as the `Match` says */
     deadline(): number | undefined {
         return this.#match?.deadline();
     }
@@ -327,7 +328,8 @@ export class ChessGame implements Game {
             version: STATE_VERSION,
             game: GAME_ID,
             result: describe(ending),
-            winner: "winner" in ending ? ending.winner : null,
+            winner:
+                ending.kind === "aborted" ? undefined : "winner" in ending ? ending.winner : null,
             started_at: this.#data.startedAt ?? this.#data.createdAt,
             white,
             black,

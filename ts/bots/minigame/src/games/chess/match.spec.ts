@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { FIRST_MOVE_MS } from "../game";
 import { Match } from "./match";
 import { TIME_PER_SIDE_MS, type Side } from "./types";
 
@@ -74,32 +75,90 @@ describe("a game of chess", () => {
         expect(game.snapshot(START).legal_moves).toHaveLength(20);
     });
 
-    it("runs each side's clock while it is to move", () => {
+    it("runs no side's clock for its first move, and the side to move's after that", () => {
         const game = Match.create(START);
-        expect(game.deadline()).toBe(START + TIME_PER_SIDE_MS);
-        expect(game.timeLeft("white", START + 4000)).toBe(TIME_PER_SIDE_MS - 4000);
-        expect(game.timeLeft("black", START + 4000)).toBe(TIME_PER_SIDE_MS);
+        // White's first move costs White nothing, but has to be made within a minute
+        expect(game.deadline()).toBe(START + FIRST_MOVE_MS);
+        expect(game.timeLeft("white", START + 40_000)).toBe(TIME_PER_SIDE_MS);
+        expect(game.snapshot(START + 40_000).clock).toEqual({
+            at: START + 40_000,
+            white_ms: TIME_PER_SIDE_MS,
+            black_ms: TIME_PER_SIDE_MS,
+            running: null,
+            first_move_ms: FIRST_MOVE_MS - 40_000,
+        });
 
-        game.play("white", "e2e4", START + 5000);
+        game.play("white", "e2e4", START + 40_000);
 
-        const snapshot = game.snapshot(START + 7000);
-        expect(snapshot.clock).toEqual({
-            at: START + 7000,
+        // and so does Black's, its minute from White's move
+        expect(game.deadline()).toBe(START + 40_000 + FIRST_MOVE_MS);
+        expect(game.snapshot(START + 70_000).clock).toEqual({
+            at: START + 70_000,
+            white_ms: TIME_PER_SIDE_MS,
+            black_ms: TIME_PER_SIDE_MS,
+            running: null,
+            first_move_ms: FIRST_MOVE_MS - 30_000,
+        });
+
+        game.play("black", "e7e5", START + 90_000);
+
+        expect(game.snapshot(START + 95_000).clock).toEqual({
+            at: START + 95_000,
             white_ms: TIME_PER_SIDE_MS - 5000,
+            black_ms: TIME_PER_SIDE_MS,
+            running: "white",
+            first_move_ms: null,
+        });
+        expect(game.deadline()).toBe(START + 90_000 + TIME_PER_SIDE_MS);
+
+        game.play("white", "g1f3", START + 97_000);
+
+        expect(game.snapshot(START + 99_000).clock).toEqual({
+            at: START + 99_000,
+            white_ms: TIME_PER_SIDE_MS - 7000,
             black_ms: TIME_PER_SIDE_MS - 2000,
             running: "black",
+            first_move_ms: null,
         });
-        expect(game.deadline()).toBe(START + 5000 + TIME_PER_SIDE_MS);
+        expect(game.deadline()).toBe(START + 97_000 + TIME_PER_SIDE_MS);
+    });
+
+    it("is called off if a side doesn't make its first move within a minute", () => {
+        const game = Match.create(START);
+        expect(game.flag(START + FIRST_MOVE_MS - 1)).toBe(false);
+        expect(game.play("white", "e2e4", START + FIRST_MOVE_MS)).toBe("Your time ran out");
+        expect(game.flag(START + FIRST_MOVE_MS)).toBe(true);
+
+        expect(game.ending).toEqual({ kind: "aborted", side: "white" });
+        const snapshot = game.snapshot(START + FIRST_MOVE_MS + 5000);
+        expect(snapshot.result).toBe("Called off: White didn't make a first move");
+        expect(snapshot.clock).toMatchObject({
+            white_ms: TIME_PER_SIDE_MS,
+            black_ms: TIME_PER_SIDE_MS,
+            running: null,
+            first_move_ms: null,
+        });
+        expect(game.deadline()).toBeUndefined();
+        expect(game.flag(START + 2 * FIRST_MOVE_MS)).toBe(false);
+
+        // Black's minute starts when White moves
+        const late = Match.create(START);
+        late.play("white", "e2e4", START + 30_000);
+        expect(late.flag(START + 30_000 + FIRST_MOVE_MS - 1)).toBe(false);
+        expect(late.flag(START + 30_000 + FIRST_MOVE_MS)).toBe(true);
+        expect(late.ending).toEqual({ kind: "aborted", side: "black" });
+        expect(late.snapshot(START).result).toBe("Called off: Black didn't make a first move");
     });
 
     it("flags the side to move when its time runs out", () => {
         const game = Match.create(START);
-        game.play("white", "e2e4", START + 1000);
+        const now = playAll(game, ["e2e4", "e7e5"]);
+        game.play("white", "g1f3", now + 1000);
         const deadline = game.deadline()!;
 
         expect(game.flag(deadline - 1)).toBe(false);
         expect(game.isOver).toBe(false);
-        expect(game.play("black", "e7e5", deadline)).toBe("Your time ran out");
+        expect(game.play("black", "b8c6", deadline)).toBe("Your time ran out");
         expect(game.flag(deadline + 500)).toBe(true);
 
         expect(game.ending).toEqual({ kind: "timeout", winner: "white" });
@@ -112,16 +171,23 @@ describe("a game of chess", () => {
     });
 
     it("draws a flag against a bare king", () => {
-        const game = Match.create(START, "k6r/8/8/8/8/8/8/K7 b - - 0 1");
+        // Black to move, once each side's first move is out of the way, so Black's clock runs
+        const blackToMove = (fen: string, black: string, white: string): Match => {
+            const game = Match.create(START, fen);
+            game.play("black", black, START);
+            game.play("white", white, START);
+            return game;
+        };
+        const game = blackToMove("k6r/8/8/8/8/8/8/K7 b - - 0 1", "h8h7", "a1b1");
         expect(game.flag(START + TIME_PER_SIDE_MS)).toBe(true);
         expect(game.ending).toEqual({ kind: "timeout_draw" });
         expect(game.snapshot(START).result).toBe("Draw: time ran out against insufficient material");
 
         // A king and a bishop can't mate a bare king either, but a king and a rook can
-        const bishop = Match.create(START, "k6r/8/8/8/8/8/8/KB6 b - - 0 1");
+        const bishop = blackToMove("k6r/8/8/8/8/8/8/KB6 b - - 0 1", "h8h7", "a1a2");
         bishop.flag(START + TIME_PER_SIDE_MS);
         expect(bishop.ending).toEqual({ kind: "timeout_draw" });
-        const rook = Match.create(START, "k7/8/8/8/8/8/8/KR6 b - - 0 1");
+        const rook = blackToMove("k7/8/8/8/8/8/8/KR6 b - - 0 1", "a8a7", "a1a2");
         rook.flag(START + TIME_PER_SIDE_MS);
         expect(rook.ending).toEqual({ kind: "timeout", winner: "white" });
     });
@@ -152,12 +218,13 @@ describe("a game of chess", () => {
 
     it("lets a side resign, whoever is to move", () => {
         const game = Match.create(START);
-        expect(game.resign("black", START + 1000)).toBeUndefined();
+        const now = playAll(game, ["e2e4", "e7e5"]);
+        expect(game.resign("black", now + 1000)).toBeUndefined();
         expect(game.ending).toEqual({ kind: "resignation", winner: "white" });
         expect(game.snapshot(START).result).toBe("Black resigned");
-        expect(game.resign("white", START + 2000)).toBe("The game has finished");
+        expect(game.resign("white", now + 2000)).toBe("The game has finished");
         // The clock stopped when the game ended
-        expect(game.snapshot(START + 9000).clock.white_ms).toBe(TIME_PER_SIDE_MS - 1000);
+        expect(game.snapshot(now + 9000).clock.white_ms).toBe(TIME_PER_SIDE_MS - 1000);
     });
 
     it("keeps a draw offer until the other side moves or accepts", () => {

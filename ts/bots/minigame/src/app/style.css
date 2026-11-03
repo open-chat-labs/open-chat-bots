@@ -776,8 +776,14 @@ button.link {
 }
 
 .chess-clock.low,
-.duel-clock.low {
+.duel-clock.low,
+.first-move.low {
     color: var(--low);
+}
+
+/* The time left for a first move, at the end of the status line */
+.first-move {
+    font-variant-numeric: tabular-nums;
 }
 
 .chess .board {

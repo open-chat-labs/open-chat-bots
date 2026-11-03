@@ -54,6 +54,8 @@ export type DuelBoard<M, P extends Position<M>> = {
 type Dom = {
     root: HTMLElement;
     status: HTMLElement;
+    /** The time left for a first move, which the status ends with while one's awaited */
+    firstMove: HTMLElement;
     note: HTMLElement;
     rows: [HTMLElement, HTMLElement];
     board: HTMLElement;
@@ -153,6 +155,7 @@ export function duelView<M, P extends Position<M>>(
         dom = {
             root,
             status: q(".duel-status"),
+            firstMove: Object.assign(document.createElement("span"), { className: "first-move" }),
             note: q(".duel-note"),
             // The row under the board first: the viewer's, or the first to move's
             rows: [rows[1], rows[0]],
@@ -245,6 +248,13 @@ export function duelView<M, P extends Position<M>>(
             );
         } else if (s.phase === "open") {
             dom.status.textContent = "Waiting for the game to start";
+        } else if (s.clock?.firstMoveMs !== undefined) {
+            // A first move's clock doesn't run, but it has to be made in time, counted down here
+            dom.status.textContent =
+                mine === position.turn
+                    ? "Your first move"
+                    : `${name(s, s.players[position.turn])}'s first move`;
+            dom.status.append(dom.firstMove);
         } else {
             dom.status.textContent =
                 mine === position.turn
@@ -259,7 +269,8 @@ export function duelView<M, P extends Position<M>>(
 
         // The viewer's seat at the bottom, or the first to move if they're watching
         const bottom: Seat = mine ?? 0;
-        const running = end !== undefined ? null : (s.clock?.running ?? null);
+        // Whose turn it is, whether or not their clock's running yet
+        const toMove = s.phase === "active" && end === undefined ? position.turn : null;
         for (const [i, row] of dom.rows.entries()) {
             const seat = (i === 0 ? bottom : 1 - bottom) as Seat;
             row.dataset.seat = String(seat);
@@ -270,7 +281,7 @@ export function duelView<M, P extends Position<M>>(
                     : `<span class="score">${board.score(position, seat)}</span>`;
             row.querySelector(".name")!.innerHTML =
                 `<span class="disc-swatch seat-${seat}"></span>${escape(name(s, id))}${score}`;
-            row.classList.toggle("active", running === seat);
+            row.classList.toggle("active", toMove === seat);
             (row.querySelector(".duel-clock") as HTMLElement).hidden = end !== undefined;
         }
 
@@ -329,6 +340,12 @@ export function duelView<M, P extends Position<M>>(
             }
             text.textContent = formatClock(ms);
             text.classList.toggle("low", clock?.running === seat && ms < LOW_TIME_MS);
+        }
+        const firstMove = s?.clock?.firstMoveMs;
+        if (firstMove !== undefined) {
+            const ms = Math.max(0, firstMove - Math.max(0, Date.now() - s!.clock!.at));
+            dom.firstMove.textContent = ` · ${formatClock(ms)} left`;
+            dom.firstMove.classList.toggle("low", ms < LOW_TIME_MS);
         }
     }
 
