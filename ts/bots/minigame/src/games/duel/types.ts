@@ -13,11 +13,13 @@ export type Phase = "open" | "active" | "finished";
 
 /**
  * How a duel ended. A board ending is the game's own, eg. four in a row, or a full grid with no
- * winner; the rest are any duel's.
+ * winner; the rest are any duel's. A game called off has no winner: the seat to move didn't make
+ * its first move in time.
  */
 export type Ending =
     | { kind: "board"; winner: Seat | null }
-    | { kind: "resignation" | "timeout" | "abandonment"; winner: Seat };
+    | { kind: "resignation" | "timeout" | "abandonment"; winner: Seat }
+    | { kind: "aborted"; seat: Seat };
 
 export type ClockSnapshot = {
     /**
@@ -29,6 +31,11 @@ export type ClockSnapshot = {
     ms: [number, number];
     /** Whose clock is running, while the game's on */
     running: Seat | null;
+    /**
+     * While the side to move has yet to make its first move, which its clock doesn't run for: how
+     * long it has left to make it, at `at`, before the game's called off
+     */
+    firstMoveMs?: number;
 };
 
 export type DuelState<M> = {
@@ -122,5 +129,7 @@ export function describeEnding<M, P extends Position<M>>(
             return `${name(ending.winner)} won on time`;
         case "abandonment":
             return `${name(other(ending.winner))} left the game`;
+        case "aborted":
+            return `Called off: ${name(ending.seat)} didn't make a first move`;
     }
 }

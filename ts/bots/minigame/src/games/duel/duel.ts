@@ -1,9 +1,12 @@
 // A duel as the bot hosts it: two join, and when one starts the game, who moves first is the host,
-// their opponent, or random, as the settings say. The side to move's clock runs, from each side's
-// minutes for the whole game, and a flag falling loses. A player can resign, and one who leaves the
-// game loses it. The board is the game's own `Position`, replayed from the moves, which the page
-// replays too; this knows who sits where, the clocks, and what the card and the page are told.
+// their opponent, or random, as the settings say. Each side has its minutes for the whole game,
+// which its clock runs down on its turns once it's made its first move, and a flag falling loses.
+// The first move is free, but if it isn't made within `FIRST_MOVE_MS`, the game's called off. A
+// player can resign, and one who leaves the game loses it. The board is the game's own `Position`,
+// replayed from the moves, which the page replays too; this knows who sits where, the clocks, and
+// what the card and the page are told.
 import {
+    FIRST_MOVE_MS,
     PUBLISH_EVERY_MS,
     type ConfigureResult,
     type Game,
@@ -41,7 +44,8 @@ export type DuelData<M> = {
     moves: M[];
     /**
      * Once the game starts: what each seat had left when its clock last stopped, and when the
-     * running one started. Once it's over, nothing runs.
+     * side to move's turn started, which its clock runs from if it's moved before. Once it's over,
+     * nothing runs.
      */
     clock?: { ms: [number, number]; since: number };
     ending?: Ending;
@@ -228,26 +232,63 @@ export class Duel<M, P extends Position<M>> implements Game {
         const clock = this.#data.clock;
         if (clock === undefined) return this.settings().minutes * 60_000;
         const left = clock.ms[seat];
-        if (this.phase !== "active" || seat !== this.#position.turn) return left;
+        if (seat !== this.#running()) return left;
         return Math.max(0, left - Math.max(0, this.#now() - clock.since));
     }
 
-    /** When the side to move's flag falls, unless it moves first */
+    /**
+     * When the game ends unless the side to move moves first: when its flag falls, or, before its
+     * first move, when the game's called off
+     */
     deadline(): number | undefined {
         const clock = this.#data.clock;
         if (clock === undefined || this.phase !== "active") return undefined;
-        return clock.since + clock.ms[this.#position.turn];
+        const turn = this.#position.turn;
+        return clock.since + (this.#hasMoved(turn) ? clock.ms[turn] : FIRST_MOVE_MS);
     }
 
-    endIfTimeUp(): boolean {
-        if (this.phase !== "active") return false;
+    /** How long the side to move has left to make its first move, until it's made one */
+    firstMoveLeft(): number | undefined {
+        const clock = this.#data.clock;
+        if (clock === undefined || this.phase !== "active" || this.#running() !== null) {
+            return undefined;
+        }
+        return Math.max(0, FIRST_MOVE_MS - Math.max(0, this.#now() - clock.since));
+    }
+
+    /**
+     * The seat whose clock is running: the side to move, once it's made its first move, while the
+     * game's on
+     */
+    #running(): Seat | null {
+        if (this.phase !== "active") return null;
         const turn = this.#position.turn;
-        if (this.timeLeft(turn) > 0) return false;
-        this.#end({ kind: "timeout", winner: other(turn) });
+        return this.#hasMoved(turn) ? turn : null;
+    }
+
+    // Seat 0 makes the first move and seat 1 the second: no duel's first move leaves the other
+    // without one
+    #hasMoved(seat: Seat): boolean {
+        return this.#data.moves.length > seat;
+    }
+
+    /**
+     * Ends the game if the side to move's flag has fallen, which loses it, or it's let the time for
+     * its first move run out, which calls the game off
+     */
+    endIfTimeUp(): boolean {
+        const deadline = this.deadline();
+        if (deadline === undefined || this.#now() < deadline) return false;
+        const turn = this.#position.turn;
+        this.#end(
+            this.#hasMoved(turn)
+                ? { kind: "timeout", winner: other(turn) }
+                : { kind: "aborted", seat: turn },
+        );
         return true;
     }
 
-    /** The side to move isn't charged for the time the bot was down */
+    /** The side to move isn't charged for the time the bot was down, nor its first move's time */
     resume(downMs: number): boolean {
         if (this.phase !== "active" || downMs <= 0) return false;
         this.#data.clock!.since += downMs;
@@ -268,14 +309,15 @@ export class Duel<M, P extends Position<M>> implements Game {
             if (seat !== this.#position.turn) return "It's not your turn";
             const move = this.#rules.parseMove(raw);
             if (move === undefined) return "That isn't a move";
+            // What the mover has left as they move, which is all of it on their first move
+            const left = this.timeLeft(seat);
             const error = this.#position.play(move);
             if (error !== undefined) return error;
             this.#data.moves.push(move);
-            // The mover's clock stops and the other's starts
+            // The mover's clock stops and the other's turn starts
             const clock = this.#data.clock!;
-            const now = this.#now();
-            clock.ms[seat] = Math.max(0, clock.ms[seat] - Math.max(0, now - clock.since));
-            clock.since = now;
+            clock.ms[seat] = left;
+            clock.since = this.#now();
             const outcome = this.#position.outcome;
             if (outcome !== undefined) this.#end({ kind: "board", winner: outcome.winner });
             return undefined;
@@ -324,7 +366,6 @@ export class Duel<M, P extends Position<M>> implements Game {
         // The host's name, so the lobby can say who goes first before they've joined
         if (d.host !== undefined && d.hostName !== undefined) names[d.host] = d.hostName;
         for (const p of d.players) names[p.id] = p.name;
-        const running = this.phase === "active" ? this.#position.turn : null;
         return {
             version: this.#rules.version,
             game: this.#rules.kind,
@@ -337,7 +378,12 @@ export class Duel<M, P extends Position<M>> implements Game {
             clock:
                 d.clock === undefined
                     ? undefined
-                    : { at: this.#now(), ms: [this.timeLeft(0), this.timeLeft(1)], running },
+                    : {
+                          at: this.#now(),
+                          ms: [this.timeLeft(0), this.timeLeft(1)],
+                          running: this.#running(),
+                          firstMoveMs: this.firstMoveLeft(),
+                      },
             ending: d.ending === undefined ? undefined : { ...d.ending },
             startedAt: d.startedAt,
             finishedAt: d.finishedAt,

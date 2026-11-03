@@ -1,9 +1,12 @@
 // One game of chess, with its clock. The rules are chess.js's. Each side has its time for the whole
-// game, ten minutes unless set, with seconds added after each of its moves if the game was set up
-// with an increment, and the game ends by itself on checkmate, stalemate, insufficient
-// material, threefold repetition, the fifty-move rule, or a flag falling. Who plays each side is
-// the bot's business: this knows only White and Black.
+// game, ten minutes unless set, which its clock runs down on its turns once it's made its first
+// move, with seconds added after each of those moves if the game was set up with an increment. The
+// first move is free, but if it isn't made within `FIRST_MOVE_MS`, the game's called off. The game
+// ends by itself on checkmate, stalemate, insufficient material, threefold repetition, the
+// fifty-move rule, or a flag falling. Who plays each side is the bot's business: this knows only
+// White and Black.
 import { Chess, type Color, type Move, type Square } from "chess.js";
+import { FIRST_MOVE_MS } from "../game";
 import { TIME_PER_SIDE_MS, type Captured, type LastMove, type Side, type Snapshot } from "./types";
 
 /** How a game ended, with the winner where there is one */
@@ -18,7 +21,9 @@ export type Ending =
               | "agreement"
               /** A flag fell, but the other side couldn't have mated, so no one wins */
               | "timeout_draw";
-      };
+      }
+    /** The side to move didn't make its first move in time, so no one wins or draws */
+    | { kind: "aborted"; side: Side };
 
 /** The match's whole state, as the store writes it. The position is replayed from the moves. */
 export type MatchData = {
@@ -33,7 +38,10 @@ export type MatchData = {
         /** What each side had left when its clock last stopped */
         whiteMs: number;
         blackMs: number;
-        /** When the side to move's clock started running. Once the game's over, nothing runs. */
+        /**
+         * When the side to move's turn started, which its clock runs from if it's moved before.
+         * Once the game's over, nothing runs.
+         */
         since: number;
         /** Added to a side's clock after each of its moves, if any */
         incrementMs?: number;
@@ -60,8 +68,8 @@ export class Match {
     }
 
     /**
-     * The starting position, with White's clock running from `now`: each side has
-     * `clock.perSideMs`, ten minutes unless given, and gets `clock.incrementMs` after each move
+     * The starting position, with White to move from `now`: each side has `clock.perSideMs`, ten
+     * minutes unless given, and gets `clock.incrementMs` after each move
      */
     static create(
         now: number,
@@ -118,22 +126,43 @@ export class Match {
         return { ...this.#captured };
     }
 
+    /**
+     * The side whose clock is running: the side to move, once it's made its first move, while the
+     * game's on
+     */
+    get running(): Side | null {
+        if (this.isOver) return null;
+        // The game alternates, so the side to move has moved before once both sides have
+        return this.#data.moves.length >= 2 ? this.turn : null;
+    }
+
     /** How long the side has left, as its clock runs */
     timeLeft(color: Side, now: number): number {
         const left = this.#left(color);
-        if (this.isOver || color !== this.turn) return left;
+        if (color !== this.running) return left;
         return Math.max(0, left - Math.max(0, now - this.#data.clock.since));
     }
 
-    /** When the side to move's flag falls, unless it moves first */
+    /**
+     * When the game ends unless the side to move moves first: when its flag falls, or, before its
+     * first move, when the game's called off
+     */
     deadline(): number | undefined {
         if (this.isOver) return undefined;
-        return this.#data.clock.since + this.#left(this.turn);
+        const allowed = this.running === null ? FIRST_MOVE_MS : this.#left(this.turn);
+        return this.#data.clock.since + allowed;
+    }
+
+    /** How long the side to move has left to make its first move, until it's made one */
+    firstMoveLeft(now: number): number | undefined {
+        if (this.isOver || this.running !== null) return undefined;
+        return Math.max(0, FIRST_MOVE_MS - Math.max(0, now - this.#data.clock.since));
     }
 
     /**
      * The running clock didn't run for `ms`, eg. while the bot was down, so no one is charged
-     * for it: the side to move has what it had when the game was saved. Nothing once it's over.
+     * for it: the side to move has what it had when the game was saved, for its first move too.
+     * Nothing once it's over.
      */
     pause(ms: number): boolean {
         if (this.isOver || ms <= 0) return false;
@@ -144,13 +173,16 @@ export class Match {
     /**
      * Plays the side's move, given as UCI: the squares it's from and to, eg. "e2e4", "e1g1" to
      * castle, with the piece to promote to on the end, eg. "e7e8q". The side's clock stops and the
-     * other's starts, an offer of a draw by the other side lapses, and the game ends if the move
-     * ends it. Returns why it wasn't played, or undefined.
+     * other's turn starts, an offer of a draw by the other side lapses, and the game ends if the
+     * move ends it. Returns why it wasn't played, or undefined.
      */
     play(color: Side, uci: string, now: number): string | undefined {
         if (this.isOver) return "The game has finished";
         if (color !== this.turn) return "It's not your turn";
-        if (this.timeLeft(color, now) === 0) return "Your time ran out";
+        // Whether the side's clock ran for this move, which it doesn't for the side's first
+        const timed = this.running === color;
+        const left = this.timeLeft(color, now);
+        if (left === 0 || this.firstMoveLeft(now) === 0) return "Your time ran out";
         const parts = UCI.exec(uci);
         if (parts === null) return `'${uci}' isn't a move`;
         const [, from, to, promotion] = parts;
@@ -166,9 +198,8 @@ export class Match {
         d.fens.push(this.#position.fen());
         d.lastMove = { from, to };
 
-        // The side's clock stops, with the increment added once it has moved
-        const elapsed = Math.max(0, now - d.clock.since);
-        this.#setLeft(color, Math.max(0, this.#left(color) - elapsed) + (d.clock.incrementMs ?? 0));
+        // The side's clock stops, with the increment added once it has moved, if it ran
+        if (timed) this.#setLeft(color, left + (d.clock.incrementMs ?? 0));
         d.clock.since = now;
 
         // Moving declines the other side's offer
@@ -194,16 +225,19 @@ export class Match {
 
     /**
      * Ends the game if the side to move's flag has fallen, giving whether it did. The other side
-     * wins, unless it hasn't the material to mate with, when it's a draw.
+     * wins, unless it hasn't the material to mate with, when it's a draw. Before the side's first
+     * move, its time for that running out calls the game off.
      */
     flag(now: number): boolean {
-        if (this.isOver) return false;
+        const deadline = this.deadline();
+        if (deadline === undefined || now < deadline) return false;
         const turn = this.turn;
-        if (this.timeLeft(turn, now) > 0) return false;
         this.#end(
-            this.#hasInsufficientMaterial(other(turn))
-                ? { kind: "timeout_draw" }
-                : { kind: "timeout", winner: other(turn) },
+            this.running === null
+                ? { kind: "aborted", side: turn }
+                : this.#hasInsufficientMaterial(other(turn))
+                  ? { kind: "timeout_draw" }
+                  : { kind: "timeout", winner: other(turn) },
             now,
         );
         return true;
@@ -254,7 +288,8 @@ export class Match {
                 at: now,
                 white_ms: this.timeLeft("white", now),
                 black_ms: this.timeLeft("black", now),
-                running: this.isOver ? null : this.turn,
+                running: this.running,
+                first_move_ms: this.firstMoveLeft(now) ?? null,
             },
             draw_offer: this.#data.drawOffer ?? null,
             result: this.ending === undefined ? null : describe(this.ending),
@@ -343,6 +378,8 @@ export function describe(ending: Ending): string {
             return "Draw by agreement";
         case "timeout_draw":
             return "Draw: time ran out against insufficient material";
+        case "aborted":
+            return `Called off: ${sideName(ending.side)} didn't make a first move`;
     }
 }
 

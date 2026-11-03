@@ -54,6 +54,8 @@ export type DuelBoard<M, P extends Position<M>> = {
 type Dom = {
     root: HTMLElement;
     status: HTMLElement;
+    /** The time left for a first move, which the status ends with while one's awaited */
+    firstMove: HTMLElement;
     note: HTMLElement;
     rows: [HTMLElement, HTMLElement];
     board: HTMLElement;
@@ -153,6 +155,7 @@ export function duelView<M, P extends Position<M>>(
         dom = {
             root,
             status: q(".duel-status"),
+            firstMove: Object.assign(document.createElement("span"), { className: "first-move" }),
             note: q(".duel-note"),
             // The row under the board first: the viewer's, or the first to move's
             rows: [rows[1], rows[0]],
@@ -245,6 +248,13 @@ export function duelView<M, P extends Position<M>>(
             );
         } else if (s.phase === "open") {
             dom.status.textContent = "Waiting for the game to start";
+        } else if (s.clock?.firstMoveMs !== undefined) {
+            // A first move's clock doesn't run, but it has to be made in time, counted down here
+            dom.status.textContent =
+                mine === position.turn
+                    ? "Your first move"
+                    : `${name(s, s.players[position.turn])}'s first move`;
+            dom.status.append(dom.firstMove);
         } else {
             dom.status.textContent =
                 mine === position.turn
@@ -259,7 +269,8 @@ export function duelView<M, P extends Position<M>>(
 
         // The viewer's seat at the bottom, or the first to move if they're watching
         const bottom: Seat = mine ?? 0;
-        const running = end !== undefined ? null : (s.clock?.running ?? null);
+        // Whose turn it is, whether or not their clock's running yet
+        const toMove = s.phase === "active" && end === undefined ? position.turn : null;
         for (const [i, row] of dom.rows.entries()) {
             const seat = (i === 0 ? bottom : 1 - bottom) as Seat;
             row.dataset.seat = String(seat);
@@ -270,7 +281,7 @@ export function duelView<M, P extends Position<M>>(
                     : `<span class="score">${board.score(position, seat)}</span>`;
             row.querySelector(".name")!.innerHTML =
                 `<span class="disc-swatch seat-${seat}"></span>${escape(name(s, id))}${score}`;
-            row.classList.toggle("active", running === seat);
+            row.classList.toggle("active", toMove === seat);
             (row.querySelector(".duel-clock") as HTMLElement).hidden = end !== undefined;
         }
 
@@ -319,16 +330,21 @@ export function duelView<M, P extends Position<M>>(
     function tickClocks() {
         const s = current();
         if (dom === undefined || end !== undefined || !document.body.contains(dom.root)) return;
+        const clock = s?.clock;
         for (const row of dom.rows) {
             const text = row.querySelector(".duel-clock") as HTMLElement;
             const seat = Number(row.dataset.seat) as Seat;
-            const clock = s?.clock;
             let ms = clock?.ms[seat] ?? (s?.settings.minutes ?? 0) * 60_000;
             if (clock !== undefined && clock.running === seat) {
                 ms = Math.max(0, ms - Math.max(0, Date.now() - clock.at));
             }
             text.textContent = formatClock(ms);
             text.classList.toggle("low", clock?.running === seat && ms < LOW_TIME_MS);
+        }
+        if (clock?.firstMoveMs !== undefined) {
+            const ms = Math.max(0, clock.firstMoveMs - Math.max(0, Date.now() - clock.at));
+            dom.firstMove.textContent = ` · ${formatFirstMove(ms)} left`;
+            dom.firstMove.classList.toggle("low", ms < LOW_TIME_MS);
         }
     }
 
@@ -467,6 +483,16 @@ function formatClock(ms: number): string {
     const minutes = Math.floor(ms / 60_000);
     const seconds = Math.floor((ms % 60_000) / 1000);
     return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+/**
+ * The time left for a first move, eg. "0:42", in whole seconds even near the end, where a clock
+ * shows tenths: so the status line it ends keeps its length, and can't start to wrap between the
+ * redraws that fit the board
+ */
+function formatFirstMove(ms: number): string {
+    const seconds = Math.ceil(ms / 1000);
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
 function shortId(id: string): string {

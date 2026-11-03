@@ -72,8 +72,11 @@ describe("the store", () => {
         chess.join("alice", "Alice");
         chess.join("bob", "Bob");
         chess.start();
-        now += 1000;
+        // Each side's first move, which their clocks don't run for, then White's second
         chess.move("alice", "e2e4");
+        chess.move("bob", "e7e5");
+        now += 1000;
+        chess.move("alice", "g1f3");
         store.create(chessCard, chess);
         const open = ChessGame.create({ now: clock });
         open.join("carol", "Carol");

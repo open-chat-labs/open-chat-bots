@@ -37,6 +37,11 @@ export type ClockSnapshot = {
     black_ms: number;
     /** Whose clock is running, if the game's on */
     running: Side | null;
+    /**
+     * While the side to move has yet to make its first move, which its clock doesn't run for: how
+     * long it has left to make it, at the time of the snapshot, before the game's called off
+     */
+    first_move_ms: number | null;
 };
 
 /** The board, once the game has started */
@@ -84,8 +89,11 @@ export type EndState = {
     version: typeof STATE_VERSION;
     game: typeof GAME_ID;
     result: string;
-    /** Who won, or null for a draw, for the result a PGN gives, eg. "1-0" */
-    winner: Side | null;
+    /**
+     * Who won, or null for a draw, for the result a PGN gives, eg. "1-0"; not there for a game
+     * that was called off, which PGN scores "*"
+     */
+    winner?: Side | null;
     /** When the game started, by the bot's clock, for the date a PGN gives */
     started_at: number;
     white: string;

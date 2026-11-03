@@ -59,6 +59,8 @@ type End = {
 type Dom = {
     root: HTMLElement;
     status: HTMLElement;
+    /** The time left for a first move, which the status ends with while one's awaited */
+    firstMove: HTMLElement;
     top: HTMLElement;
     bottom: HTMLElement;
     board: HTMLElement;
@@ -339,6 +341,7 @@ function ensureDom(body: HTMLElement) {
     dom = {
         root,
         status: q(".chess-status"),
+        firstMove: Object.assign(document.createElement("span"), { className: "first-move" }),
         top: q('.player-row[data-pos="top"]'),
         bottom: q('.player-row[data-pos="bottom"]'),
         board: q(".board"),
@@ -735,7 +738,12 @@ function renderStatus() {
         text = "Waiting for the game to start";
     } else {
         const turn = shared.turn ?? "white";
-        text = mine === turn ? "Your move" : `${sideName(turn)} to move`;
+        // A first move's clock doesn't run, but it has to be made in time, counted down here
+        if (firstMoveMs() !== undefined) {
+            text = mine === turn ? "Your first move" : `${sideName(turn)}'s first move`;
+        } else {
+            text = mine === turn ? "Your move" : `${sideName(turn)} to move`;
+        }
         if (shared.check) text += " · Check";
         if (shared.draw_offer) {
             offer =
@@ -745,6 +753,7 @@ function renderStatus() {
         }
     }
     dom.status.textContent = text;
+    if (firstMoveMs() !== undefined) dom.status.append(dom.firstMove);
     dom.offer.textContent = offer;
     const playing = player && mine !== undefined && shared.status === "Active" && ctx?.oc.finished !== true;
     dom.controls.hidden = !playing;
@@ -793,9 +802,10 @@ function renderPlayers() {
     ] as const) {
         drawTaken(panel, color, taken?.[color] ?? "", color === "white" ? lead : -lead);
     }
-    const running = end !== undefined ? null : (shared?.clock?.running ?? null);
-    dom.bottom.classList.toggle("active", running === bottomColor);
-    dom.top.classList.toggle("active", running === topColor);
+    // Whose turn it is, whether or not their clock's running yet
+    const toMove = end === undefined && shared?.status === "Active" ? (shared.turn ?? null) : null;
+    dom.bottom.classList.toggle("active", toMove === bottomColor);
+    dom.top.classList.toggle("active", toMove === topColor);
     // The clocks mean nothing once the game's over
     for (const panel of [dom.top, dom.bottom]) {
         (panel.querySelector(".chess-clock") as HTMLElement).hidden = end !== undefined;
@@ -993,6 +1003,16 @@ function formatClock(ms: number): string {
     return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
+/**
+ * The time left for a first move, eg. "0:42", in whole seconds even near the end, where a clock
+ * shows tenths: so the status line it ends keeps its length, and can't start to wrap between the
+ * redraws that fit the board
+ */
+function formatFirstMove(ms: number): string {
+    const seconds = Math.ceil(ms / 1000);
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
 // What each side has left: the state's figure, less the time since the bot took it for the side
 // whose clock is running. A state can be old when it arrives, as the service sends the latest one
 // to whoever opens the game, so it's counted from the bot's time, taking the two clocks to agree.
@@ -1012,6 +1032,19 @@ function tickClocks() {
         clockText.textContent = formatClock(ms);
         clockText.classList.toggle("low", clock.running === color && ms < LOW_TIME_MS);
     }
+    const firstMove = firstMoveMs();
+    if (firstMove !== undefined) {
+        dom.firstMove.textContent = ` · ${formatFirstMove(firstMove)} left`;
+        dom.firstMove.classList.toggle("low", firstMove < LOW_TIME_MS);
+    }
+}
+
+/** How long the side to move has left to make its first move, while the game awaits one */
+function firstMoveMs(): number | undefined {
+    const clock = shared?.status === "Active" ? shared.clock : undefined;
+    const ms = clock?.first_move_ms;
+    if (clock === undefined || ms === undefined || ms === null) return undefined;
+    return Math.max(0, ms - Math.max(0, Date.now() - clock.at));
 }
 
 function escape(text: string): string {
