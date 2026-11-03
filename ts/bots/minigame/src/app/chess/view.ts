@@ -107,7 +107,7 @@ export const chessView: GameView = {
     attach(_root, context) {
         ctx = context;
         setInterval(tickClocks, 100);
-        window.addEventListener("resize", fitBoard);
+        window.addEventListener("resize", fit);
     },
 
     isOpen(state) {
@@ -208,6 +208,8 @@ export const chessView: GameView = {
                 if (resignArmed === undefined) {
                     if (dom !== undefined) dom.resign.textContent = "Tap again to resign";
                     resignArmed = setTimeout(disarmResign, RESIGN_CONFIRM_MS);
+                    // In a narrow card the longer label takes another line under the board
+                    fit();
                 } else {
                     disarmResign();
                     void call("/api/chess/resign");
@@ -295,9 +297,9 @@ function ensureDom(body: HTMLElement) {
     body.innerHTML = `
         <div class="chess">
             <p class="chess-status"></p>
-            <div class="player-row" data-pos="top"><span class="name"></span><span class="taken"></span><span class="chess-clock"></span></div>
+            <div class="player-row" data-pos="top"><span class="side"></span><span class="who"></span><span class="taken"></span><span class="chess-clock"></span></div>
             <div class="board" role="grid" aria-label="Chess board"></div>
-            <div class="player-row" data-pos="bottom"><span class="name"></span><span class="taken"></span><span class="chess-clock"></span></div>
+            <div class="player-row" data-pos="bottom"><span class="side"></span><span class="who"></span><span class="taken"></span><span class="chess-clock"></span></div>
             <p class="offer"></p>
             <div class="chess-controls" hidden>
                 <button type="button" data-action="draw">Offer draw</button>
@@ -393,6 +395,7 @@ function disarmResign() {
     clearTimeout(resignArmed);
     resignArmed = undefined;
     if (dom !== undefined) dom.resign.textContent = "Resign";
+    fit();
 }
 
 function showError(text: string) {
@@ -488,6 +491,7 @@ function step(to: number) {
     renderBoard();
     renderMoves();
     renderReplay();
+    fit();
 }
 
 /** The position shown: the live game's, or the one stepped to in a finished game */
@@ -596,16 +600,85 @@ function changedSquares(before: Record<string, string>, after: Record<string, st
     return changed;
 }
 
+/** Fits the view to the frame: the players' rows, then the board and the moves */
+function fit() {
+    if (dom === undefined || !document.body.contains(dom.root)) return;
+    fitRows();
+    fitBoard();
+    scrollMoves();
+}
+
+/** In a row short of room, the least of a piece along it that the next of its kind starts... */
+const TAKEN_STEP_MIN = 0.2;
+/** ...and the least size of a piece taken, in pixels */
+const TAKEN_SIZE_MIN = 12;
+
+/**
+ * In a player's row, who plays the side gives way to the pieces taken and the clock, and is left
+ * out rather than cut to a letter or two, though a screen reader still says it. If the row's still
+ * short of room, the pieces of a kind close up, and then they're drawn smaller.
+ */
+function fitRows() {
+    if (dom === undefined) return;
+    const rows = [dom.top, dom.bottom].map((row) => ({
+        row,
+        who: row.querySelector(".who") as HTMLElement,
+        taken: row.querySelector(".taken") as HTMLElement,
+    }));
+    for (const { who, taken } of rows) {
+        who.classList.remove("visually-hidden");
+        taken.style.removeProperty("--step");
+        taken.style.removeProperty("--size");
+    }
+    const min = 3 * parseFloat(getComputedStyle(rows[0].who).fontSize);
+    for (const { who } of rows) {
+        who.classList.toggle(
+            "visually-hidden",
+            who.scrollWidth > who.clientWidth && who.clientWidth < min,
+        );
+    }
+    for (const { row, taken } of rows) {
+        let over = overflow(row);
+        if (over < 0.5) continue;
+        const style = getComputedStyle(taken);
+        const size = parseFloat(style.getPropertyValue("--size"));
+        // The pieces that start part way along another
+        const closing = taken.querySelectorAll(".piece + .piece").length;
+        if (closing > 0) {
+            const step = parseFloat(style.getPropertyValue("--step")) - over / closing / size;
+            taken.style.setProperty("--step", String(Math.max(TAKEN_STEP_MIN, step)));
+            over = overflow(row);
+            if (over < 0.5) continue;
+        }
+        // Each kind's pieces take room in proportion to their size
+        let kinds = 0;
+        for (const group of taken.querySelectorAll(".group")) kinds += group.getBoundingClientRect().width;
+        if (kinds === 0) continue;
+        taken.style.setProperty("--size", `${Math.max(TAKEN_SIZE_MIN, size * (1 - over / kinds))}px`);
+    }
+}
+
+/** How far what's in a row reaches past its padding: none if it fits */
+function overflow(row: HTMLElement): number {
+    const style = getComputedStyle(row);
+    const inner =
+        row.getBoundingClientRect().right -
+        parseFloat(style.borderRightWidth) -
+        parseFloat(style.paddingRight);
+    return Math.max(0, ...Array.from(row.children, (el) => el.getBoundingClientRect().right - inner));
+}
+
 /**
  * The board's a square, as wide as the frame unless the rows around it leave less height than
- * that: then it's as tall as they leave, so nothing's cut off in the card's frame
+ * that: then it's as tall as they leave, so nothing's cut off in the card's frame. The moves come
+ * after the board: they get what height it leaves, and are left out if that's under two rows.
  */
 function fitBoard() {
-    if (dom === undefined || !document.body.contains(dom.root)) return;
+    if (dom === undefined) return;
     const root = dom.root;
     let used = 0;
     for (const el of root.children) {
-        if (el === dom.board) continue;
+        if (el === dom.board || el === dom.moves) continue;
         const style = getComputedStyle(el);
         if (style.display === "none" || style.position === "fixed") continue;
         used += (el as HTMLElement).offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
@@ -614,8 +687,20 @@ function fitBoard() {
     used += parseFloat(boardStyle.marginTop) + parseFloat(boardStyle.marginBottom);
     // What's below the view's top in the frame, less a little for the page's padding
     const available = document.documentElement.clientHeight - root.getBoundingClientRect().top - 16;
-    const max = Math.max(160, available - used);
-    dom.board.style.setProperty("--board-max", `${Math.floor(max)}px`);
+    const side = Math.floor(Math.max(160, Math.min(root.clientWidth, available - used)));
+    dom.board.style.setProperty("--board-max", `${side}px`);
+    const moves = getComputedStyle(dom.moves);
+    const room =
+        available -
+        used -
+        side -
+        parseFloat(moves.marginTop) -
+        parseFloat(moves.borderTopWidth) -
+        parseFloat(moves.paddingTop) -
+        parseFloat(moves.paddingBottom);
+    const rows = 2 * parseFloat(moves.lineHeight) + parseFloat(moves.rowGap);
+    dom.moves.classList.toggle("cramped", room < rows);
+    dom.moves.style.setProperty("--moves-room", `${Math.floor(room)}px`);
 }
 
 function render() {
@@ -629,7 +714,7 @@ function render() {
     renderMoves();
     renderReplay();
     tickClocks();
-    fitBoard();
+    fit();
 }
 
 function renderStatus() {
@@ -682,21 +767,21 @@ function renderPlayers() {
     // Who played, from the end state once the game's over, as it may be all the page has
     const sides = end ?? shared;
     const names = sides?.names ?? {};
-    const describe = (color: Side) => {
+    // eg. "White · Bob", or just "White" while no one's in the seat
+    const describe = (panel: HTMLElement, color: Side) => {
+        panel.querySelector(".side")!.textContent = sideName(color);
+        const who = panel.querySelector(".who") as HTMLElement;
         const id = sides?.[color] ?? undefined;
-        if (id === undefined || id === null) {
-            return `<span class="side">${sideName(color)}</span>`;
-        }
-        const who =
-            id === oc?.userId
-                ? "you"
-                : `<span class="who" title="${escape(id)}">${escape(names[id] ?? shortId(id))}</span>`;
-        return `<span class="side">${sideName(color)}</span> · ${who}`;
+        who.hidden = id === undefined || id === null;
+        if (id === undefined || id === null) return;
+        who.textContent = `· ${id === oc?.userId ? "you" : (names[id] ?? shortId(id))}`;
+        if (id === oc?.userId) who.removeAttribute("title");
+        else who.title = id;
     };
     const bottomColor: Side = flipped() ? "black" : "white";
     const topColor: Side = flipped() ? "white" : "black";
-    dom.bottom.querySelector(".name")!.innerHTML = describe(bottomColor);
-    dom.top.querySelector(".name")!.innerHTML = describe(topColor);
+    describe(dom.bottom, bottomColor);
+    describe(dom.top, topColor);
     dom.bottom.dataset.color = bottomColor;
     dom.top.dataset.color = topColor;
     // What each side has taken, and how far ahead the side that's ahead is
@@ -863,10 +948,17 @@ function renderMoves() {
         }
     }
     dom.moves.replaceChildren(...cells);
-    // Keep the current move in view: the latest, or the one stepped to, scrolled to within the
-    // list itself, so as not to scroll the page the app is framed in. Before any move, the top.
+}
+
+/**
+ * Keeps the current move in view: the latest, or the one stepped to, scrolled to within the list
+ * itself, so as not to scroll the page the app is framed in. Before any move, the top. It's done
+ * once the list has the height the frame leaves it.
+ */
+function scrollMoves() {
+    if (dom === undefined) return;
     const shown = dom.moves.querySelector<HTMLElement>(".m.latest");
-    if (stepping) {
+    if (canStep()) {
         dom.moves.scrollTop =
             shown === null
                 ? 0
