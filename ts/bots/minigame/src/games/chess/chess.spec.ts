@@ -240,12 +240,15 @@ describe("playing", () => {
         const agreed = game.offerDraw("alice");
         expect(agreed.ok && agreed.shared.result).toBe("Draw by agreement");
         expect(game.result()).toBe("Draw by agreement");
+        // No one won, for the PGN's 1/2-1/2
+        expect(game.endState()).toMatchObject({ winner: null });
         expect(game.resign("alice")).toEqual({ ok: false, error: "The game has finished" });
 
         const other = started();
         const resigned = other.game.resign("alice");
         expect(resigned.ok).toBe(true);
         expect(other.game.result()).toBe("White resigned");
+        expect(other.game.endState()).toMatchObject({ winner: "black" });
         expect(other.game.offerDraw("bob")).toEqual({ ok: false, error: "The game has finished" });
         expect(other.game.resign("carol")).toEqual({ ok: false, error: "You're not playing" });
     });
@@ -343,12 +346,15 @@ describe("the end state", () => {
         version: 1,
         game: "chess",
         result: "Draw by agreement",
+        winner: null,
+        started_at: START,
         white: "alice",
         black: "bob",
         names: { alice: "Alice", bob: "Bob" },
         moves: Array.from({ length: plies }, (_, ply) => (ply % 2 === 0 ? "Nf3" : "Nf6")),
         fens: Array.from({ length: plies + 1 }, (_, ply) => position(ply)),
         last_move: { from: "g8", to: "f6" },
+        captured: { white: "", black: "" },
     });
 
     it("keeps every position of a game that fits in 16 KB", () => {

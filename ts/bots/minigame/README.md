@@ -139,7 +139,8 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    through, and a maze race's is too, with the maze's seed, so the page carves the maze again and
    draws the way out. ChatMan's is its final state, every board as it finished.
 
-The chess state everyone sees is the Rust ChessBot's, with the players' names added:
+The chess state everyone sees is the Rust ChessBot's, with the players' names and what each side
+has taken added:
 
 ```json
 {

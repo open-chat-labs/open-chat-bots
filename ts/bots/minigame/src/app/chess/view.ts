@@ -415,12 +415,18 @@ function openPgn() {
     });
     notePgn("", false);
     dom.pgn.hidden = false;
+    // Into the sheet, so the keyboard isn't left on what's behind it
+    dom.pgn.querySelector<HTMLElement>('[data-action="copy-pgn"]')?.focus({ preventScroll: true });
 }
 
 function closePgn() {
     if (dom === undefined) return;
+    const open = !dom.pgn.hidden;
     notePgn("", false);
     dom.pgn.hidden = true;
+    // Back to PGN, where the keyboard was
+    const button = dom.replay.querySelector<HTMLElement>('[data-action="pgn"]');
+    if (open) button?.focus({ preventScroll: true });
 }
 
 /**
@@ -493,7 +499,7 @@ function shownFen(): string {
 function takenShown(): Captured | undefined {
     if (end === undefined) return shared?.captured;
     // Worked out from the positions up to the one shown, if the card kept them all
-    return end.truncated ? end.captured : capturedBetween(end.fens.slice(0, ply + 1));
+    return canStep() ? capturedBetween(end.fens.slice(0, ply + 1)) : end.captured;
 }
 
 /** The side the user plays, if they're a player in a started game, or played in a finished one */
@@ -728,7 +734,24 @@ function drawTaken(panel: HTMLElement, color: Side, taken: string, lead: number)
     }
     if (lead > 0) groups.push(`<span class="lead">+${lead}</span>`);
     el.innerHTML = groups.join("");
-    el.title = said.length === 0 ? "" : `Taken ${said.join(", ")}`;
+    // The pieces are pictures, so what they say is said for a screen reader too, eg. "Took a pawn
+    // and 2 knights, 7 ahead"
+    const took = said.length === 0 ? "" : `Took ${listed(said)}`;
+    const text = lead > 0 ? `${took === "" ? "" : `${took}, `}${lead} ahead` : took;
+    el.title = took;
+    if (text === "") {
+        el.removeAttribute("role");
+        el.removeAttribute("aria-label");
+    } else {
+        el.setAttribute("role", "img");
+        el.setAttribute("aria-label", text);
+    }
+}
+
+/** eg. "a pawn, a knight and 2 rooks" */
+function listed(items: string[]): string {
+    if (items.length < 2) return items.join("");
+    return `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
 }
 
 /** A piece that's been taken, eg. "piece black n", which style.css draws */

@@ -1009,26 +1009,31 @@ button.link {
 .replay-row {
     margin: 8px 0 0;
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    gap: 0 6px;
-}
-
-.replay-row [data-action="pgn"] {
-    margin-left: 8px;
+    gap: 6px;
 }
 
 /*
- * In a narrow card the buttons to step are only their arrows, so PGN fits beside them, and in a
- * narrower one still, it goes under them rather than squeezing them
+ * Chess's has PGN after the buttons to step, apart from them. In a narrow card those buttons are
+ * only their arrows, so PGN fits beside them, and in a narrower one still, it goes under them
+ * rather than squeezing them.
  */
-.replay-row button {
+.chess .replay-row {
+    flex-wrap: wrap;
+    row-gap: 0;
+}
+
+.chess .replay-row button {
     white-space: nowrap;
 }
 
+.chess .replay-row [data-action="next"]:not([hidden]) + [data-action="pgn"] {
+    margin-left: 8px;
+}
+
 @media (max-width: 400px) {
-    .replay-row .word {
+    .chess .replay-row .word {
         display: none;
     }
 }

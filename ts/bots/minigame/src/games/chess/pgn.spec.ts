@@ -2,6 +2,9 @@ import { Chess } from "chess.js";
 import { describe, expect, it } from "vitest";
 import { toPgn } from "./pgn";
 
+/** chess.js plays a few thousand random moves in a second or two, more on a busy machine */
+const RANDOM_GAMES_MS = 20_000;
+
 /** A game's moves, played at random from a seed, with castling, promotions and the rest */
 function randomMoves(seed: number): string[] {
     const chess = new Chess();
@@ -73,29 +76,33 @@ describe("PGN", () => {
         expect(chess.getComments()).toEqual([{ fen: chess.fen(), comment: "White won" }]);
     });
 
-    it("is read back by chess.js, move for move, in lines within 80 characters", () => {
-        for (let seed = 1; seed <= 20; seed++) {
-            const moves = randomMoves(seed);
-            const pgn = toPgn({
-                white: "Alice",
-                black: "Bob",
-                moves,
-                winner: "white",
-                result: "White won on time",
-                startedAt: 0,
-                timeControl: { seconds: 300, increment: 0 },
-            });
-            for (const line of pgn.split("\n")) expect(line.length).toBeLessThan(80);
-            const chess = new Chess();
-            chess.loadPgn(pgn);
-            expect(chess.history()).toEqual(moves);
-            expect(chess.getHeaders()).toMatchObject({
-                White: "Alice",
-                Black: "Bob",
-                Result: "1-0",
-                Date: "1970.01.01",
-                TimeControl: "300+0",
-            });
-        }
-    });
+    it(
+        "is read back by chess.js, move for move, in lines within 80 characters",
+        { timeout: RANDOM_GAMES_MS },
+        () => {
+            for (let seed = 1; seed <= 20; seed++) {
+                const moves = randomMoves(seed);
+                const pgn = toPgn({
+                    white: "Alice",
+                    black: "Bob",
+                    moves,
+                    winner: "white",
+                    result: "White won on time",
+                    startedAt: 0,
+                    timeControl: { seconds: 300, increment: 0 },
+                });
+                for (const line of pgn.split("\n")) expect(line.length).toBeLessThan(80);
+                const chess = new Chess();
+                chess.loadPgn(pgn);
+                expect(chess.history()).toEqual(moves);
+                expect(chess.getHeaders()).toMatchObject({
+                    White: "Alice",
+                    Black: "Bob",
+                    Result: "1-0",
+                    Date: "1970.01.01",
+                    TimeControl: "300+0",
+                });
+            }
+        },
+    );
 });

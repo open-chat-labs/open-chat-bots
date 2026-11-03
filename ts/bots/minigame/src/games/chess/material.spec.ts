@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { capturedBetween, materialLead } from "./material";
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+/** chess.js plays a few thousand random moves in a second or two, more on a busy machine */
+const RANDOM_GAMES_MS = 20_000;
 
 /**
  * A game played at random from a seed, keen on captures and promotions, which a game written out
@@ -54,12 +56,16 @@ describe("what's been taken", () => {
         ).toEqual({ white: "", black: "" });
     });
 
-    it("agrees with chess.js, move for move, in games full of captures", () => {
-        for (let seed = 1; seed <= 15; seed++) {
-            const game = randomGame(seed);
-            expect(capturedBetween(game.fens), `seed ${seed}`).toEqual(game.captured);
-        }
-    });
+    it(
+        "agrees with chess.js, move for move, in games full of captures",
+        { timeout: RANDOM_GAMES_MS },
+        () => {
+            for (let seed = 1; seed <= 15; seed++) {
+                const game = randomGame(seed);
+                expect(capturedBetween(game.fens), `seed ${seed}`).toEqual(game.captured);
+            }
+        },
+    );
 });
 
 describe("the lead", () => {

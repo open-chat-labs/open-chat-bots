@@ -1,7 +1,8 @@
 // Chess's shared state, as the bot publishes it through the MiniApp service and the app reads it,
 // and its end state, which the card keeps. Nothing's private: both sides and every spectator see
 // the same. The shapes are the Rust ChessBot's, with the players' names added, as this bot looks
-// them up.
+// them up, and what each side has taken; the end state also says who won and when it started, for
+// its PGN.
 
 /** Bumped when the shape changes, so an app left open from an older release knows to reload */
 export const STATE_VERSION = 1;
