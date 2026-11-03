@@ -74,12 +74,17 @@ export type DuelRules<M, P extends Position<M>> = {
     version: number;
     /** Who goes first and the minutes, from `duel/settings.ts`, and anything of the game's own */
     settings: readonly SettingSpec[];
-    /** The board before any move */
-    start: () => P;
+    /** The board before any move, as the game's settings make it, eg. Hex's size */
+    start: (settings: Settings) => P;
     /** A move from a request's body, or undefined if it isn't one */
     parseMove: (raw: unknown) => M | undefined;
     /** How the board ended the game, eg. "Alice won with four in a row", naming a seat by `name` */
     describeBoard: (winner: Seat | null, position: P, name: (seat: Seat) => string) => string;
+    /**
+     * What the lobby says of the game before the time and who goes first, as HTML, eg. Hex's
+     * board size, which only the host's form shows otherwise
+     */
+    lobbyText?: (settings: Settings) => string;
 };
 
 export function other(seat: Seat): Seat {
@@ -87,8 +92,12 @@ export function other(seat: Seat): Seat {
 }
 
 /** The position after the moves, or an error if one of them can't be played */
-export function replay<M, P extends Position<M>>(rules: DuelRules<M, P>, moves: readonly M[]): P {
-    const position = rules.start();
+export function replay<M, P extends Position<M>>(
+    rules: DuelRules<M, P>,
+    moves: readonly M[],
+    settings: Settings,
+): P {
+    const position = rules.start(settings);
     moves.forEach((move, i) => {
         const error = position.play(move);
         if (error !== undefined) throw new Error(`Move ${i + 1}, ${String(move)}: ${error}`);

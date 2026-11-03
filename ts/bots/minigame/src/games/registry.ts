@@ -10,6 +10,7 @@ import { CHESS_SETTINGS } from "./chess/settings";
 import { GAME_ID as CHESS_ID } from "./chess/types";
 import { Duel, type DuelData } from "./duel/duel";
 import { FOUR_IN_A_ROW } from "./fourinarow/rules";
+import { HEX } from "./hex/rules";
 import { MazeRace, type MazeData } from "./maze/race";
 import { MAZE_SETTINGS } from "./maze/settings";
 import { GAME_ID as MAZE_ID, MAX_PLAYERS as MAZE_MAX_PLAYERS } from "./maze/types";
@@ -131,6 +132,21 @@ export const REVERSI_GAME: GameType = {
     fromJson: (data) => new Duel(REVERSI, data as DuelData<string>),
 };
 
+export const HEX_GAME: GameType = {
+    id: HEX.kind,
+    title: HEX.title,
+    image: "app/hex.svg",
+    // One line, as the other duels': the board's size, the time and who goes first are settings
+    cardText: "**Hex** · two players, anyone can watch",
+    maxPlayers: 2,
+    spectators: true,
+    settings: HEX.settings,
+    // A portrait frame: a player above the board and a player below it, the board wider than tall
+    appSize: { width: 440, height: 580 },
+    create: (_config, host) => Duel.create(HEX, { host }),
+    fromJson: (data) => new Duel(HEX, data as DuelData<string>),
+};
+
 export const MAZE: GameType = {
     id: MAZE_ID,
     title: "Maze Race",
@@ -184,10 +200,11 @@ export const GAMES: readonly GameType[] = [
     MAZE,
     CHATMAN,
     MINESWEEPER,
+    HEX_GAME,
 ];
 
 /** The games played as a duel (`games/duel`), whose moves and resignations are the same requests */
-export const DUELS: readonly GameKind[] = [FOUR_IN_A_ROW.kind, REVERSI.kind];
+export const DUELS: readonly GameKind[] = [FOUR_IN_A_ROW.kind, REVERSI.kind, HEX.kind];
 
 export function gameType(id: string | undefined): GameType | undefined {
     return GAMES.find((game) => game.id === id);

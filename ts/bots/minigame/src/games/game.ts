@@ -10,7 +10,8 @@ export type GameKind =
     | "reversi"
     | "maze"
     | "chatman"
-    | "minesweeper";
+    | "minesweeper"
+    | "hex";
 
 export type ConfigureResult = { ok: true } | { ok: false; error: string };
 
