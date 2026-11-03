@@ -11,7 +11,8 @@ card, a player starts the game, and it's played in the card, in the bot's own pa
   The rules are
   [chess.js](https://github.com/jhlywa/chess.js)'s (MIT): the game ends by itself on checkmate,
   stalemate, insufficient material, threefold repetition and the fifty-move rule, and otherwise by
-  a flag falling, resignation or an agreed draw;
+  a flag falling, resignation or an agreed draw. The pieces are JohnPablok's improved Cburnett set
+  (CC-BY-SA 3.0; see [`src/app/chess/pieces`](src/app/chess/pieces));
 - **Four in a Row**: two players, which everyone else can watch, taking turns to drop a disc into a
   grid seven wide and six high, with three minutes each on the clock and who goes first chosen at
   random, unless the host sets otherwise. Four in a line, across, up or on a diagonal, wins, and a
