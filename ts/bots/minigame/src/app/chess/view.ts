@@ -208,6 +208,8 @@ export const chessView: GameView = {
                 if (resignArmed === undefined) {
                     if (dom !== undefined) dom.resign.textContent = "Tap again to resign";
                     resignArmed = setTimeout(disarmResign, RESIGN_CONFIRM_MS);
+                    // In a narrow card the longer label takes another line under the board
+                    fit();
                 } else {
                     disarmResign();
                     void call("/api/chess/resign");
@@ -393,6 +395,7 @@ function disarmResign() {
     clearTimeout(resignArmed);
     resignArmed = undefined;
     if (dom !== undefined) dom.resign.textContent = "Resign";
+    fit();
 }
 
 function showError(text: string) {
@@ -612,8 +615,8 @@ const TAKEN_SIZE_MIN = 12;
 
 /**
  * In a player's row, who plays the side gives way to the pieces taken and the clock, and is left
- * out rather than cut to a letter or two. If the row's still short of room, the pieces of a kind
- * close up, and then they're drawn smaller.
+ * out rather than cut to a letter or two, though a screen reader still says it. If the row's still
+ * short of room, the pieces of a kind close up, and then they're drawn smaller.
  */
 function fitRows() {
     if (dom === undefined) return;
@@ -623,13 +626,16 @@ function fitRows() {
         taken: row.querySelector(".taken") as HTMLElement,
     }));
     for (const { who, taken } of rows) {
-        who.classList.remove("cramped");
+        who.classList.remove("visually-hidden");
         taken.style.removeProperty("--step");
         taken.style.removeProperty("--size");
     }
     const min = 3 * parseFloat(getComputedStyle(rows[0].who).fontSize);
     for (const { who } of rows) {
-        who.classList.toggle("cramped", who.scrollWidth > who.clientWidth && who.clientWidth < min);
+        who.classList.toggle(
+            "visually-hidden",
+            who.scrollWidth > who.clientWidth && who.clientWidth < min,
+        );
     }
     for (const { row, taken } of rows) {
         let over = overflow(row);
@@ -692,7 +698,8 @@ function fitBoard() {
         parseFloat(moves.borderTopWidth) -
         parseFloat(moves.paddingTop) -
         parseFloat(moves.paddingBottom);
-    dom.moves.classList.toggle("cramped", room < 2 * parseFloat(moves.lineHeight));
+    const rows = 2 * parseFloat(moves.lineHeight) + parseFloat(moves.rowGap);
+    dom.moves.classList.toggle("cramped", room < rows);
     dom.moves.style.setProperty("--moves-room", `${Math.floor(room)}px`);
 }
 

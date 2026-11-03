@@ -698,8 +698,8 @@ button.link {
 
 /*
  * The side, then who plays it, eg. "White · Bob". The side's always shown whole, and when the row's
- * short of room, who plays it gives way, and is left out by the view rather than cut to a letter
- * or two.
+ * short of room, who plays it gives way, and the view hides it rather than cut it to a letter or
+ * two.
  */
 .player-row .side,
 .player-row .who {
@@ -717,10 +717,6 @@ button.link {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-.player-row .who.cramped {
-    display: none;
 }
 
 /*
@@ -977,12 +973,11 @@ button.link {
 }
 
 .chess-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
     margin: 6px 0 0;
-    text-align: center;
-}
-
-.chess-controls button {
-    margin: 0 3px;
 }
 
 .replay-row button {
