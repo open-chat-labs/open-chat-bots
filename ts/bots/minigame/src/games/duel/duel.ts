@@ -61,7 +61,8 @@ export class Duel<M, P extends Position<M>> implements Game {
     readonly #data: DuelData<M>;
     readonly #random: () => number;
     readonly #now: () => number;
-    readonly #position: P;
+    /** The board, made afresh as the game starts, as the settings may have changed meanwhile */
+    #position: P;
 
     /** A duel from what the store wrote of it, its board replayed from the moves */
     constructor(rules: DuelRules<M, P>, data: DuelData<M>, options: DuelOptions = {}) {
@@ -70,7 +71,7 @@ export class Duel<M, P extends Position<M>> implements Game {
         this.#data = data;
         this.#random = options.random ?? Math.random;
         this.#now = options.now ?? Date.now;
-        this.#position = replay(rules, data.moves);
+        this.#position = replay(rules, data.moves, this.settings());
     }
 
     static create<M, P extends Position<M>>(
@@ -187,6 +188,7 @@ export class Duel<M, P extends Position<M>> implements Game {
                       ? hostFirst
                       : this.#random() < 0.5;
             if (reverse) this.#data.players.reverse();
+            this.#position = replay(this.#rules, [], settings);
             const now = this.#now();
             const perSide = settings.minutes * 60_000;
             this.#data.clock = { ms: [perSide, perSide], since: now };

@@ -44,6 +44,11 @@ export type DuelBoard<M, P extends Position<M>> = {
     score?(position: P, seat: Seat): number;
     /** Something about the position worth saying under whose move it is, eg. that a player passed */
     note?(position: P, name: (seat: Seat) => string): string | undefined;
+    /**
+     * Moves that aren't on the board, eg. Hex's swap, which the player to move gets as buttons
+     * beside Resign: a button carries `data-move` with the move, as `moveOf` reads it
+     */
+    extraMoves?(position: P): { move: M; label: string }[];
 };
 
 type Dom = {
@@ -53,6 +58,7 @@ type Dom = {
     rows: [HTMLElement, HTMLElement];
     board: HTMLElement;
     controls: HTMLElement;
+    extra: HTMLElement;
     resign: HTMLButtonElement;
     replay: HTMLElement;
     previous: HTMLButtonElement;
@@ -81,6 +87,8 @@ export function duelView<M, P extends Position<M>>(
     /** A request on its way to the bot, during which the board takes no taps */
     let sending = false;
     let resignArmed: ReturnType<typeof setTimeout> | undefined;
+    /** What the extra moves' buttons were last drawn as */
+    let extraDrawn = "";
 
     const current = () => end ?? shared;
 
@@ -110,11 +118,11 @@ export function duelView<M, P extends Position<M>>(
             return undefined;
         }
         try {
-            replay(rules, s.moves);
+            replay(rules, s.moves, s.settings ?? {});
         } catch {
             return undefined;
         }
-        return { ...s, names: s.names ?? {} } as DuelState<M>;
+        return { ...s, names: s.names ?? {}, settings: s.settings ?? {} } as DuelState<M>;
     }
 
     function ensureDom(body: HTMLElement) {
@@ -129,6 +137,7 @@ export function duelView<M, P extends Position<M>>(
                 <div class="duel-board ${board.className}" role="grid" aria-label="${rules.title}"></div>
                 ${row(0)}
                 <div class="duel-controls" hidden>
+                    <span class="duel-extra"></span>
                     <button type="button" data-action="resign">Resign</button>
                 </div>
                 <div class="replay-row" hidden>
@@ -149,6 +158,7 @@ export function duelView<M, P extends Position<M>>(
             rows: [rows[1], rows[0]],
             board: q(".duel-board"),
             controls: q(".duel-controls"),
+            extra: q(".duel-extra"),
             resign: q('[data-action="resign"]'),
             replay: q(".replay-row"),
             previous: q('[data-action="previous"]'),
@@ -158,6 +168,7 @@ export function duelView<M, P extends Position<M>>(
         };
         dom.board.style.aspectRatio = String(board.ratio);
         drawn = -1;
+        extraDrawn = "";
     }
 
     function canMove(s: DuelState<M>, position: P): boolean {
@@ -222,13 +233,13 @@ export function duelView<M, P extends Position<M>>(
         if (dom === undefined || s === undefined || ctx === undefined) return;
         if (s.phase !== "open") fetchUsernames(ctx, s.players);
         const moves = end !== undefined ? end.moves.slice(0, ply) : s.moves;
-        const position = replay(rules, moves);
+        const position = replay(rules, moves, s.settings);
         const mine = mySeat(s);
         const playable = canMove(s, position);
 
         // What's happening, or how it ended
         if (s.ending !== undefined) {
-            const final = end !== undefined ? replay(rules, end.moves) : position;
+            const final = end !== undefined ? replay(rules, end.moves, end.settings) : position;
             dom.status.textContent = describeEnding(rules, s.ending, final, (seat) =>
                 name(s, s.players[seat]),
             );
@@ -278,6 +289,18 @@ export function duelView<M, P extends Position<M>>(
             ctx.oc.finished !== true;
         dom.controls.hidden = !playing;
         dom.resign.disabled = sending;
+        const extra = playable ? (board.extraMoves?.(position) ?? []) : [];
+        const extraHtml = extra
+            .map(
+                ({ move, label }) =>
+                    `<button type="button" data-action="play" data-move="${escape(String(move))}">${escape(label)}</button>`,
+            )
+            .join("");
+        // Replaced only when it's changed, so a press on a button isn't lost to a redraw
+        if (extraDrawn !== extraHtml) {
+            extraDrawn = extraHtml;
+            dom.extra.innerHTML = extraHtml;
+        }
         if (!playing) disarmResign();
 
         const stepping = canStep();
@@ -357,8 +380,9 @@ export function duelView<M, P extends Position<M>>(
                     : first === FIRST_IS_OPPONENT && host !== undefined
                       ? `<strong>${escape(host)}</strong>'s opponent goes first${ifJoined}`
                       : "who goes first is chosen at random";
+            const own = rules.lobbyText?.(s.settings);
             return {
-                blurb: `<strong>${minutes} minute${minutes === 1 ? "" : "s"}</strong> each, and ${firstText}.`,
+                blurb: `${own === undefined ? "" : `${own} `}<strong>${minutes} minute${minutes === 1 ? "" : "s"}</strong> each, and ${firstText}.`,
                 seats: s.players.map((id) => ({ id, name: s.names[id] ?? shortId(id) })),
                 hint: "Start once you're both here.",
                 settings: {
@@ -412,7 +436,7 @@ export function duelView<M, P extends Position<M>>(
             const s = current();
             switch (action) {
                 case "play": {
-                    if (s === undefined || !canMove(s, replay(rules, s.moves))) return;
+                    if (s === undefined || !canMove(s, replay(rules, s.moves, s.settings))) return;
                     const move = board.moveOf(el);
                     if (move !== undefined) void call("move", { move });
                     break;

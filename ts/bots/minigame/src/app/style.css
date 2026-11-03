@@ -1169,6 +1169,11 @@ button.link {
     text-align: center;
 }
 
+/* A game's moves that aren't on the board, eg. Hex's swap, beside Resign */
+.duel-extra button {
+    margin-right: 8px;
+}
+
 .duel-error {
     margin: 6px 0;
     color: var(--error);
@@ -1891,4 +1896,87 @@ button.link {
 .ms-hits svg {
     width: 12px;
     height: 12px;
+}
+
+/*
+ * Hex's board (hex/view.ts): an SVG of hexagons. The players' edges are lines in their colours
+ * under the cells, so the outer half of each shows round the board. The stone just put down has a
+ * dot, and the chain that won is outlined.
+ */
+.duel-hex {
+    --hex-cell: var(--panel);
+    --hex-line: var(--board);
+}
+
+.hex svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.hex .edge {
+    stroke-width: 7;
+    stroke-linecap: round;
+}
+
+.hex .edge.seat-0 {
+    stroke: var(--disc-0);
+}
+
+.hex .edge.seat-1 {
+    stroke: var(--disc-1);
+}
+
+.hex .cell {
+    fill: var(--hex-cell);
+    stroke: var(--hex-line);
+    stroke-width: 1;
+    stroke-linejoin: round;
+}
+
+.hex .cell.stone.seat-0 {
+    fill: var(--disc-0);
+}
+
+.hex .cell.stone.seat-1 {
+    fill: var(--disc-1);
+}
+
+.hex .cell.playable {
+    cursor: pointer;
+}
+
+.hex .cell.playable.seat-0:hover {
+    fill: color-mix(in srgb, var(--disc-0) 45%, var(--hex-cell));
+}
+
+.hex .cell.playable.seat-1:hover {
+    fill: color-mix(in srgb, var(--disc-1) 45%, var(--hex-cell));
+}
+
+.hex .cell.placed {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: hex-place 0.18s ease-out;
+}
+
+@keyframes hex-place {
+    from {
+        transform: scale(0.55);
+    }
+    to {
+        transform: scale(1);
+    }
+}
+
+.hex .last {
+    fill: rgba(255, 255, 255, 0.9);
+    pointer-events: none;
+}
+
+.hex .chain {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.9);
+    stroke-width: 1.6;
+    pointer-events: none;
 }

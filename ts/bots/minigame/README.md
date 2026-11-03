@@ -1,7 +1,7 @@
 # MiniGameBot
 
 Games played from MiniApp cards in OpenChat chats. `/play <game>` posts a card; people join from the
-card, a player starts the game, and it's played in the card, in the bot's own page. Seven games:
+card, a player starts the game, and it's played in the card, in the bot's own page. Eight games:
 
 - a **2048 race**: up to 100 players, each on their own board, and the first to make a 2048 tile
   wins, or the top score when 10 minutes are up. A player whose board gets stuck restarts on a fresh
@@ -24,6 +24,12 @@ card, a player starts the game, and it's played in the card, in the bot's own pa
   sets otherwise. A disc flips every line of the other player's discs it flanks, a player with no
   move passes, and when neither can move the one with more discs wins. Its rules are built from
   scratch, and it's a duel too;
+- **Hex**: two players, which everyone else can watch, on a 9 by 9 board of hexagons, with five
+  minutes each on the clock and who goes first chosen at random, unless the host sets otherwise.
+  The players take turns putting a stone on an empty cell, the first to move trying to join the
+  top and bottom edges with a chain of their stones, the second the left and right, and one of
+  them always does: there's no draw. The second player can swap instead of putting down their
+  first stone, taking the first player's. Its rules are built from scratch, and it's a duel too;
 - a **maze race**: up to 10 players race through the same maze, 15 by 15 unless the host sets
   otherwise, from the top left to the bottom right, and everyone sees everyone else move, live. The
   first out wins, or whoever's closest to the way out when the 3 minutes are up. The mazes are
@@ -62,7 +68,7 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    lobby's form.
 2. **Joining** goes through OpenChat's buttons on the card. The service asks the bot at
    `POST /mini_app/join`, which looks the user's name up and gives them a seat: up to 100 in a race,
-   10 in a maze race, at ChatMan or in a Minesweeper race, two at chess, Four in a Row and Reversi ("This game is for two" after that,
+   10 in a maze race, at ChatMan or in a Minesweeper race, two at chess, Four in a Row, Reversi and Hex ("This game is for two" after that,
    "The game has started" once it has). Leaving, `POST /mini_app/leave`, frees the seat before the
    start. After it, a race goes on without them; a game of two can't, so it ends, the result being
    that they "left the game". The lobby's seats are published as the game's state, so the page shows
@@ -90,6 +96,8 @@ which the store, the handlers, the sweep and the publisher use, and which each g
      from 0 on the left, and `POST /api/four-in-a-row/resign`, each answering as chess's do.
    - **Reversi**: `POST /api/reversi/move` with `{ "move": "d3" }`, the square, its column a to h
      and its row 1 to 8 from the top, and `POST /api/reversi/resign`, answering the same way.
+   - **Hex**: `POST /api/hex/move` with `{ "move": "e5" }`, the cell, its column from a and its
+     row from 1 at the top, or `{ "move": "swap" }`, and `POST /api/hex/resign`.
    - **Maze race**: each move goes over the live socket,
      `{ "type": "act", "body": { "move": "left", "n": 7 } }`, where `n` counts the racer's moves
      from 1, and the bot sends the new state to every racer at once; `POST /api/maze/move` with the
@@ -232,14 +240,16 @@ service's 16 KB. The page draws the top twenty boards and lists the rest with th
 
 ## Duels
 
-Four in a Row and Reversi are duels: games for two who take turns, each with a clock for the whole
-game. What every duel shares is in `src/games/duel`: the seats, who goes first (the `first` setting,
+Four in a Row, Reversi and Hex are duels: games for two who take turns, each with a clock for the
+whole game. What every duel shares is in `src/games/duel`: the seats, who goes first (the `first` setting,
 "Turn order" in the lobby: random, the host, or the host's opponent), the clocks, resigning,
 leaving, and the result, naming the players with mentions. A game brings its rules, a `Position`
 that the bot and the page both replay from the moves (eg. `src/games/fourinarow/grid.ts`), as
 `DuelRules`, and its board, a `DuelBoard` drawn into the duel's page (`src/app/duel/view.ts`), which
 can also give a count to show by each player's name and a note under whose move it is, as Reversi's
-discs and passes. Its requests are `POST /api/<game>/move` and `POST /api/<game>/resign`, routed for
+discs and passes, and moves that aren't on the board, as buttons beside Resign, as Hex's swap. The
+rules start the board from the game's settings, as Hex's size is one, and can add to what the
+lobby says of the game. Its requests are `POST /api/<game>/move` and `POST /api/<game>/resign`, routed for
 each game in `DUELS`. The state carries the moves rather than the board, so it stays small, and the
 page shows players by their usernames, looked up by id (`GET /api/names`), as the card names them:
 
