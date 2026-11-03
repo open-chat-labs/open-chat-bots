@@ -12,7 +12,9 @@ card, a player starts the game, and it's played in the card, in the bot's own pa
   [chess.js](https://github.com/jhlywa/chess.js)'s (MIT): the game ends by itself on checkmate,
   stalemate, insufficient material, threefold repetition and the fifty-move rule, and otherwise by
   a flag falling, resignation or an agreed draw. Each player's row shows the pieces they've taken
-  and how far ahead they are, and a finished game can be copied as PGN, for any chess program;
+  and how far ahead they are, and a finished game can be copied as PGN, for any chess program.
+  The pieces are JohnPablok's improved Cburnett set (CC-BY-SA 3.0; see
+  [`src/app/chess/pieces`](src/app/chess/pieces));
 - **Four in a Row**: two players, which everyone else can watch, taking turns to drop a disc into a
   grid seven wide and six high, with three minutes each on the clock and who goes first chosen at
   random, unless the host sets otherwise. Four in a line, across, up or on a diagonal, wins, and a
@@ -192,7 +194,8 @@ every version of an end state it can, as a card keeps its end state for good. A 
 only at its own version. One it can't read can only be from a newer bot, so it asks to reload:
 that's a newer version, a game it doesn't know, or anything but an object with a `version` and a
 `game`, so a later release can change the encoding as long as the page can tell the difference.
-One from an older bot shows "Loading…" until the bot publishes it again as it starts.
+One from an older bot shows the page's spinner until the bot publishes it again as it starts, as
+does the page until it has a lobby, a live game or an end view to show.
 
 The bot's definition lists each game's app with its image, `app/2048.svg`, `app/chess.svg`,
 `app/four-in-a-row.svg`, `app/reversi.svg`, `app/maze.svg` and `app/chatman.svg`, SVGs served from
