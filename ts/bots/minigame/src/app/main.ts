@@ -12,11 +12,7 @@
 // it doesn't know, or anything but an object with a `version` and a `game`, which leaves a later
 // release free to change the encoding. One from an older bot is about to be replaced, as the bot
 // publishes every unfinished game when it starts, so the page waits for that.
-import {
-    connectToOpenChat,
-    initialDarkMode,
-    type MiniAppClient,
-} from "@open-ic/openchat-botclient-ts/mini_app";
+import { connectToOpenChat, type MiniAppClient } from "@open-ic/openchat-botclient-ts/mini_app";
 import { chatmanView } from "./chatman/view";
 import { chessView } from "./chess/view";
 import { fourInARowView } from "./fourinarow/view";
@@ -38,6 +34,11 @@ const VIEWS: readonly GameView[] = [
 
 const root = document.getElementById("app") as HTMLElement;
 
+// The spinner index.html shows before this script runs, for when a state takes the page back to
+// it. Until there's a game to show the page is just that, so what the frame first shows isn't a
+// placeholder for the game, eg. an empty lobby before the first state comes.
+const SPINNER = `<div class="loading" role="status"><span class="spinner"></span><span class="visually-hidden">Loading the game…</span></div>`;
+
 let oc: MiniAppClient<unknown, unknown, unknown> | undefined;
 /** The game's view, once the page knows which game the card is for */
 let view: GameView | undefined;
@@ -54,9 +55,8 @@ const ctx: ViewContext = {
 };
 
 async function main() {
-    // In the user's theme from the start, rather than once OpenChat's opened the game, which can
-    // take a moment after the page shows: OpenChat says which in the page's URL
-    applyTheme(initialDarkMode() ?? false);
+    // The page is in the user's theme already, from index.html's script, which reads OpenChat's
+    // `oc_theme` from the URL before the page is drawn
     try {
         oc = await connectToOpenChat();
     } catch (err) {
@@ -65,13 +65,7 @@ async function main() {
         )}</small></p>`;
         return;
     }
-    root.innerHTML = `
-        <header class="top">
-            <h1 id="title">Game</h1>
-            <span id="clock" class="clock"></span>
-        </header>
-        <div id="toast" class="toast" hidden></div>
-        <div id="body" class="body"></div>`;
+    // The page's header, toast and body are index.html's, with the spinner in the body
     applyTheme(oc.darkMode);
     oc.onDarkModeChange(applyTheme);
     oc.onStateChange(render);
@@ -210,6 +204,8 @@ function render() {
     const current = viewFor(base(endState) ?? live);
     byId("title").textContent = current?.title ?? "Game";
     byId("clock").textContent = current?.clock() ?? "";
+    // Nothing to show yet but the spinner, without even the header
+    let loading = false;
 
     if (endState !== undefined) {
         // How the game ended, from the card, which keeps it for good: shown as far as the view can
@@ -220,21 +216,23 @@ function render() {
                 typeof result === "string" ? `<br>${escape(result)}` : ""
             }</p>`;
         }
-    } else if (oc.finished) {
-        // Opened on a finished card: its end state follows, and no one can start anything
-        body.innerHTML = `<p class="notice">Loading…</p>`;
-    } else if (state === undefined) {
-        // Nothing from the bot yet
-        renderLobby(body, undefined);
+    } else if (oc.finished || state === undefined) {
+        // Opened on a finished card, whose end state follows, or nothing from the bot yet
+        loading = true;
     } else if (live === undefined || current === undefined || live.version > current.stateVersion) {
         body.innerHTML = reloadNotice();
     } else if (live.version < current.stateVersion) {
-        body.innerHTML = `<p class="notice">Loading…</p>`;
+        // From an older bot, which is about to publish the game afresh
+        loading = true;
     } else if (current.isOpen(live)) {
         renderLobby(body, current.lobby(live));
     } else {
         current.renderLive(body, live);
     }
+
+    byId("top").hidden = loading;
+    // Drawn only if it isn't up already, which would start it spinning afresh
+    if (loading && body.querySelector(":scope > .loading") === null) body.innerHTML = SPINNER;
 }
 
 function reloadNotice(): string {
@@ -253,13 +251,13 @@ type Field = { id: string; html: string };
 const drawn = new WeakMap<Element, string>();
 
 /**
- * The lobby: who's joined, the host's settings, and the Start button for a player. Before the first
- * state, just that. It's drawn in parts, and a part is only replaced when what it shows has changed:
- * the page redraws often, eg. every second for a live game's clock, and replacing a dropdown closes
- * it. The host's form is drawn a setting at a time, so a change to one, which comes back in the
- * state, doesn't close another they've opened since.
+ * The lobby: who's joined, the host's settings, and the Start button for a player. It's drawn in
+ * parts, and a part is only replaced when what it shows has changed: the page redraws often, eg.
+ * every second for a live game's clock, and replacing a dropdown closes it. The host's form is
+ * drawn a setting at a time, so a change to one, which comes back in the state, doesn't close
+ * another they've opened since.
  */
-function renderLobby(body: HTMLElement, info: LobbyInfo | undefined) {
+function renderLobby(body: HTMLElement, info: LobbyInfo) {
     let section = body.querySelector<HTMLElement>(":scope > section.lobby");
     if (section === null) {
         body.innerHTML = `<section class="lobby">
@@ -294,15 +292,13 @@ function draw(part: Element, html: string) {
     }
 }
 
-function lobbyParts(
-    info: LobbyInfo | undefined,
-): Record<(typeof LOBBY_PARTS)[number], string | Field[]> {
+function lobbyParts(info: LobbyInfo): Record<(typeof LOBBY_PARTS)[number], string | Field[]> {
     const player = oc?.role === "player";
-    const seats = info?.seats ?? [];
+    const seats = info.seats;
     return {
-        blurb: info === undefined ? "" : `<p class="muted">${info.blurb}</p>`,
+        blurb: `<p class="muted">${info.blurb}</p>`,
         settings:
-            info?.settings === undefined ? "" : settingsForm(info.settings, info.seats, player),
+            info.settings === undefined ? "" : settingsForm(info.settings, info.seats, player),
         seats:
             seats.length === 0
                 ? `<p class="muted">Nobody has joined yet.</p>`
@@ -315,7 +311,7 @@ function lobbyParts(
         action: player
             ? `<p class="center"><button class="primary" data-action="start" ${starting ? "disabled" : ""}>
                ${starting ? "Starting…" : "Start the game"}</button></p>
-           <p class="muted center">${info?.hint ?? "Start when everyone has joined."}</p>`
+           <p class="muted center">${info.hint}</p>`
             : `<p class="muted center">Join from the card in the chat to play. Watching starts when a player does.</p>`,
     };
 }

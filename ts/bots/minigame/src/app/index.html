@@ -5,11 +5,34 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="color-scheme" content="light dark" />
         <title>MiniGameBot</title>
+        <!-- The user's theme, which OpenChat puts in the URL, before the page is first drawn. The
+             module script may run only after it has been, in whatever theme the page had. -->
+        <script>
+            try {
+                document.documentElement.dataset.theme =
+                    new URLSearchParams(location.hash.slice(1)).get("oc_theme") === "dark"
+                        ? "dark"
+                        : "light";
+            } catch {}
+        </script>
         <link rel="stylesheet" href="./style.css" />
     </head>
     <body>
+        <!-- The page as main.ts draws into it, with only a spinner until there's a game to show.
+             It's here rather than drawn once main.ts has connected, which would start the spinner
+             afresh. main.ts draws the same one if it's needed again. -->
         <div id="app" class="app">
-            <p class="notice">Loading the game…</p>
+            <header id="top" class="top" hidden>
+                <h1 id="title">Game</h1>
+                <span id="clock" class="clock"></span>
+            </header>
+            <div id="toast" class="toast" hidden></div>
+            <div id="body" class="body">
+                <div class="loading" role="status">
+                    <span class="spinner"></span>
+                    <span class="visually-hidden">Loading the game…</span>
+                </div>
+            </div>
         </div>
         <script type="module" src="./main.ts"></script>
     </body>
