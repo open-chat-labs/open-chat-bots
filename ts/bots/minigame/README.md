@@ -1,7 +1,7 @@
 # MiniGameBot
 
 Games played from MiniApp cards in OpenChat chats. `/play <game>` posts a card; people join from the
-card, a player starts the game, and it's played in the card, in the bot's own page. Nine games:
+card, a player starts the game, and it's played in the card, in the bot's own page. Ten games:
 
 - a **2048 race**: up to 100 players, each on their own board, and the first to make a 2048 tile
   wins, or the top score when 10 minutes are up. A player whose board gets stuck restarts on a fresh
@@ -49,7 +49,12 @@ card, a player starts the game, and it's played in the card, in the bot's own pa
   Each guess's letters are marked: in the word in that place, in the word elsewhere, or not in it.
   The first to guess the word wins, or whoever came closest when the 3 minutes are up, unless the
   host sets otherwise, or when everyone's had all their guesses. Its words are SCOWL's, and the
-  rest is built from scratch (see "Word Race").
+  rest is built from scratch (see "Word Race");
+- a **Crate Race**: up to 20 players race to push the same four crates onto the same four goals,
+  each on their own copy of a level, medium unless the host sets it easy or hard. A player can push
+  a crate but not pull it, or push two at once, and can undo a move. The first to put every crate
+  on a goal wins, or whoever has the most on goals when the 5 minutes are up. Its levels are
+  DeepMind's Boxoban levels, and the rest is built from scratch (see "Crate Race").
 
 The bot is a TypeScript Express server, built on the SDK in [`ts/library`](../../library), and the
 page is a small browser app built with Vite from the same source tree, so the server and the page
@@ -73,8 +78,9 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    lobby's form.
 2. **Joining** goes through OpenChat's buttons on the card. The service asks the bot at
    `POST /mini_app/join`, which looks the user's name up and gives them a seat: up to 100 in a race,
-   10 in a maze race, at ChatMan or in a Minesweeper race, 20 in a Word Race, two at chess, Four in
-   a Row, Reversi and Hex ("This game is for two" after that, "The game has started" once it has).
+   10 in a maze race, at ChatMan or in a Minesweeper race, 20 in a Word Race or a Crate Race, two at
+   chess, Four in a Row, Reversi and Hex ("This game is for two" after that, "The game has started"
+   once it has).
    Leaving, `POST /mini_app/leave`, frees the seat before the start. After it, a race goes on
    without them; a game of two can't, so it ends, the result being that they "left the game". The
    lobby's seats are published as the game's state, so the page shows who's joined.
@@ -122,6 +128,11 @@ which the store, the handlers, the sweep and the publisher use, and which each g
      `{ "ok": true, "own": { "guesses": ["trace", "crane"], "marks": ["02212", "22222"] } }`, or
      `{ "ok": false, "error": "..", "own": .. }` with a 409 for a guess that isn't in the word list,
      or one they've made already, which doesn't count. No guess at all asks for them.
+   - **Crate Race**: `POST /api/crates/path` with `{ "path": "rrdlu" }`, the racer's moves from the
+     level's start less those they've undone, answers with their path as the bot has it,
+     `{ "ok": true, "own": { "path": "rrdlu" } }`, or `{ "ok": false, "error": "..", "own": .. }`
+     with a 409 for a path with a move that can't be made, which the bot doesn't take. No path at
+     all asks for it.
 5. **The clock**. The bot checks every game's clock every second, and before every request, so a
    game ends on time whether or not anyone's still playing, and so does one that was running when
    the bot last stopped. A race ends when its 10 minutes are up, and the top score wins: a player's
@@ -436,6 +447,37 @@ sees their own guesses.
   letter in place is filled, one elsewhere is ringed, with a dot, and one not in the word faded.
   Under them, everyone's marks, as small cards. Someone watching sees just those, bigger, and once
   it's over a click on a name shows their guesses.
+
+## Crate Race
+
+Everyone pushes the same crates on the same level, so while the race is on only the bot and each
+racer know where that racer's crates are: they'd show the others how to do it.
+
+- **The levels** (`src/games/crates/levels.ts`) are DeepMind's Boxoban levels
+  (https://github.com/google-deepmind/boxoban-levels), under the Apache License 2.0, whose text is
+  in `boxoban-license.txt` beside them. Each is 10 by 10 with four crates and four goals. These are
+  the first 500 of three of its files: the easy ones from its unfiltered test set, the medium ones
+  from its medium validation set, and the hard ones from its hard set. Each was checked to be
+  solvable, by a search that found the fewest pushes it takes, which the race says once it's over.
+  They're written as their insides, the 8 by 8 within their ring of walls.
+- **A racer's moves are their path** (`src/games/crates/board.ts`), a letter a move, from the
+  level's start, which the page plays as they make it and the bot plays too: Undo takes the last
+  move off, and Restart starts an empty one, which Undo takes back. The page sends the path whole,
+  a request at a time, the moves made while one's answered going in the next, so it never has to
+  say which moves the bot's seen. A walk changes nothing the others see, so only a push is
+  published.
+- **The shared state says only how far each racer's got**: their crates on goals and their pushes.
+  Each racer's path comes in the answer to their own requests (`own`), and in their private part of
+  each state, as a Minesweeper racer's board does; the page asks the bot for it as it opens too, as
+  a walk isn't published. Once the race is over, the state has where everyone's crates ended up,
+  and the winner's path, which the page can play through.
+- **The first to put every crate on a goal wins.** When the time's up, whoever has the most on
+  goals wins, then whoever's had that many longest, then whoever pushed the fewest times.
+- **The page** draws the level as cells, with the crates and the player over them, sliding from
+  cell to cell. The arrow keys or WASD move, as do a swipe and the arrows under the level on a
+  phone, a tap on a cell beside the player moves there, and a tap on one further off walks them
+  round to it, pushing nothing. Someone watching sees the level as everyone started it, and how
+  far everyone's got.
 
 ## Adding a game
 

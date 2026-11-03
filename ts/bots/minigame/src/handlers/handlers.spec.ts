@@ -12,6 +12,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { Deps } from "../deps";
 import { ChessGame } from "../games/chess/chess";
 import type { SharedState } from "../games/chess/types";
+import { CrateRace } from "../games/crates/race";
+import { LEVEL } from "../games/crates/sample";
+import type { SharedState as CratesState } from "../games/crates/types";
 import { Duel } from "../games/duel/duel";
 import type { DuelState } from "../games/duel/types";
 import { FOUR_IN_A_ROW } from "../games/fourinarow/rules";
@@ -35,6 +38,7 @@ import {
     chessDraw,
     chessMove,
     chessResign,
+    cratesPath,
     duelMove,
     duelResign,
     mazeMove,
@@ -592,5 +596,42 @@ describe("a Word racer's guesses", () => {
         });
         expect(publish).toHaveBeenCalledTimes(1);
         expect((await send(wordsGuess, deps, "carol", {})).status).toBe(403);
+    });
+});
+
+describe("a Crate racer's moves", () => {
+    it("answers with their path alone, and publishes only how far they've got", async () => {
+        const { store, publish, deps } = setUp();
+        const race = CrateRace.create();
+        race.join("alice", "Alice");
+        race.join("bob", "Bob");
+        race.start();
+        race.data.level = LEVEL;
+        store.create(game, race);
+
+        // No path: the path as it is, which changes nothing
+        expect(await send(cratesPath, deps, "alice", {})).toEqual({
+            status: 200,
+            body: { ok: true, own: { path: "" } },
+        });
+        // A walk changes nothing anyone else sees, so nothing's published
+        expect((await send(cratesPath, deps, "alice", { path: "d" })).status).toBe(200);
+        expect(publish).not.toHaveBeenCalled();
+
+        expect(await send(cratesPath, deps, "alice", { path: "rrr" })).toEqual({
+            status: 200,
+            body: { ok: true, own: { path: "rrr" } },
+        });
+        expect(publish).toHaveBeenCalledTimes(1);
+        const shared = store.get(game)!.play.shared() as CratesState;
+        expect(shared.racers[0]).toEqual({ id: "alice", placed: 1, pushes: 2 });
+
+        // A move into a wall: refused, with the path the bot has, and nothing published
+        expect(await send(cratesPath, deps, "alice", { path: "rrru" })).toEqual({
+            status: 409,
+            body: { ok: false, error: "One of those moves can't be made", own: { path: "rrr" } },
+        });
+        expect(publish).toHaveBeenCalledTimes(1);
+        expect((await send(cratesPath, deps, "carol", {})).status).toBe(403);
     });
 });

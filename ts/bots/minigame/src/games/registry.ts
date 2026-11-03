@@ -8,6 +8,9 @@ import { GAME_ID as CHATMAN_ID, MAX_PLAYERS as CHATMAN_MAX_PLAYERS } from "./cha
 import { ChessGame, type ChessData } from "./chess/chess";
 import { CHESS_SETTINGS } from "./chess/settings";
 import { GAME_ID as CHESS_ID } from "./chess/types";
+import { CrateRace, type CratesData } from "./crates/race";
+import { CRATES_SETTINGS } from "./crates/settings";
+import { GAME_ID as CRATES_ID, MAX_PLAYERS as CRATES_MAX_PLAYERS } from "./crates/types";
 import { Duel, type DuelData } from "./duel/duel";
 import { FOUR_IN_A_ROW } from "./fourinarow/rules";
 import { HEX } from "./hex/rules";
@@ -210,6 +213,21 @@ export const WORD_RACE: GameType = {
     fromJson: (data) => new WordRace(data as WordsData),
 };
 
+export const CRATE_RACE: GameType = {
+    id: CRATES_ID,
+    title: "Crate Race",
+    image: "app/crates.svg",
+    // One line, as the others': the level's difficulty and the time are settings, in the lobby
+    cardText: `**Crate Race** · up to ${CRATES_MAX_PLAYERS} players`,
+    maxPlayers: CRATES_MAX_PLAYERS,
+    spectators: true,
+    settings: CRATES_SETTINGS,
+    // A portrait frame: the level, with how far everyone's got under it
+    appSize: { width: 440, height: 720 },
+    create: (_config, host) => CrateRace.create({ host }),
+    fromJson: (data) => new CrateRace(data as CratesData),
+};
+
 export const GAMES: readonly GameType[] = [
     RACE_2048,
     CHESS,
@@ -220,6 +238,7 @@ export const GAMES: readonly GameType[] = [
     MINESWEEPER,
     HEX_GAME,
     WORD_RACE,
+    CRATE_RACE,
 ];
 
 /** The games played as a duel (`games/duel`), whose moves and resignations are the same requests */
