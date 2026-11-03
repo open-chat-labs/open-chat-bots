@@ -11,7 +11,8 @@ card, a player starts the game, and it's played in the card, in the bot's own pa
   The rules are
   [chess.js](https://github.com/jhlywa/chess.js)'s (MIT): the game ends by itself on checkmate,
   stalemate, insufficient material, threefold repetition and the fifty-move rule, and otherwise by
-  a flag falling, resignation or an agreed draw;
+  a flag falling, resignation or an agreed draw. Each player's row shows the pieces they've taken
+  and how far ahead they are, and a finished game can be copied as PGN, for any chess program;
 - **Four in a Row**: two players, which everyone else can watch, taking turns to drop a disc into a
   grid seven wide and six high, with three minutes each on the clock and who goes first chosen at
   random, unless the host sets otherwise. Four in a line, across, up or on a diagonal, wins, and a
@@ -126,9 +127,13 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    state, every board, the winner and the times. The chess end state is the result, who played, the
    moves, and the position before each move and after the last, as the placement field of its FEN,
    the pieces on the board, which the page steps through with Previous and Next, the arrow keys, or
-   a tap on a move; a game too long for the service's 16 KB keeps only its final position, marked
-   `truncated`, and one too long even for that sends no end state, so the card shows the image and
-   the result. A duel's end state is its final shared state, whose moves the page replays to step
+   a tap on a move, showing what had been taken by each; a game too long for the service's 16 KB
+   keeps only its final position, marked `truncated`, and one too long even for that sends no end
+   state, so the card shows the image and the result. PGN, beside Previous and Next, shows the
+   game as PGN, with a Copy button, for any chess program: the players' names, the date it started,
+   the time control from the card's settings, the moves, and the result. The card's frame isn't
+   allowed the clipboard API, so Copy copies the text as a selection, and if even that isn't
+   allowed, leaves it selected for the viewer to copy. A duel's end state is its final shared state, whose moves the page replays to step
    through, and a maze race's is too, with the maze's seed, so the page carves the maze again and
    draws the way out. ChatMan's is its final state, every board as it finished.
 
@@ -147,6 +152,7 @@ The chess state everyone sees is the Rust ChessBot's, with the players' names ad
   "turn": "white" | "black",
   "moves": ["e4", "e5", "Nf3"],
   "last_move": { "from": "g1", "to": "f3" } | null,
+  "captured": { "white": "pn", "black": "p" },
   "check": false,
   "legal_moves": ["b8a6", "b8c6", ...],
   "clock": { "at": 1761800000000, "white_ms": 594000, "black_ms": 600000, "running": "black" | null },
@@ -155,26 +161,32 @@ The chess state everyone sees is the Rust ChessBot's, with the players' names ad
 }
 ```
 
-where everything from `fen` on is there once the game has started, `legal_moves` are the side to
-move's as UCI, empty once the game's over, and nothing is private. Its end state is:
+where everything from `fen` on is there once the game has started, `captured` is the pieces each
+side has taken, as their letters in the order taken, `legal_moves` are the side to move's as UCI,
+empty once the game's over, and nothing is private. Its end state is:
 
 ```json
 {
   "version": 1,
   "game": "chess",
   "result": "Black won by checkmate",
+  "winner": "white" | "black" | null,
+  "started_at": 1761799990000,
   "white": "<user id>",
   "black": "<user id>",
   "names": { "<user id>": "Alice", ... },
   "moves": ["f3", "e5", "g4", "Qh4#"],
   "fens": ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", "...", "..."],
   "last_move": { "from": "d8", "to": "h4" } | null,
+  "captured": { "white": "", "black": "" },
   "truncated": true
 }
 ```
 
-where `fens` are the positions' placement fields, one more than there are moves, or only the final
-position with `truncated` set; otherwise `truncated` is left out. The 2048 end state is its shared
+where `winner` is null for a draw, `fens` are the positions' placement fields, one more than there
+are moves, or only the final position with `truncated` set; otherwise `truncated` is left out. The
+page works out what had been taken by each position from the positions before it
+(`src/games/chess/material.ts`), and uses `captured` for a game whose positions were cut. The 2048 end state is its shared
 state, `SharedState` in `src/games/race2048/types.ts`, with `phase: "finished"`. The page reads
 every version of an end state it can, as a card keeps its end state for good. A live state it reads
 only at its own version. One it can't read can only be from a newer bot, so it asks to reload:

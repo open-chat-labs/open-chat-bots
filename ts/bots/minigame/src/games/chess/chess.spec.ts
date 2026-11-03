@@ -211,6 +211,8 @@ describe("playing", () => {
             version: 1,
             game: "chess",
             result: "Black won by checkmate",
+            winner: "black",
+            started_at: START,
             white: "alice",
             black: "bob",
             names: { alice: "Alice", bob: "Bob" },
@@ -224,6 +226,7 @@ describe("playing", () => {
                 "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR",
             ],
             last_move: { from: "d8", to: "h4" },
+            captured: { white: "", black: "" },
         });
         expect(game.move("alice", "e1f2")).toEqual({ ok: false, error: "The game has finished" });
     });

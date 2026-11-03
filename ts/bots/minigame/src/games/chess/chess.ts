@@ -327,12 +327,15 @@ export class ChessGame implements Game {
             version: STATE_VERSION,
             game: GAME_ID,
             result: describe(ending),
+            winner: "winner" in ending ? ending.winner : null,
+            started_at: this.#data.startedAt ?? this.#data.createdAt,
             white,
             black,
             names,
             moves: [...match.moves],
             fens: match.fens.map(placement),
             last_move: match.lastMove === undefined ? null : { ...match.lastMove },
+            captured: match.captured,
         };
         return fitEndState(state);
     }

@@ -665,6 +665,43 @@ button.link {
     font-weight: 600;
 }
 
+/*
+ * The pieces a player has taken, just after their name, a kind's overlapping, then their lead in
+ * pawns. They keep their room, and a long name gives way.
+ */
+.player-row .taken {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex: none;
+    margin-right: auto;
+    font-size: 17px;
+    line-height: 1;
+}
+
+.taken .group {
+    display: flex;
+}
+
+.taken .piece + .piece {
+    margin-left: -0.42em;
+}
+
+.taken .piece.w {
+    -webkit-text-stroke-width: 0.75px;
+    text-shadow: none;
+}
+
+:root[data-theme="dark"] .taken .piece.b {
+    -webkit-text-stroke: 0.75px var(--muted);
+}
+
+.taken .lead {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+}
+
 .chess-clock,
 .duel-clock {
     font:
@@ -858,9 +895,28 @@ button.link {
 .replay-row {
     margin: 8px 0 0;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 0 6px;
+}
+
+.replay-row [data-action="pgn"] {
+    margin-left: 8px;
+}
+
+/*
+ * In a narrow card the buttons to step are only their arrows, so PGN fits beside them, and in a
+ * narrower one still, it goes under them rather than squeezing them
+ */
+.replay-row button {
+    white-space: nowrap;
+}
+
+@media (max-width: 400px) {
+    .replay-row .word {
+        display: none;
+    }
 }
 
 .replay-row .ply {
@@ -871,7 +927,8 @@ button.link {
     font-variant-numeric: tabular-nums;
 }
 
-.promotion {
+.promotion,
+.pgn-sheet {
     position: fixed;
     inset: 0;
     display: flex;
@@ -881,15 +938,52 @@ button.link {
     z-index: 5;
 }
 
-.promotion > div {
+.promotion > div,
+.pgn-sheet > div {
     background: var(--bg);
     border-radius: 12px;
     padding: 12px;
     text-align: center;
 }
 
-.promotion p {
+.promotion p,
+.pgn-sheet p {
     margin: 0 0 8px;
+}
+
+/* The finished game as PGN, to copy: as wide as the frame allows, with room for a few lines */
+.pgn-sheet > div {
+    width: min(400px, calc(100% - 32px));
+    box-sizing: border-box;
+}
+
+.pgn-sheet textarea {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    height: 12em;
+    margin: 0 0 8px;
+    padding: 8px;
+    resize: none;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--fg);
+    font:
+        12px/1.4 ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        monospace;
+}
+
+.pgn-sheet .pgn-note {
+    min-height: 1.4em;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.pgn-sheet button {
+    margin: 3px;
 }
 
 .promotion .piece-choice {

@@ -50,6 +50,19 @@ describe("a game of chess", () => {
         expect(game.snapshot(START).fen).toBe("Q4rk1/8/8/8/8/8/8/2KR3R b - - 0 2");
     });
 
+    it("says what each side has taken, en passant too, and again once reloaded", () => {
+        const game = Match.create(START);
+        expect(game.snapshot(START).captured).toEqual({ white: "", black: "" });
+        // 1. e4 d5 2. exd5 Qxd5 3. Nc3 e5 4. Nxd5 e4 5. d4 exd3 (en passant)
+        const now = playAll(game, [
+            "e2e4", "d7d5", "e4d5", "d8d5", "b1c3", "e7e5", "c3d5", "e5e4", "d2d4", "e4d3",
+        ]);
+        expect(game.snapshot(now).moves.at(-1)).toBe("exd3");
+        expect(game.snapshot(now).captured).toEqual({ white: "pq", black: "pp" });
+        const reloaded = new Match(JSON.parse(JSON.stringify(game.data)));
+        expect(reloaded.snapshot(now).captured).toEqual({ white: "pq", black: "pp" });
+    });
+
     it("needs a legal move, in turn", () => {
         const game = Match.create(START);
         expect(game.play("black", "e7e5", START)).toBe("It's not your turn");
