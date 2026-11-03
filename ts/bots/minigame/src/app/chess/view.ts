@@ -1003,6 +1003,16 @@ function formatClock(ms: number): string {
     return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
+/**
+ * The time left for a first move, eg. "0:42", in whole seconds even near the end, where a clock
+ * shows tenths: so the status line it ends keeps its length, and can't start to wrap between the
+ * redraws that fit the board
+ */
+function formatFirstMove(ms: number): string {
+    const seconds = Math.ceil(ms / 1000);
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
 // What each side has left: the state's figure, less the time since the bot took it for the side
 // whose clock is running. A state can be old when it arrives, as the service sends the latest one
 // to whoever opens the game, so it's counted from the bot's time, taking the two clocks to agree.
@@ -1024,7 +1034,7 @@ function tickClocks() {
     }
     const firstMove = firstMoveMs();
     if (firstMove !== undefined) {
-        dom.firstMove.textContent = ` · ${formatClock(firstMove)} left`;
+        dom.firstMove.textContent = ` · ${formatFirstMove(firstMove)} left`;
         dom.firstMove.classList.toggle("low", firstMove < LOW_TIME_MS);
     }
 }

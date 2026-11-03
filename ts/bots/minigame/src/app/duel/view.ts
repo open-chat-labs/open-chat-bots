@@ -330,10 +330,10 @@ export function duelView<M, P extends Position<M>>(
     function tickClocks() {
         const s = current();
         if (dom === undefined || end !== undefined || !document.body.contains(dom.root)) return;
+        const clock = s?.clock;
         for (const row of dom.rows) {
             const text = row.querySelector(".duel-clock") as HTMLElement;
             const seat = Number(row.dataset.seat) as Seat;
-            const clock = s?.clock;
             let ms = clock?.ms[seat] ?? (s?.settings.minutes ?? 0) * 60_000;
             if (clock !== undefined && clock.running === seat) {
                 ms = Math.max(0, ms - Math.max(0, Date.now() - clock.at));
@@ -341,10 +341,9 @@ export function duelView<M, P extends Position<M>>(
             text.textContent = formatClock(ms);
             text.classList.toggle("low", clock?.running === seat && ms < LOW_TIME_MS);
         }
-        const firstMove = s?.clock?.firstMoveMs;
-        if (firstMove !== undefined) {
-            const ms = Math.max(0, firstMove - Math.max(0, Date.now() - s!.clock!.at));
-            dom.firstMove.textContent = ` · ${formatClock(ms)} left`;
+        if (clock?.firstMoveMs !== undefined) {
+            const ms = Math.max(0, clock.firstMoveMs - Math.max(0, Date.now() - clock.at));
+            dom.firstMove.textContent = ` · ${formatFirstMove(ms)} left`;
             dom.firstMove.classList.toggle("low", ms < LOW_TIME_MS);
         }
     }
@@ -484,6 +483,16 @@ function formatClock(ms: number): string {
     const minutes = Math.floor(ms / 60_000);
     const seconds = Math.floor((ms % 60_000) / 1000);
     return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+/**
+ * The time left for a first move, eg. "0:42", in whole seconds even near the end, where a clock
+ * shows tenths: so the status line it ends keeps its length, and can't start to wrap between the
+ * redraws that fit the board
+ */
+function formatFirstMove(ms: number): string {
+    const seconds = Math.ceil(ms / 1000);
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
 function shortId(id: string): string {

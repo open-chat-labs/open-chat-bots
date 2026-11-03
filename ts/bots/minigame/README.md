@@ -184,7 +184,7 @@ has taken added:
     "white_ms": 594000,
     "black_ms": 600000,
     "running": "black" | null,
-    "first_move_ms": 42000 | null
+    "first_move_ms": null | 42000
   },
   "draw_offer": "white" | "black" | null,
   "result": "White won by checkmate" | null
@@ -193,7 +193,8 @@ has taken added:
 
 where everything from `fen` on is there once the game has started, `captured` is the pieces each
 side has taken, as their letters in the order taken, `legal_moves` are the side to move's as UCI,
-empty once the game's over, and nothing is private. Its end state is:
+empty once the game's over, `first_move_ms` is the time left for the side to move's first move
+while it's awaited, when `running` is null, and nothing is private. Its end state is:
 
 ```json
 {
@@ -284,7 +285,7 @@ usernames, looked up by id (`GET /api/names`), as the card names them:
   "settings": { "first": 0, "minutes": 3 },
   "host": "<user id>",
   "moves": [3, 3, 4],
-  "clock": { "at": 1761800000000, "ms": [176000, 178000], "running": 1 | null, "firstMoveMs": 42000 },
+  "clock": { "at": 1761800000000, "ms": [176000, 178000], "running": 1 | null },
   "ending": { "kind": "board" | "resignation" | "timeout" | "abandonment", "winner": 0 | 1 | null },
   "startedAt": 1761799990000,
   "finishedAt": 1761800090000
@@ -292,10 +293,10 @@ usernames, looked up by id (`GET /api/names`), as the card names them:
 ```
 
 where `players` are in seat order once the game starts, the first to move first, a seat is 0 or 1,
-`clock` is there once the game has started, with `firstMoveMs` while the side to move has yet to
-make its first move, and `ending` once it's over, a `null` winner being a draw. A game called off
-as a first move wasn't made in time ends `{ "kind": "aborted", "seat": 0 | 1 }`, the seat that
-didn't move.
+`clock` is there once the game has started, with `firstMoveMs`, the time left for a first move,
+added while the side to move has yet to make one, when `running` is null, and `ending` once it's
+over, a `null` winner being a draw. A game called off as a first move wasn't made in time ends
+`{ "kind": "aborted", "seat": 0 | 1 }`, the seat that didn't move.
 
 ## Live games
 

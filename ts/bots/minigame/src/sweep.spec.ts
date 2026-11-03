@@ -2,6 +2,7 @@ import { GroupChatIdentifier, type MiniAppGame } from "@open-ic/openchat-botclie
 import { describe, expect, it, vi } from "vitest";
 import { ChatManRace } from "./games/chatman/race";
 import { ChessGame } from "./games/chess/chess";
+import { FIRST_MOVE_MS } from "./games/game";
 import { TIME_PER_SIDE_MS } from "./games/chess/types";
 import { Race2048 } from "./games/race2048/race";
 import type { Publisher } from "./publisher";
@@ -54,6 +55,30 @@ describe("the sweep", () => {
         expect(publish).toHaveBeenCalledTimes(2);
         expect(publish).toHaveBeenLastCalledWith(raceCard);
         expect(race.result()).toBe("Time's up! @UserId(carol) won with 0 points");
+        expect(endGamesOutOfTime(store, publisher)).toBe(0);
+    });
+
+    it("calls off a game whose first move isn't made in time, and publishes its end", () => {
+        let now = 1_000_000;
+        const clock = () => now;
+        const store = new GameStore(undefined, clock);
+        const publish = vi.fn();
+        const publisher = { publish } as unknown as Publisher;
+
+        const chess = ChessGame.create({ random: () => 0.9, now: clock });
+        chess.join("alice", "Alice");
+        chess.join("bob", "Bob");
+        chess.start();
+        store.create(chessCard, chess);
+
+        // No one asks the bot anything, so it's the sweep that ends it
+        now += FIRST_MOVE_MS - 1;
+        expect(endGamesOutOfTime(store, publisher)).toBe(0);
+        now += 1;
+        expect(endGamesOutOfTime(store, publisher)).toBe(1);
+        expect(publish).toHaveBeenCalledWith(chessCard);
+        expect(chess.phase).toBe("finished");
+        expect(chess.result()).toBe("Called off: White didn't make a first move");
         expect(endGamesOutOfTime(store, publisher)).toBe(0);
     });
 
