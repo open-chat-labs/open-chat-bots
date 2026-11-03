@@ -11,7 +11,8 @@ export type GameKind =
     | "maze"
     | "chatman"
     | "minesweeper"
-    | "hex";
+    | "hex"
+    | "words";
 
 export type ConfigureResult = { ok: true } | { ok: false; error: string };
 

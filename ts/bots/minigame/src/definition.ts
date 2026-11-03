@@ -18,7 +18,8 @@ export const definition = {
         "wins, or play ChatMan, up to 10 players eating the dots in the same mazes, live, " +
         "dodging the spam bots, where the top score wins, or race up to 10 players to clear " +
         "the same minefield, each on their own board, where the first to clear it wins, or " +
-        "play Hex, two players racing to join their sides of the board, which anyone can watch.",
+        "play Hex, two players racing to join their sides of the board, which anyone can watch, " +
+        "or race up to 20 players to guess the same five-letter word, each with six guesses.",
     commands: [
         {
             name: "play",

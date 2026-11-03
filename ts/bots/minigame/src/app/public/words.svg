@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 720" width="440" height="720" role="img" aria-label="Word Race">
+  <!--
+    The Word Race's image, at the app's aspect ratio (440 by 720): OpenChat shows it in the card's
+    frame box whenever there's no app to show. Its background is opaque, so it reads the same on a
+    light or a dark page. No fonts, scripts or references. A racer's guesses at a word, marked as
+    the game marks them (src/games/words/marks.ts) and drawn as the page draws them
+    (src/app/words/view.ts), with the next being typed, and the keyboard under them.
+  -->
+  <rect width="440" height="720" fill="#faf8ef"/>
+  <rect x="65" y="93" width="54" height="54" rx="10" fill="#cdc1b4" stroke="#cdc1b4" stroke-width="2"/>
+  <text x="92" y="130" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#8f877c">T</text>
+  <rect x="129" y="93" width="54" height="54" rx="10" fill="#cdc1b4" stroke="#cdc1b4" stroke-width="2"/>
+  <text x="156" y="130" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#8f877c">R</text>
+  <rect x="193" y="93" width="54" height="54" rx="10" fill="#cdc1b4" stroke="#cdc1b4" stroke-width="2"/>
+  <text x="220" y="130" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#8f877c">A</text>
+  <rect x="257.5" y="93.5" width="53" height="53" rx="10" fill="#ffffff" stroke="#e8704a" stroke-width="3"/>
+  <text x="284" y="130" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#e8704a">I</text>
+  <circle cx="302" cy="102" r="3.5" fill="#e8704a"/>
+  <rect x="321" y="93" width="54" height="54" rx="10" fill="#cdc1b4" stroke="#cdc1b4" stroke-width="2"/>
+  <text x="348" y="130" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#8f877c">L</text>
+  <rect x="65" y="157" width="54" height="54" rx="10" fill="#cdc1b4" stroke="#cdc1b4" stroke-width="2"/>
+  <text x="92" y="194" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#8f877c">N</text>
+  <rect x="129" y="157" width="54" height="54" rx="10" fill="#cdc1b4" stroke="#cdc1b4" stroke-width="2"/>
+  <text x="156" y="194" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#8f877c">O</text>
+  <rect x="193" y="157" width="54" height="54" rx="10" fill="#e8704a" stroke="#e8704a" stroke-width="2"/>
+  <text x="220" y="194" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#ffffff">I</text>
+  <rect x="257.5" y="157.5" width="53" height="53" rx="10" fill="#ffffff" stroke="#e8704a" stroke-width="3"/>
+  <text x="284" y="194" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#e8704a">S</text>
+  <circle cx="302" cy="166" r="3.5" fill="#e8704a"/>
+  <rect x="321" y="157" width="54" height="54" rx="10" fill="#e8704a" stroke="#e8704a" stroke-width="2"/>
+  <text x="348" y="194" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#ffffff">E</text>
+  <rect x="65" y="221" width="54" height="54" rx="10" fill="#e8704a" stroke="#e8704a" stroke-width="2"/>
+  <text x="92" y="258" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#ffffff">S</text>
+  <rect x="129" y="221" width="54" height="54" rx="10" fill="#cdc1b4" stroke="#cdc1b4" stroke-width="2"/>
+  <text x="156" y="258" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#8f877c">L</text>
+  <rect x="193" y="221" width="54" height="54" rx="10" fill="#e8704a" stroke="#e8704a" stroke-width="2"/>
+  <text x="220" y="258" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#ffffff">I</text>
+  <rect x="257" y="221" width="54" height="54" rx="10" fill="#e8704a" stroke="#e8704a" stroke-width="2"/>
+  <text x="284" y="258" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#ffffff">C</text>
+  <rect x="321" y="221" width="54" height="54" rx="10" fill="#e8704a" stroke="#e8704a" stroke-width="2"/>
+  <text x="348" y="258" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#ffffff">E</text>
+  <rect x="65" y="285" width="54" height="54" rx="10" fill="#ffffff" stroke="#7a7267" stroke-width="2"/>
+  <text x="92" y="322" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">S</text>
+  <rect x="129" y="285" width="54" height="54" rx="10" fill="#ffffff" stroke="#7a7267" stroke-width="2"/>
+  <text x="156" y="322" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">P</text>
+  <rect x="193" y="285" width="54" height="54" rx="10" fill="#ffffff" stroke="#7a7267" stroke-width="2"/>
+  <text x="220" y="322" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">I</text>
+  <rect x="257" y="285" width="54" height="54" rx="10" fill="#ffffff" stroke="#e6e0d4" stroke-width="2"/>
+  <rect x="321" y="285" width="54" height="54" rx="10" fill="#ffffff" stroke="#e6e0d4" stroke-width="2"/>
+  <rect x="65" y="349" width="54" height="54" rx="10" fill="#ffffff" stroke="#e6e0d4" stroke-width="2"/>
+  <rect x="129" y="349" width="54" height="54" rx="10" fill="#ffffff" stroke="#e6e0d4" stroke-width="2"/>
+  <rect x="193" y="349" width="54" height="54" rx="10" fill="#ffffff" stroke="#e6e0d4" stroke-width="2"/>
+  <rect x="257" y="349" width="54" height="54" rx="10" fill="#ffffff" stroke="#e6e0d4" stroke-width="2"/>
+  <rect x="321" y="349" width="54" height="54" rx="10" fill="#ffffff" stroke="#e6e0d4" stroke-width="2"/>
+  <rect x="65" y="413" width="54" height="54" rx="10" fill="#ffffff" stroke="#e6e0d4" stroke-width="2"/>
+  <rect x="129" y="413" width="54" height="54" rx="10" fill="#ffffff" stroke="#e6e0d4" stroke-width="2"/>
+  <rect x="193" y="413" width="54" height="54" rx="10" fill="#ffffff" stroke="#e6e0d4" stroke-width="2"/>
+  <rect x="257" y="413" width="54" height="54" rx="10" fill="#ffffff" stroke="#e6e0d4" stroke-width="2"/>
+  <rect x="321" y="413" width="54" height="54" rx="10" fill="#ffffff" stroke="#e6e0d4" stroke-width="2"/>
+  <g opacity="1"><rect x="18.5" y="509" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="35.5" y="537" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">Q</text>
+  </g>
+  <g opacity="1"><rect x="59.5" y="509" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="76.5" y="537" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">W</text>
+  </g>
+  <g opacity="1"><rect x="100.5" y="509" width="34" height="44" rx="8" fill="#e8704a" stroke="none" stroke-width="2"/>
+  <text x="117.5" y="537" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#ffffff">E</text>
+  </g>
+  <g opacity="0.45"><rect x="141.5" y="509" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="158.5" y="537" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">R</text>
+  </g>
+  <g opacity="0.45"><rect x="182.5" y="509" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="199.5" y="537" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">T</text>
+  </g>
+  <g opacity="1"><rect x="223.5" y="509" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="240.5" y="537" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">Y</text>
+  </g>
+  <g opacity="1"><rect x="264.5" y="509" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="281.5" y="537" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">U</text>
+  </g>
+  <g opacity="1"><rect x="305.5" y="509" width="34" height="44" rx="8" fill="#e8704a" stroke="none" stroke-width="2"/>
+  <text x="322.5" y="537" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#ffffff">I</text>
+  </g>
+  <g opacity="0.45"><rect x="346.5" y="509" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="363.5" y="537" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">O</text>
+  </g>
+  <g opacity="1"><rect x="387.5" y="509" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="404.5" y="537" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">P</text>
+  </g>
+  <g opacity="0.45"><rect x="39" y="563" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="56" y="591" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">A</text>
+  </g>
+  <g opacity="1"><rect x="80" y="563" width="34" height="44" rx="8" fill="#e8704a" stroke="none" stroke-width="2"/>
+  <text x="97" y="591" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#ffffff">S</text>
+  </g>
+  <g opacity="1"><rect x="121" y="563" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="138" y="591" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">D</text>
+  </g>
+  <g opacity="1"><rect x="162" y="563" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="179" y="591" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">F</text>
+  </g>
+  <g opacity="1"><rect x="203" y="563" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="220" y="591" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">G</text>
+  </g>
+  <g opacity="1"><rect x="244" y="563" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="261" y="591" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">H</text>
+  </g>
+  <g opacity="1"><rect x="285" y="563" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="302" y="591" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">J</text>
+  </g>
+  <g opacity="1"><rect x="326" y="563" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="343" y="591" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">K</text>
+  </g>
+  <g opacity="0.45"><rect x="367" y="563" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="384" y="591" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">L</text>
+  </g>
+  <g opacity="1"><rect x="19" y="617" width="54" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="46" y="643" font-size="11" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">ENTER</text>
+  </g>
+  <g opacity="1"><rect x="80" y="617" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="97" y="645" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">Z</text>
+  </g>
+  <g opacity="1"><rect x="121" y="617" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="138" y="645" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">X</text>
+  </g>
+  <g opacity="1"><rect x="162" y="617" width="34" height="44" rx="8" fill="#e8704a" stroke="none" stroke-width="2"/>
+  <text x="179" y="645" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#ffffff">C</text>
+  </g>
+  <g opacity="1"><rect x="203" y="617" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="220" y="645" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">V</text>
+  </g>
+  <g opacity="1"><rect x="244" y="617" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="261" y="645" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">B</text>
+  </g>
+  <g opacity="0.45"><rect x="285" y="617" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="302" y="645" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">N</text>
+  </g>
+  <g opacity="1"><rect x="326" y="617" width="34" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <text x="343" y="645" font-size="17" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#3b3630">M</text>
+  </g>
+  <g opacity="1"><rect x="367" y="617" width="54" height="44" rx="8" fill="#bbada0" stroke="none" stroke-width="2"/>
+  <path d="M391 632h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-10l-6-7z" fill="none" stroke="#3b3630" stroke-width="1.8" stroke-linejoin="round"/><path d="m393.5 636.5 5 5m0-5-5 5" stroke="#3b3630" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+</svg>

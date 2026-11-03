@@ -19,6 +19,7 @@ import {
     raceRestart,
     settings,
     userNames,
+    wordsGuess,
 } from "./handlers/api";
 import { join, leave, start } from "./handlers/miniApp";
 import { executeCommand } from "./handlers/play";
@@ -64,6 +65,8 @@ export function createApp(deps: Deps, appDir: string): Express {
     app.post("/api/chatman/turn", express.json(), handle(chatmanTurn));
     // A Minesweeper racer's clicks, answered with their board, which only they see
     app.post("/api/minesweeper/act", express.json(), handle(minesweeperAct));
+    // A Word racer's guess, answered with their guesses, marked, which only they see
+    app.post("/api/words/guess", express.json(), handle(wordsGuess));
 
     // Anyone with a game open, watching included, and anyone opening a finished card: no token
     app.get("/api/names", handle(userNames));
