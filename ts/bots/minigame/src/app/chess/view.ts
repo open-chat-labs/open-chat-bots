@@ -22,7 +22,6 @@ import type { BaseState, GameView, Lobby, ViewContext } from "../view";
 const LOW_TIME_MS = 20_000;
 const RESIGN_CONFIRM_MS = 4000;
 const FILES = "abcdefgh";
-const GLYPHS: Record<string, string> = { k: "♚", q: "♛", r: "♜", b: "♝", n: "♞", p: "♟" };
 const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 /** The end state as the view reads it: anything odd is left out rather than trusted */
@@ -185,12 +184,10 @@ export const chessView: GameView = {
                 break;
             case "promote":
                 if (promotion !== undefined) sendMove(promotion + el.dataset.piece);
-                promotion = undefined;
-                if (dom !== undefined) dom.promotion.hidden = true;
+                hidePromotion();
                 break;
             case "cancel-promotion":
-                promotion = undefined;
-                if (dom !== undefined) dom.promotion.hidden = true;
+                hidePromotion();
                 break;
             case "previous":
                 step(ply - 1);
@@ -263,10 +260,10 @@ function ensureDom(body: HTMLElement) {
             <div class="promotion" hidden>
                 <div>
                     <p>Promote to</p>
-                    <button type="button" class="piece-choice" data-action="promote" data-piece="q">♛</button>
-                    <button type="button" class="piece-choice" data-action="promote" data-piece="r">♜</button>
-                    <button type="button" class="piece-choice" data-action="promote" data-piece="b">♝</button>
-                    <button type="button" class="piece-choice" data-action="promote" data-piece="n">♞</button>
+                    <button type="button" class="piece-choice" data-action="promote" data-piece="q" aria-label="Queen"><span></span></button>
+                    <button type="button" class="piece-choice" data-action="promote" data-piece="r" aria-label="Rook"><span></span></button>
+                    <button type="button" class="piece-choice" data-action="promote" data-piece="b" aria-label="Bishop"><span></span></button>
+                    <button type="button" class="piece-choice" data-action="promote" data-piece="n" aria-label="Knight"><span></span></button>
                     <br>
                     <button type="button" data-action="cancel-promotion">Cancel</button>
                 </div>
@@ -381,7 +378,7 @@ function onSquare(square: string) {
         if (candidates.length > 0) {
             if (candidates.some((m) => m.length === 5)) {
                 promotion = selected + square;
-                if (dom !== undefined) dom.promotion.hidden = false;
+                showPromotion();
             } else {
                 sendMove(candidates[0]);
             }
@@ -391,6 +388,21 @@ function onSquare(square: string) {
     selected =
         selected !== square && moves.some((m) => m.startsWith(square)) ? square : undefined;
     renderBoard();
+}
+
+/** The pieces a pawn can promote to, in the player's colour */
+function showPromotion() {
+    if (dom === undefined) return;
+    const color = myColor() ?? "white";
+    for (const choice of dom.promotion.querySelectorAll<HTMLElement>(".piece-choice")) {
+        choice.firstElementChild!.className = `piece ${color} ${choice.dataset.piece}`;
+    }
+    dom.promotion.hidden = false;
+}
+
+function hidePromotion() {
+    promotion = undefined;
+    if (dom !== undefined) dom.promotion.hidden = true;
 }
 
 function shortId(id: string): string {
@@ -453,6 +465,9 @@ function fitBoard() {
 
 function render() {
     if (dom === undefined) return;
+    // A promotion waits only while the player can still make the move, eg. not once their flag's
+    // fallen
+    if (!canMove()) hidePromotion();
     renderStatus();
     renderPlayers();
     renderBoard();
@@ -589,9 +604,10 @@ function renderBoard() {
             if (movable.has(square) || targets.has(square)) div.classList.add("movable");
             const piece = placed[square];
             if (piece !== undefined) {
+                // eg. "piece white k", which style.css draws
+                const side: Side = piece === piece.toUpperCase() ? "white" : "black";
                 const span = document.createElement("span");
-                span.className = `piece ${piece === piece.toUpperCase() ? "w" : "b"}`;
-                span.textContent = GLYPHS[piece.toLowerCase()] ?? "";
+                span.className = `piece ${side} ${piece.toLowerCase()}`;
                 div.append(span);
                 div.setAttribute("aria-label", `${square} ${piece}`);
             } else {
