@@ -121,6 +121,35 @@ describe("a Crate Race", () => {
         expect(race.result()).toBe("Time's up! @UserId(bob) put the most crates on goals, 1 of 2");
     });
 
+    it("counts a crate pushed off a goal and back on as on it from then", () => {
+        const { race, clock } = started();
+        send(race, "bob", "rrr");
+        clock.now += 1000;
+        send(race, "alice", "rrr");
+        // Bob's crate off its goal, and back on, which is later than Alice's
+        clock.now += 1000;
+        send(race, "bob", "rrrr");
+        clock.now += 1000;
+        send(race, "bob", "rrr");
+        clock.now += 5 * MINUTE;
+        race.endIfTimeUp();
+        expect(race.data.winner).toBe("alice");
+    });
+
+    it("gives a tie for the crates on goals, at the same time, to whoever pushed fewer times", () => {
+        const { race, clock } = started();
+        // Alice's second crate pushed a cell on, though not onto its goal
+        send(race, "alice", "rrrdllldr");
+        send(race, "bob", "rrr");
+        expect(race.shared().racers).toEqual([
+            { id: "alice", placed: 1, pushes: 3 },
+            { id: "bob", placed: 1, pushes: 2 },
+        ]);
+        clock.now += 5 * MINUTE;
+        race.endIfTimeUp();
+        expect(race.data.winner).toBe("bob");
+    });
+
     it("says nobody put a crate on a goal when the time's up before anyone has", () => {
         const { race, clock } = started();
         send(race, "alice", "rr");

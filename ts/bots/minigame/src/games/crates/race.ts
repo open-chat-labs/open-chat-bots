@@ -6,7 +6,7 @@
 // bot plays it too, so it knows where their crates are, which only they see while the race is on.
 import { PUBLISH_EVERY_MS, type ConfigureResult, type Game, type Host } from "../game";
 import { defaultSettings, type Settings } from "../settings";
-import { isPath, play, readLevel, type Board, type Level } from "./board";
+import { isPath, play, readLevel, type Level } from "./board";
 import { EASY_LEVELS, HARD_LEVELS, MEDIUM_LEVELS } from "./levels";
 import { describeResult } from "./result";
 import { CRATES_SETTINGS, EASY, HARD } from "./settings";
@@ -261,7 +261,9 @@ export class CrateRace implements Game {
         if (!isPath(path, MAX_PATH)) {
             return fail(`A path is up to ${MAX_PATH} moves, each one of u, d, l and r`);
         }
-        const { board, played } = play(this.level!, path);
+        const level = this.level;
+        if (level === undefined) return fail("This race's level can't be read");
+        const { board, played } = play(level, path);
         if (played < path.length) return fail("One of those moves can't be made");
         const changed = board.pushes !== racer.pushes || board.placed !== racer.placed;
         if (board.placed !== racer.placed) racer.placedAt = this.#now();
@@ -287,10 +289,6 @@ export class CrateRace implements Game {
 
     #changed(): void {
         this.#data.rev++;
-    }
-
-    #board(racer: Racer): Board {
-        return play(this.level!, racer.path).board;
     }
 
     /** Each racer's own moves while the race is on, which the service gives only to them */
@@ -321,8 +319,9 @@ export class CrateRace implements Game {
             par: d.par,
             racers: d.players.map((p) => {
                 const racer = { id: p.id, placed: p.placed, pushes: p.pushes };
-                if (!finished) return racer;
-                const board = this.#board(p);
+                const level = this.level;
+                if (!finished || level === undefined) return racer;
+                const { board } = play(level, p.path);
                 return { ...racer, crates: [...board.crates], player: board.player };
             }),
             startedAt: d.startedAt,

@@ -81,8 +81,10 @@ type Dom = {
     dpad: HTMLElement;
     hint: HTMLElement;
     standings: HTMLElement;
-    /** The level the cells were drawn for */
+    /** The level the cells were drawn for, the cells, and what each was last called */
     drawnLevel: string;
+    cells: HTMLElement[];
+    labels: string[];
     /** The crates and the player, drawn over the cells */
     crates: HTMLElement[];
     player: HTMLElement;
@@ -100,8 +102,11 @@ let endSource: unknown;
 /** The racer's moves, once the page has them, and their board, which is the level with them played */
 let path: string | undefined;
 let board: Board | undefined;
-/** The path before the racer last started again, which Undo goes back to */
-let restartedFrom: string | undefined;
+/**
+ * The path before each of the racer's moves, a step, a walk to a cell they tapped, or starting
+ * again, which Undo goes back to one at a time
+ */
+let history: string[] = [];
 /** Whether the racer's moved since the page took their path, when the bot's is older than theirs */
 let moved = false;
 /** The last path the bot took, and whether a request's on its way */
@@ -111,8 +116,13 @@ let retryAt = 0;
 let asked = false;
 /** Whose crates are shown once the race is over */
 let picked: string | undefined;
-/** The winner's moves being played through, how many have been, and the timer while it plays */
-let watching: { moves: number; timer?: ReturnType<typeof setInterval> } | undefined;
+/**
+ * The winner's moves being played through: how many have been, the board with them played, and
+ * the timer while it plays
+ */
+let watching: { moves: number; board: Board; timer?: ReturnType<typeof setInterval> } | undefined;
+/** A held arrow, moving again until it's let go */
+let held: ReturnType<typeof setInterval> | undefined;
 
 export const cratesView: GameView = {
     id: GAME_ID,
@@ -122,6 +132,8 @@ export const cratesView: GameView = {
     attach(_root, context) {
         ctx = context;
         window.addEventListener("resize", () => fit(true));
+        window.addEventListener("pointerup", release);
+        window.addEventListener("pointercancel", release);
         setInterval(() => ctx?.render(), 1000);
     },
 
@@ -230,9 +242,13 @@ function take(state: SharedState) {
     if (state.phase !== "active" || myRacer() === undefined) return;
     const part = ctx?.oc.state?.private as { path?: unknown } | undefined;
     if (path === undefined && typeof part?.path === "string") setPath(part.path);
-    if (!asked && Date.now() >= retryAt) {
+    if (Date.now() < retryAt) return;
+    if (!asked) {
         asked = true;
         void request(undefined);
+    } else if (path !== undefined && path !== confirmed && moved) {
+        // Moves the bot hasn't taken, as asking failed: again, now the page has waited
+        void request(path);
     }
 }
 
@@ -261,46 +277,57 @@ function setPath(to: string) {
     board = play(level, to).board;
 }
 
-function moveBy(move: Move) {
-    if (!canRace() || path === undefined || board === undefined) return;
+/** One of the racer's moves, which Undo takes back whole: whether it changed anything */
+function act(make: () => void) {
+    if (!canRace() || path === undefined) return;
+    const before = path;
+    make();
+    if (path === before) return;
+    history.push(before);
+    changed();
+}
+
+// A step, pushing a crate in the way, if it can be made
+function step(move: Move) {
+    if (path === undefined || board === undefined) return;
     if (path.length >= MAX_PATH) {
         ctx?.notice("That's as many moves as there can be: undo some, or start again");
         return;
     }
-    if (!board.move(move)) return;
-    path += move;
-    changed();
+    if (board.move(move)) path += move;
 }
 
-// A tap on a cell: a move to it if it's beside the player, or a walk round to it if it's clear
+function moveBy(move: Move) {
+    act(() => step(move));
+}
+
+// A tap on a cell: a step to it if it's beside the player, or a walk round to it if it's clear
 function tap(cell: number) {
-    if (!canRace() || board === undefined) return;
-    const beside = MOVES.find((move) => next(board!.player, move) === cell);
-    if (beside !== undefined) {
-        moveBy(beside);
-        return;
-    }
-    for (const move of board.walkTo(cell) ?? []) moveBy(move);
+    act(() => {
+        if (board === undefined) return;
+        const beside = MOVES.find((move) => next(board!.player, move) === cell);
+        if (beside !== undefined) step(beside);
+        else for (const move of board.walkTo(cell) ?? []) step(move);
+    });
 }
 
 function undo() {
     if (!canRace() || path === undefined) return;
-    if (path === "" && restartedFrom !== undefined) {
-        setPath(restartedFrom);
-        restartedFrom = undefined;
-    } else if (path !== "") {
-        setPath(path.slice(0, -1));
-    } else {
-        return;
-    }
+    const before = history.pop();
+    if (before !== undefined) setPath(before);
+    // Moves from before the page opened, one at a time
+    else if (path !== "") setPath(path.slice(0, -1));
+    else return;
     changed();
 }
 
 function restart() {
-    if (!canRace() || path === undefined || path === "") return;
-    restartedFrom = path;
-    setPath("");
-    changed();
+    act(() => setPath(""));
+}
+
+function release() {
+    clearInterval(held);
+    held = undefined;
 }
 
 function changed() {
@@ -330,6 +357,7 @@ async function request(send: string | undefined) {
             if (!moved || !result.ok) {
                 setPath(result.own.path);
                 moved = false;
+                history = [];
             }
         } else {
             retryAt = Date.now() + RETRY_MS;
@@ -343,9 +371,12 @@ async function request(send: string | undefined) {
     }
     sending = false;
     render();
-    // Moves made meanwhile, the last of them maybe putting the last crate on its goal
+    // Moves made meanwhile, the last of them maybe putting the last crate on its goal, unless the
+    // bot couldn't be reached, when `take` sends them once the page has waited
     const live = end === undefined && latest?.phase === "active";
-    if (path !== undefined && path !== confirmed && live) void request(path);
+    if (path !== undefined && path !== confirmed && live && Date.now() >= retryAt) {
+        void request(path);
+    }
 }
 
 /**
@@ -359,10 +390,13 @@ function watch() {
         return;
     }
     const s = shown();
-    if (s?.path === undefined || s.path === "") return;
-    const total = s.path.length;
-    const w: NonNullable<typeof watching> = { moves: 0 };
+    const level = s === undefined ? undefined : levelOf(s);
+    if (s?.path === undefined || s.path === "" || level === undefined) return;
+    const moves = [...s.path] as Move[];
+    const total = moves.length;
+    const w: NonNullable<typeof watching> = { moves: 0, board: play(level, "").board };
     w.timer = setInterval(() => {
+        w.board.move(moves[w.moves]);
         w.moves++;
         if (w.moves >= total) {
             clearInterval(w.timer);
@@ -422,6 +456,8 @@ function ensureDom(body: HTMLElement) {
         hint: q(".cr-hint"),
         standings: q(".cr-standings"),
         drawnLevel: "",
+        cells: [],
+        labels: [],
         crates: [],
         player: document.createElement("span"),
         rows: new Map(),
@@ -432,11 +468,6 @@ function ensureDom(body: HTMLElement) {
 
 // The arrows, held to keep moving, and a swipe or a tap on the level
 function listen(d: Dom) {
-    let held: ReturnType<typeof setInterval> | undefined;
-    const release = () => {
-        clearInterval(held);
-        held = undefined;
-    };
     for (const button of d.dpad.querySelectorAll<HTMLElement>("button")) {
         button.addEventListener("pointerdown", (event) => {
             event.preventDefault();
@@ -447,8 +478,6 @@ function listen(d: Dom) {
             held = setInterval(() => moveBy(move), HOLD_EVERY_MS);
         });
     }
-    window.addEventListener("pointerup", release);
-    window.addEventListener("pointercancel", release);
     let press: { x: number; y: number; cell: number | undefined } | undefined;
     d.board.addEventListener("pointerdown", (event) => {
         const el = (event.target as HTMLElement).closest<HTMLElement>("[data-cell]");
@@ -510,11 +539,10 @@ function render() {
     if (finished && level !== undefined) {
         whose =
             s.racers.find((r) => r.id === picked)?.id ?? mine?.id ?? s.winner ?? ranked(s)[0]?.id;
-        if (watching !== undefined && s.path !== undefined) {
-            const played = play(level, s.path.slice(0, watching.moves)).board;
+        if (watching !== undefined) {
             whose = s.winner;
-            shownCrates = played.crates;
-            shownPlayer = played.player;
+            shownCrates = watching.board.crates;
+            shownPlayer = watching.board.player;
         } else {
             const racer = s.racers.find((r) => r.id === whose);
             shownCrates = racer?.crates;
@@ -566,7 +594,7 @@ function render() {
         dom.count.textContent = s.par === undefined ? "" : `It can be done in ${pushes(s.par)}`;
     }
     dom.undo.hidden = dom.restart.hidden = !racing;
-    dom.undo.disabled = path === "" && restartedFrom === undefined;
+    dom.undo.disabled = path === "" && history.length === 0;
     dom.restart.disabled = path === "";
     dom.watch.hidden = !finished || s.path === undefined || s.path === "";
     dom.watch.textContent = watching?.timer !== undefined ? "Stop" : "Watch how";
@@ -600,10 +628,6 @@ function drawBoard(code: string, level: Level, crates: readonly number[], player
                     : level.goals[i]
                       ? "cr-cell cr-goal"
                       : "cr-cell";
-                cell.setAttribute(
-                    "aria-label",
-                    level.walls[i] ? "Wall" : level.goals[i] ? "Goal" : "Floor",
-                );
                 row.append(cell);
             }
             return row;
@@ -618,6 +642,8 @@ function drawBoard(code: string, level: Level, crates: readonly number[], player
         dom.player.className = "cr-player";
         dom.player.setAttribute("aria-hidden", "true");
         dom.board.replaceChildren(...rows, ...dom.crates, dom.player);
+        dom.cells = [...dom.board.querySelectorAll<HTMLElement>("[data-cell]")];
+        dom.labels = dom.cells.map(() => "");
     }
     const place = (el: HTMLElement, cell: number) => {
         el.style.setProperty("--x", String(cell % SIDE));
@@ -630,6 +656,22 @@ function drawBoard(code: string, level: Level, crates: readonly number[], player
         el.classList.toggle("on", level.goals[cell]);
     });
     place(dom.player, player);
+    // What's on each cell, as the crates and the player over them are hidden from a screen reader
+    dom.cells.forEach((cell, i) => {
+        const on = level.goals[i] ? " on a goal" : "";
+        const label = level.walls[i]
+            ? "Wall"
+            : i === player
+              ? `You${on}`
+              : crates.includes(i)
+                ? `Crate${on}`
+                : level.goals[i]
+                  ? "Goal"
+                  : "Floor";
+        if (dom!.labels[i] === label) return;
+        dom!.labels[i] = label;
+        cell.setAttribute("aria-label", label);
+    });
 }
 
 function renderHint(s: SharedState, racing: boolean, finished: boolean, whose: string | undefined) {
