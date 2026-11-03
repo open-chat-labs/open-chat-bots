@@ -4,35 +4,54 @@
 // and the move goes to the bot as UCI. The bot answers with the new state, which is shown until
 // OpenChat relays the next.
 //
+// Each player's row shows the pieces they've taken, and how far ahead they are, if they are.
+//
 // Once the game's over, the card keeps how it ended, which OpenChat hands the page as the end
 // state: the result, who played, the moves, and the position before each move and after the last.
 // The view then shows the final position and lets the viewer step through the game: Previous and
-// Next, the arrow keys, or a tap on a move.
+// Next, the arrow keys, or a tap on a move. PGN gives the game as PGN, for the viewer to copy into
+// any chess program.
 import {
     GAME_ID,
     STATE_VERSION,
     type ActionResponse,
+    type Captured,
     type LastMove,
     type SharedState,
     type Side,
 } from "../../games/chess/types";
+import { capturedBetween, materialLead, TAKEN_ORDER } from "../../games/chess/material";
+import { toPgn } from "../../games/chess/pgn";
 import { CHESS_SETTINGS, WHITE_IS_HOST, WHITE_IS_OPPONENT } from "../../games/chess/settings";
 import type { BaseState, GameView, Lobby, ViewContext } from "../view";
 
 const LOW_TIME_MS = 20_000;
 const RESIGN_CONFIRM_MS = 4000;
 const FILES = "abcdefgh";
+const PIECE_NAMES: Record<string, string> = {
+    q: "queen",
+    r: "rook",
+    b: "bishop",
+    n: "knight",
+    p: "pawn",
+};
 const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+const COPIED_MS = 2000;
 
 /** The end state as the view reads it: anything odd is left out rather than trusted */
 type End = {
     result: string | null;
+    /** Who won, null for a draw, or undefined from a bot that didn't say */
+    winner: Side | null | undefined;
+    startedAt: number | undefined;
     white: string | null;
     black: string | null;
     names: Record<string, string>;
     moves: string[];
     fens: string[];
     lastMove: LastMove | null;
+    /** What each side had taken by the end, unless the bot didn't say */
+    captured: Captured | undefined;
     /** A game too long for the card keeps only its final position, so there's nothing to step through */
     truncated: boolean;
 };
@@ -54,6 +73,9 @@ type Dom = {
     error: HTMLElement;
     moves: HTMLElement;
     promotion: HTMLElement;
+    pgn: HTMLElement;
+    pgnText: HTMLTextAreaElement;
+    pgnNote: HTMLElement;
 };
 
 let ctx: ViewContext | undefined;
@@ -74,6 +96,8 @@ let promotion: string | undefined;
 let sending = false;
 /** The timer during which a second tap on Resign resigns */
 let resignArmed: ReturnType<typeof setTimeout> | undefined;
+/** The timer after which the PGN's "Copied" goes */
+let copiedShown: ReturnType<typeof setTimeout> | undefined;
 
 export const chessView: GameView = {
     id: GAME_ID,
@@ -146,6 +170,7 @@ export const chessView: GameView = {
             selected = undefined;
             promotion = undefined;
             disarmResign();
+            closePgn();
         }
         ensureDom(body);
         render();
@@ -157,6 +182,12 @@ export const chessView: GameView = {
     },
 
     onKey(event) {
+        // The PGN's open: the arrows are the text's, and Escape closes it
+        if (dom !== undefined && !dom.pgn.hidden) {
+            if (event.key !== "Escape") return false;
+            closePgn();
+            return true;
+        }
         if (!canStep()) return false;
         if (event.key === "ArrowLeft") step(ply - 1);
         else if (event.key === "ArrowRight") step(ply + 1);
@@ -198,6 +229,15 @@ export const chessView: GameView = {
             case "ply":
                 if (canStep()) step(Number(el.dataset.ply));
                 break;
+            case "pgn":
+                openPgn();
+                break;
+            case "copy-pgn":
+                copyPgn();
+                break;
+            case "close-pgn":
+                closePgn();
+                break;
         }
     },
 };
@@ -219,8 +259,14 @@ function readEnd(state: unknown): End | undefined {
         for (const [k, v] of Object.entries(s.names)) if (typeof v === "string") names[k] = v;
     }
     const fens = strings(s.fens);
+    const captured = s.captured as Record<string, unknown> | null | undefined;
     return {
         result: id(s.result),
+        winner:
+            s.winner === "white" || s.winner === "black" || s.winner === null
+                ? s.winner
+                : undefined,
+        startedAt: typeof s.started_at === "number" ? s.started_at : undefined,
         white: id(s.white),
         black: id(s.black),
         names,
@@ -233,6 +279,13 @@ function readEnd(state: unknown): End | undefined {
             typeof lastMove.to === "string"
                 ? { from: lastMove.from, to: lastMove.to }
                 : null,
+        captured:
+            captured !== null &&
+            typeof captured === "object" &&
+            typeof captured.white === "string" &&
+            typeof captured.black === "string"
+                ? { white: captured.white, black: captured.black }
+                : undefined,
         truncated: s.truncated === true,
     };
 }
@@ -242,18 +295,19 @@ function ensureDom(body: HTMLElement) {
     body.innerHTML = `
         <div class="chess">
             <p class="chess-status"></p>
-            <div class="player-row" data-pos="top"><span class="name"></span><span class="chess-clock"></span></div>
+            <div class="player-row" data-pos="top"><span class="name"></span><span class="taken"></span><span class="chess-clock"></span></div>
             <div class="board" role="grid" aria-label="Chess board"></div>
-            <div class="player-row" data-pos="bottom"><span class="name"></span><span class="chess-clock"></span></div>
+            <div class="player-row" data-pos="bottom"><span class="name"></span><span class="taken"></span><span class="chess-clock"></span></div>
             <p class="offer"></p>
             <div class="chess-controls" hidden>
                 <button type="button" data-action="draw">Offer draw</button>
                 <button type="button" data-action="resign">Resign</button>
             </div>
             <div class="replay-row" hidden>
-                <button type="button" data-action="previous">‹ Previous</button>
+                <button type="button" data-action="previous" aria-label="Previous">‹<span class="word"> Previous</span></button>
                 <span class="ply"></span>
-                <button type="button" data-action="next">Next ›</button>
+                <button type="button" data-action="next" aria-label="Next"><span class="word">Next </span>›</button>
+                <button type="button" data-action="pgn" title="The moves as PGN, for any chess program">PGN</button>
             </div>
             <p class="chess-error" role="alert"></p>
             <div class="moves" hidden></div>
@@ -266,6 +320,15 @@ function ensureDom(body: HTMLElement) {
                     <button type="button" class="piece-choice" data-action="promote" data-piece="n" aria-label="Knight"><span></span></button>
                     <br>
                     <button type="button" data-action="cancel-promotion">Cancel</button>
+                </div>
+            </div>
+            <div class="pgn-sheet" hidden>
+                <div role="dialog" aria-label="The game as PGN">
+                    <p>The game as PGN: paste it into any chess program</p>
+                    <textarea readonly spellcheck="false" aria-label="PGN"></textarea>
+                    <p class="pgn-note" role="status"></p>
+                    <button type="button" class="primary" data-action="copy-pgn">Copy</button>
+                    <button type="button" data-action="close-pgn">Close</button>
                 </div>
             </div>
         </div>`;
@@ -288,6 +351,9 @@ function ensureDom(body: HTMLElement) {
         error: q(".chess-error"),
         moves: q(".moves"),
         promotion: q(".promotion"),
+        pgn: q(".pgn-sheet"),
+        pgnText: q(".pgn-sheet textarea"),
+        pgnNote: q(".pgn-note"),
     };
 }
 
@@ -333,6 +399,82 @@ function showError(text: string) {
     if (dom !== undefined) dom.error.textContent = text;
 }
 
+/** Shows the finished game as PGN, for the viewer to copy */
+function openPgn() {
+    if (dom === undefined || end === undefined) return;
+    const names = end.names;
+    const name = (id: string | null) => (id === null ? "?" : (names[id] ?? shortId(id)));
+    dom.pgnText.value = toPgn({
+        white: name(end.white),
+        black: name(end.black),
+        moves: end.moves,
+        winner: end.winner,
+        result: end.result ?? undefined,
+        startedAt: end.startedAt,
+        timeControl: timeControl(),
+    });
+    notePgn("", false);
+    dom.pgn.hidden = false;
+    // Into the sheet, so the keyboard isn't left on what's behind it
+    dom.pgn.querySelector<HTMLElement>('[data-action="copy-pgn"]')?.focus({ preventScroll: true });
+}
+
+function closePgn() {
+    if (dom === undefined) return;
+    const open = !dom.pgn.hidden;
+    notePgn("", false);
+    dom.pgn.hidden = true;
+    // Back to PGN, where the keyboard was
+    const button = dom.replay.querySelector<HTMLElement>('[data-action="pgn"]');
+    if (open) button?.focus({ preventScroll: true });
+}
+
+/**
+ * Copies the PGN as a selection is copied, which works in OpenChat's frame, where the clipboard API
+ * isn't allowed, or failing that with the clipboard API. If neither works, the text's left selected
+ * for the viewer to copy.
+ */
+function copyPgn() {
+    if (dom === undefined) return;
+    const text = dom.pgnText;
+    text.focus();
+    text.setSelectionRange(0, text.value.length);
+    let copied = false;
+    try {
+        copied = document.execCommand("copy");
+    } catch {
+        // The clipboard API's next
+    }
+    if (copied) {
+        notePgn("Copied", true);
+    } else if (navigator.clipboard === undefined) {
+        notePgn("Select the text and copy it", false);
+    } else {
+        navigator.clipboard.writeText(text.value).then(
+            () => notePgn("Copied", true),
+            () => notePgn("Select the text and copy it", false),
+        );
+    }
+}
+
+/** A line under the PGN, eg. that it's been copied, which goes after a moment if `fade` */
+function notePgn(text: string, fade: boolean) {
+    if (dom === undefined) return;
+    clearTimeout(copiedShown);
+    dom.pgnNote.textContent = text;
+    if (fade) copiedShown = setTimeout(() => notePgn("", false), COPIED_MS);
+}
+
+/** Each side's time and the time added per move, from the settings the card kept at the start */
+function timeControl(): { seconds: number; increment: number } | undefined {
+    const settings = ctx?.oc.settings as Record<string, unknown> | null | undefined;
+    if (settings === null || typeof settings !== "object" || typeof settings.minutes !== "number") {
+        return undefined;
+    }
+    const increment = typeof settings.increment === "number" ? settings.increment : 0;
+    return { seconds: settings.minutes * 60, increment };
+}
+
 /** Whether the viewer can step through the game: it's over, and the card kept every position */
 function canStep(): boolean {
     return end !== undefined && !end.truncated && end.fens.length > 1;
@@ -342,9 +484,22 @@ function canStep(): boolean {
 function step(to: number) {
     if (end === undefined || !canStep()) return;
     ply = Math.max(0, Math.min(end.fens.length - 1, to));
+    renderPlayers();
     renderBoard();
     renderMoves();
     renderReplay();
+}
+
+/** The position shown: the live game's, or the one stepped to in a finished game */
+function shownFen(): string {
+    return end !== undefined ? end.fens[ply] : (shared?.fen ?? START_FEN);
+}
+
+/** What each side had taken by the position shown */
+function takenShown(): Captured | undefined {
+    if (end === undefined) return shared?.captured;
+    // Worked out from the positions up to the one shown, if the card kept them all
+    return canStep() ? capturedBetween(end.fens.slice(0, ply + 1)) : end.captured;
 }
 
 /** The side the user plays, if they're a player in a started game, or played in a finished one */
@@ -544,6 +699,15 @@ function renderPlayers() {
     dom.top.querySelector(".name")!.innerHTML = describe(topColor);
     dom.bottom.dataset.color = bottomColor;
     dom.top.dataset.color = topColor;
+    // What each side has taken, and how far ahead the side that's ahead is
+    const taken = takenShown();
+    const lead = materialLead(shownFen());
+    for (const [panel, color] of [
+        [dom.bottom, bottomColor],
+        [dom.top, topColor],
+    ] as const) {
+        drawTaken(panel, color, taken?.[color] ?? "", color === "white" ? lead : -lead);
+    }
     const running = end !== undefined ? null : (shared?.clock?.running ?? null);
     dom.bottom.classList.toggle("active", running === bottomColor);
     dom.top.classList.toggle("active", running === topColor);
@@ -553,11 +717,52 @@ function renderPlayers() {
     }
 }
 
+/**
+ * The pieces a side has taken, by its name: the other side's, cheapest first, those of a kind
+ * overlapping, then how far ahead it is, if it is
+ */
+function drawTaken(panel: HTMLElement, color: Side, taken: string, lead: number) {
+    const el = panel.querySelector(".taken") as HTMLElement;
+    const theirs: Side = color === "white" ? "black" : "white";
+    const groups: string[] = [];
+    const said: string[] = [];
+    for (const type of TAKEN_ORDER) {
+        const n = [...taken].filter((t) => t === type).length;
+        if (n === 0) continue;
+        groups.push(`<span class="group">${takenPiece(type, theirs).repeat(n)}</span>`);
+        said.push(`${n === 1 ? "a" : n} ${PIECE_NAMES[type]}${n === 1 ? "" : "s"}`);
+    }
+    if (lead > 0) groups.push(`<span class="lead">+${lead}</span>`);
+    el.innerHTML = groups.join("");
+    // The pieces are pictures, so what they say is said for a screen reader too, eg. "Took a pawn
+    // and 2 knights, 7 ahead"
+    const took = said.length === 0 ? "" : `Took ${listed(said)}`;
+    const text = lead > 0 ? `${took === "" ? "" : `${took}, `}${lead} ahead` : took;
+    el.title = took;
+    if (text === "") {
+        el.removeAttribute("role");
+        el.removeAttribute("aria-label");
+    } else {
+        el.setAttribute("role", "img");
+        el.setAttribute("aria-label", text);
+    }
+}
+
+/** eg. "a pawn, a knight and 2 rooks" */
+function listed(items: string[]): string {
+    if (items.length < 2) return items.join("");
+    return `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
+}
+
+/** A piece that's been taken, eg. "piece black n", which style.css draws */
+function takenPiece(type: string, color: Side): string {
+    return `<span class="piece ${color} ${type}"></span>`;
+}
+
 function renderBoard() {
     if (dom === undefined) return;
     const replay = end !== undefined;
-    const fen = end !== undefined ? end.fens[ply] : (shared?.fen ?? START_FEN);
-    const placed = pieces(fen);
+    const placed = pieces(shownFen());
     const flip = flipped();
     const moves = canMove() ? (shared?.legal_moves ?? []) : [];
     const targets =
@@ -671,11 +876,15 @@ function renderMoves() {
     }
 }
 
-/** The row under the board of a finished game: where the viewer is in it, and the buttons to step */
+/**
+ * The row under the board of a finished game: where the viewer is in it, the buttons to step, and
+ * the PGN, which a game the card couldn't keep every position of has too
+ */
 function renderReplay() {
     if (dom === undefined) return;
     const stepping = canStep();
-    dom.replay.hidden = !stepping;
+    dom.replay.hidden = end === undefined || end.moves.length === 0;
+    for (const el of [dom.previous, dom.ply, dom.next]) el.hidden = !stepping;
     if (!stepping || end === undefined) return;
     dom.previous.disabled = ply === 0;
     dom.next.disabled = ply === end.fens.length - 1;

@@ -3,8 +3,8 @@
 // with an increment, and the game ends by itself on checkmate, stalemate, insufficient
 // material, threefold repetition, the fifty-move rule, or a flag falling. Who plays each side is
 // the bot's business: this knows only White and Black.
-import { Chess, type Color, type Square } from "chess.js";
-import { TIME_PER_SIDE_MS, type LastMove, type Side, type Snapshot } from "./types";
+import { Chess, type Color, type Move, type Square } from "chess.js";
+import { TIME_PER_SIDE_MS, type Captured, type LastMove, type Side, type Snapshot } from "./types";
 
 /** How a game ended, with the winner where there is one */
 export type Ending =
@@ -47,13 +47,15 @@ const UCI = /^([a-h][1-8])([a-h][1-8])([qrbn])?$/;
 export class Match {
     readonly #data: MatchData;
     readonly #position: Chess;
+    /** What each side has taken, which the replay works out, so it isn't saved */
+    readonly #captured: Captured = { white: "", black: "" };
 
     /** A match from its saved state, replaying its moves so the rules know every position */
     constructor(data: MatchData) {
         this.#data = data;
         this.#position = new Chess(data.start);
         for (const san of data.moves) {
-            this.#position.move(san);
+            this.#took(this.#position.move(san));
         }
     }
 
@@ -111,6 +113,11 @@ export class Match {
         return this.#data.lastMove;
     }
 
+    /** The pieces each side has taken, in the order taken */
+    get captured(): Captured {
+        return { ...this.#captured };
+    }
+
     /** How long the side has left, as its clock runs */
     timeLeft(color: Side, now: number): number {
         const left = this.#left(color);
@@ -147,14 +154,15 @@ export class Match {
         const parts = UCI.exec(uci);
         if (parts === null) return `'${uci}' isn't a move`;
         const [, from, to, promotion] = parts;
-        let san: string;
+        let move: Move;
         try {
-            ({ san } = this.#position.move({ from, to, promotion }));
+            move = this.#position.move({ from, to, promotion });
         } catch {
             return `${uci} isn't a legal move`;
         }
+        this.#took(move);
         const d = this.#data;
-        d.moves.push(san);
+        d.moves.push(move.san);
         d.fens.push(this.#position.fen());
         d.lastMove = { from, to };
 
@@ -237,6 +245,7 @@ export class Match {
             turn: this.turn,
             moves: [...this.#data.moves],
             last_move: this.#data.lastMove === undefined ? null : { ...this.#data.lastMove },
+            captured: this.captured,
             check: p.inCheck(),
             legal_moves: this.isOver
                 ? []
@@ -259,6 +268,11 @@ export class Match {
         this.#data.clock.since = now;
         delete this.#data.drawOffer;
         this.#data.ending = ending;
+    }
+
+    // Notes the piece a move took, if it took one, for the side that took it
+    #took(move: Move): void {
+        if (move.captured !== undefined) this.#captured[side(move.color)] += move.captured;
     }
 
     #left(color: Side): number {

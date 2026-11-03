@@ -1,7 +1,8 @@
 // Chess's shared state, as the bot publishes it through the MiniApp service and the app reads it,
 // and its end state, which the card keeps. Nothing's private: both sides and every spectator see
 // the same. The shapes are the Rust ChessBot's, with the players' names added, as this bot looks
-// them up.
+// them up, and what each side has taken; the end state also says who won and when it started, for
+// its PGN.
 
 /** Bumped when the shape changes, so an app left open from an older release knows to reload */
 export const STATE_VERSION = 1;
@@ -17,6 +18,12 @@ export type Side = "white" | "black";
 export type Status = "Open" | "Active" | "Finished";
 
 export type LastMove = { from: string; to: string };
+
+/**
+ * The pieces each side has taken, as their letters in the order taken, eg. `{ white: "pnp",
+ * black: "b" }`: White's are Black's pieces, and Black's are White's
+ */
+export type Captured = Record<Side, string>;
 
 export type ClockSnapshot = {
     /**
@@ -40,6 +47,7 @@ export type Snapshot = {
     /** Every move so far, in standard algebraic notation, eg. "Nf3", "O-O", "e8=Q+" */
     moves: string[];
     last_move: LastMove | null;
+    captured: Captured;
     /** Whether the side to move is in check */
     check: boolean;
     /** The side to move's moves, as UCI, so the app can show them, or none once the game's over */
@@ -76,6 +84,10 @@ export type EndState = {
     version: typeof STATE_VERSION;
     game: typeof GAME_ID;
     result: string;
+    /** Who won, or null for a draw, for the result a PGN gives, eg. "1-0" */
+    winner: Side | null;
+    /** When the game started, by the bot's clock, for the date a PGN gives */
+    started_at: number;
     white: string;
     black: string;
     names: Record<string, string>;
@@ -87,6 +99,8 @@ export type EndState = {
      */
     fens: string[];
     last_move: LastMove | null;
+    /** What each side had taken by the end, which the positions say too, unless they were cut */
+    captured: Captured;
     truncated?: true;
 };
 
