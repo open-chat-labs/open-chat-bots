@@ -241,17 +241,18 @@ service's 16 KB. The page draws the top twenty boards and lists the rest with th
 ## Duels
 
 Four in a Row, Reversi and Hex are duels: games for two who take turns, each with a clock for the
-whole game. What every duel shares is in `src/games/duel`: the seats, who goes first (the `first` setting,
-"Turn order" in the lobby: random, the host, or the host's opponent), the clocks, resigning,
-leaving, and the result, naming the players with mentions. A game brings its rules, a `Position`
-that the bot and the page both replay from the moves (eg. `src/games/fourinarow/grid.ts`), as
-`DuelRules`, and its board, a `DuelBoard` drawn into the duel's page (`src/app/duel/view.ts`), which
-can also give a count to show by each player's name and a note under whose move it is, as Reversi's
-discs and passes, and moves that aren't on the board, as buttons beside Resign, as Hex's swap. The
-rules start the board from the game's settings, as Hex's size is one, and can add to what the
-lobby says of the game. Its requests are `POST /api/<game>/move` and `POST /api/<game>/resign`, routed for
-each game in `DUELS`. The state carries the moves rather than the board, so it stays small, and the
-page shows players by their usernames, looked up by id (`GET /api/names`), as the card names them:
+whole game. What every duel shares is in `src/games/duel`: the seats, who goes first (the `first`
+setting, "Turn order" in the lobby: random, the host, or the host's opponent), the clocks,
+resigning, leaving, and the result, naming the players with mentions. A game brings its rules, a
+`Position` that the bot and the page both replay from the moves (eg.
+`src/games/fourinarow/grid.ts`), as `DuelRules`, and its board, a `DuelBoard` drawn into the duel's
+page (`src/app/duel/view.ts`), which can also give a count to show by each player's name and a note
+under whose move it is, as Reversi's discs and passes, and moves that aren't on the board, as
+buttons beside Resign, as Hex's swap. The rules start the board from the game's settings, as Hex's
+size is one, and can add to what the lobby says of the game. Its requests are
+`POST /api/<game>/move` and `POST /api/<game>/resign`, routed for each game in `DUELS`. The state
+carries the moves rather than the board, so it stays small, and the page shows players by their
+usernames, looked up by id (`GET /api/names`), as the card names them:
 
 ```json
 {

@@ -4,7 +4,7 @@
 import { FIRST_SETTING, minutesSetting } from "../duel/settings";
 import type { DuelRules } from "../duel/types";
 import type { SettingSpec } from "../settings";
-import { HexBoard, SWAP } from "./board";
+import { CELL_NAME, HexBoard, SWAP } from "./board";
 
 export const GAME_ID = "hex";
 
@@ -32,9 +32,7 @@ export const HEX: DuelRules<string, HexBoard> = {
     start: (settings) => new HexBoard(settings.size ?? SIZE),
     // A cell's name, which the board checks is on it, or the swap
     parseMove: (raw) =>
-        typeof raw === "string" && (raw === SWAP || /^[a-s][1-9][0-9]?$/.test(raw))
-            ? raw
-            : undefined,
+        typeof raw === "string" && (raw === SWAP || CELL_NAME.test(raw)) ? raw : undefined,
     describeBoard: (winner, _board, name) => {
         if (winner === null) return "Draw";
         return winner === 0

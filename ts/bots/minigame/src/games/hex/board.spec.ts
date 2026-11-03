@@ -58,6 +58,16 @@ describe("a Hex board", () => {
         expect(board.legalMoves()).not.toContain(SWAP);
         expect(board.play(SWAP)).toBe("You can only swap instead of your first stone");
 
+        // A stone on the long diagonal stays where it is, and becomes the second player's
+        const middle = new HexBoard(9);
+        middle.play("e5");
+        expect(middle.play(SWAP)).toBeUndefined();
+        expect(middle.at(cellIndex(9, "e5")!)).toBe(1);
+        expect(middle.count(0) + middle.count(1)).toBe(1);
+
+        // Only the second player can swap, so not on a board whose one stone is theirs
+        expect(HexBoard.from([".O", ".."]).canSwap()).toBe(false);
+
         const late = new HexBoard(9);
         late.play("a1");
         late.play("b1");
@@ -75,6 +85,19 @@ describe("a Hex board", () => {
         expect(top.legalMoves()).toEqual([]);
         expect(top.play("a1")).toBe("The game has finished");
 
+        // The chain is the fewest stones joining the edges, without the group's branches: here d2,
+        // beside c2 and c3
+        const branch = HexBoard.from(["..X..", "..XXO", "O.X..", "O.X.O", "O...."]);
+        branch.play("c5");
+        expect(branch.outcome).toEqual({ winner: 0 });
+        expect(branch.chain.map((i) => cellName(5, i)).sort()).toEqual([
+            "c1",
+            "c2",
+            "c3",
+            "c4",
+            "c5",
+        ]);
+
         // The second player's row straight across, but for its last cell
         const left = HexBoard.from(["XX...", "OOOO.", "X.X..", "..X..", "....."]);
         expect(left.turn).toBe(1);
@@ -86,6 +109,9 @@ describe("a Hex board", () => {
         const not = HexBoard.from([".....", "OOOO.", "XX...", "X....", "....."]);
         not.play("a5");
         expect(not.outcome).toBeUndefined();
+
+        // A picture's rows are each as long as the board's side
+        expect(() => HexBoard.from(["XX.", "X", "....."])).toThrow();
     });
 
     it("always ends with a winner before the board's full, as Hex can't be drawn", () => {
@@ -97,7 +123,17 @@ describe("a Hex board", () => {
                 expect(moves.length).toBeGreaterThan(0);
                 board.play(moves[next() % moves.length]);
             }
-            expect(board.chain.length).toBeGreaterThanOrEqual(5);
+            // The chain runs stone by stone, each beside the last, from one of the winner's edges
+            // to the other
+            const chain = board.chain;
+            const winner = board.outcome!.winner;
+            const line = (i: number) => (winner === 0 ? Math.floor(i / 5) : i % 5);
+            expect(chain.length).toBeGreaterThanOrEqual(5);
+            expect(chain.every((i) => board.at(i) === winner)).toBe(true);
+            expect([line(chain[0]), line(chain.at(-1)!)].sort()).toEqual([0, 4]);
+            for (let i = 1; i < chain.length; i++) {
+                expect(neighbours(5, chain[i - 1])).toContain(chain[i]);
+            }
         }
     });
 

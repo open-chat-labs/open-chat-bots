@@ -188,7 +188,7 @@ export class Duel<M, P extends Position<M>> implements Game {
                       ? hostFirst
                       : this.#random() < 0.5;
             if (reverse) this.#data.players.reverse();
-            this.#position = replay(this.#rules, [], settings);
+            this.#position = this.#rules.start(settings);
             const now = this.#now();
             const perSide = settings.minutes * 60_000;
             this.#data.clock = { ms: [perSide, perSide], since: now };
