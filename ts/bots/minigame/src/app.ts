@@ -11,6 +11,7 @@ import {
     chessDraw,
     chessMove,
     chessResign,
+    cratesPath,
     duelMove,
     duelResign,
     mazeMove,
@@ -67,6 +68,8 @@ export function createApp(deps: Deps, appDir: string): Express {
     app.post("/api/minesweeper/act", express.json(), handle(minesweeperAct));
     // A Word racer's guess, answered with their guesses, marked, which only they see
     app.post("/api/words/guess", express.json(), handle(wordsGuess));
+    // A Crate racer's moves, answered with their path as the bot has it, which only they see
+    app.post("/api/crates/path", express.json(), handle(cratesPath));
 
     // Anyone with a game open, watching included, and anyone opening a finished card: no token
     app.get("/api/names", handle(userNames));

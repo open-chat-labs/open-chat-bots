@@ -2321,3 +2321,194 @@ button.link {
     max-width: 200px;
     font-size: 15px;
 }
+
+/*
+ * The Crate Race (crates/view.ts): the level's cells in a grid, the floor light and the walls the
+ * board's colour, with a ring on each goal, and the crates and the player drawn over them, each a
+ * cell's size and moved there by `--x` and `--y`, so they slide from cell to cell. A crate on a goal
+ * is in the accent colour.
+ */
+.cr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.cr-status {
+    margin: 4px 0 6px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.cr-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.cr-count {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.cr-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.cr-buttons button {
+    padding: 4px 10px;
+    font-size: 13px;
+}
+
+.cr-wrap {
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* No padding, so that a sprite's percentages are the cells' */
+.cr-board {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-template-rows: repeat(8, minmax(0, 1fr));
+    aspect-ratio: 1;
+    border: 6px solid var(--board);
+    border-radius: 10px;
+    background: var(--board);
+    overflow: hidden;
+    touch-action: none;
+}
+
+.cr-row {
+    display: contents;
+}
+
+.cr-cell {
+    position: relative;
+    background: var(--panel);
+}
+
+.cr-wall {
+    background: var(--board);
+}
+
+.cr-goal::after {
+    content: "";
+    position: absolute;
+    inset: 32%;
+    border: 3px solid var(--accent);
+    border-radius: 50%;
+    opacity: 0.8;
+}
+
+.cr-crate,
+.cr-player {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 12.5%;
+    height: 12.5%;
+    transform: translate(calc(var(--x, 0) * 100%), calc(var(--y, 0) * 100%));
+    transition: transform 0.09s ease-out;
+    pointer-events: none;
+}
+
+.cr-crate::before {
+    content: "";
+    position: absolute;
+    inset: 8%;
+    border-radius: 18%;
+    background: var(--mine);
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--mine) 70%, black);
+    transition: background-color 0.15s ease;
+}
+
+.cr-crate.on::before {
+    background: var(--accent);
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--accent) 70%, black);
+}
+
+.cr-player::before {
+    content: "";
+    position: absolute;
+    inset: 20%;
+    border-radius: 50%;
+    background: var(--disc-1);
+    box-shadow: 0 0 0 3px var(--panel);
+}
+
+.cr-dpad {
+    margin-top: 10px;
+}
+
+.cr-hint {
+    margin: 8px 0 0;
+    text-align: center;
+}
+
+.cr-standings {
+    list-style: none;
+    width: 100%;
+    margin: 8px 0 0;
+    padding: 0;
+    font-size: 14px;
+    max-height: 140px;
+    overflow-y: auto;
+}
+
+.cr-standings li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 6px;
+    border-radius: 6px;
+}
+
+.cr-standings li.mine,
+.cr-standings li.picked {
+    background: var(--panel);
+    font-weight: 600;
+}
+
+.cr-standings li[data-action] {
+    cursor: pointer;
+}
+
+.cr-standings .who {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cr-standings li.winner .who::after {
+    content: " 🏆";
+}
+
+.cr-placed {
+    display: flex;
+    gap: 3px;
+}
+
+.cr-placed span {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    background: var(--border);
+}
+
+.cr-placed span.on {
+    background: var(--accent);
+}
+
+.cr-standings .count {
+    min-width: 5.5em;
+    text-align: right;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}

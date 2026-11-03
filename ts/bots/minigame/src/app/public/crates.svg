@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 720" width="440" height="720" role="img" aria-label="Crate Race">
+  <!--
+    The Crate Race's image, at the app's aspect ratio (440 by 720): OpenChat shows it in the card's
+    frame box whenever there's no app to show. Its background is opaque, so it reads the same on a
+    light or a dark page. No fonts, scripts or references. A medium level from Boxoban's
+    (src/games/crates/levels.ts), with two of its crates pushed onto goals, drawn as the page draws
+    it (src/app/crates/view.ts), and under it, how many crates are on goals.
+  -->
+  <rect width="440" height="720" fill="#faf8ef"/>
+  <rect x="28" y="150" width="384" height="384" rx="10" fill="#bbada0"/>
+  <rect x="36" y="158" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="82" y="158" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="128" y="158" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="174" y="158" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="220" y="158" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="266" y="158" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="312" y="158" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="36" y="204" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="82" y="204" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="128" y="204" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="174" y="204" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="220" y="204" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="266" y="204" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="36" y="250" width="46.5" height="46.5" fill="#ffffff"/>
+  <circle cx="59" cy="273" r="6.779999999999999" fill="none" stroke="#e8704a" stroke-width="3" opacity="0.8"/>
+  <rect x="82" y="250" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="220" y="250" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="266" y="250" width="46.5" height="46.5" fill="#ffffff"/>
+  <circle cx="289" cy="273" r="6.779999999999999" fill="none" stroke="#e8704a" stroke-width="3" opacity="0.8"/>
+  <rect x="312" y="250" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="36" y="296" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="266" y="296" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="312" y="296" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="36" y="342" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="82" y="342" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="128" y="342" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="220" y="342" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="266" y="342" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="312" y="342" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="36" y="388" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="82" y="388" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="128" y="388" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="220" y="388" width="46.5" height="46.5" fill="#ffffff"/>
+  <circle cx="243" cy="411" r="6.779999999999999" fill="none" stroke="#e8704a" stroke-width="3" opacity="0.8"/>
+  <rect x="266" y="388" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="36" y="434" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="128" y="434" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="220" y="434" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="266" y="434" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="312" y="434" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="36" y="480" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="82" y="480" width="46.5" height="46.5" fill="#ffffff"/>
+  <circle cx="105" cy="503" r="6.779999999999999" fill="none" stroke="#e8704a" stroke-width="3" opacity="0.8"/>
+  <rect x="128" y="480" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="174" y="480" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="220" y="480" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="266" y="480" width="46.5" height="46.5" fill="#ffffff"/>
+  <rect x="87.18" y="209.18" width="35.64" height="35.64" rx="6.8999999999999995" fill="#f2b179" stroke="#a97c55" stroke-width="3"/>
+  <rect x="41.18" y="255.18" width="35.64" height="35.64" rx="6.8999999999999995" fill="#e8704a" stroke="#a24e34" stroke-width="3"/>
+  <rect x="87.18" y="393.18" width="35.64" height="35.64" rx="6.8999999999999995" fill="#f2b179" stroke="#a97c55" stroke-width="3"/>
+  <rect x="225.18" y="393.18" width="35.64" height="35.64" rx="6.8999999999999995" fill="#e8704a" stroke="#a24e34" stroke-width="3"/>
+  <circle cx="59" cy="319" r="15.299999999999999" fill="#ffffff"/>
+  <circle cx="59" cy="319" r="13.799999999999999" fill="#3f7fd0"/>
+  <rect x="164" y="570" width="22" height="22" rx="5" fill="#e8704a"/>
+  <rect x="194" y="570" width="22" height="22" rx="5" fill="#e8704a"/>
+  <rect x="224" y="570" width="22" height="22" rx="5" fill="#e6e0d4"/>
+  <rect x="254" y="570" width="22" height="22" rx="5" fill="#e6e0d4"/>
+</svg>

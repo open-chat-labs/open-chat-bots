@@ -74,6 +74,7 @@ describe("GET /bot_definition", () => {
             { name: "minesweeper", image_url: "app/minesweeper.svg" },
             { name: "hex", image_url: "app/hex.svg" },
             { name: "words", image_url: "app/words.svg" },
+            { name: "crates", image_url: "app/crates.svg" },
         ]);
         expect(json.mini_apps).toHaveLength(GAMES.length);
         // Each named as OpenChat takes an app's name
@@ -92,6 +93,7 @@ describe("GET /bot_definition", () => {
             { name: "Minesweeper Race", value: "minesweeper" },
             { name: "Hex", value: "hex" },
             { name: "Word Race", value: "words" },
+            { name: "Crate Race", value: "crates" },
         ]);
         // And the only parameter: the settings are the host's, in the lobby
         expect(json.commands[0].params).toHaveLength(1);

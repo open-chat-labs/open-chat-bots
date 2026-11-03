@@ -19,7 +19,9 @@ export const definition = {
         "dodging the spam bots, where the top score wins, or race up to 10 players to clear " +
         "the same minefield, each on their own board, where the first to clear it wins, or " +
         "play Hex, two players racing to join their sides of the board, which anyone can watch, " +
-        "or race up to 20 players to guess the same five-letter word, each with six guesses.",
+        "or race up to 20 players to guess the same five-letter word, each with six guesses, " +
+        "or race up to 20 players to push the same crates onto their goals, each on their own " +
+        "copy of the level.",
     commands: [
         {
             name: "play",

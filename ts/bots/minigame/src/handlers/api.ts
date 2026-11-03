@@ -8,6 +8,7 @@ import type { Deps } from "../deps";
 import type { ChatManRace } from "../games/chatman/race";
 import type { ChessGame } from "../games/chess/chess";
 import type { ActionResponse } from "../games/chess/types";
+import type { CrateRace } from "../games/crates/race";
 import type { Duel } from "../games/duel/duel";
 import type { Position } from "../games/duel/types";
 import type { Game, GameKind, NamesResponse } from "../games/game";
@@ -251,4 +252,15 @@ export function minesweeperAct(req: Request, res: Response, deps: Deps): Promise
  */
 export function wordsGuess(req: Request, res: Response, deps: Deps): Promise<void> {
     return act<WordRace>(req, res, deps, "words", (race, userId, body) => race.guess(userId, body));
+}
+
+/**
+ * `POST /api/crates/path` with `{ "path": "rrdlu" }`: a Crate racer's moves from the level's start,
+ * less those undone, answered with their path as the bot has it, which only they see while the race
+ * is on. No path at all asks for it, eg. as the page opens.
+ */
+export function cratesPath(req: Request, res: Response, deps: Deps): Promise<void> {
+    return act<CrateRace>(req, res, deps, "crates", (race, userId, body) =>
+        race.path(userId, body),
+    );
 }
