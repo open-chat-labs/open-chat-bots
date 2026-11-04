@@ -1,9 +1,10 @@
 // The sections a Dash Race's course is made of, each a run of obstacles, drawn as the page draws
 // them, the top row first: "#" is solid, "^" a spike on the floor, "v" one hanging from a ceiling,
 // and "." air. Rows left out above are air. Each starts and ends on two columns of flat ground,
-// two tiles high, so any can follow any. Their level is how hard they are, 1 to 3: an easy course
-// has only the first, and harder ones mostly their own (`course.ts`). `sections.spec.ts` checks
-// that a runner can get through every one, and how much leeway its jumps give.
+// two tiles high, so any can follow any. Their level is how hard they are, 1 to 3: a course is a
+// stretch of easy ones, one of medium, then hard ones the rest of the way (`course.ts`).
+// `sections.spec.ts` checks that a runner can get through every one, and how much leeway its jumps
+// give.
 
 export type Section = { level: 1 | 2 | 3; rows: readonly string[] };
 
@@ -168,6 +169,37 @@ export const SECTIONS: readonly Section[] = [
             "..........####....", //
             "######....########",
             "######....########",
+        ],
+    },
+    { level: 3, rows: ["...^^.......^^....", "#######...########", "#######...########"] },
+    { level: 3, rows: ["....^^^.....^^^....", "###################", "###################"] },
+    {
+        level: 3,
+        rows: [
+            "....##############....", //
+            "....vvvvvvvvvvvvvv....",
+            "......................",
+            "......................",
+            "......................",
+            "#####...####...#######",
+            "#####...####...#######",
+        ],
+    },
+    {
+        level: 3,
+        rows: ["...^...^^...^...^^....", "######################", "######################"],
+    },
+    { level: 3, rows: ["######.....######", "######.....######"] },
+    {
+        level: 3,
+        rows: [
+            "....###########....", //
+            "....vvvvvvvvvvv....",
+            "...................",
+            "...................",
+            "......^...^...^....",
+            "###################",
+            "###################",
         ],
     },
 ];

@@ -2,7 +2,8 @@
 // made of sections (`sections.ts`), a run of obstacles each, picked as the race starts and joined
 // end to end between a flat start and a flat finish. Every section starts and ends on the same
 // flat ground, so any can follow any. Some of the joins have a checkpoint, where a runner who
-// falls starts again.
+// falls starts again, and the course gets harder at the first two: easy to the first, medium to
+// the second, then hard the rest of the way.
 import { SECTIONS, type Section } from "./sections";
 
 /** A tile's width and height, in the units the runner's moves are counted in */
@@ -22,9 +23,12 @@ export const SPIKE_DOWN = 3;
 
 export type Tile = typeof AIR | typeof SOLID | typeof SPIKE_UP | typeof SPIKE_DOWN;
 
-/** How many sections a course has, and how many of them are between checkpoints */
-export const SECTIONS_PER_COURSE = 12;
+/** How many sections are between checkpoints */
 export const CHECKPOINT_EVERY = 4;
+
+/** The level of each stretch between checkpoints, from the start: easy, medium, then hard */
+export const STRETCH_LEVELS: readonly number[] = [1, 2, 3, 3, 3];
+export const SECTIONS_PER_COURSE = STRETCH_LEVELS.length * CHECKPOINT_EVERY;
 
 /** The flat ground before the first section, and after the last, with the finish line on it */
 const START_COLUMNS = 6;
@@ -121,30 +125,23 @@ export function buildCourse(sections: readonly number[]): Course | undefined {
 }
 
 /**
- * Picks a course's sections for a difficulty, 1 to 3: an easy course is all easy sections, and a
- * harder one starts with a few of the level below its own, then the rest of its own, each run in
- * a shuffled order, so a section comes round again only once the others of its level have
+ * Picks a course's sections: a stretch of easy ones, then medium, then hard, each the next few of
+ * its level's in a random order, so no section comes round twice
  */
-export function pickSections(difficulty: number, random: () => number): number[] {
-    const level = Math.min(3, Math.max(1, Math.floor(difficulty)));
-    const below = level === 1 ? 0 : Math.floor(SECTIONS_PER_COURSE / 3);
-    return [
-        ...shuffled(level - 1, below, random),
-        ...shuffled(level, SECTIONS_PER_COURSE - below, random),
-    ];
+export function pickSections(random: () => number): number[] {
+    const levels = new Map<number, number[]>();
+    return STRETCH_LEVELS.flatMap((level) => {
+        if (!levels.has(level)) levels.set(level, shuffled(level, random));
+        return levels.get(level)!.splice(0, CHECKPOINT_EVERY);
+    });
 }
 
-/** `count` of the sections of a level, in a random order, going round again if there are fewer */
-function shuffled(level: number, count: number, random: () => number): number[] {
+/** The sections of a level, in a random order */
+function shuffled(level: number, random: () => number): number[] {
     const ids = SECTIONS.flatMap((s, id) => (s.level === level ? [id] : []));
-    const picked: number[] = [];
-    while (picked.length < count && ids.length > 0) {
-        const round = [...ids];
-        for (let i = round.length - 1; i > 0; i--) {
-            const j = Math.floor(random() * (i + 1));
-            [round[i], round[j]] = [round[j], round[i]];
-        }
-        picked.push(...round.slice(0, count - picked.length));
+    for (let i = ids.length - 1; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1));
+        [ids[i], ids[j]] = [ids[j], ids[i]];
     }
-    return picked;
+    return ids;
 }

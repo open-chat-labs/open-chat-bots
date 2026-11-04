@@ -10,6 +10,7 @@ import {
     SOLID,
     SPIKE_DOWN,
     SPIKE_UP,
+    STRETCH_LEVELS,
     tileAt,
 } from "./course";
 import { SECTIONS } from "./sections";
@@ -42,13 +43,17 @@ describe("a Dash Race's course", () => {
         for (const [id, section] of SECTIONS.entries()) {
             expect(readSection(section), `section ${id}`).not.toHaveProperty("error");
         }
+        // Enough of each level for a course without any twice, and some to choose from
         for (const level of [1, 2, 3]) {
-            expect(SECTIONS.filter((s) => s.level === level).length).toBeGreaterThanOrEqual(8);
+            const stretches = STRETCH_LEVELS.filter((l) => l === level).length;
+            expect(SECTIONS.filter((s) => s.level === level).length).toBeGreaterThanOrEqual(
+                stretches * CHECKPOINT_EVERY + 2,
+            );
         }
     });
 
     it("joins its sections between a flat start and finish, with checkpoints between", () => {
-        const sections = pickSections(2, () => 0);
+        const sections = pickSections(() => 0);
         const course = buildCourse(sections)!;
         const width = sections.reduce((w, id) => w + SECTIONS[id].rows[0].length, 0);
         expect(course.width).toBe(6 + width + 8);
@@ -64,20 +69,24 @@ describe("a Dash Race's course", () => {
         expect(buildCourse([SECTIONS.length])).toBeUndefined();
     });
 
-    it("picks a course's sections by its difficulty, harder ones after a few of the level below", () => {
+    it("picks a course's sections, easy to the first checkpoint, medium to the second, then hard", () => {
         let seed = 7;
         const random = () => {
             seed = (seed * 16807) % 2147483647;
             return seed / 2147483647;
         };
-        const levels = (difficulty: number) =>
-            pickSections(difficulty, random).map((id) => SECTIONS[id].level);
-        expect(levels(1)).toEqual(Array(SECTIONS_PER_COURSE).fill(1));
-        expect(levels(2)).toEqual([...Array(4).fill(1), ...Array(8).fill(2)]);
-        expect(levels(3)).toEqual([...Array(4).fill(2), ...Array(8).fill(3)]);
-        // Every section of a level before any comes round again
-        const easy = pickSections(1, random);
-        const count = SECTIONS.filter((s) => s.level === 1).length;
-        expect(new Set(easy.slice(0, count)).size).toBe(count);
+        const sections = pickSections(random);
+        expect(sections.map((id) => SECTIONS[id].level)).toEqual(
+            [1, 2, 3, 3, 3].flatMap((level) => Array(CHECKPOINT_EVERY).fill(level)),
+        );
+        expect(sections).toHaveLength(SECTIONS_PER_COURSE);
+        expect(new Set(sections).size).toBe(SECTIONS_PER_COURSE);
+        // A checkpoint where each stretch starts
+        const course = buildCourse(sections)!;
+        const before = (i: number) =>
+            6 + sections.slice(0, i).reduce((w, id) => w + SECTIONS[id].rows[0].length, 0);
+        expect(course.checkpoints).toEqual([1, before(4), before(8), before(12), before(16)]);
+        // And another race, another course
+        expect(pickSections(random)).not.toEqual(sections);
     });
 });
