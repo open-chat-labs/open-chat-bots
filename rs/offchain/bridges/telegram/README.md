@@ -179,11 +179,15 @@ the Discord bridge, are in [`../core`](../core).
    cargo run --release -p oc_telegram_bridge -- setup
    ```
 
-   It warns if privacy mode is still on. Run it again only after changing the bot's commands. On
-   each cold start, the bridge checks which kinds of update Telegram sends its webhook
-   (`allowed_updates`), as Telegram keeps sending the kinds it was registered with. If any the
-   bridge handles are missing, eg. after a deploy which added channels' posts, it registers the
-   webhook again at the same url.
+   It warns if privacy mode is still on. Run it again after changing the bot's commands, its url or
+   its token. The bridge keeps only the kinds of update Telegram sends it (`allowed_updates`) up to
+   date itself:
+   - Telegram keeps sending the kinds the webhook was registered with.
+   - So on each cold start, the bridge checks them before serving, for up to 5 seconds.
+   - If any it handles are missing, eg. after a deploy which added channels' posts, it registers
+     the webhook again at the same url.
+   - Telegram allows this once a second, so instances starting together may log a 429 while
+     another one does it.
 
 8. **Point the website at it:** build the website with
    `OC_TELEGRAM_BRIDGE_LINK_URL=https://t.me/<bot username>?start={code}`, so the *Link Telegram*

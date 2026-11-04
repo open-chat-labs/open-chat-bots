@@ -322,12 +322,14 @@ pub struct WebhookInfo {
 }
 
 impl WebhookInfo {
-    /// Whether Telegram sends every update the bridge handles. It keeps sending the kinds the
-    /// webhook was registered with, so it doesn't once the bridge handles a new kind.
-    pub fn sends_all_updates(&self) -> bool {
-        self.allowed_updates
-            .as_ref()
-            .is_none_or(|allowed| UPDATES.iter().all(|kind| allowed.iter().any(|a| a == kind)))
+    /// Whether the webhook is registered, but Telegram doesn't send it every kind of update the
+    /// bridge handles. Telegram keeps sending the kinds it was registered with, so this is the case
+    /// once the bridge handles a new kind. One that isn't registered is left to `setup`.
+    pub fn is_missing_updates(&self) -> bool {
+        !self.url.is_empty()
+            && self.allowed_updates.as_ref().is_some_and(|allowed| {
+                !UPDATES.iter().all(|kind| allowed.iter().any(|a| a == kind))
+            })
     }
 }
 
@@ -548,38 +550,33 @@ mod tests {
 
     #[test]
     fn a_webhook_registered_before_the_bridge_handled_channels_is_missing_updates() {
-        let info = |allowed_updates: Value| {
-            serde_json::from_value::<WebhookInfo>(json!({
-                "url": "https://bridge.example/telegram/webhook",
+        let info = |url: &str, allowed_updates: Option<Value>| {
+            let mut info = json!({
+                "url": url,
                 "has_custom_certificate": false,
                 "pending_update_count": 0,
                 "max_connections": 10,
-                "allowed_updates": allowed_updates,
-            }))
-            .unwrap()
+            });
+            if let Some(allowed_updates) = allowed_updates {
+                info["allowed_updates"] = allowed_updates;
+            }
+            serde_json::from_value::<WebhookInfo>(info).unwrap()
         };
-        assert!(!info(json!(["message", "edited_message"])).sends_all_updates());
-        assert!(info(json!(UPDATES)).sends_all_updates());
-        assert!(
-            info(json!([
-                "callback_query",
-                "edited_channel_post",
-                "channel_post",
-                "edited_message",
-                "message"
-            ]))
-            .sends_all_updates()
-        );
-
+        let url = "https://bridge.example/telegram/webhook";
+        assert!(info(url, Some(json!(["message", "edited_message"]))).is_missing_updates());
+        assert!(!info(url, Some(json!(UPDATES))).is_missing_updates());
+        let superset = json!([
+            "callback_query",
+            "edited_channel_post",
+            "channel_post",
+            "edited_message",
+            "message"
+        ]);
+        assert!(!info(url, Some(superset)).is_missing_updates());
         // Telegram's default, which includes them all
-        let default: WebhookInfo = serde_json::from_value(json!({
-            "url": "",
-            "has_custom_certificate": false,
-            "pending_update_count": 0,
-        }))
-        .unwrap();
-        assert!(default.url.is_empty());
-        assert!(default.sends_all_updates());
+        assert!(!info(url, None).is_missing_updates());
+        // Not registered yet
+        assert!(!info("", Some(json!(["message"]))).is_missing_updates());
     }
 
     #[test]
