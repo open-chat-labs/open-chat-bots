@@ -10,9 +10,10 @@
 // - the page sends `{ kind: "mini_app_ready" }` once it's listening, to any origin, as it carries
 //   nothing secret;
 // - OpenChat answers `{ kind: "initialise_mini_app", role, user_id, token, dark_mode, locale,
-//   finished, settings }`, where only a player gets a `token`, and `settings` is what the bot gave
-//   when the game started, if anything. The page accepts it only from the window it's framed in,
-//   and after it takes messages only from, and sends them only to, its origin;
+//   finished, settings }`, where only a player is named, as a spectator's `user_id` is empty, only a
+//   player gets a `token`, and `settings` is what the bot gave when the game started, if anything.
+//   The page accepts it only from the window it's framed in, and after it takes messages only from,
+//   and sends them only to, its origin;
 // - OpenChat sends `{ kind: "mini_app_state", seq, shared, private }` with the game's latest state,
 //   and each one after it. Only a player gets `private`, their own part;
 // - OpenChat sends `initialise_mini_app` again when the user's role changes, eg. as they joined the
@@ -70,6 +71,7 @@ export type OpenChatToMiniApp =
     | {
           kind: "initialise_mini_app";
           role: MiniAppRole;
+          // The player's id, or empty for a spectator, as OpenChat doesn't say who's watching
           user_id: string;
           token?: string;
           dark_mode: boolean;
@@ -277,7 +279,11 @@ export class MiniAppClient<Shared = unknown, Private = unknown, EndState = unkno
         return this.#role;
     }
 
-    /** The user's OpenChat user id */
+    /**
+     * The user's OpenChat user id if they're a player, including one of a finished game's players.
+     * It's empty for a spectator: OpenChat doesn't tell the app who's watching, as anyone with the
+     * card on screen is. So it changes with the role: read it again after `onRoleChange`.
+     */
     get userId(): string {
         return this.#userId;
     }
