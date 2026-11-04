@@ -4,8 +4,9 @@
 // state once the game's over: the 2048 race (`race2048/view.ts`), chess (`chess/view.ts`), Four in
 // a Row (`fourinarow/view.ts`), Reversi (`reversi/view.ts`), the maze race (`maze/view.ts`),
 // ChatMan (`chatman/view.ts`), the Minesweeper race (`minesweeper/view.ts`), Hex (`hex/view.ts`),
-// the Word Race (`words/view.ts`) or the Crate Race (`crates/view.ts`). The lobby before a game
-// starts is the page's own, the same for every game, with the game's own blurb.
+// the Word Race (`words/view.ts`), the Crate Race (`crates/view.ts`) or the Dash Race
+// (`dash/view.ts`). The lobby before a game starts is the page's own, the same for every game,
+// with the game's own blurb.
 //
 // A game that's over is drawn from its end state, which the card keeps for good, so the views read
 // older versions of it too. A live state is read only at the view's own version. One this page
@@ -17,6 +18,7 @@ import { connectToOpenChat, type MiniAppClient } from "@open-ic/openchat-botclie
 import { chatmanView } from "./chatman/view";
 import { chessView } from "./chess/view";
 import { cratesView } from "./crates/view";
+import { dashView } from "./dash/view";
 import { escape } from "./format";
 import { fourInARowView } from "./fourinarow/view";
 import { hexView } from "./hex/view";
@@ -38,6 +40,7 @@ const VIEWS: readonly GameView[] = [
     hexView,
     wordsView,
     cratesView,
+    dashView,
 ];
 
 const root = document.getElementById("app") as HTMLElement;

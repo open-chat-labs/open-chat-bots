@@ -34,25 +34,13 @@ import {
     type RacerState,
     type SharedState,
 } from "../../games/maze/types";
+import { racerColour } from "../colours";
 import { roomFor } from "../layout";
 import { LiveSocket } from "../live";
 import { fetchUsernames, nameOf } from "../names";
 import { raceClock, raceLobby } from "../race";
 import type { GameView, ViewContext } from "../view";
 
-/** The racers' colours, in the order they joined */
-const COLOURS = [
-    "#e8704a",
-    "#3f7fd0",
-    "#2fa36b",
-    "#c94fb5",
-    "#d9a400",
-    "#20a0b8",
-    "#8a5cd6",
-    "#d64d6b",
-    "#6d8f24",
-    "#8c6d4f",
-];
 const KEYS: Record<string, Direction> = {
     ArrowUp: "up",
     ArrowDown: "down",
@@ -374,7 +362,7 @@ function render() {
 
     // Everyone, closest to the way out first
     if (maze !== undefined) {
-        const colour = new Map(s.racers.map((r, i) => [r.id, COLOURS[i % COLOURS.length]]));
+        const colour = new Map(s.racers.map((r, i) => [r.id, racerColour(i)]));
         const rows = s.racers
             .map((r) => ({ r, left: stepsOut(maze, r.x, r.y) }))
             .sort((a, b) => a.left - b.left || a.r.moves - b.r.moves)
@@ -524,7 +512,7 @@ function draw() {
         const mine = r.id === ctx?.oc.userId;
         g.beginPath();
         g.arc(cx, cy, cell * (mine ? 0.34 : 0.28), 0, 2 * Math.PI);
-        g.fillStyle = COLOURS[i % COLOURS.length];
+        g.fillStyle = racerColour(i);
         g.fill();
         // The viewer's own dot is a little bigger, and ringed
         if (mine) {

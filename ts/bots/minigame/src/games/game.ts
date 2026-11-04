@@ -13,7 +13,8 @@ export type GameKind =
     | "minesweeper"
     | "hex"
     | "words"
-    | "crates";
+    | "crates"
+    | "dash";
 
 export type ConfigureResult = { ok: true } | { ok: false; error: string };
 

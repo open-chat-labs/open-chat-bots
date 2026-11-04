@@ -1,7 +1,7 @@
 # MiniGameBot
 
 Games played from MiniApp cards in OpenChat chats. `/play <game>` posts a card; people join from the
-card, a player starts the game, and it's played in the card, in the bot's own page. Ten games:
+card, a player starts the game, and it's played in the card, in the bot's own page. Eleven games:
 
 - a **2048 race**: up to 100 players, each on their own board, and the first to make a 2048 tile
   wins, or the top score when 10 minutes are up. A player whose board gets stuck restarts on a fresh
@@ -54,7 +54,12 @@ card, a player starts the game, and it's played in the card, in the bot's own pa
   each on their own copy of a level, medium unless the host sets it easy or hard. A player can push
   a crate but not pull it, or push two at once, and can undo a move. The first to put every crate
   on a goal wins, or whoever has the most on goals when the 5 minutes are up. Its levels are
-  DeepMind's Boxoban levels, and the rest is built from scratch (see "Crate Race").
+  DeepMind's Boxoban levels, and the rest is built from scratch (see "Crate Race");
+- a **Dash Race**: up to 20 players race along the same course, medium unless the host sets it
+  easy or hard, each with their own runner, which runs by itself. A tap jumps, higher the longer
+  it's held, over spikes and pits and up steps, and a spike or a pit sends the runner back to the
+  last checkpoint. The first to the flag wins, or whoever got furthest when the 3 minutes are up.
+  It's built from scratch, its courses and look its own (see "Dash Race").
 
 The bot is a TypeScript Express server, built on the SDK in [`ts/library`](../../library), and the
 page is a small browser app built with Vite from the same source tree, so the server and the page
@@ -78,9 +83,9 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    lobby's form.
 2. **Joining** goes through OpenChat's buttons on the card. The service asks the bot at
    `POST /mini_app/join`, which looks the user's name up and gives them a seat: up to 100 in a race,
-   10 in a maze race, at ChatMan or in a Minesweeper race, 20 in a Word Race or a Crate Race, two at
-   chess, Four in a Row, Reversi and Hex ("This game is for two" after that, "The game has started"
-   once it has).
+   10 in a maze race, at ChatMan or in a Minesweeper race, 20 in a Word Race, a Crate Race or a
+   Dash Race, two at chess, Four in a Row, Reversi and Hex ("This game is for two" after that, "The
+   game has started" once it has).
    Leaving, `POST /mini_app/leave`, frees the seat before the start. After it, a race goes on
    without them; a game of two can't, so it ends, the result being that they "left the game". The
    lobby's seats are published as the game's state, so the page shows who's joined.
@@ -133,6 +138,12 @@ which the store, the handlers, the sweep and the publisher use, and which each g
      `{ "ok": true, "own": { "path": "rrdlu" } }`, or `{ "ok": false, "error": "..", "own": .. }`
      with a 409 for a path with a move that can't be made, which the bot doesn't take. No path at
      all asks for it.
+   - **Dash Race**: `POST /api/dash/run` with `{ "changes": [40, 52, 97], "upTo": 120 }`, the ticks
+     the racer's button went down and came up, counted from the race's start at 60 a second, and
+     the tick their page has played them to, answers with their run as the bot has it and its
+     clock, `{ "ok": true, "own": { "changes": [40, 52, 97], "upTo": 120 }, "now": 1730000000000 }`,
+     or `{ "ok": false, "error": "..", "own": .., "now": .. }` with a 409 for a run that doesn't
+     go on from the bot's, or is further on than the race. No run at all asks for it.
 5. **The clock**. The bot checks every game's clock every second, and before every request, so a
    game ends on time whether or not anyone's still playing, and so does one that was running when
    the bot last stopped. A race ends when its 10 minutes are up, and the top score wins: a player's
@@ -478,6 +489,44 @@ racer know where that racer's crates are: they'd show the others how to do it.
   phone, a tap on a cell beside the player moves there, and a tap on one further off walks them
   round to it, pushing nothing. Someone watching sees the level as everyone started it, and how
   far everyone's got.
+
+## Dash Race
+
+Everyone runs the same course, so it's a race of timing: each racer's own runner, and only how far
+they've got for everyone else to see.
+
+- **The course** (`src/games/dash/course.ts`) is twelve sections (`sections.ts`), picked as the
+  race starts and joined end to end between a flat start and a flat finish, with a checkpoint
+  every four. A section is a few obstacles drawn in rows of characters: solid ground, spikes on a
+  floor or hanging from a ceiling, and air. Each starts and ends on the same flat ground, so any
+  can follow any. An easy course is all easy sections; a harder one starts with four of the level
+  below, then eight of its own.
+- **The runner** (`runner.ts`) runs right by itself, seven tiles a second, and jumps when the
+  button's pressed, higher the longer it's held, nearly three tiles at most. It still jumps a few
+  ticks after running off an edge, or pressed a few ticks before it lands. A wall stops it until it
+  jumps; a spike or the bottom of the course is a fall, after which it waits at its last
+  checkpoint, as it does at the start, for the button. It moves a tick at a time, 60 to the
+  second, in whole numbers only, so the page and the bot play the same presses to exactly the same
+  place.
+- **Every section can be got through**, which `sections.spec.ts` checks by trying every way of
+  pressing the button, a tick at a time, through each (`solve.ts`), without touching a wall. It
+  then follows a player who presses and lets go in the middle of the ticks that would do, and
+  checks the fewest ticks they had for any press or letting go: 20 for an easy section, a third of
+  a second, and 6 for a medium or hard one, a tenth.
+- **A racer's run is their button's changes**: the ticks it went down and came up, from the race's
+  start. The page plays them as they're made, on the race's clock, which it takes from the bot's
+  answers, and sends the run whole about once a second, and at once across the finish line. The
+  bot plays it on from where it last had it, takes it only if it goes on from that run and is no
+  further on than the race or past its end, and publishes how far the racer's got and how many
+  times they've fallen, every half a second at most. Each racer's run comes only in the answers to
+  their own requests: the page asks as it opens, as it needs the bot's clock anyway, so the run
+  isn't in a private part of the state, which would carry every racer's with every state. Once
+  the race is over, the state has the winner's run, which the page can play through.
+- **The first across the finish line wins.** When the time's up, whoever got furthest wins, then
+  whoever got there first.
+- **The page** draws the course on a canvas, twelve tiles across, following the racer's runner,
+  with everyone else faint where they've got furthest, and a line under it with everyone's dot. A
+  press on the course, Space or the up arrow jumps. Someone watching follows the leader.
 
 ## Adding a game
 

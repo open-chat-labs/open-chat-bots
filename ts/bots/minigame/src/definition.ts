@@ -21,7 +21,8 @@ export const definition = {
         "play Hex, two players racing to join their sides of the board, which anyone can watch, " +
         "or race up to 20 players to guess the same five-letter word, each with six guesses, " +
         "or race up to 20 players to push the same crates onto their goals, each on their own " +
-        "copy of the level.",
+        "copy of the level, or race up to 20 players along the same course, tapping to jump, " +
+        "where the first to the flag wins.",
     commands: [
         {
             name: "play",

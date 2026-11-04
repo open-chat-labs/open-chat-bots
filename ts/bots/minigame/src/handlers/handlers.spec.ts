@@ -15,6 +15,8 @@ import type { SharedState } from "../games/chess/types";
 import { CrateRace } from "../games/crates/race";
 import { LEVEL } from "../games/crates/sample";
 import type { SharedState as CratesState } from "../games/crates/types";
+import { DashRace } from "../games/dash/race";
+import type { SharedState as DashState } from "../games/dash/types";
 import { Duel } from "../games/duel/duel";
 import type { DuelState } from "../games/duel/types";
 import { FOUR_IN_A_ROW } from "../games/fourinarow/rules";
@@ -39,6 +41,7 @@ import {
     chessMove,
     chessResign,
     cratesPath,
+    dashRun,
     duelMove,
     duelResign,
     liveMove,
@@ -633,5 +636,44 @@ describe("a Crate racer's moves", () => {
         });
         expect(publish).toHaveBeenCalledTimes(1);
         expect((await send(cratesPath, deps, "carol", {})).status).toBe(403);
+    });
+});
+
+describe("a Dash racer's run", () => {
+    it("answers with their run alone and the bot's clock, and publishes how far they've got", async () => {
+        const { store, publish, deps } = setUp();
+        const race = DashRace.create();
+        race.join("alice", "Alice");
+        race.join("bob", "Bob");
+        race.start();
+        store.create(game, race);
+
+        // No run: the run as it is, which changes nothing
+        expect(await send(dashRun, deps, "alice", {})).toEqual({
+            status: 200,
+            body: { ok: true, own: { changes: [], upTo: -1 }, now: expect.any(Number) },
+        });
+        expect(publish).not.toHaveBeenCalled();
+
+        // Set off, and a few tiles on
+        expect(await send(dashRun, deps, "alice", { changes: [0], upTo: 12 })).toMatchObject({
+            status: 200,
+            body: { ok: true, own: { changes: [0], upTo: 12 } },
+        });
+        expect(publish).toHaveBeenCalledTimes(1);
+        const shared = store.get(game)!.play.shared() as DashState;
+        expect(shared.racers[0]).toEqual({ id: "alice", tiles: 2, falls: 0 });
+
+        // A run further on than the race: refused, with the run the bot has, and nothing published
+        expect(await send(dashRun, deps, "alice", { changes: [0], upTo: 10_000 })).toMatchObject({
+            status: 409,
+            body: {
+                ok: false,
+                error: "That run is ahead of the race",
+                own: { changes: [0], upTo: 12 },
+            },
+        });
+        expect(publish).toHaveBeenCalledTimes(1);
+        expect((await send(dashRun, deps, "carol", {})).status).toBe(403);
     });
 });
