@@ -31,14 +31,16 @@ the Discord bridge, are in [`../core`](../core).
   1. An admin adds the bot to the channel as an admin who can post messages.
   2. They run `/bridge` in a private chat with the bot, which shows a *Choose a channel* button.
      It lists their channels the bot is in.
-  3. They choose the channel. The bridge checks they're one of its admins and sends them the code.
+  3. They choose the channel. The bridge checks they're one of its admins, and that it can post
+     there, and sends them the code.
   4. They install the bridge bot in OpenChat and run `/bridge <code>` there, as for a group.
 
   `/bridge` run in the channel says to do this. `/unbridge` and `/status` work in the channel, as
   only its admins can post there. A channel's posts are relayed as the channel, with its title as
   their author's name, and can't be linked to an OpenChat account. A post copied into the channel's
   discussion group isn't taken as a command there, so a channel's `/unbridge` leaves its group
-  bridged.
+  bridged. If the channel is bridged, those copies aren't relayed from the group either, as its
+  posts, and the bridge's own, already reach OpenChat through the channel.
 
   Both chats are told once they're bridged, with a link to the OpenChat chat on the other side,
   and again if they stop being bridged. The bridge doesn't relay its own notices.

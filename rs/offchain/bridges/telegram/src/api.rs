@@ -79,6 +79,13 @@ impl TelegramApi {
         ))
     }
 
+    /// Whether the bot is one of the channel's admins and can post in it
+    pub async fn can_post_in_channel(&self, chat_id: i64) -> Result<bool> {
+        let body = json!({ "chat_id": chat_id, "user_id": bot_id(&self.token)? });
+        let member: ChatMember = self.call("getChatMember", &body).await?;
+        Ok(can_post(&member))
+    }
+
     /// The user's current profile photo, in the smallest size at least `min_width` wide, or the
     /// largest. None if they have none the bot can see, which their privacy settings decide.
     pub async fn current_profile_photo(
@@ -181,6 +188,18 @@ impl TelegramApi {
     }
 }
 
+// A bot's token starts with its id, eg. "123456:ABC-DEF"
+fn bot_id(token: &str) -> Result<i64> {
+    token
+        .split_once(':')
+        .and_then(|(id, _)| id.parse().ok())
+        .ok_or_else(|| anyhow!("The bot's token doesn't start with its id"))
+}
+
+fn can_post(member: &ChatMember) -> bool {
+    member.status == "administrator" && member.can_post_messages == Some(true)
+}
+
 fn message_body(chat_id: i64, html: &str) -> Value {
     json!({
         "chat_id": chat_id,
@@ -259,6 +278,8 @@ struct ApiResponse<T> {
 #[derive(Deserialize)]
 struct ChatMember {
     status: String,
+    /// Only for a channel's admins
+    can_post_messages: Option<bool>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -493,6 +514,24 @@ mod tests {
         }))
         .unwrap();
         assert!(update.message.unwrap().is_automatic_forward);
+    }
+
+    #[test]
+    fn the_bot_can_post_in_a_channel_only_as_an_admin_allowed_to() {
+        let member = |value| serde_json::from_value::<ChatMember>(value).unwrap();
+        assert!(can_post(&member(json!({
+            "status": "administrator",
+            "user": { "id": 123456, "is_bot": true, "first_name": "Bridge" },
+            "can_post_messages": true,
+        }))));
+        assert!(!can_post(&member(json!({
+            "status": "administrator",
+            "can_post_messages": false,
+        }))));
+        assert!(!can_post(&member(json!({ "status": "left" }))));
+
+        assert_eq!(bot_id("123456:ABC-DEF").unwrap(), 123456);
+        assert!(bot_id("token").is_err());
     }
 
     #[test]

@@ -86,6 +86,19 @@ impl UpdateHandler {
             self.api.send_message(message.chat.id, help, None).await?;
             return Ok(());
         }
+        // A bridged channel's posts, including the bridge's own, reach OpenChat through its
+        // pairing, so their copies in its discussion group aren't relayed from there too
+        if message.is_automatic_forward
+            && let Some(channel) = &message.sender_chat
+            && self
+                .bridge
+                .store
+                .pairing(&channel.id.to_string())
+                .await?
+                .is_some()
+        {
+            return Ok(());
+        }
 
         self.bridge
             .relay_inbound(InboundMessage {
@@ -255,9 +268,22 @@ impl UpdateHandler {
             Ok(false) => return "Only the channel's admins can bridge it.".to_string(),
             Err(error) => {
                 warn!(%error, "Failed to check whether a user is a channel's admin");
-                return "Something went wrong. Check I'm one of the channel's admins, then try \
-                    again."
+                return "Something went wrong. Check I'm one of the channel's admins, then run \
+                    /bridge again."
                     .to_string();
+            }
+        }
+        // Otherwise it would be paired, but nothing from OpenChat could be posted in it
+        match self.api.can_post_in_channel(shared.chat_id).await {
+            Ok(true) => {}
+            Ok(false) => {
+                return "I can't post in that channel. Make me one of its admins, able to post \
+                    messages, then run /bridge again."
+                    .to_string();
+            }
+            Err(error) => {
+                warn!(%error, "Failed to check whether the bot can post in a channel");
+                return "Something went wrong. Please run /bridge again.".to_string();
             }
         }
         let pending = PendingPairing {
