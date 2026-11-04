@@ -43,7 +43,7 @@ function levelsOf(difficulty: number): readonly string[] {
     return difficulty === EASY ? EASY_LEVELS : difficulty === HARD ? HARD_LEVELS : MEDIUM_LEVELS;
 }
 
-export class CrateRace extends Race<Racer, Ending, CratesData> {
+export class CrateRace extends Race<Racer, Ending, CratesData, SharedState> {
     readonly kind = GAME_ID;
     /** The level, read from its code, and the code it was read from */
     #level?: { code: string; level: Level | undefined };

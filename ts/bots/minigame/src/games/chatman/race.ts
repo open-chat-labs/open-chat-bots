@@ -48,7 +48,7 @@ const LIVE_MS = 100;
 
 const refused = (error: string): LiveResult => ({ ok: false, error, changed: true });
 
-export class ChatManRace extends Race<ChatPlayer, Ending, ChatManData> {
+export class ChatManRace extends Race<ChatPlayer, Ending, ChatManData, SharedState> {
     readonly kind = GAME_ID;
     #mazes?: Mazes;
     /** Each player's board, unpacked, as it's played on */

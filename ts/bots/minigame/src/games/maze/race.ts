@@ -22,7 +22,7 @@ export type MazeData = RaceData<Racer, Ending> & { seed?: number };
  */
 const PUBLISH_MS = 250;
 
-export class MazeRace extends Race<Racer, Ending, MazeData> {
+export class MazeRace extends Race<Racer, Ending, MazeData, SharedState> {
     readonly kind = GAME_ID;
     #maze?: Maze;
 

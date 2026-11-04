@@ -45,7 +45,7 @@ export type WordsData = RaceData<Racer, Ending> & {
 /** What a racer's request did: the answer, and whether the race changed, so it's published */
 export type GuessOutcome = { result: GuessResponse; changed: boolean };
 
-export class WordRace extends Race<Racer, Ending, WordsData> {
+export class WordRace extends Race<Racer, Ending, WordsData, SharedState> {
     readonly kind = GAME_ID;
 
     constructor(data: WordsData, options: RaceOptions = {}) {
@@ -108,8 +108,10 @@ export class WordRace extends Race<Racer, Ending, WordsData> {
         return { result: { ok: true, own: this.own(userId)! }, changed: true };
     }
 
-    // Whoever came closest: their closest guess had the most letters in place, then the most in
-    // the word elsewhere, and they made it first. Nobody, if nobody guessed.
+    /**
+     * Whoever came closest: their closest guess had the most letters in place, then the most in
+     * the word elsewhere, and they made it first. Nobody, if nobody guessed.
+     */
     protected leader(): string | undefined {
         let best: { id: string; marks: Marks; at: number } | undefined;
         for (const p of this.data.players) {

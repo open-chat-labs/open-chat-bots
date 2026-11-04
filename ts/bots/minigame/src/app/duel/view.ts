@@ -95,6 +95,10 @@ export function duelView<M, P extends Position<M>>(
 
     const current = () => end ?? shared;
 
+    function name(s: DuelState<M>, id: string | undefined): string {
+        return nameOf(id, s.names, "A player");
+    }
+
     /** The viewer's seat, if they play in this game */
     function mySeat(s: DuelState<M>): Seat | undefined {
         const oc = ctx?.oc;
@@ -240,7 +244,7 @@ export function duelView<M, P extends Position<M>>(
         if (s.ending !== undefined) {
             const final = end !== undefined ? replay(rules, end.moves, end.settings) : position;
             dom.status.textContent = describeEnding(rules, s.ending, final, (seat) =>
-                nameOf(s.players[seat], s.names, "A player"),
+                name(s, s.players[seat]),
             );
         } else if (s.phase === "open") {
             dom.status.textContent = "Waiting for the game to start";
@@ -249,20 +253,19 @@ export function duelView<M, P extends Position<M>>(
             dom.status.textContent =
                 mine === position.turn
                     ? "Your first move"
-                    : `${nameOf(s.players[position.turn], s.names, "A player")}'s first move`;
+                    : `${name(s, s.players[position.turn])}'s first move`;
             dom.status.append(dom.firstMove);
         } else {
             dom.status.textContent =
                 mine === position.turn
                     ? "Your move"
-                    : `${nameOf(s.players[position.turn], s.names, "A player")} to move`;
+                    : `${name(s, s.players[position.turn])} to move`;
         }
 
         dom.note.textContent =
             s.phase === "open"
                 ? ""
-                : (board.note?.(position, (seat) => nameOf(s.players[seat], s.names, "A player")) ??
-                  "");
+                : (board.note?.(position, (seat) => name(s, s.players[seat])) ?? "");
 
         // The viewer's seat at the bottom, or the first to move if they're watching
         const bottom: Seat = mine ?? 0;
@@ -277,7 +280,7 @@ export function duelView<M, P extends Position<M>>(
                     ? ""
                     : `<span class="score">${board.score(position, seat)}</span>`;
             row.querySelector(".name")!.innerHTML =
-                `<span class="disc-swatch seat-${seat}"></span>${escape(nameOf(id, s.names, "A player"))}${score}`;
+                `<span class="disc-swatch seat-${seat}"></span>${escape(name(s, id))}${score}`;
             row.classList.toggle("active", toMove === seat);
             (row.querySelector(".duel-clock") as HTMLElement).hidden = end !== undefined;
         }

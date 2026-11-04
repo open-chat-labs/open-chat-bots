@@ -85,7 +85,8 @@ export function openRace(options: RaceOptions = {}): RaceData<never, never> {
     };
 }
 
-export abstract class Race<R extends Seat, E extends string, D extends RaceData<R, E>>
+/** A race of racers `R`, which ends as `E` or when the time's up, keeping `D` and sharing `S` */
+export abstract class Race<R extends Seat, E extends string, D extends RaceData<R, E>, S>
     implements Game
 {
     abstract readonly kind: GameKind;
@@ -260,12 +261,12 @@ export abstract class Race<R extends Seat, E extends string, D extends RaceData<
         };
     }
 
-    abstract shared(): unknown;
+    abstract shared(): S;
 
     abstract result(): string | undefined;
 
     /** How the race ended is its final state */
-    endState(): unknown {
+    endState(): S | undefined {
         return this.data.phase === "finished" ? this.shared() : undefined;
     }
 

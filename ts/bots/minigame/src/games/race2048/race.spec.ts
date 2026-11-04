@@ -54,9 +54,9 @@ describe("start", () => {
     it("gives everyone seated a board with two tiles, and starts the clock", () => {
         const { race, time } = started();
         expect(race.phase).toBe("active");
-        expect(race.seats).toEqual([]);
-        expect(race.players.map((p) => p.id)).toEqual(["alice", "bob"]);
-        race.players.forEach((p) => {
+        expect(race.data.seats).toEqual([]);
+        expect(race.data.players.map((p) => p.id)).toEqual(["alice", "bob"]);
+        race.data.players.forEach((p) => {
             expect(p.board.filter((v) => v !== 0)).toHaveLength(2);
             expect(p.score).toBe(0);
         });
@@ -68,9 +68,9 @@ describe("start", () => {
 
     it("starting again changes nothing and gives the same players", () => {
         const { race } = started();
-        const boards = race.players.map((p) => p.board.slice());
+        const boards = race.data.players.map((p) => p.board.slice());
         expect(race.start()).toEqual(["alice", "bob"]);
-        expect(race.players.map((p) => p.board)).toEqual(boards);
+        expect(race.data.players.map((p) => p.board)).toEqual(boards);
     });
 });
 
@@ -124,7 +124,7 @@ describe("moves", () => {
         expect(race.phase).toBe("finished");
         expect(race.data.ended).toBe("target");
         expect(race.winner?.id).toBe("alice");
-        expect(race.players[0].won).toBe(true);
+        expect(race.data.players[0].won).toBe(true);
         expect(race.result()).toBe(`@UserId(alice) reached ${TARGET} in 2m 15s`);
         expect(race.move("bob", "left")).toEqual({ ok: false, error: "The race is over" });
         expect(race.restart("bob")).toEqual({ ok: false, error: "The race is over" });
@@ -186,8 +186,8 @@ describe("time limit", () => {
         expect(race.data.ended).toBe("time");
         expect(race.data.finishedAt).toBe(time.now());
         expect(race.winner?.id).toBe("bob");
-        expect(race.players[1].won).toBe(true);
-        expect(race.players[0].won).toBe(false);
+        expect(race.data.players[1].won).toBe(true);
+        expect(race.data.players[0].won).toBe(false);
         expect(race.result()).toBe("Time's up! @UserId(bob) won with 5,432 points");
         // Only the once
         expect(race.endIfTimeUp()).toBe(false);

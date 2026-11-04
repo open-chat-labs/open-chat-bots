@@ -50,7 +50,7 @@ export type ActOutcome = { result: ActResponse; changed: boolean };
 /** What one action did to a racer's board, or why it was refused */
 type Applied = { changed: boolean; error?: string };
 
-export class MinesweeperRace extends Race<Racer, Ending, MinesData> {
+export class MinesweeperRace extends Race<Racer, Ending, MinesData, SharedState> {
     readonly kind = GAME_ID;
     #field?: Field;
 

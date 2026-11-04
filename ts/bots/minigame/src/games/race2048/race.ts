@@ -59,7 +59,7 @@ export function publishEveryMs(players: number): number {
     return 400;
 }
 
-export class Race2048 extends Race<PlayerData, Ending, Race2048Data> {
+export class Race2048 extends Race<PlayerData, Ending, Race2048Data, SharedState> {
     readonly kind = GAME_ID;
 
     constructor(data: Race2048Data, options: RaceOptions = {}) {
@@ -68,18 +68,6 @@ export class Race2048 extends Race<PlayerData, Ending, Race2048Data> {
 
     static create(options: RaceOptions = {}): Race2048 {
         return new Race2048(openRace(options), options);
-    }
-
-    get seats(): readonly Seat[] {
-        return this.data.seats;
-    }
-
-    get players(): readonly PlayerData[] {
-        return this.data.players;
-    }
-
-    get host(): string | undefined {
-        return this.data.host;
     }
 
     /** The tile which wins */
