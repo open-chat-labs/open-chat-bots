@@ -88,7 +88,8 @@ function initialise(
     win.send({
         kind: "initialise_mini_app",
         role,
-        user_id: USER,
+        // OpenChat names only a player
+        user_id: role === "player" ? USER : "",
         // A finished game's players get no token
         token: role === "player" && !finished ? token(seconds) : undefined,
         dark_mode: true,
@@ -194,6 +195,22 @@ describe("connectToOpenChat", () => {
         // Again, eg. as the user's role changed, with what the card has now
         win.send({ kind: "initialise_mini_app", role: "spectator", user_id: USER, settings: null });
         expect(client.settings).toBeUndefined();
+    });
+
+    test("has an empty user id for a spectator, and the user's once they play", async () => {
+        const win = new FakeWindow();
+        const connecting = connectToOpenChat({ window: win });
+        initialise(win, { role: "spectator" });
+        const client = await connecting;
+        expect([client.role, client.userId]).toEqual(["spectator", ""]);
+
+        // the user joined from the card
+        initialise(win);
+        expect([client.role, client.userId]).toEqual(["player", USER]);
+
+        // and left again
+        initialise(win, { role: "spectator" });
+        expect([client.role, client.userId]).toEqual(["spectator", ""]);
     });
 
     test("fills in a missing theme or language", async () => {

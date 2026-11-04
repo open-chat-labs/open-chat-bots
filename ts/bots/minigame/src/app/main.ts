@@ -335,15 +335,15 @@ function settingsForm(
 ): string | Field[] {
     const { specs, current, host, hostName } = settings;
     const what = specs.map((spec) => spec.label.toLowerCase()).join(" and the ");
-    if (host !== undefined && host === oc?.userId && !player) {
-        // The host before they've joined: only a player's token reaches the bot
-        return `<p class="muted small">Join to change the ${what}.</p>`;
-    }
-    if (host === undefined || host !== oc?.userId) {
+    // Only a seated host gets the form, as only a player's token reaches the bot. OpenChat doesn't
+    // say who a spectator is, so a host who hasn't joined can't be told it's them.
+    if (host === undefined || host !== oc?.userId || !player) {
         // The name from the seat, looked up as they joined, over the one from the command, which
         // may have been a placeholder if the lookup failed then
-        const name = seats.find((s) => s.id === host)?.name ?? hostName;
-        return `<p class="muted small">${name === undefined ? "The host" : escape(name)} can change the ${what}.</p>`;
+        const seat = seats.find((s) => s.id === host);
+        const name = seat?.name ?? hostName;
+        const once = host !== undefined && seat === undefined ? " once they've joined" : "";
+        return `<p class="muted small">${name === undefined ? "The host" : escape(name)} can change the ${what}${once}.</p>`;
     }
     return specs.map((spec) => {
         const value = current[spec.id] ?? spec.default;

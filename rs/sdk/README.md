@@ -543,7 +543,9 @@ let claims = verifier.player(&jwt)?;
 // A token outlives a removal by up to an hour, so check they're still playing
 ```
 
-Spectators never reach the bot: the service passes them the shared state.
+The bot never hears from spectators: the service passes them the shared state, and OpenChat
+doesn't tell the bot or its app who they are, as an app's user id is empty for a spectator. Their
+browsers still load the app's page and artwork from the bot's servers.
 
 ### No wagering
 
