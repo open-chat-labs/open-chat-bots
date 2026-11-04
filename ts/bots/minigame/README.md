@@ -495,9 +495,10 @@ racer know where that racer's crates are: they'd show the others how to do it.
 Everyone runs the same course, so it's a race of timing: each racer's own runner, and only how far
 they've got for everyone else to see.
 
-- **The course** (`src/games/dash/course.ts`) is twelve sections (`sections.ts`), picked as the
+- **The course** (`src/games/dash/course.ts`) is twenty sections (`sections.ts`), picked as the
   race starts and joined end to end between a flat start and a flat finish, with a checkpoint
-  every four. It's easy to the first checkpoint, medium to the second, then hard. A section is a
+  every four. It's easy to the first checkpoint, medium to the second, then hard the rest of the
+  way, and no section comes twice. A section is a
   few obstacles drawn in rows of characters: solid ground, spikes on a floor or hanging from a
   ceiling, and air. Each starts and ends on the same flat ground, so any can follow any. There's
   no setting for how hard it is, only for how long the race lasts.

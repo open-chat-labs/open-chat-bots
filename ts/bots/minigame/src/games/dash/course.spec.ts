@@ -43,9 +43,12 @@ describe("a Dash Race's course", () => {
         for (const [id, section] of SECTIONS.entries()) {
             expect(readSection(section), `section ${id}`).not.toHaveProperty("error");
         }
-        // Enough of each level for a course, and some to choose from
-        for (const level of STRETCH_LEVELS) {
-            expect(SECTIONS.filter((s) => s.level === level).length).toBeGreaterThanOrEqual(8);
+        // Enough of each level for a course without any twice, and some to choose from
+        for (const level of [1, 2, 3]) {
+            const stretches = STRETCH_LEVELS.filter((l) => l === level).length;
+            expect(SECTIONS.filter((s) => s.level === level).length).toBeGreaterThanOrEqual(
+                stretches * CHECKPOINT_EVERY + 2,
+            );
         }
     });
 
@@ -73,18 +76,16 @@ describe("a Dash Race's course", () => {
             return seed / 2147483647;
         };
         const sections = pickSections(random);
-        expect(sections.map((id) => SECTIONS[id].level)).toEqual([
-            ...Array(CHECKPOINT_EVERY).fill(1),
-            ...Array(CHECKPOINT_EVERY).fill(2),
-            ...Array(CHECKPOINT_EVERY).fill(3),
-        ]);
+        expect(sections.map((id) => SECTIONS[id].level)).toEqual(
+            [1, 2, 3, 3, 3].flatMap((level) => Array(CHECKPOINT_EVERY).fill(level)),
+        );
         expect(sections).toHaveLength(SECTIONS_PER_COURSE);
         expect(new Set(sections).size).toBe(SECTIONS_PER_COURSE);
-        // Each checkpoint after the start is where a harder stretch starts
+        // A checkpoint where each stretch starts
         const course = buildCourse(sections)!;
         const before = (i: number) =>
             6 + sections.slice(0, i).reduce((w, id) => w + SECTIONS[id].rows[0].length, 0);
-        expect(course.checkpoints).toEqual([1, before(4), before(8)]);
+        expect(course.checkpoints).toEqual([1, before(4), before(8), before(12), before(16)]);
         // And another race, another course
         expect(pickSections(random)).not.toEqual(sections);
     });

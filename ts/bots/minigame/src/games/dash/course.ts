@@ -2,8 +2,8 @@
 // made of sections (`sections.ts`), a run of obstacles each, picked as the race starts and joined
 // end to end between a flat start and a flat finish. Every section starts and ends on the same
 // flat ground, so any can follow any. Some of the joins have a checkpoint, where a runner who
-// falls starts again, and the course gets harder at each: easy to the first, medium to the
-// second, then hard.
+// falls starts again, and the course gets harder at the first two: easy to the first, medium to
+// the second, then hard the rest of the way.
 import { SECTIONS, type Section } from "./sections";
 
 /** A tile's width and height, in the units the runner's moves are counted in */
@@ -27,7 +27,7 @@ export type Tile = typeof AIR | typeof SOLID | typeof SPIKE_UP | typeof SPIKE_DO
 export const CHECKPOINT_EVERY = 4;
 
 /** The level of each stretch between checkpoints, from the start: easy, medium, then hard */
-export const STRETCH_LEVELS: readonly number[] = [1, 2, 3];
+export const STRETCH_LEVELS: readonly number[] = [1, 2, 3, 3, 3];
 export const SECTIONS_PER_COURSE = STRETCH_LEVELS.length * CHECKPOINT_EVERY;
 
 /** The flat ground before the first section, and after the last, with the finish line on it */
@@ -125,11 +125,15 @@ export function buildCourse(sections: readonly number[]): Course | undefined {
 }
 
 /**
- * Picks a course's sections, harder at each checkpoint: a stretch of easy ones, then medium, then
- * hard, each a few of its level's in a random order
+ * Picks a course's sections: a stretch of easy ones, then medium, then hard, each the next few of
+ * its level's in a random order, so no section comes round twice
  */
 export function pickSections(random: () => number): number[] {
-    return STRETCH_LEVELS.flatMap((level) => shuffled(level, random).slice(0, CHECKPOINT_EVERY));
+    const levels = new Map<number, number[]>();
+    return STRETCH_LEVELS.flatMap((level) => {
+        if (!levels.has(level)) levels.set(level, shuffled(level, random));
+        return levels.get(level)!.splice(0, CHECKPOINT_EVERY);
+    });
 }
 
 /** The sections of a level, in a random order */

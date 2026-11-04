@@ -49,7 +49,7 @@ describe("a Dash Race", () => {
         const shared = race.shared();
         expect(shared.sections).toHaveLength(SECTIONS_PER_COURSE);
         expect(shared.sections!.map((id) => SECTIONS[id].level)).toEqual(
-            [1, 2, 3].flatMap((level) => Array(4).fill(level)),
+            [1, 2, 3, 3, 3].flatMap((level) => Array(4).fill(level)),
         );
         expect(shared.racers).toEqual([
             { id: "alice", tiles: 1, falls: 0 },
