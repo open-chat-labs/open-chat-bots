@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { parseSettings } from "../settings";
 import { SECTIONS_PER_COURSE } from "./course";
 import { DashRace } from "./race";
 import { SECTIONS } from "./sections";
-import { EASY, HARD } from "./settings";
+import { DASH_SETTINGS } from "./settings";
 import { AHEAD_TICKS, MAX_PLAYERS, type SharedState } from "./types";
 
 const MINUTE = 60_000;
@@ -42,25 +43,25 @@ describe("a Dash Race", () => {
         expect(race.isSeated("p3")).toBe(false);
     });
 
-    it("picks a course of the difficulty the host set, and everyone starts at its start", () => {
-        const easy = seated({ difficulty: EASY }).race;
-        easy.start();
-        const shared = easy.shared();
+    it("picks a course, easy at first and harder as it goes, and everyone starts at its start", () => {
+        const { race } = seated();
+        race.start();
+        const shared = race.shared();
         expect(shared.sections).toHaveLength(SECTIONS_PER_COURSE);
-        expect(shared.sections!.every((id) => SECTIONS[id].level === 1)).toBe(true);
+        expect(shared.sections!.map((id) => SECTIONS[id].level)).toEqual([
+            1,
+            2,
+            2,
+            ...Array(9).fill(3),
+        ]);
         expect(shared.racers).toEqual([
             { id: "alice", tiles: 1, falls: 0 },
             { id: "bob", tiles: 1, falls: 0 },
         ]);
         expect(shared.endsAt).toBe(shared.startedAt! + 3 * MINUTE);
-        const hard = seated({ difficulty: HARD }).race;
-        hard.start();
-        expect(
-            hard
-                .shared()
-                .sections!.slice(4)
-                .every((id) => SECTIONS[id].level === 3),
-        ).toBe(true);
+        // The time's the only setting
+        expect(parseSettings(DASH_SETTINGS, { minutes: 5 })).toMatchObject({ ok: true });
+        expect(parseSettings(DASH_SETTINGS, { difficulty: 3 })).toMatchObject({ ok: false });
     });
 
     it("takes a racer's run, and tells everyone only how far they've got", () => {

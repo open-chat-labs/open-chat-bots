@@ -75,9 +75,9 @@ export class DashRace extends Race<Racer, Ending, DashData, SharedState> {
         return this.#course.course;
     }
 
-    /** Picks a course of the difficulty set, and starts everyone at its start */
+    /** Picks a course, and starts everyone at its start */
     protected begin(seats: readonly Seat[]): Racer[] {
-        this.data.sections = pickSections(this.settings().difficulty, this.random);
+        this.data.sections = pickSections(this.random);
         const start = startRunner(this.course!);
         return seats.map((s) => ({
             ...s,
