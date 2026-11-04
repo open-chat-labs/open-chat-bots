@@ -1,11 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 580" width="440" height="580" role="img" aria-label="Hex">
   <!--
     Hex's image, at the app's aspect ratio (440 by 580): OpenChat shows it in the card's frame box
-    whenever there's no app to show. Its background is opaque, so it reads the same on a light or a
-    dark page. No fonts, scripts or references. The board is drawn as the page draws it
+    whenever there's no app to show. Its background is opaque, in OpenChat's theme, light or dark
+    (below). No fonts, scripts or references. The board is drawn as the page draws it
     (src/app/hex/view.ts), 9 by 9, with a game under way: the first player's edges, top and bottom,
     in their colour, and the second's, left and right, in theirs.
   -->
+  <!-- OpenChat names its theme in the image's fragment, as it does in the app's, eg.
+       hex.svg#oc_theme=dark, which targets the group below. In a dark one, the colours are the
+       page's dark ones (style.css). -->
+  <style>
+    :root:has([id="oc_theme=dark"]:target) [fill="#faf8ef"] { fill: #1b1a19 }
+    :root:has([id="oc_theme=dark"]:target) polygon[fill="#ffffff"] { fill: #26241f }
+    :root:has([id="oc_theme=dark"]:target) [stroke="#bbada0"] { stroke: #4e463b }
+    :root:has([id="oc_theme=dark"]:target) [fill="#e8704a"] { fill: #f08a5d }
+    :root:has([id="oc_theme=dark"]:target) [stroke="#e8704a"] { stroke: #f08a5d }
+    :root:has([id="oc_theme=dark"]:target) [fill="#3f7fd0"] { fill: #5b9bef }
+    :root:has([id="oc_theme=dark"]:target) [stroke="#3f7fd0"] { stroke: #5b9bef }
+    :root:has([id="oc_theme=dark"]:target) [fill="#776e65"] { fill: #d6cec2 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#8f877d"] { fill: #a39b8f }
+  </style>
+  <g id="oc_theme=dark"/>
   <rect width="440" height="580" fill="#faf8ef"/>
   <g transform="translate(20 104) scale(1.6450)">
   <line x1="9.0" y1="14.0" x2="17.7" y2="9.0" stroke="#e8704a" stroke-width="7" stroke-linecap="round"/>
