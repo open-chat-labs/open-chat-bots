@@ -179,9 +179,11 @@ the Discord bridge, are in [`../core`](../core).
    cargo run --release -p oc_telegram_bridge -- setup
    ```
 
-   It warns if privacy mode is still on. Run it again after a deploy which changes the updates the
-   bridge asks Telegram for (`allowed_updates`), as Telegram keeps sending the ones it was set up
-   with. Channels' posts were added in November 2026.
+   It warns if privacy mode is still on. Run it again only after changing the bot's commands. On
+   each cold start, the bridge checks which kinds of update Telegram sends its webhook
+   (`allowed_updates`), as Telegram keeps sending the kinds it was registered with. If any the
+   bridge handles are missing, eg. after a deploy which added channels' posts, it registers the
+   webhook again at the same url.
 
 8. **Point the website at it:** build the website with
    `OC_TELEGRAM_BRIDGE_LINK_URL=https://t.me/<bot username>?start={code}`, so the *Link Telegram*

@@ -40,6 +40,14 @@ async fn main() -> Result<()> {
         return setup(&api, &config).await;
     }
 
+    let api_for_webhook = api.clone();
+    let secret = config.webhook_secret.clone();
+    tokio::spawn(async move {
+        if let Err(error) = update_webhook(&api_for_webhook, &secret).await {
+            warn!(%error, "Failed to check the webhook's updates");
+        }
+    });
+
     let username = match config.bot_username {
         Some(username) => username,
         None => api
@@ -126,6 +134,22 @@ async fn webhook(
             StatusCode::INTERNAL_SERVER_ERROR
         }
     }
+}
+
+// Run on each cold start, so a deploy which handles a new kind of update, eg. channels' posts, needs
+// no `setup`. Telegram would otherwise keep sending only the kinds the webhook was registered with.
+// One that isn't registered yet is left to `setup`, which knows its url.
+async fn update_webhook(api: &TelegramApi, secret: &str) -> Result<()> {
+    let webhook = api.webhook_info().await?;
+    if webhook.url.is_empty() || webhook.sends_all_updates() {
+        return Ok(());
+    }
+    api.set_webhook(&webhook.url, secret).await?;
+    info!(
+        url = webhook.url,
+        "Asked Telegram for the updates the webhook was missing"
+    );
+    Ok(())
 }
 
 // Registers the webhook and the bot's commands with Telegram, run once after deploying

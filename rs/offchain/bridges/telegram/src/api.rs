@@ -5,6 +5,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::time::Duration;
 
+/// The updates the bridge handles, which its webhook asks Telegram for
+const UPDATES: [&str; 4] = [
+    "message",
+    "edited_message",
+    "channel_post",
+    "edited_channel_post",
+];
+
 /// The few Bot API methods the bridge uses
 pub struct TelegramApi {
     http: reqwest::Client,
@@ -138,9 +146,13 @@ impl TelegramApi {
             "url": url,
             "secret_token": secret,
             "max_connections": 10,
-            "allowed_updates": ["message", "edited_message", "channel_post", "edited_channel_post"],
+            "allowed_updates": UPDATES,
         });
         self.call::<bool>("setWebhook", &body).await.map(|_| ())
+    }
+
+    pub async fn webhook_info(&self) -> Result<WebhookInfo> {
+        self.call("getWebhookInfo", &json!({})).await
     }
 
     pub async fn set_my_commands(&self, commands: &[(&str, &str)], scope: &str) -> Result<()> {
@@ -299,6 +311,24 @@ pub struct PhotoSize {
 #[derive(Deserialize, Debug)]
 struct File {
     file_path: Option<String>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct WebhookInfo {
+    /// Empty if no webhook is registered
+    pub url: String,
+    /// None if Telegram sends all but a few kinds the bridge doesn't use, eg. reactions
+    allowed_updates: Option<Vec<String>>,
+}
+
+impl WebhookInfo {
+    /// Whether Telegram sends every update the bridge handles. It keeps sending the kinds the
+    /// webhook was registered with, so it doesn't once the bridge handles a new kind.
+    pub fn sends_all_updates(&self) -> bool {
+        self.allowed_updates
+            .as_ref()
+            .is_none_or(|allowed| UPDATES.iter().all(|kind| allowed.iter().any(|a| a == kind)))
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -514,6 +544,42 @@ mod tests {
         }))
         .unwrap();
         assert!(update.message.unwrap().is_automatic_forward);
+    }
+
+    #[test]
+    fn a_webhook_registered_before_the_bridge_handled_channels_is_missing_updates() {
+        let info = |allowed_updates: Value| {
+            serde_json::from_value::<WebhookInfo>(json!({
+                "url": "https://bridge.example/telegram/webhook",
+                "has_custom_certificate": false,
+                "pending_update_count": 0,
+                "max_connections": 10,
+                "allowed_updates": allowed_updates,
+            }))
+            .unwrap()
+        };
+        assert!(!info(json!(["message", "edited_message"])).sends_all_updates());
+        assert!(info(json!(UPDATES)).sends_all_updates());
+        assert!(
+            info(json!([
+                "callback_query",
+                "edited_channel_post",
+                "channel_post",
+                "edited_message",
+                "message"
+            ]))
+            .sends_all_updates()
+        );
+
+        // Telegram's default, which includes them all
+        let default: WebhookInfo = serde_json::from_value(json!({
+            "url": "",
+            "has_custom_certificate": false,
+            "pending_update_count": 0,
+        }))
+        .unwrap();
+        assert!(default.url.is_empty());
+        assert!(default.sends_all_updates());
     }
 
     #[test]
