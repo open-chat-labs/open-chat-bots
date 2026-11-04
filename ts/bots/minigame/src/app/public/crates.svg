@@ -1,11 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 720" width="440" height="720" role="img" aria-label="Crate Race">
   <!--
     The Crate Race's image, at the app's aspect ratio (440 by 720): OpenChat shows it in the card's
-    frame box whenever there's no app to show. Its background is opaque, so it reads the same on a
-    light or a dark page. No fonts, scripts or references. A medium level from Boxoban's
+    frame box whenever there's no app to show. Its background is opaque, in OpenChat's theme, light
+    or dark (below). No fonts, scripts or references. A medium level from Boxoban's
     (src/games/crates/levels.ts), with two of its crates pushed onto goals, drawn as the page draws
     it (src/app/crates/view.ts), and under it, how many crates are on goals.
   -->
+  <!-- OpenChat names its theme in the image's fragment, as it does in the app's, eg.
+       crates.svg#oc_theme=dark, which targets the group below. In a dark one, the colours are the
+       page's dark ones (style.css). -->
+  <style>
+    :root:has([id="oc_theme=dark"]:target) [fill="#faf8ef"] { fill: #1b1a19 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#bbada0"] { fill: #4e463b }
+    :root:has([id="oc_theme=dark"]:target) [fill="#ffffff"] { fill: #26241f }
+    :root:has([id="oc_theme=dark"]:target) [fill="#e6e0d4"] { fill: #3a362f }
+    :root:has([id="oc_theme=dark"]:target) [fill="#e8704a"] { fill: #f08a5d }
+    :root:has([id="oc_theme=dark"]:target) [stroke="#e8704a"] { stroke: #f08a5d }
+    :root:has([id="oc_theme=dark"]:target) [fill="#3f7fd0"] { fill: #5b9bef }
+    :root:has([id="oc_theme=dark"]:target) [fill="#f2b179"] { fill: #c98b4b }
+    :root:has([id="oc_theme=dark"]:target) [stroke="#a97c55"] { stroke: #8d6135 }
+    :root:has([id="oc_theme=dark"]:target) [stroke="#a24e34"] { stroke: #a86141 }
+  </style>
+  <g id="oc_theme=dark"/>
   <rect width="440" height="720" fill="#faf8ef"/>
   <rect x="28" y="150" width="384" height="384" rx="10" fill="#bbada0"/>
   <rect x="36" y="158" width="46.5" height="46.5" fill="#ffffff"/>

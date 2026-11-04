@@ -1,11 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 720" width="440" height="720" role="img" aria-label="ChatMan">
   <!--
     ChatMan's image, at the app's aspect ratio (440 by 720): OpenChat shows it in the card's frame
-    box whenever there's no app to show. Its background is opaque, so it reads the same on a light
-    or a dark page. No fonts, scripts or references. The maze is a real one, built as the game
-    builds them (src/games/chatman/maze.ts), and drawn as the page draws it (src/app/chatman/draw.ts):
+    box whenever there's no app to show. Its background is opaque, in OpenChat's theme, light or
+    dark (below). No fonts, scripts or references. The maze is a real one, built as the game builds
+    them (src/games/chatman/maze.ts), and drawn as the page draws it (src/app/chatman/draw.ts):
     ChatMan, the OpenChat logo, facing right as it does, along his row, with two spam bots out.
   -->
+  <!-- OpenChat names its theme in the image's fragment, as it does in the app's, eg.
+       chatman.svg#oc_theme=dark, which targets the group below. In a dark one, the colours are the
+       page's dark ones (style.css). -->
+  <style>
+    :root:has([id="oc_theme=dark"]:target) [fill="#faf8ef"] { fill: #1b1a19 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#776e65"] { fill: #d6cec2 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#8f877d"] { fill: #a39b8f }
+  </style>
+  <g id="oc_theme=dark"/>
   <defs>
     <linearGradient id="ring" x1="0" y1="-1" x2="0" y2="1" gradientUnits="userSpaceOnUse"><stop stop-color="#FBB03B"/><stop offset="1" stop-color="#F05A24"/></linearGradient>
     <linearGradient id="lips" x1="0" y1="-1" x2="0" y2="1" gradientUnits="userSpaceOnUse"><stop stop-color="#ED1E79"/><stop offset="1" stop-color="#5F2583"/></linearGradient>

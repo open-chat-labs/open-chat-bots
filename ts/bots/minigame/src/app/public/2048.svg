@@ -1,10 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 720" width="480" height="720" role="img" aria-label="2048 Race">
   <!--
     The 2048 race's image, at the app's aspect ratio (480 by 720): OpenChat shows it in the card's
-    frame box whenever there's no app to show. Its background is opaque, so it reads the same on a
-    light or a dark page. No fonts, scripts or references: the text is whatever sans-serif the
-    viewer has. The tile colours are the game's (style.css).
+    frame box whenever there's no app to show. Its background is opaque, in OpenChat's theme, light
+    or dark (below). No fonts, scripts or references: the text is whatever sans-serif the viewer
+    has. The tile colours are the game's (style.css), which keeps them in a dark theme too, so its
+    name, which shares their text colour, has a class of its own.
   -->
+  <!-- OpenChat names its theme in the image's fragment, as it does in the app's, eg.
+       2048.svg#oc_theme=dark, which targets the group below. In a dark one, the colours are the
+       page's dark ones (style.css). -->
+  <style>
+    :root:has([id="oc_theme=dark"]:target) [fill="#faf8ef"] { fill: #1b1a19 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#bbada0"] { fill: #4e463b }
+    :root:has([id="oc_theme=dark"]:target) [fill="#cdc1b4"] { fill: #5f564a }
+    :root:has([id="oc_theme=dark"]:target) .name { fill: #d6cec2 }
+    :root:has([id="oc_theme=dark"]:target) .blurb { fill: #a39b8f }
+  </style>
+  <g id="oc_theme=dark"/>
   <rect width="480" height="720" fill="#faf8ef"/>
   <!-- The board: 4 by 4 cells of 85, with a 12 gap, 400 wide -->
   <rect x="40" y="110" width="400" height="400" rx="12" fill="#bbada0"/>
@@ -52,7 +64,7 @@
     <rect x="52" y="413" width="85" height="85" rx="6" fill="#ede0c8"/>
     <text x="94.5" y="471" font-size="42" fill="#776e65">4</text>
     <!-- The title, under the board -->
-    <text x="240" y="598" font-size="60" fill="#776e65">2048 Race</text>
-    <text x="240" y="646" font-size="24" font-weight="500" fill="#9a9188">First to a 2048 tile wins</text>
+    <text class="name" x="240" y="598" font-size="60" fill="#776e65">2048 Race</text>
+    <text class="blurb" x="240" y="646" font-size="24" font-weight="500" fill="#9a9188">First to a 2048 tile wins</text>
   </g>
 </svg>

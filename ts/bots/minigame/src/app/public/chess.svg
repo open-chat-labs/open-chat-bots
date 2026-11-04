@@ -1,6 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 740" width="440" height="740" role="img" aria-label="Chess">
-  <!-- The card shows this at the app's aspect ratio, 440 by 740, whenever there's no app to show. It has
-       its own background, so it reads the same on a light or a dark page. -->
+  <!-- The card shows this at the app's aspect ratio, 440 by 740, whenever there's no app to show.
+       Its background is opaque, in OpenChat's theme, light or dark (below), or its own without
+       one. -->
+  <!-- OpenChat names its theme in the image's fragment, as it does in the app's, eg.
+       chess.svg#oc_theme=dark, which targets one of the groups below. In either, the colours are
+       the page's (style.css). -->
+  <style>
+    :root:has([id="oc_theme=light"]:target) [fill="#26323b"] { fill: #faf8ef }
+    :root:has([id="oc_theme=light"]:target) [fill="#f5f5f7"] { fill: #776e65 }
+    :root:has([id="oc_theme=light"]:target) [fill="#b9c4cc"] { fill: #8f877d }
+    :root:has([id="oc_theme=dark"]:target) [fill="#26323b"] { fill: #1b1a19 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#f0d9b5"] { fill: #d8c4a0 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#b58863"] { fill: #8f6b4a }
+    :root:has([id="oc_theme=dark"]:target) [fill="#f5f5f7"] { fill: #d6cec2 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#b9c4cc"] { fill: #a39b8f }
+  </style>
+  <g id="oc_theme=light"/>
+  <g id="oc_theme=dark"/>
   <rect width="440" height="740" fill="#26323b"/>
   <!-- The board, seen straight on, with a frame -->
   <rect x="34" y="100" width="372" height="372" rx="6" fill="#4a3b2e"/>

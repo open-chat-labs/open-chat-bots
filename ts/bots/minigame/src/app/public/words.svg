@@ -1,11 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 720" width="440" height="720" role="img" aria-label="Word Race">
   <!--
     The Word Race's image, at the app's aspect ratio (440 by 720): OpenChat shows it in the card's
-    frame box whenever there's no app to show. Its background is opaque, so it reads the same on a
-    light or a dark page. No fonts, scripts or references. A racer's guesses at a word, marked as
-    the game marks them (src/games/words/marks.ts) and drawn as the page draws them
+    frame box whenever there's no app to show. Its background is opaque, in OpenChat's theme, light
+    or dark (below). No fonts, scripts or references. A racer's guesses at a word, marked as the
+    game marks them (src/games/words/marks.ts) and drawn as the page draws them
     (src/app/words/view.ts), with the next being typed, and the keyboard under them.
   -->
+  <!-- OpenChat names its theme in the image's fragment, as it does in the app's, eg.
+       words.svg#oc_theme=dark, which targets the group below. In a dark one, the colours are the
+       page's dark ones (style.css). -->
+  <style>
+    :root:has([id="oc_theme=dark"]:target) [fill="#faf8ef"] { fill: #1b1a19 }
+    :root:has([id="oc_theme=dark"]:target) rect[fill="#ffffff"] { fill: #26241f }
+    :root:has([id="oc_theme=dark"]:target) text[fill="#ffffff"] { fill: #1b1a19 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#3b3630"] { fill: #ece7dd }
+    :root:has([id="oc_theme=dark"]:target) [stroke="#3b3630"] { stroke: #ece7dd }
+    :root:has([id="oc_theme=dark"]:target) [fill="#bbada0"] { fill: #4e463b }
+    :root:has([id="oc_theme=dark"]:target) [fill="#cdc1b4"] { fill: #5f564a }
+    :root:has([id="oc_theme=dark"]:target) [stroke="#cdc1b4"] { stroke: #5f564a }
+    :root:has([id="oc_theme=dark"]:target) [fill="#e8704a"] { fill: #f08a5d }
+    :root:has([id="oc_theme=dark"]:target) [stroke="#e8704a"] { stroke: #f08a5d }
+    :root:has([id="oc_theme=dark"]:target) [stroke="#e6e0d4"] { stroke: #3a362f }
+    :root:has([id="oc_theme=dark"]:target) [stroke="#7a7267"] { stroke: #a39b8f }
+    :root:has([id="oc_theme=dark"]:target) [fill="#8f877c"] { fill: #aca69b }
+  </style>
+  <g id="oc_theme=dark"/>
   <rect width="440" height="720" fill="#faf8ef"/>
   <rect x="65" y="93" width="54" height="54" rx="10" fill="#cdc1b4" stroke="#cdc1b4" stroke-width="2"/>
   <text x="92" y="130" font-size="28" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="700" text-anchor="middle" fill="#8f877c">T</text>

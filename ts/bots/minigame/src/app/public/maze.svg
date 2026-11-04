@@ -1,10 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 640" width="440" height="640" role="img" aria-label="Maze Race">
   <!--
     The maze race's image, at the app's aspect ratio (440 by 640): OpenChat shows it in the card's
-    frame box whenever there's no app to show. Its background is opaque, so it reads the same on a
-    light or a dark page. No fonts, scripts or references. The maze is a real one, carved as the
-    game carves them (src/games/maze/maze.ts), with three racers on their way out.
+    frame box whenever there's no app to show. Its background is opaque, in OpenChat's theme, light
+    or dark (below). No fonts, scripts or references. The maze is a real one, carved as the game
+    carves them (src/games/maze/maze.ts), with three racers on their way out.
   -->
+  <!-- OpenChat names its theme in the image's fragment, as it does in the app's, eg.
+       maze.svg#oc_theme=dark, which targets the group below. In a dark one, the colours are the
+       page's dark ones (style.css). -->
+  <style>
+    :root:has([id="oc_theme=dark"]:target) [fill="#faf8ef"] { fill: #1b1a19 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#ffffff"] { fill: #26241f }
+    :root:has([id="oc_theme=dark"]:target) [stroke="#3b3630"] { stroke: #ece7dd }
+    :root:has([id="oc_theme=dark"]:target) [fill="#776e65"] { fill: #d6cec2 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#8f877d"] { fill: #a39b8f }
+  </style>
+  <g id="oc_theme=dark"/>
   <rect width="440" height="640" fill="#faf8ef"/>
   <rect x="25" y="44" width="390" height="390" rx="8" fill="#ffffff"/>
   <rect x="373" y="392" width="34" height="34" fill="#2fa36b" fill-opacity="0.28"/>
