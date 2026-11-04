@@ -6,8 +6,8 @@
     game lays them (src/games/minesweeper/field.ts), part cleared, with the mines beside it flagged.
   -->
   <!-- OpenChat names its theme in the image's fragment, as it does in the app's, eg.
-       minesweeper.svg#oc_theme=dark, which targets the group below. In a dark one, the colours are the
-       page's dark ones (style.css). -->
+       minesweeper.svg#oc_theme=dark, which targets the group below. In a dark one, the colours
+       are the page's dark ones (style.css). -->
   <style>
     :root:has([id="oc_theme=dark"]:target) [fill="#faf8ef"] { fill: #1b1a19 }
     :root:has([id="oc_theme=dark"]:target) [fill="#bbada0"] { fill: #4e463b }
