@@ -279,13 +279,12 @@ the bot's registration in OpenChat, or every post is refused until then.
 
 OpenChat's MiniApp service sits between OpenChat's website and the bot. It posts every card, as the
 bot, tracks who's joined each game, is the only thing that writes a card's status, and relays the
-game's state to its players and spectators, so the bot never hears from spectators, and OpenChat
-doesn't tell the bot or its app who they are. Their browsers still load the app's page and artwork
-from the bot's servers. Joining and leaving
-only happen through OpenChat's own buttons: nothing lets an app join or leave for its user. A player
-starts a game through OpenChat too, so the card records exactly who it started with: the app asks,
-and the bot decides. The whole protocol is in open-chat's
-`backend/docs/mini_app_service_protocol.md`.
+game's state to its players and spectators, so spectators get the game through the service, never
+from the bot. OpenChat doesn't tell the bot or its app who spectators are, though their browsers
+still load the app, and anything it fetches, from the bot's servers. Joining and leaving only happen
+through OpenChat's own buttons: nothing lets an app join or leave for its user. A player starts a
+game through OpenChat too, so the card records exactly who it started with: the app asks, and the
+bot decides. The whole protocol is in open-chat's `backend/docs/mini_app_service_protocol.md`.
 
 ```ts
 // `apiGateway` is any LocalUserIndex, as every one knows every bot, eg. a command's,
@@ -505,9 +504,10 @@ for a new player token before the current one expires, and sends it only with re
 own origin. When the app is opened on a game that's over, `finished` is true from the start: there's
 no token, the role is "player" if the user was one of the game's players, no state comes, and
 OpenChat sends the bot's end state, `endState`, which the app shows its end view from. It also has
-`userId` (empty for a spectator, as OpenChat names only players), `token`, `darkMode`, `locale`, `settings` (what the bot gave when it started the game, see
-step 3), `refreshToken()` and `close()`. Serve the page as static, cacheable files, as it's the only
-thing spectators fetch from the bot.
+`userId`, `token`, `darkMode`, `locale`, `settings` (what the bot gave when it started the game, see
+step 3), `refreshToken()` and `close()`. `userId` is empty for a spectator, as OpenChat names only
+players, so it changes with the role: read it again after `onRoleChange`. Serve the page as static,
+cacheable files, as everyone with the card on screen loads it, afresh each time it comes back.
 
 OpenChat shows the card's artwork, with the page drawn unseen meanwhile, until the page calls
 `drawn()`, and then the page in its place, so the card goes straight from the artwork to the game.

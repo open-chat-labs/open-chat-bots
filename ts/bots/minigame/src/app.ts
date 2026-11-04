@@ -74,7 +74,7 @@ export function createApp(deps: Deps, appDir: string): Express {
     app.get("/api/names", handle(userNames));
 
     // The app, which OpenChat opens in a frame, and frames afresh each time its card is back on
-    // screen: its files are the only thing spectators fetch from the bot, so they're cached.
+    // screen: everyone with the card on screen fetches its files, so they're cached.
     // Vite names the page's bundles by their content, so a release's are new files, which
     // browsers and CloudFront keep for good. The page, which names them, only the browser keeps,
     // for a minute, along with the bundles it fetched for it. CloudFront asks the bot for it each

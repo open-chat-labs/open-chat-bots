@@ -282,7 +282,7 @@ export class MiniAppClient<Shared = unknown, Private = unknown, EndState = unkno
     /**
      * The user's OpenChat user id if they're a player, including one of a finished game's players.
      * It's empty for a spectator: OpenChat doesn't tell the app who's watching, as anyone with the
-     * card on screen is.
+     * card on screen is. So it changes with the role: read it again after `onRoleChange`.
      */
     get userId(): string {
         return this.#userId;
