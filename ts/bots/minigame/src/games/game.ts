@@ -28,6 +28,9 @@ export type LiveResult =
 /** Who ran `/play`, with their name, as the lobby names them before they've joined */
 export type Host = { id: string; name: string };
 
+/** Someone who's joined a game, with the name they joined with */
+export type Seat = { id: string; name: string };
+
 export type Phase = "open" | "active" | "finished";
 
 export interface Game {
@@ -38,13 +41,13 @@ export interface Game {
     /** When it finished, once it has */
     readonly finishedAt: number | undefined;
 
-    /** Whether the user has a seat, before the start */
+    /** Whether the user has a seat: they've joined, whether or not the game has started */
     isSeated(userId: string): boolean;
     /** Whether the user is playing, which is only so once the game has started */
     isPlayer(userId: string): boolean;
     /**
      * Gives a user a seat, before the game starts. Undefined when they have one now, or why not,
-     * for the service to show them, eg. "All 10 seats are taken".
+     * for the service to show them, eg. "All 10 places are taken".
      */
     join(userId: string, name: string): string | undefined;
     /**

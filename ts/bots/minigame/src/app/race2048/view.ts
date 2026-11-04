@@ -24,8 +24,10 @@ import {
     type Racer,
     type SharedState,
 } from "../../games/race2048/types";
-import { fetchUsernames, usernameOf } from "../names";
-import type { BaseState, GameView, Lobby, ViewContext } from "../view";
+import { escape, mmss } from "../format";
+import { fetchUsernames, nameOf } from "../names";
+import { raceLobby } from "../race";
+import type { BaseState, GameView, ViewContext } from "../view";
 import { BoardView } from "./board";
 
 /** How many of the other racers' boards are drawn; the rest are listed with their scores */
@@ -100,21 +102,15 @@ export const raceView: GameView = {
         return (shared as SharedState).phase === "open";
     },
 
-    lobby(shared): Lobby {
+    lobby(shared) {
         const s = shared as SharedState;
-        return {
+        return raceLobby(s, {
             blurb: `Everyone gets their own board. The first to make a <strong>${s.target}</strong> tile wins,
                 or the top score after <strong>${limitText(s.timeLimit)}</strong>.
                 Stuck? Restart on a fresh board and keep racing.`,
-            seats: s.seats,
-            hint: `Start when everyone has joined. Up to ${s.maxPlayers} can race.`,
-            settings: {
-                specs: RACE_SETTINGS,
-                current: s.settings,
-                host: s.host,
-                hostName: s.hostName,
-            },
-        };
+            settings: RACE_SETTINGS,
+            maxPlayers: s.maxPlayers,
+        });
     },
 
     renderLive(body, shared) {
@@ -165,10 +161,11 @@ function unpack(shared: SharedState): Race {
             racers.map((r) => r.i),
         );
     }
-    const seats = new Map(shared.seats.map((s) => [s.id, s.name]));
-    const name = (id: string) =>
-        usernameOf(id) ?? shared.names?.[id] ?? seats.get(id) ?? shortId(id);
-    return { ...rest, players: racers.map((r) => unpackRacer(r, name(r.i))) };
+    const names = {
+        ...Object.fromEntries(shared.seats.map((s) => [s.id, s.name])),
+        ...shared.names,
+    };
+    return { ...rest, players: racers.map((r) => unpackRacer(r, nameOf(r.i, names))) };
 }
 
 function unpackRacer(r: Racer, name: string): PlayerView {
@@ -192,10 +189,6 @@ function read(state: unknown): Race | undefined {
     return s.version === STATE_VERSION && Array.isArray(s.racers)
         ? unpack(s as SharedState)
         : undefined;
-}
-
-function shortId(id: string): string {
-    return id.slice(0, 5);
 }
 
 /**
@@ -519,14 +512,6 @@ function elapsedText(race: Race): string {
     if (race.startedAt === undefined) return "";
     return mmss((race.finishedAt ?? Date.now()) - race.startedAt);
 }
-
-function mmss(ms: number): string {
-    const seconds = Math.max(0, Math.floor(ms / 1000));
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
 /** eg. "10 minutes", "90 seconds" */
 function limitText(ms: number): string {
     const seconds = Math.round(ms / 1000);
@@ -543,8 +528,4 @@ function renderClock() {
     if (clock !== null && race?.phase === "active") {
         clock.textContent = clockText(race);
     }
-}
-
-function escape(text: string): string {
-    return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { duration } from "../race2048/race";
+import { duration } from "../duration";
 import { canMove, carve, DIRECTIONS, stepsOut, wayOut, type Direction } from "./maze";
 import { MazeRace, type MazeData } from "./race";
 import { MAX_PLAYERS } from "./types";

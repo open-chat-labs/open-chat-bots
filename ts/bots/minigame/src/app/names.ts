@@ -3,6 +3,7 @@
 // After a request that fails, the page leaves the bot a while before asking again, as it redraws far
 // more often than that; meanwhile it shows the names the state carries.
 import type { NamesResponse } from "../games/game";
+import { shortId } from "./format";
 import type { ViewContext } from "./view";
 
 const RETRY_MS = 30_000;
@@ -12,9 +13,18 @@ const usernames = new Map<string, string>();
 const asked = new Set<string>();
 let retryAt = 0;
 
-/** The user's username, once the bot has said */
-export function usernameOf(id: string): string | undefined {
-    return usernames.get(id);
+/**
+ * What the page calls a user: their username, once the bot has said, or else the name `names` has
+ * for them, from the state, or else the ends of their id. `nobody` when there's no one, eg. no
+ * winner.
+ */
+export function nameOf(
+    id: string | undefined,
+    names?: Readonly<Record<string, string>>,
+    nobody = "Nobody",
+): string {
+    if (id === undefined) return nobody;
+    return usernames.get(id) ?? names?.[id] ?? shortId(id);
 }
 
 /** Asks the bot about the users it hasn't been asked about, and draws the page again with them */

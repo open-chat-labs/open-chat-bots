@@ -485,7 +485,10 @@ racer know where that racer's crates are: they'd show the others how to do it.
   seats, start, whose turn it is, its clock, a shared state carrying a `version` and the `game`'s
   id, its result, its end state, which the publisher sends only within 16 KB (`jsonBytes` measures
   it), so a game which can run long cuts its own down first, and its data for the store. A game with
-  anything only each player may see gives it as `privateState`, by user id.
+  anything only each player may see gives it as `privateState`, by user id. A race, where everyone
+  plays at once until someone wins or the time's up, extends `Race` (`src/games/race.ts`), which
+  has the seats, the host's settings, the clock and the shared state's common part, and adds only
+  how it starts (`begin`), who leads when the time's up (`leader`), and what's raced on.
 - Add it to `src/games/registry.ts`, with its `create` and `fromJson`: that's the `/play` choice,
   the card's one-line text and limits, its settings, each a choice among a few values with a
   default, the size the page is laid out for, which gives the frame in the card
@@ -496,10 +499,14 @@ racer know where that racer's crates are: they'd show the others how to do it.
   the game's kind and the player's membership, and route them in `src/app.ts`.
 - Draw it under `src/app/<game>/` as a `GameView` (`src/app/view.ts`), and list it in `main.ts`,
   which picks the view by the state's `game` and shows the lobby for every game itself.
+  A race's view takes its lobby and clock from `src/app/race.ts`, and its standings from
+  `drawRows` (`src/app/rows.ts`) and the `race-standings` styles.
 - A game of two taking turns is quicker as a duel (see "Duels"): its `DuelRules`, a registry entry
-  made with `Duel` and listed in `DUELS`, which routes its requests, and a `DuelBoard` for the page.
-- A game whose players need each other's moves at once implements `receive`, and its page opens the
-  live socket with `src/app/live.ts` (see "Live games" and `src/app/maze/view.ts`).
+  made with `duelType` and listed in `DUELS`, which routes its requests, and a `DuelBoard` for the
+  page.
+- A game whose players need each other's moves at once implements `receive`, routes `liveMove` for
+  when the socket isn't open, and its page opens the live socket with `src/app/live.ts` (see "Live
+  games" and `src/app/maze/view.ts`).
 - A game that plays on by itself, with no one moving, implements `tick`, and may pace its live
   states with `liveEveryMs`, as ChatMan does.
 

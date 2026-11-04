@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { duration } from "../race2048/race";
+import { duration } from "../duration";
 import { mineCells, neighbours } from "./field";
 import { MinesweeperRace, type MinesData } from "./race";
 import { BOOM, FLAG, HIDDEN, MAX_ACTS, MAX_PLAYERS, PENALTY_MS, type Act } from "./types";

@@ -3,13 +3,11 @@
 // moves with the game's own rules, which it shares with the bot, so a state stays small and a
 // finished game can be stepped through. Nothing's private: both players and every spectator see
 // the same.
-import type { GameKind } from "../game";
+import type { GameKind, Phase } from "../game";
 import type { SettingSpec, Settings } from "../settings";
 
 /** The player who moves first sits in seat 0, the other in seat 1 */
 export type Seat = 0 | 1;
-
-export type Phase = "open" | "active" | "finished";
 
 /**
  * How a duel ended. A board ending is the game's own, eg. four in a row, or a full grid with no

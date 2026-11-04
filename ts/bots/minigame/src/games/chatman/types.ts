@@ -5,6 +5,7 @@
 // at once, and everyone else's from what the bot has had of theirs. `now` is the bot's clock as it
 // sent the state, which the page keeps its own in step with. `rev` goes up with every change, so the
 // page can tell which of a state from the service and one from the socket is the newer.
+import type { Phase, Seat } from "../game";
 import type { Direction } from "../maze/maze";
 import type { Settings } from "../settings";
 import type { Dir } from "./maze";
@@ -33,12 +34,8 @@ export const AHEAD_TICKS = 40;
 /** The most turns the bot holds for a player before it's reached them */
 export const MAX_QUEUE = 32;
 
-export type Phase = "open" | "active" | "finished";
-
 /** How a game ended: everyone was out of lives, or the time ran out */
 export type Ending = "out" | "time";
-
-export type Seat = { id: string; name: string };
 
 export type PlayerState = {
     id: string;

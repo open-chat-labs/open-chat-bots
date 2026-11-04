@@ -33,8 +33,11 @@ import {
     type RacerState,
     type SharedState,
 } from "../../games/crates/types";
-import { fetchUsernames, usernameOf } from "../names";
-import type { GameView, Lobby, ViewContext } from "../view";
+import { roomFor } from "../layout";
+import { fetchUsernames, nameOf } from "../names";
+import { raceClock, raceLobby } from "../race";
+import { drawRows, pickable } from "../rows";
+import type { GameView, ViewContext } from "../view";
 
 /** How long the page waits to ask for the racer's path again after asking failed */
 const RETRY_MS = 3000;
@@ -141,24 +144,18 @@ export const cratesView: GameView = {
         return (state as SharedState).phase === "open";
     },
 
-    lobby(state): Lobby {
+    lobby(state) {
         const s = state as SharedState;
         const { difficulty, minutes } = s.settings;
-        return {
+        return raceLobby(s, {
             blurb: `Everyone races to push the same four crates onto the same four goals, each on
                 their own copy of <strong>${LEVEL_NAMES[difficulty] ?? "a"} level</strong>. You can
                 push a crate but not pull it, or push two at once, and you can undo a move. The
                 first to put every crate on a goal wins, or whoever has the most on goals when the
                 <strong>${minutes} minutes</strong> are up.`,
-            seats: s.seats,
-            hint: `Start when everyone has joined. Up to ${MAX_PLAYERS} can race.`,
-            settings: {
-                specs: CRATES_SETTINGS,
-                current: s.settings,
-                host: s.host,
-                hostName: s.hostName,
-            },
-        };
+            settings: CRATES_SETTINGS,
+            maxPlayers: MAX_PLAYERS,
+        });
     },
 
     renderLive(body, shared) {
@@ -181,11 +178,7 @@ export const cratesView: GameView = {
     },
 
     clock() {
-        const s = shown();
-        if (s?.startedAt === undefined) return "";
-        // Rounded once it's over, as the result is, eg. "in 1m 12s"
-        if (s.phase === "finished") return mmss((s.finishedAt ?? Date.now()) - s.startedAt, true);
-        return s.endsAt === undefined ? "" : `${mmss(s.endsAt - Date.now())} left`;
+        return raceClock(shown());
     },
 
     onKey(event) {
@@ -438,7 +431,7 @@ function ensureDom(body: HTMLElement) {
                 <button data-direction="right" aria-label="Right">→</button>
             </div>
             <p class="cr-hint muted small"></p>
-            <ol class="cr-standings"></ol>
+            <ol class="race-standings cr-standings"></ol>
         </div>`;
     const root = body.firstElementChild as HTMLElement;
     const q = <T extends HTMLElement>(selector: string) => root.querySelector(selector) as T;
@@ -502,11 +495,6 @@ function listen(d: Dom) {
     d.board.addEventListener("pointercancel", () => (press = undefined));
 }
 
-function name(s: SharedState, id: string | undefined): string {
-    if (id === undefined) return "Nobody";
-    return usernameOf(id) ?? s.names[id] ?? id.slice(0, 5);
-}
-
 /** Everyone, the furthest on first: the winner, then the most crates on goals, then the fewest pushes */
 function ranked(s: SharedState): RacerState[] {
     const won = (r: RacerState) => (r.id === s.winner ? 1 : 0);
@@ -560,7 +548,7 @@ function render() {
     if (finished) {
         const winner = s.racers.find((r) => r.id === s.winner);
         dom.status.textContent = describeResult(s, winner && { ...winner, crates }, (id) =>
-            name(s, id),
+            nameOf(id, s.names),
         );
     } else if (racing) {
         dom.status.textContent = "Push every crate onto a goal";
@@ -680,10 +668,10 @@ function renderHint(s: SharedState, racing: boolean, finished: boolean, whose: s
     if (finished) {
         const theirs =
             watching !== undefined
-                ? `${name(s, s.winner)}'s moves`
+                ? `${nameOf(s.winner, s.names)}'s moves`
                 : whose === ctx?.oc.userId
                   ? "Your crates"
-                  : `${name(s, whose)}'s crates`;
+                  : `${nameOf(whose, s.names)}'s crates`;
         const par = s.par === undefined ? "" : ` It can be done in ${pushes(s.par)}.`;
         dom.hint.textContent = `${theirs}.${s.racers.length > 1 ? " Tap a name for theirs." : ""}${par}`;
     } else if (racing) {
@@ -704,25 +692,13 @@ function renderStandings(
 ) {
     if (dom === undefined) return;
     const me = ctx?.oc.userId;
-    const seen = new Set<string>();
-    for (const r of ranked(s)) {
-        let row = dom.rows.get(r.id);
-        if (row === undefined) {
-            row = standingsRow();
-            dom.rows.set(r.id, row);
-        }
+    drawRows(dom.standings, dom.rows, ranked(s), standingsRow, (row, r) => {
         const li = row.li;
         li.classList.toggle("mine", r.id === me);
         li.classList.toggle("picked", finished && r.id === whose);
         li.classList.toggle("winner", finished && r.id === s.winner);
-        if (finished) {
-            li.dataset.action = "pick";
-            li.dataset.id = r.id;
-        } else {
-            delete li.dataset.action;
-            delete li.dataset.id;
-        }
-        const who = name(s, r.id);
+        pickable(li, r.id, finished ? "pick" : undefined);
+        const who = nameOf(r.id, s.names);
         if (row.who.textContent !== who) row.who.textContent = who;
         if (row.placed !== r.placed) {
             row.placed = r.placed;
@@ -734,17 +710,7 @@ function renderStandings(
         }
         const text = pushes(r.pushes);
         if (row.pushes.textContent !== text) row.pushes.textContent = text;
-        // Into its place, if it isn't there already
-        const at = dom.standings.children[seen.size] ?? null;
-        if (at !== li) dom.standings.insertBefore(li, at);
-        seen.add(r.id);
-    }
-    for (const [id, row] of dom.rows) {
-        if (!seen.has(id)) {
-            row.li.remove();
-            dom.rows.delete(id);
-        }
-    }
+    });
 }
 
 function standingsRow(): Row {
@@ -776,22 +742,5 @@ function fit(force = false) {
     ].join("|");
     if (!force && around === fitted) return;
     fitted = around;
-    let used = 0;
-    for (const el of dom.root.children) {
-        if (el === dom.wrap) continue;
-        const style = getComputedStyle(el);
-        if (style.display === "none") continue;
-        used +=
-            (el as HTMLElement).offsetHeight +
-            parseFloat(style.marginTop) +
-            parseFloat(style.marginBottom);
-    }
-    const available =
-        document.documentElement.clientHeight - dom.root.getBoundingClientRect().top - 16;
-    dom.wrap.style.maxWidth = `${Math.max(200, Math.floor(available - used))}px`;
-}
-
-function mmss(ms: number, round = false): string {
-    const seconds = Math.max(0, (round ? Math.round : Math.floor)(ms / 1000));
-    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+    dom.wrap.style.maxWidth = `${Math.max(200, Math.floor(roomFor(dom.root, [dom.wrap])))}px`;
 }

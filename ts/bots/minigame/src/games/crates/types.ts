@@ -4,6 +4,7 @@
 // show the others how to do it. Each racer's own moves come to them alone, in the answer to their
 // requests (`POST /api/crates/path`) and in their private part of each state. Once the race is
 // over, the state has where everyone's crates ended up, and the winner's moves.
+import type { Phase, Seat } from "../game";
 import type { Settings } from "../settings";
 import type { LevelCode } from "./board";
 
@@ -18,15 +19,11 @@ export const MAX_PLAYERS = 20;
 /** The most moves a racer's path may have, undoing aside: enough for a wander round any level */
 export const MAX_PATH = 2000;
 
-export type Phase = "open" | "active" | "finished";
-
 /**
  * How a race ended: someone put every crate on a goal, or the time ran out and whoever had put the
  * most on goals won
  */
 export type Ending = "solved" | "time";
-
-export type Seat = { id: string; name: string };
 
 export type RacerState = {
     id: string;

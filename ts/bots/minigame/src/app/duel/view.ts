@@ -16,7 +16,8 @@ import {
     type Position,
     type Seat,
 } from "../../games/duel/types";
-import { fetchUsernames, usernameOf } from "../names";
+import { escape, formatClock, formatFirstMove, shortId } from "../format";
+import { fetchUsernames, nameOf } from "../names";
 import type { GameView, Lobby, ViewContext } from "../view";
 
 const LOW_TIME_MS = 20_000;
@@ -95,8 +96,7 @@ export function duelView<M, P extends Position<M>>(
     const current = () => end ?? shared;
 
     function name(s: DuelState<M>, id: string | undefined): string {
-        if (id === undefined) return "A player";
-        return usernameOf(id) ?? s.names[id] ?? shortId(id);
+        return nameOf(id, s.names, "A player");
     }
 
     /** The viewer's seat, if they play in this game */
@@ -476,29 +476,4 @@ export function duelView<M, P extends Position<M>>(
             }
         },
     };
-}
-
-function formatClock(ms: number): string {
-    if (ms < 10_000) return `0:0${Math.floor(ms / 1000)}.${Math.floor((ms % 1000) / 100)}`;
-    const minutes = Math.floor(ms / 60_000);
-    const seconds = Math.floor((ms % 60_000) / 1000);
-    return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-/**
- * The time left for a first move, eg. "0:42", in whole seconds even near the end, where a clock
- * shows tenths: so the status line it ends keeps its length, and can't start to wrap between the
- * redraws that fit the board
- */
-function formatFirstMove(ms: number): string {
-    const seconds = Math.ceil(ms / 1000);
-    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-}
-
-function shortId(id: string): string {
-    return id.length > 13 ? `${id.slice(0, 5)}…${id.slice(-5)}` : id;
-}
-
-function escape(text: string): string {
-    return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }

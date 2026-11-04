@@ -4,6 +4,7 @@
 // racer's own guesses come to them alone, in the answer to their requests (`POST /api/words/guess`)
 // and in their private part of each state. Once the race is over, the state has every guess, and
 // the word.
+import type { Phase, Seat } from "../game";
 import type { Settings } from "../settings";
 
 /** Bumped when the shape changes, so an app left open from an older release knows to reload */
@@ -31,15 +32,11 @@ export const MISS = "0";
 /** A guess's marks, eg. "20110" */
 export type Marks = string;
 
-export type Phase = "open" | "active" | "finished";
-
 /**
  * How a race ended: someone guessed the word, or the time ran out, or everyone had all their
  * guesses, and whoever came closest won
  */
 export type Ending = "guessed" | "time" | "out";
-
-export type Seat = { id: string; name: string };
 
 export type RacerState = {
     id: string;

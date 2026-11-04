@@ -17,6 +17,7 @@ import { connectToOpenChat, type MiniAppClient } from "@open-ic/openchat-botclie
 import { chatmanView } from "./chatman/view";
 import { chessView } from "./chess/view";
 import { cratesView } from "./crates/view";
+import { escape } from "./format";
 import { fourInARowView } from "./fourinarow/view";
 import { hexView } from "./hex/view";
 import { mazeView } from "./maze/view";
@@ -358,10 +359,6 @@ function settingsForm(
             html: `<span>${escape(spec.label)}</span><select data-setting="${spec.id}">${options}</select>`,
         };
     });
-}
-
-function escape(text: string): string {
-    return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
 void main();

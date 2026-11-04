@@ -1,12 +1,13 @@
-// The 2048 race: up to 10 players, each on their own board, and the first to make a 2048 tile wins.
+// The 2048 race: up to 100 players, each on their own board, and the first to make a 2048 tile wins.
 // If nobody has in 10 minutes, the top score wins: a player's best from any of their boards, as a
 // player whose board gets stuck can restart on a fresh board, as often as they like, and the
 // restarts are counted for everyone to see.
 //
 // The bot decides every move, so no one can forge a board. The race keeps its whole state in
-// `RaceData`, which the store writes to disk as it is.
-import type { ConfigureResult, Game, Host } from "../game";
-import { defaultSettings, type Settings } from "../settings";
+// `Race2048Data`, which the store writes to disk as it is.
+import { duration } from "../duration";
+import type { Seat } from "../game";
+import { openRace, Race, type RaceData, type RaceOptions } from "../race";
 import {
     canMove,
     isDirection,
@@ -23,22 +24,16 @@ import {
     GAME_ID,
     MAX_PLAYERS,
     STATE_VERSION,
-    TARGET,
-    TIME_LIMIT_MS,
     WON,
     type Ending,
     type MoveResponse,
     type Racer,
-    type Phase,
     type PlayerView,
-    type Seat,
     type SharedState,
 } from "./types";
 import { RACE_SETTINGS } from "./settings";
 
-export type PlayerData = {
-    id: string;
-    name: string;
+export type PlayerData = Seat & {
     board: Board;
     /** The current board's score */
     score: number;
@@ -51,33 +46,8 @@ export type PlayerData = {
     won: boolean;
 };
 
-export type RaceData = {
-    phase: Phase;
-    /** The settings chosen, by id (`RACE_SETTINGS`); the rest are the defaults */
-    settings?: Settings;
-    /** Who ran `/play`: the one who can change the settings */
-    host?: string;
-    hostName?: string;
-    seats: Seat[];
-    players: PlayerData[];
-    /** The `seq` of the last state published, which each state goes above */
-    seq: number;
-    createdAt: number;
-    startedAt?: number;
-    /** When the race ends if nobody makes the target tile: the start plus the time limit */
-    endsAt?: number;
-    finishedAt?: number;
-    ended?: Ending;
-    winner?: string;
+export type Race2048Data = RaceData<PlayerData, Ending> & {
     lastMove?: { player: string; direction: Direction };
-};
-
-export type RaceOptions = {
-    random?: () => number;
-    now?: () => number;
-    /** The settings to start with, eg. from the config; any left out is its default */
-    settings?: Settings;
-    host?: Host;
 };
 
 /** How long the publisher waits between a race's states, by how many are racing: a bigger field
@@ -89,216 +59,68 @@ export function publishEveryMs(players: number): number {
     return 400;
 }
 
-export type SeatResult = "seated" | "already_seated" | "full" | "started";
+export class Race2048 extends Race<PlayerData, Ending, Race2048Data, SharedState> {
+    readonly kind = GAME_ID;
 
-export class Race2048 implements Game {
-    readonly kind = "2048";
-    readonly #data: RaceData;
-    readonly #random: () => number;
-    readonly #now: () => number;
-
-    constructor(data: RaceData, options: RaceOptions = {}) {
-        this.#data = data;
-        this.#random = options.random ?? Math.random;
-        this.#now = options.now ?? Date.now;
+    constructor(data: Race2048Data, options: RaceOptions = {}) {
+        super({ settings: RACE_SETTINGS, maxPlayers: MAX_PLAYERS }, data, options);
     }
 
     static create(options: RaceOptions = {}): Race2048 {
-        const now = options.now ?? Date.now;
-        return new Race2048(
-            {
-                phase: "open",
-                seats: [],
-                players: [],
-                seq: 0,
-                createdAt: now(),
-                settings: options.settings,
-                host: options.host?.id,
-                hostName: options.host?.name,
-            },
-            options,
-        );
+        return new Race2048(openRace(options), options);
     }
 
-    /** The race's state as it is, for the store to write. It changes as the race does. */
-    get data(): RaceData {
-        return this.#data;
-    }
-
-    get phase(): Phase {
-        return this.#data.phase;
-    }
-
-    get createdAt(): number {
-        return this.#data.createdAt;
-    }
-
-    get finishedAt(): number | undefined {
-        return this.#data.finishedAt;
-    }
-
-    get seats(): readonly Seat[] {
-        return this.#data.seats;
-    }
-
-    get players(): readonly PlayerData[] {
-        return this.#data.players;
-    }
-
-    /** Every setting as it stands: the ones chosen over the defaults */
-    settings(): Settings {
-        return { ...defaultSettings(RACE_SETTINGS), ...this.#data.settings };
-    }
-
-    get host(): string | undefined {
-        return this.#data.host;
-    }
-
+    /** The tile which wins */
     get target(): number {
-        return this.#data.settings?.target ?? TARGET;
+        return this.settings().target;
     }
 
+    /** How long the race lasts if nobody makes the target tile */
     get timeLimit(): number {
-        const minutes = this.#data.settings?.minutes;
-        return minutes === undefined ? TIME_LIMIT_MS : minutes * 60_000;
-    }
-
-    /** Changes settings, which only the host can, and only before the race starts */
-    configure(userId: string, settings: Settings): ConfigureResult {
-        if (this.#data.phase !== "open") return { ok: false, error: "The race has started" };
-        if (userId !== this.#data.host) {
-            return { ok: false, error: "Only the host can change the settings" };
-        }
-        this.#data.settings = { ...this.#data.settings, ...settings };
-        return { ok: true };
+        return this.lengthMs();
     }
 
     get winner(): PlayerData | undefined {
-        return this.#data.players.find((p) => p.id === this.#data.winner);
+        return this.racer(this.data.winner);
     }
 
-    /** Whether the user is racing, which is only so once the game has started */
-    isPlayer(userId: string): boolean {
-        return this.#data.players.some((p) => p.id === userId);
-    }
-
-    isSeated(userId: string): boolean {
-        return this.#data.seats.some((s) => s.id === userId);
-    }
-
-    /** Gives a user a seat, before the game starts. They play once it starts. */
-    takeSeat(userId: string, name: string): SeatResult {
-        if (this.#data.phase !== "open") return "started";
-        if (this.isSeated(userId)) return "already_seated";
-        if (this.#data.seats.length >= MAX_PLAYERS) return "full";
-        this.#data.seats.push({ id: userId, name });
-        return "seated";
-    }
-
-    /** A seat, or why not: the race's own words for `takeSeat`'s refusals */
-    join(userId: string, name: string): string | undefined {
-        switch (this.takeSeat(userId, name)) {
-            case "seated":
-            case "already_seated":
-                return undefined;
-            case "full":
-                return `All ${MAX_PLAYERS} seats are taken`;
-            case "started":
-                return "The race has already started";
-        }
-    }
-
-    /** Someone who left before the start gives up their seat; a racer who leaves keeps racing */
-    leave(userId: string): boolean {
-        return this.leaveSeat(userId);
-    }
-
-    /** Takes a user's seat away, before the game starts. Nothing happens if they had none. */
-    leaveSeat(userId: string): boolean {
-        const before = this.#data.seats.length;
-        this.#data.seats = this.#data.seats.filter((s) => s.id !== userId);
-        return this.#data.seats.length < before;
-    }
-
-    /** Why the game can't start yet, or undefined when it can */
-    cannotStart(): string | undefined {
-        if (this.#data.phase !== "open") return undefined;
-        if (this.#data.seats.length === 0) return "Nobody has joined yet";
-        return undefined;
+    /** Starts everyone seated on a fresh board */
+    protected begin(seats: readonly Seat[]): PlayerData[] {
+        return seats.map((seat) => ({
+            id: seat.id,
+            name: seat.name,
+            board: newBoard(this.random),
+            score: 0,
+            best: 0,
+            moves: 0,
+            restarts: 0,
+            rev: 0,
+            dead: false,
+            won: false,
+        }));
     }
 
     /**
-     * Starts the race with everyone seated, each on a fresh board. Starting a race that has
-     * started does nothing more. Returns the players' ids.
+     * The top score, which wins when the time's up: a player's best from any of their boards;
+     * ties go to the higher current score, then the higher tile, then the fewer restarts
      */
-    start(): string[] {
-        if (this.#data.phase === "open") {
-            this.#data.players = this.#data.seats.map((seat) => ({
-                id: seat.id,
-                name: seat.name,
-                board: newBoard(this.#random),
-                score: 0,
-                best: 0,
-                moves: 0,
-                restarts: 0,
-                rev: 0,
-                dead: false,
-                won: false,
-            }));
-            this.#data.seats = [];
-            this.#data.phase = "active";
-            this.#data.startedAt = this.#now();
-            this.#data.endsAt = this.#data.startedAt + this.timeLimit;
-        }
-        return this.#data.players.map((p) => p.id);
+    protected leader(): string | undefined {
+        return [...this.data.players].sort(rank)[0]?.id;
     }
 
-    /**
-     * Ends the race with the top score as the winner if its time is up, and says whether it did
-     * just now. Called before a move, and every second by the bot, so a race ends on time whether
-     * or not anyone's still playing. The top score is a player's best from any of their boards;
-     * ties go to the higher current score, then the higher tile, then the fewer restarts.
-     */
-    endIfTimeUp(): boolean {
-        const d = this.#data;
-        if (d.phase !== "active" || d.endsAt === undefined || this.#now() < d.endsAt) return false;
-        const top = [...d.players].sort(rank)[0];
-        if (top !== undefined) {
-            top.won = true;
-            d.winner = top.id;
-        }
-        d.ended = "time";
-        d.phase = "finished";
-        d.finishedAt = this.#now();
-        return true;
-    }
-
-    /** A race: it's everyone's turn at once */
-    waitingFor(): string[] {
-        return [];
+    protected override finish(ended: Ending, winner: string | undefined, at: number): void {
+        const p = this.racer(winner);
+        if (p !== undefined) p.won = true;
+        super.finish(ended, winner, at);
     }
 
     /** A race ends at its time whether or not the bot was up for all of it */
-    resume(): boolean {
+    override resume(): boolean {
         return false;
     }
 
-    publishEveryMs(): number {
-        return publishEveryMs(this.#data.players.length);
-    }
-
-    /** The next state's `seq`, above every state published before */
-    nextSeq(): number {
-        return ++this.#data.seq;
-    }
-
-    /** The racers' names by id, once started, or the seats' before: what the end state carries */
-    names(): Record<string, string> {
-        const names: Record<string, string> = {};
-        for (const p of this.#data.phase === "open" ? this.#data.seats : this.#data.players) {
-            names[p.id] = p.name;
-        }
-        return names;
+    override publishEveryMs(): number {
+        return publishEveryMs(this.data.players.length);
     }
 
     move(userId: string, direction: unknown): MoveResponse {
@@ -316,27 +138,24 @@ export class Race2048 implements Game {
                 player: view(player.player),
                 gained: 0,
                 moved: false,
-                phase: this.#data.phase,
+                phase: this.data.phase,
             };
         }
         const p = player.player;
         // `slide` says the board changed, so there's an empty cell for the new tile
-        p.board = spawn(board, this.#random);
+        p.board = spawn(board, this.random);
         p.score += gained;
         p.best = Math.max(p.best, p.score);
         p.moves++;
         p.rev++;
-        this.#data.lastMove = { player: userId, direction };
+        this.data.lastMove = { player: userId, direction };
         if (maxTile(p.board) >= this.target) {
-            p.won = true;
-            this.#data.winner = userId;
-            this.#data.ended = "target";
-            this.#data.phase = "finished";
-            this.#data.finishedAt = this.#now();
-        } else if (!canMove(p.board)) {
-            p.dead = true;
+            this.finish("target", userId, this.now());
+        } else {
+            p.dead = !canMove(p.board);
+            this.changed();
         }
-        return { ok: true, player: view(p), gained, moved: true, phase: this.#data.phase };
+        return { ok: true, player: view(p), gained, moved: true, phase: this.data.phase };
     }
 
     /** A fresh board for a player, counted against them */
@@ -345,43 +164,35 @@ export class Race2048 implements Game {
         const player = this.#racingPlayer(userId);
         if (!player.ok) return player;
         const p = player.player;
-        p.board = newBoard(this.#random);
+        p.board = newBoard(this.random);
         p.score = 0;
         p.moves = 0;
         p.restarts++;
         p.rev++;
         p.dead = false;
-        return { ok: true, player: view(p), gained: 0, moved: true, phase: this.#data.phase };
+        this.changed();
+        return { ok: true, player: view(p), gained: 0, moved: true, phase: this.data.phase };
     }
 
     #racingPlayer(userId: string): { ok: true; player: PlayerData } | { ok: false; error: string } {
-        if (this.#data.phase === "open") return { ok: false, error: "The race hasn't started" };
-        if (this.#data.phase === "finished") return { ok: false, error: "The race is over" };
-        const player = this.#data.players.find((p) => p.id === userId);
+        if (this.data.phase === "open") return { ok: false, error: "The race hasn't started" };
+        if (this.data.phase === "finished") return { ok: false, error: "The race is over" };
+        const player = this.racer(userId);
         if (player === undefined) return { ok: false, error: "You aren't in this race" };
         return { ok: true, player };
     }
 
     /** The state everyone sees */
     shared(): SharedState {
-        const d = this.#data;
+        const d = this.data;
         return {
             version: STATE_VERSION,
             game: GAME_ID,
-            phase: d.phase,
-            settings: this.settings(),
-            host: d.host,
-            hostName: d.hostName,
+            ...this.base(),
             target: this.target,
             timeLimit: this.timeLimit,
             maxPlayers: MAX_PLAYERS,
-            seats: d.seats.map((s) => ({ ...s })),
             racers: d.players.map(pack),
-            startedAt: d.startedAt,
-            endsAt: d.endsAt,
-            finishedAt: d.finishedAt,
-            ended: d.ended,
-            winner: d.winner,
             lastMove: d.lastMove === undefined ? undefined : { ...d.lastMove },
         };
     }
@@ -391,13 +202,9 @@ export class Race2048 implements Game {
      * on its own: every board, the winner and the times, which the app shows the finished race
      * from. A hundred racers packed is about 11 KB, within the end state's 16 KB.
      */
-    endState(): SharedState | undefined {
-        if (this.#data.phase !== "finished") return undefined;
+    override endState(): SharedState | undefined {
+        if (this.data.phase !== "finished") return undefined;
         return { ...this.shared(), names: this.names() };
-    }
-
-    toJson(): RaceData {
-        return this.#data;
     }
 
     /**
@@ -406,7 +213,7 @@ export class Race2048 implements Game {
      * so the card shows their username as it is now, whenever it's read.
      */
     result(): string | undefined {
-        const d = this.#data;
+        const d = this.data;
         if (d.phase !== "finished") return undefined;
         const winner = this.winner;
         if (winner === undefined || d.startedAt === undefined || d.finishedAt === undefined) {
@@ -456,15 +263,4 @@ export function rank(a: PlayerData, b: PlayerData): number {
         maxTile(b.board) - maxTile(a.board) ||
         a.restarts - b.restarts
     );
-}
-
-/** eg. "45s", "2m 15s", "1h 2m" */
-export function duration(ms: number): string {
-    const seconds = Math.max(0, Math.round(ms / 1000));
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const rest = seconds % 60;
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    if (minutes > 0) return `${minutes}m ${rest}s`;
-    return `${rest}s`;
 }

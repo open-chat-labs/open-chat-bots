@@ -32,7 +32,7 @@ describe("the sweep", () => {
         store.create(chessCard, chess);
         // A race with longer than the chess clocks, so the two end at different sweeps
         const race = Race2048.create({ now: clock, settings: { minutes: (2 * TIME_PER_SIDE_MS) / 60_000 } });
-        race.takeSeat("carol", "Carol");
+        race.join("carol", "Carol");
         race.start();
         store.create(raceCard, race);
 
