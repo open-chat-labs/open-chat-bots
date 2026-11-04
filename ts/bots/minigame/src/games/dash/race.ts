@@ -3,7 +3,10 @@
 // line wins, or, when the time's up, whoever got furthest, then whoever got there first. A
 // racer's run is the ticks their button went down and came up (`runner.ts`), which their page
 // plays as they press and sends to the bot as it goes, whole: the bot plays it too, so it knows
-// how far they've got, which everyone sees, and that they did.
+// how far they've got, which everyone sees, and that they did. A racer's run comes to them alone,
+// in the answers to their requests: it isn't in a private part of the state, as the page has to
+// ask the bot as it opens anyway, for the bot's clock, and every racer's run would go with every
+// state.
 import { jsonBytes, MAX_END_STATE_BYTES, type Seat } from "../game";
 import { openRace, Race, type RaceData, type RaceOptions } from "../race";
 import { buildCourse, percentOf, pickSections, TILE, type Course } from "./course";
@@ -98,9 +101,18 @@ export class DashRace extends Race<Racer, Ending, DashData, SharedState> {
         return PUBLISH_EVERY_MS;
     }
 
-    /** The race's tick now, counted from its start, as the page counts it */
+    /** The race's tick at a time, counted from its start, as the page counts it */
+    #tickAt(time: number): number {
+        return Math.floor(((time - (this.data.startedAt ?? 0)) * TICKS_PER_SECOND) / 1000);
+    }
+
     #tickNow(): number {
-        return Math.floor(((this.now() - (this.data.startedAt ?? 0)) * TICKS_PER_SECOND) / 1000);
+        return this.#tickAt(this.now());
+    }
+
+    /** The race's last tick, before the time's up */
+    #endTick(): number {
+        return this.#tickAt(this.data.endsAt ?? Infinity) - 1;
     }
 
     /** A racer's own run, which only they see while the race is on */
@@ -145,7 +157,9 @@ export class DashRace extends Race<Racer, Ending, DashData, SharedState> {
         if (to < racer.upTo || !goesOn(changes, racer)) {
             return fail("That isn't how your run went");
         }
-        if (to > this.#tickNow() + AHEAD_TICKS) return fail("That run is ahead of the race");
+        if (to > Math.min(this.#tickNow() + AHEAD_TICKS, this.#endTick())) {
+            return fail("That run is ahead of the race");
+        }
         const course = this.course;
         if (course === undefined) return fail("This race's course can't be built");
 
@@ -174,12 +188,6 @@ export class DashRace extends Race<Racer, Ending, DashData, SharedState> {
             this.changed();
         }
         return { result: answer({ ok: true }), changed };
-    }
-
-    /** Each racer's own run while the race is on, which the service gives only to them */
-    privateState(): Record<string, OwnRun> | undefined {
-        if (this.data.phase !== "active") return undefined;
-        return Object.fromEntries(this.data.players.map((p) => [p.id, this.own(p.id)!]));
     }
 
     /** What everyone sees: how far each racer's got, and once it's over, the winner's run */

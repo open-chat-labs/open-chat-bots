@@ -2,8 +2,8 @@
 // reads. Everyone runs the same course, so while the race is on the state says how far each racer
 // has got, and how many times they've fallen: their runs, the ticks their button went down and
 // came up, would show the others how to do it. Each racer's own run comes to them alone, in the
-// answer to their requests (`POST /api/dash/run`) and in their private part of each state. Once the
-// race is over, the state has the winner's run, so the page can show it.
+// answer to their requests (`POST /api/dash/run`). Once the race is over, the state has the
+// winner's run, so the page can show it.
 import type { RaceBase } from "../race";
 
 /** Bumped when the shape changes, so an app left open from an older release knows to reload */

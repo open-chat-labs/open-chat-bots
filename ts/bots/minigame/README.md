@@ -517,10 +517,11 @@ they've got for everyone else to see.
   start. The page plays them as they're made, on the race's clock, which it takes from the bot's
   answers, and sends the run whole about once a second, and at once across the finish line. The
   bot plays it on from where it last had it, takes it only if it goes on from that run and is no
-  further on than the race, and publishes how far the racer's got and how many times they've
-  fallen, every half a second at most. Each racer's run comes in the answer to their own requests,
-  and in their private part of each state. Once the race is over, the state has the winner's run,
-  which the page can play through.
+  further on than the race or past its end, and publishes how far the racer's got and how many
+  times they've fallen, every half a second at most. Each racer's run comes only in the answers to
+  their own requests: the page asks as it opens, as it needs the bot's clock anyway, so the run
+  isn't in a private part of the state, which would carry every racer's with every state. Once
+  the race is over, the state has the winner's run, which the page can play through.
 - **The first across the finish line wins.** When the time's up, whoever got furthest wins, then
   whoever got there first.
 - **The page** draws the course on a canvas, twelve tiles across, following the racer's runner,

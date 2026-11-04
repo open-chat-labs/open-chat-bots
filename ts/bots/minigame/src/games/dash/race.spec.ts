@@ -73,10 +73,9 @@ describe("a Dash Race", () => {
         const shared = race.shared();
         expect(shared.racers[0]).toEqual({ id: "alice", tiles: 4, falls: 0 });
         expect(shared).not.toHaveProperty("changes");
-        expect(race.privateState()).toEqual({
-            alice: { changes: [0, 1], upTo: 30 },
-            bob: { changes: [], upTo: -1 },
-        });
+        // Nor in a private part, which goes with every state: the racer's page asks for theirs
+        expect("privateState" in race).toBe(false);
+        expect(race.own("bob")).toEqual({ changes: [], upTo: -1 });
         // On from there, into the spike
         clock.now = at(race, 200);
         expect(send(race, "alice", [0, 1], 200)).toMatchObject({ changed: true });
@@ -110,6 +109,13 @@ describe("a Dash Race", () => {
         expect(refused([1, 0], 50)).toMatchObject({ ok: false });
         // What a page that's played on sends: the same, and more
         expect(refused([0, 1, 45], 60 + AHEAD_TICKS)).toMatchObject({ ok: true });
+        // But not past the race's end, however near it the clock is
+        clock.now = race.data.endsAt! - 10;
+        const last = (3 * 60_000 * 60) / 1000 - 1;
+        expect(refused([0, 1, 45], last + 1)).toMatchObject({
+            error: "That run is ahead of the race",
+        });
+        expect(refused([0, 1, 45], last)).toMatchObject({ ok: true });
         expect(send(race, "carol", [], 0).result).toMatchObject({
             error: "You aren't in this race",
         });
@@ -127,7 +133,6 @@ describe("a Dash Race", () => {
         expect(end).toMatchObject({ ended: "flag", winner: "alice", changes: [0] });
         // As the tick's over
         expect(end.finishedAt).toBe(race.data.startedAt! + 1017);
-        expect(race.privateState()).toBeUndefined();
         // Too late, and nothing changes
         expect(send(race, "bob", [10], 60)).toMatchObject({
             result: { ok: true, own: { changes: [10], upTo: 30 } },

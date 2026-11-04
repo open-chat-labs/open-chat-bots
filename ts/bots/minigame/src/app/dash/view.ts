@@ -3,9 +3,9 @@
 // the up arrow, jumps, higher the longer it's held. The page plays the racer's presses as they
 // make them, a tick at a time on the race's clock (`games/dash/runner.ts`), and sends the bot
 // their run as it goes, whole: the bot plays it too, and answers with the run it has, and its
-// clock, which the page keeps to. The run also comes in the racer's private part of each state,
-// so it's there as the page opens. Everyone else is drawn faintly where the state says they've
-// got furthest. Someone watching sees the course, and everyone on it the same way.
+// clock, which the page keeps to. As the page opens, it asks the bot for both. Everyone else is
+// drawn faintly where the state says they've got furthest. Someone watching sees the course, and
+// everyone on it the same way.
 //
 // Once the race is over, the card's end state is its final state: how far everyone got, which a
 // click on a name shows on the course, and the winner's run, which the page can play through.
@@ -25,6 +25,7 @@ import { describeResult, fallsText, runTime } from "../../games/dash/result";
 import {
     FALL_TICKS,
     HEIGHT,
+    isChanges,
     runTo,
     startRunner,
     TICKS_PER_SECOND,
@@ -34,6 +35,7 @@ import {
 import { DASH_SETTINGS } from "../../games/dash/settings";
 import {
     GAME_ID,
+    MAX_CHANGES,
     MAX_PLAYERS,
     STATE_VERSION,
     type OwnRun,
@@ -41,6 +43,7 @@ import {
     type RunResponse,
     type SharedState,
 } from "../../games/dash/types";
+import { racerColour } from "../colours";
 import { roomFor } from "../layout";
 import { fetchUsernames, nameOf } from "../names";
 import { raceClock, raceLobby } from "../race";
@@ -62,20 +65,6 @@ const LEVEL_NAMES: Readonly<Record<number, string>> = {
     2: "a medium",
     3: "a hard",
 };
-
-/** The racers' colours, in the order they joined, as the maze race's */
-const COLOURS = [
-    "#e8704a",
-    "#3f7fd0",
-    "#2fa36b",
-    "#c94fb5",
-    "#d9a400",
-    "#20a0b8",
-    "#8a5cd6",
-    "#d64d6b",
-    "#6d8f24",
-    "#8c6d4f",
-];
 
 type Row = {
     li: HTMLElement;
@@ -241,7 +230,8 @@ function readEnd(state: unknown): SharedState | undefined {
         Array.isArray(s.sections) &&
         buildCourse(s.sections) !== undefined &&
         Array.isArray(s.racers) &&
-        s.racers.every((r) => typeof r.tiles === "number" && typeof r.falls === "number")
+        s.racers.every((r) => typeof r.tiles === "number" && typeof r.falls === "number") &&
+        (s.changes === undefined || isChanges(s.changes, MAX_CHANGES))
         ? (s as SharedState)
         : undefined;
 }
@@ -253,18 +243,10 @@ function courseOf(s: SharedState | undefined): Course | undefined {
     return built.course;
 }
 
-/**
- * Takes a state from OpenChat, with the racer's run from their private part of it until the page
- * has one, and asks the bot for it once, as the part may be older than the bot's, and for the
- * bot's clock
- */
+/** Takes a state from OpenChat, and asks the bot once for the racer's run, and its clock */
 function take(state: SharedState) {
     latest = state;
     if (state.phase !== "active" || myRacer() === undefined) return;
-    const part = ctx?.oc.state?.private as Partial<OwnRun> | undefined;
-    if (mine === undefined && Array.isArray(part?.changes) && typeof part.upTo === "number") {
-        setRun({ changes: part.changes, upTo: part.upTo });
-    }
     if (!asked && Date.now() >= retryAt) {
         asked = true;
         void request(false);
@@ -378,9 +360,12 @@ async function request(send: boolean) {
             body: JSON.stringify(body),
         });
         const result = (await response.json()) as RunResponse;
-        // The bot's clock when it answered, which is now at the earliest
+        // The bot's clock when it answered, which is now at the earliest. The page keeps the
+        // nearest, unless the bot refused its run, eg. as ahead of the race, when the page's clock
+        // may have changed since: then the page takes this one, rather than be refused again.
         if (typeof result.now === "number") {
-            offset = Math.max(offset ?? -Infinity, result.now - Date.now());
+            const sample = result.now - Date.now();
+            offset = result.ok ? Math.max(offset ?? -Infinity, sample) : sample;
         }
         if (result.own !== undefined) {
             confirmed = { upTo: result.own.upTo, changes: result.own.changes.length };
@@ -549,22 +534,8 @@ function render() {
     dom.banner.hidden = banner === "";
     if (dom.banner.textContent !== banner) dom.banner.textContent = banner;
 
-    // The racer's own count, or, once it's over, whoever's picked, or the winner as they run
     const whose = focusId(s);
-    const shownRacer = s.racers.find((r) => r.id === whose);
-    if (watching !== undefined) {
-        dom.count.textContent = `${nameOf(s.winner, s.names)}'s run · ${runTime(Math.max(0, watching.runner.tick))}`;
-    } else if (shownRacer !== undefined && course !== undefined) {
-        const r = progress(s, shownRacer);
-        const where =
-            r.finished !== undefined
-                ? runTime(r.finished)
-                : `${percentOf(course, r.tiles)}% of the way`;
-        const who = r.id === me ? "You" : nameOf(r.id, s.names);
-        dom.count.textContent = `${who}: ${where}, ${fallsText(r.falls)}`;
-    } else {
-        dom.count.textContent = "";
-    }
+    renderCount(s);
     dom.watch.hidden = !finished || s.changes === undefined || s.changes.length === 0;
     dom.watch.textContent = watching?.playing === true ? "Stop" : "Watch how";
 
@@ -583,6 +554,29 @@ function render() {
     renderStandings(s, finished, whose);
     fit();
     draw();
+}
+
+/**
+ * The line over the standings: the racer's own count, or, once it's over, whoever's picked, or the
+ * winner's time as their run plays through
+ */
+function renderCount(s: SharedState) {
+    if (dom === undefined) return;
+    const course = courseOf(s);
+    const shownRacer = s.racers.find((r) => r.id === focusId(s));
+    let text = "";
+    if (watching !== undefined) {
+        text = `${nameOf(s.winner, s.names)}'s run · ${runTime(Math.max(0, watching.runner.tick))}`;
+    } else if (shownRacer !== undefined && course !== undefined) {
+        const r = progress(s, shownRacer);
+        const where =
+            r.finished !== undefined
+                ? runTime(r.finished)
+                : `${percentOf(course, r.tiles)}% of the way`;
+        const who = r.id === ctx?.oc.userId ? "You" : nameOf(r.id, s.names);
+        text = `${who}: ${where}, ${fallsText(r.falls)}`;
+    }
+    if (dom.count.textContent !== text) dom.count.textContent = text;
 }
 
 /** Whose runner the course follows: the racer's own, or the leader, or once it's over, the pick */
@@ -624,7 +618,7 @@ function renderTrack(s: SharedState, course: Course | undefined) {
             dom!.dots.set(r.id, dot);
             dom!.track.append(dot);
         }
-        dot.style.background = COLOURS[i % COLOURS.length];
+        dot.style.background = racerColour(i);
         dot.style.left = `${percentOf(course, r.finished !== undefined ? course.finish : r.tiles)}%`;
         dot.classList.toggle("mine", r.id === me);
         seen.add(r.id);
@@ -641,7 +635,7 @@ function renderStandings(s: SharedState, finished: boolean, whose: string | unde
     if (dom === undefined) return;
     const me = ctx?.oc.userId;
     const course = courseOf(s);
-    const colour = new Map(s.racers.map((r, i) => [r.id, COLOURS[i % COLOURS.length]]));
+    const colour = new Map(s.racers.map((r, i) => [r.id, racerColour(i)]));
     drawRows(
         dom.standings,
         dom.rows,
@@ -692,12 +686,16 @@ function loop() {
     const course = courseOf(shown());
     if (watching?.playing === true && course !== undefined) {
         playTo(course, watching, Math.floor(watchTime(watching)));
-        // Played through, to the line, or a while after the run's last press
+        // Played through, to the line, or a while after the run's last press, when the button
+        // goes back to Watch how
         const last = watching.changes[watching.changes.length - 1];
         if (watching.runner.mode === "done" || watching.runner.tick > last + 3 * TICKS_PER_SECOND) {
             watching.playing = false;
+            render();
+        } else {
+            renderCount(shown()!);
+            draw();
         }
-        render();
     } else {
         draw();
     }
@@ -735,12 +733,14 @@ function colours(): Record<string, string> {
     return palette.colours;
 }
 
-/** Where a runner stands in a column: on top of its highest solid tile, or on the ground */
+/**
+ * Where a runner stands in a column: on the solid tiles from the bottom up, so under a ceiling
+ * rather than on it, or at the ground's height over a pit
+ */
 function standY(course: Course, column: number): number {
-    for (let row = ROWS - 1; row >= 0; row--) {
-        if (tileAt(course, column, row) === SOLID) return (row + 1) * TILE;
-    }
-    return GROUND_ROWS * TILE;
+    let row = 0;
+    while (row < ROWS && tileAt(course, column, row) === SOLID) row++;
+    return (row === 0 ? GROUND_ROWS : row) * TILE;
 }
 
 function draw() {
@@ -765,7 +765,7 @@ function draw() {
     const c = colours();
     const scale = width / (VIEW_COLUMNS * TILE);
     const me = ctx?.oc.userId;
-    const colour = new Map(s.racers.map((r, i) => [r.id, COLOURS[i % COLOURS.length]]));
+    const colour = new Map(s.racers.map((r, i) => [r.id, racerColour(i)]));
 
     // The runner the course follows, drawn between its last two ticks, and who that is
     const time = raceTime();
