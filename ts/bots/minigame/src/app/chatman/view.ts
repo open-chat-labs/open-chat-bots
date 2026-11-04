@@ -24,9 +24,13 @@ import {
     type TurnMessage,
 } from "../../games/chatman/types";
 import { isDirection, type Direction } from "../../games/maze/maze";
+import { mmss } from "../format";
+import { roomFor } from "../layout";
 import { LiveSocket } from "../live";
-import { fetchUsernames, usernameOf } from "../names";
-import type { GameView, Lobby, ViewContext } from "../view";
+import { fetchUsernames, nameOf } from "../names";
+import { raceLobby } from "../race";
+import { drawRows, pickable } from "../rows";
+import type { GameView, ViewContext } from "../view";
 import { drawBoard, lifeSvg } from "./draw";
 
 const KEYS: Record<string, Direction> = {
@@ -53,6 +57,8 @@ type Dom = {
     score: HTMLElement;
     level: HTMLElement;
     lives: HTMLElement;
+    /** The canvas, with the banner over it */
+    stage: HTMLElement;
     canvas: HTMLCanvasElement;
     banner: HTMLElement;
     controls: HTMLElement;
@@ -134,23 +140,18 @@ export const chatmanView: GameView = {
         return (state as SharedState).phase === "open";
     },
 
-    lobby(state): Lobby {
+    lobby(state) {
         const s = state as SharedState;
         const { minutes, lives } = s.settings;
-        return {
+        return raceLobby(s, {
             blurb: `Everyone plays their own ChatMan in the same mazes, at the same time: eat the
                 dots and dodge the spam bots, and eat a power pellet to turn the tables for a few
                 seconds. The top score after <strong>${minutes} minute${minutes === 1 ? "" : "s"}</strong>
                 wins, with <strong>${lives} li${lives === 1 ? "fe" : "ves"}</strong> each.`,
-            seats: s.seats,
-            hint: `Start when everyone has joined. Up to ${MAX_PLAYERS} can play.`,
-            settings: {
-                specs: CHATMAN_SETTINGS,
-                current: s.settings,
-                host: s.host,
-                hostName: s.hostName,
-            },
-        };
+            settings: CHATMAN_SETTINGS,
+            maxPlayers: MAX_PLAYERS,
+            verb: "play",
+        });
     },
 
     renderLive(body, shared) {
@@ -180,7 +181,7 @@ export const chatmanView: GameView = {
         const s = shown();
         if (s?.playsAt === undefined || s.endsAt === undefined || s.phase !== "active") return "";
         const now = botNow();
-        return now < s.playsAt ? "Get ready" : `${mmss(s.endsAt - now)} left`;
+        return now < s.playsAt ? "Get ready" : `${mmss(s.endsAt - now, Math.ceil)} left`;
     },
 
     onKey(event) {
@@ -377,7 +378,7 @@ function ensureDom(body: HTMLElement) {
                 </div>
                 <p class="muted small"><span class="hint"></span> <span class="note"></span></p>
             </div>
-            <ol class="chatman-standings"></ol>
+            <ol class="race-standings chatman-standings"></ol>
         </div>`;
     const root = body.firstElementChild as HTMLElement;
     const q = <T extends HTMLElement>(selector: string) => root.querySelector(selector) as T;
@@ -387,6 +388,7 @@ function ensureDom(body: HTMLElement) {
         score: q(".chatman-score"),
         level: q(".chatman-level"),
         lives: q(".chatman-lives"),
+        stage: q(".chatman-stage"),
         canvas: q(".chatman-board"),
         banner: q(".chatman-banner"),
         controls: q(".controls"),
@@ -423,11 +425,6 @@ function ensureDom(body: HTMLElement) {
     dom.canvas.addEventListener("pointercancel", lift);
 }
 
-function name(s: SharedState, id: string | undefined): string {
-    if (id === undefined) return "Nobody";
-    return usernameOf(id) ?? s.names[id] ?? id.slice(0, 5);
-}
-
 function render() {
     const s = shown();
     if (dom === undefined || s === undefined || ctx === undefined) return;
@@ -441,7 +438,7 @@ function render() {
     if (s.phase === "finished") {
         dom.status.textContent = resultLine(s);
     } else if (!s.players.some((p) => p.id === me)) {
-        dom.status.textContent = `Watching ${name(s, id)}${s.players.length > 1 ? ": pick a name to watch someone else" : ""}`;
+        dom.status.textContent = `Watching ${nameOf(id, s.names)}${s.players.length > 1 ? ": pick a name to watch someone else" : ""}`;
     } else {
         dom.status.textContent = "";
     }
@@ -459,7 +456,7 @@ function resultLine(s: SharedState): string {
     if (winner === undefined) return "The game is over";
     const points = winner.board.score.toLocaleString("en-US");
     const what = s.players.length > 1 ? `won with ${points} points` : `scored ${points} points`;
-    return `${s.ended === "time" ? "Time's up! " : ""}${name(s, winner.id)} ${what}`;
+    return `${s.ended === "time" ? "Time's up! " : ""}${nameOf(winner.id, s.names)} ${what}`;
 }
 
 function renderHint() {
@@ -477,27 +474,12 @@ function renderStandings(s: SharedState) {
     const me = ctx?.oc.userId;
     const spectator = !s.players.some((p) => p.id === me);
     const drawn = drawnId(s);
-    // A player's line is kept while they're in the standings, and only what's changed in it is
-    // touched: they're drawn four times a second, and a click on a name whose line is replaced
-    // between the press and the release goes nowhere
-    const seen = new Set<string>();
-    for (const { id, board } of ranked(s)) {
-        let row = dom.rows.get(id);
-        if (row === undefined) {
-            row = standingsRow();
-            dom.rows.set(id, row);
-        }
+    drawRows(dom.standings, dom.rows, ranked(s), standingsRow, (row, { id, board }) => {
         const li = row.li;
         li.classList.toggle("mine", id === me);
         li.classList.toggle("watched", spectator && id === drawn);
-        if (spectator) {
-            li.dataset.action = "watch";
-            li.dataset.id = id;
-        } else {
-            delete li.dataset.action;
-            delete li.dataset.id;
-        }
-        const who = name(s, id);
+        pickable(li, id, spectator ? "watch" : undefined);
+        const who = nameOf(id, s.names);
         if (row.who.textContent !== who) row.who.textContent = who;
         const lives = board.out ? -1 : board.lives;
         if (row.shownLives !== lives) {
@@ -506,17 +488,7 @@ function renderStandings(s: SharedState) {
         }
         const score = board.score.toLocaleString("en-US");
         if (row.score.textContent !== score) row.score.textContent = score;
-        // Into its place, if it isn't there already
-        const at = dom.standings.children[seen.size] ?? null;
-        if (at !== li) dom.standings.insertBefore(li, at);
-        seen.add(id);
-    }
-    for (const [id, row] of dom.rows) {
-        if (!seen.has(id)) {
-            row.li.remove();
-            dom.rows.delete(id);
-        }
-    }
+    });
 }
 
 function standingsRow(): Row {
@@ -584,19 +556,7 @@ function animate() {
 // The maze is as wide as the frame, unless what's around it leaves less height than it needs
 function fitCanvas() {
     if (dom === undefined) return;
-    let used = 0;
-    for (const el of dom.root.children) {
-        if (el.classList.contains("chatman-stage")) continue;
-        const style = getComputedStyle(el);
-        if (style.display === "none") continue;
-        used += (el as HTMLElement).offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
-    }
-    const available = document.documentElement.clientHeight - dom.root.getBoundingClientRect().top - 16;
-    const width = Math.floor(((available - used) * WIDTH) / HEIGHT);
+    const room = roomFor(dom.root, [dom.stage]);
+    const width = Math.floor((room * WIDTH) / HEIGHT);
     dom.canvas.style.maxWidth = `${Math.max(180, width)}px`;
-}
-
-function mmss(ms: number): string {
-    const seconds = Math.max(0, Math.ceil(ms / 1000));
-    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }

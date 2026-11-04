@@ -41,7 +41,7 @@ import {
     cratesPath,
     duelMove,
     duelResign,
-    mazeMove,
+    liveMove,
     minesweeperAct,
     raceMove,
     raceRestart,
@@ -334,7 +334,7 @@ describe("a race through the same handlers", () => {
         ]);
         expect(await send(join, deps, "carol")).toEqual({
             status: 200,
-            body: { accepted: false, message: "The race has already started" },
+            body: { accepted: false, message: "The race has started" },
         });
         // Someone who isn't racing can't start it again; a racer gets the players as they are
         expect(await send(start, deps, "carol")).toEqual({
@@ -506,18 +506,18 @@ describe("a maze race's moves over HTTP, while a racer's socket isn't open", () 
         store.create(game, race);
         const [move] = wayOut(race.maze!);
 
-        const moved = await send(mazeMove, deps, "alice", { move, n: 1 });
+        const moved = await send(liveMove("maze"), deps, "alice", { move, n: 1 });
         expect(moved.status).toBe(200);
         expect((moved.body as { shared: MazeState }).shared.racers[0]).toMatchObject({ ack: 1 });
         expect(publish).toHaveBeenCalledTimes(1);
         // The same move again changes nothing, and publishes nothing
-        expect((await send(mazeMove, deps, "alice", { move, n: 1 })).status).toBe(200);
+        expect((await send(liveMove("maze"), deps, "alice", { move, n: 1 })).status).toBe(200);
         expect(publish).toHaveBeenCalledTimes(1);
-        expect(await send(mazeMove, deps, "alice", { move: "sideways", n: 2 })).toEqual({
+        expect(await send(liveMove("maze"), deps, "alice", { move: "sideways", n: 2 })).toEqual({
             status: 409,
             body: { ok: false, error: "A move is a direction and its number", changed: false },
         });
-        expect((await send(mazeMove, deps, "bob", { move, n: 1 })).status).toBe(403);
+        expect((await send(liveMove("maze"), deps, "bob", { move, n: 1 })).status).toBe(403);
     });
 });
 

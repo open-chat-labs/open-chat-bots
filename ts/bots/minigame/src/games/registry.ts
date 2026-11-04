@@ -12,6 +12,7 @@ import { CrateRace, type CratesData } from "./crates/race";
 import { CRATES_SETTINGS } from "./crates/settings";
 import { GAME_ID as CRATES_ID, MAX_PLAYERS as CRATES_MAX_PLAYERS } from "./crates/types";
 import { Duel, type DuelData } from "./duel/duel";
+import type { DuelRules, Position } from "./duel/types";
 import { FOUR_IN_A_ROW } from "./fourinarow/rules";
 import { HEX } from "./hex/rules";
 import { MazeRace, type MazeData } from "./maze/race";
@@ -25,7 +26,7 @@ import {
 } from "./minesweeper/types";
 import { REVERSI } from "./reversi/rules";
 import type { Game, GameKind, Host } from "./game";
-import { Race2048, type RaceData } from "./race2048/race";
+import { Race2048, type Race2048Data } from "./race2048/race";
 import { RACE_SETTINGS } from "./race2048/settings";
 import { GAME_ID as RACE_ID, MAX_PLAYERS } from "./race2048/types";
 import type { SettingSpec, Settings } from "./settings";
@@ -91,7 +92,7 @@ export const RACE_2048: GameType = {
     // A portrait frame: the lobby, or a player's board above a row of the others'
     appSize: { width: 480, height: 720 },
     create: (config, host) => Race2048.create({ settings: config.raceSettings, host }),
-    fromJson: (data) => new Race2048(data as RaceData),
+    fromJson: (data) => new Race2048(data as Race2048Data),
 };
 
 export const CHESS: GameType = {
@@ -109,49 +110,35 @@ export const CHESS: GameType = {
     fromJson: (data) => new ChessGame(data as ChessData),
 };
 
-export const FOUR: GameType = {
-    id: FOUR_IN_A_ROW.kind,
-    title: FOUR_IN_A_ROW.title,
-    image: "app/four-in-a-row.svg",
-    // One line, as chess's: who goes first and the time are settings, shown in the lobby
-    cardText: "**Four in a Row** · two players, anyone can watch",
-    maxPlayers: 2,
-    spectators: true,
-    settings: FOUR_IN_A_ROW.settings,
-    // A portrait frame: a player above the grid and a player below it
-    appSize: { width: 440, height: 600 },
-    create: (_config, host) => Duel.create(FOUR_IN_A_ROW, { host }),
-    fromJson: (data) => new Duel(FOUR_IN_A_ROW, data as DuelData<number>),
-};
+/**
+ * A duel (`games/duel`): two players, and anyone can watch. The card says only that, as who goes
+ * first and the time are settings, shown in the lobby. The frame is portrait: a player above the
+ * board and a player below it.
+ */
+function duelType<M, P extends Position<M>>(
+    rules: DuelRules<M, P>,
+    appSize: MiniAppSize,
+): GameType {
+    return {
+        id: rules.kind,
+        title: rules.title,
+        image: `app/${rules.kind}.svg`,
+        cardText: `**${rules.title}** · two players, anyone can watch`,
+        maxPlayers: 2,
+        spectators: true,
+        settings: rules.settings,
+        appSize,
+        create: (_config, host) => Duel.create(rules, { host }),
+        fromJson: (data) => new Duel(rules, data as DuelData<M>),
+    };
+}
 
-export const REVERSI_GAME: GameType = {
-    id: REVERSI.kind,
-    title: REVERSI.title,
-    image: "app/reversi.svg",
-    cardText: "**Reversi** · two players, anyone can watch",
-    maxPlayers: 2,
-    spectators: true,
-    settings: REVERSI.settings,
-    // A portrait frame: a player above the board and a player below it
-    appSize: { width: 440, height: 640 },
-    create: (_config, host) => Duel.create(REVERSI, { host }),
-    fromJson: (data) => new Duel(REVERSI, data as DuelData<string>),
-};
+export const FOUR = duelType(FOUR_IN_A_ROW, { width: 440, height: 600 });
 
-export const HEX_GAME: GameType = {
-    id: HEX.kind,
-    title: HEX.title,
-    image: "app/hex.svg",
-    // One line, as the other duels': the board's size, the time and who goes first are settings
-    cardText: "**Hex** · two players, anyone can watch",
-    maxPlayers: 2,
-    spectators: true,
-    settings: HEX.settings,
-    // A portrait frame: a player above the board and a player below it, the board wider than tall
-    appSize: { width: 440, height: 580 },
-    create: (_config, host) => Duel.create(HEX, { host }),
-    fromJson: (data) => new Duel(HEX, data as DuelData<string>),
-};
+export const REVERSI_GAME = duelType(REVERSI, { width: 440, height: 640 });
+
+// The board's wider than it's tall
+export const HEX_GAME = duelType(HEX, { width: 440, height: 580 });
 
 export const MAZE: GameType = {
     id: MAZE_ID,
@@ -242,7 +229,7 @@ export const GAMES: readonly GameType[] = [
 ];
 
 /** The games played as a duel (`games/duel`), whose moves and resignations are the same requests */
-export const DUELS: readonly GameKind[] = [FOUR_IN_A_ROW.kind, REVERSI.kind, HEX.kind];
+export const DUELS: readonly GameKind[] = [FOUR, REVERSI_GAME, HEX_GAME].map((game) => game.id);
 
 export function gameType(id: string | undefined): GameType | undefined {
     return GAMES.find((game) => game.id === id);

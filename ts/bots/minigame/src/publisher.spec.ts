@@ -59,7 +59,7 @@ describe("publisher", () => {
     it("publishes the shared state, with no end state while the race is on", async () => {
         const { updates, store, publisher } = setUp();
         const race = Race2048.create();
-        race.takeSeat("alice", "Alice");
+        race.join("alice", "Alice");
         store.create(game, race);
 
         publisher.publish(game);
@@ -91,8 +91,8 @@ describe("publisher", () => {
         const { updates, store, publisher } = setUp();
         let now = 1_000_000;
         const race = Race2048.create({ now: () => now });
-        race.takeSeat("alice", "Alice");
-        race.takeSeat("bob", "Bob");
+        race.join("alice", "Alice");
+        race.join("bob", "Bob");
         race.start();
         race.data.players[1].score = 5432;
         race.data.players[1].best = 5432;

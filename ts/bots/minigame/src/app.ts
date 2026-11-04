@@ -7,14 +7,13 @@ import { definition } from "./definition";
 import type { Deps } from "./deps";
 import { DUELS } from "./games/registry";
 import {
-    chatmanTurn,
     chessDraw,
     chessMove,
     chessResign,
     cratesPath,
     duelMove,
     duelResign,
-    mazeMove,
+    liveMove,
     minesweeperAct,
     raceMove,
     raceRestart,
@@ -61,9 +60,9 @@ export function createApp(deps: Deps, appDir: string): Express {
     }
 
     // A racer's move in a maze race while their socket's not open; it's usually live (`live.ts`)
-    app.post("/api/maze/move", express.json(), handle(mazeMove));
+    app.post("/api/maze/move", express.json(), handle(liveMove("maze")));
     // A ChatMan player's turn, likewise
-    app.post("/api/chatman/turn", express.json(), handle(chatmanTurn));
+    app.post("/api/chatman/turn", express.json(), handle(liveMove("chatman")));
     // A Minesweeper racer's clicks, answered with their board, which only they see
     app.post("/api/minesweeper/act", express.json(), handle(minesweeperAct));
     // A Word racer's guess, answered with their guesses, marked, which only they see

@@ -1,7 +1,7 @@
 // How a Word Race ended, in words, as the card's result says it, naming the winner with a mention,
 // and as the page says it, by their username. It's here rather than in the race, which the page
 // doesn't load, as the race has every word.
-import { duration } from "../race2048/race";
+import { duration } from "../duration";
 import type { SharedState } from "./types";
 
 export type Ended = Pick<SharedState, "word" | "winner" | "ended" | "startedAt" | "finishedAt">;

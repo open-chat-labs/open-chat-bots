@@ -3,6 +3,7 @@
 // each racer's got: where they've been would show the others where it's safe. Each racer's own
 // board comes to them alone, in the answer to their requests (`POST /api/minesweeper/act`) and in
 // their private part of each state. Once the race is over, the state has every board and the mines.
+import type { Phase, Seat } from "../game";
 import type { Settings } from "../settings";
 
 /** Bumped when the shape changes, so an app left open from an older release knows to reload */
@@ -29,12 +30,8 @@ export const HIDDEN = ".";
 export const FLAG = "f";
 export const BOOM = "x";
 
-export type Phase = "open" | "active" | "finished";
-
 /** How a race ended: someone cleared the field, or the time ran out and the furthest on won */
 export type Ending = "cleared" | "time";
-
-export type Seat = { id: string; name: string };
 
 export type RacerState = {
     id: string;

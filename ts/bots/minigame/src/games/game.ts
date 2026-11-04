@@ -28,6 +28,9 @@ export type LiveResult =
 /** Who ran `/play`, with their name, as the lobby names them before they've joined */
 export type Host = { id: string; name: string };
 
+/** Someone who's joined a game, with the name they joined with */
+export type Seat = { id: string; name: string };
+
 export type Phase = "open" | "active" | "finished";
 
 export interface Game {

@@ -7,6 +7,7 @@
 // out of the live state: the app looks the racers' usernames up by id (`GET /api/names`), and the
 // end state, which the card keeps for good, carries the names they joined with, for when the bot
 // can't say.
+import type { Phase, Seat } from "../game";
 import type { Settings } from "../settings";
 import type { Board, Direction } from "./engine";
 
@@ -24,13 +25,8 @@ export const TIME_LIMIT_MS = 10 * 60 * 1000;
 /** The most players: what a card takes */
 export const MAX_PLAYERS = 100;
 
-export type Phase = "open" | "active" | "finished";
-
 /** How a race ended: a player made the target tile, or the time ran out and the top score won */
 export type Ending = "target" | "time";
-
-/** Someone who joined, before the game starts */
-export type Seat = { id: string; name: string };
 
 /** A racer, as the app sees one: `Racer` unpacked, with their name */
 export type PlayerView = {

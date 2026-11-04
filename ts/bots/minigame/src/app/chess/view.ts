@@ -23,6 +23,8 @@ import {
 import { capturedBetween, materialLead, TAKEN_ORDER } from "../../games/chess/material";
 import { toPgn } from "../../games/chess/pgn";
 import { CHESS_SETTINGS, WHITE_IS_HOST, WHITE_IS_OPPONENT } from "../../games/chess/settings";
+import { escape, formatClock, formatFirstMove, shortId } from "../format";
+import { roomFor } from "../layout";
 import type { BaseState, GameView, Lobby, ViewContext } from "../view";
 
 const LOW_TIME_MS = 20_000;
@@ -566,11 +568,6 @@ function hidePromotion() {
     promotion = undefined;
     if (dom !== undefined) dom.promotion.hidden = true;
 }
-
-function shortId(id: string): string {
-    return id.length > 13 ? `${id.slice(0, 5)}…${id.slice(-5)}` : id;
-}
-
 function sideName(color: Side): string {
     return color === "white" ? "White" : "Black";
 }
@@ -679,31 +676,24 @@ function overflow(row: HTMLElement): number {
 function fitBoard() {
     if (dom === undefined) return;
     const root = dom.root;
-    let used = 0;
-    for (const el of root.children) {
-        if (el === dom.board || el === dom.moves) continue;
-        const style = getComputedStyle(el);
-        if (style.display === "none" || style.position === "fixed") continue;
-        used += (el as HTMLElement).offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
-    }
     const boardStyle = getComputedStyle(dom.board);
-    used += parseFloat(boardStyle.marginTop) + parseFloat(boardStyle.marginBottom);
-    // What's below the view's top in the frame, less a little for the page's padding
-    const available = document.documentElement.clientHeight - root.getBoundingClientRect().top - 16;
-    const side = Math.floor(Math.max(160, Math.min(root.clientWidth, available - used)));
+    const room =
+        roomFor(root, [dom.board, dom.moves]) -
+        parseFloat(boardStyle.marginTop) -
+        parseFloat(boardStyle.marginBottom);
+    const side = Math.floor(Math.max(160, Math.min(root.clientWidth, room)));
     dom.board.style.setProperty("--board-max", `${side}px`);
     const moves = getComputedStyle(dom.moves);
-    const room =
-        available -
-        used -
+    const left =
+        room -
         side -
         parseFloat(moves.marginTop) -
         parseFloat(moves.borderTopWidth) -
         parseFloat(moves.paddingTop) -
         parseFloat(moves.paddingBottom);
     const rows = 2 * parseFloat(moves.lineHeight) + parseFloat(moves.rowGap);
-    dom.moves.classList.toggle("cramped", room < rows);
-    dom.moves.style.setProperty("--moves-room", `${Math.floor(room)}px`);
+    dom.moves.classList.toggle("cramped", left < rows);
+    dom.moves.style.setProperty("--moves-room", `${Math.floor(left)}px`);
 }
 
 function render() {
@@ -995,24 +985,6 @@ function renderReplay() {
     dom.ply.textContent =
         ply === 0 ? "Start" : `${number}${ply % 2 === 1 ? "." : "…"} ${end.moves[ply - 1] ?? ""}`;
 }
-
-function formatClock(ms: number): string {
-    if (ms < 10_000) return `0:0${Math.floor(ms / 1000)}.${Math.floor((ms % 1000) / 100)}`;
-    const minutes = Math.floor(ms / 60_000);
-    const seconds = Math.floor((ms % 60_000) / 1000);
-    return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-/**
- * The time left for a first move, eg. "0:42", in whole seconds even near the end, where a clock
- * shows tenths: so the status line it ends keeps its length, and can't start to wrap between the
- * redraws that fit the board
- */
-function formatFirstMove(ms: number): string {
-    const seconds = Math.ceil(ms / 1000);
-    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-}
-
 // What each side has left: the state's figure, less the time since the bot took it for the side
 // whose clock is running. A state can be old when it arrives, as the service sends the latest one
 // to whoever opens the game, so it's counted from the bot's time, taking the two clocks to agree.
@@ -1045,8 +1017,4 @@ function firstMoveMs(): number | undefined {
     const ms = clock?.first_move_ms;
     if (clock === undefined || ms === undefined || ms === null) return undefined;
     return Math.max(0, ms - Math.max(0, Date.now() - clock.at));
-}
-
-function escape(text: string): string {
-    return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }

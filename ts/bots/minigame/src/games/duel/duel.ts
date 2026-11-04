@@ -12,6 +12,7 @@ import {
     type Game,
     type GameKind,
     type Host,
+    type Phase,
 } from "../game";
 import { defaultSettings, type Settings } from "../settings";
 import { FIRST_IS_HOST, FIRST_IS_OPPONENT } from "./settings";
@@ -23,7 +24,6 @@ import {
     type DuelRules,
     type DuelState,
     type Ending,
-    type Phase,
     type Position,
     type Seat,
 } from "./types";

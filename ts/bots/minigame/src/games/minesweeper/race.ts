@@ -5,9 +5,9 @@
 // the bot knows where the mines are: a racer's page sends what they click, and the bot answers
 // with their board, which also comes in their private part of each state, and which no one else
 // sees until the race is over.
-import { PUBLISH_EVERY_MS, type ConfigureResult, type Game, type Host } from "../game";
-import { duration } from "../race2048/race";
-import { defaultSettings, type Settings } from "../settings";
+import { duration } from "../duration";
+import type { Seat } from "../game";
+import { openRace, Race, type RaceData, type RaceOptions } from "../race";
 import { fieldOf, lay, mineCells, neighbours, type Field } from "./field";
 import { MINES, MINESWEEPER_SETTINGS } from "./settings";
 import {
@@ -23,8 +23,6 @@ import {
     type ActResponse,
     type Ending,
     type OwnBoard,
-    type Phase,
-    type Seat,
     type SharedState,
     type View,
 } from "./types";
@@ -40,35 +38,10 @@ export type Racer = Seat & {
     clearedAt?: number;
 };
 
-export type MinesData = {
-    phase: Phase;
-    /** Who's joined, before the start */
-    seats: Seat[];
-    /** Everyone racing, once it starts, in the order they joined */
-    players: Racer[];
-    /** The `seq` of the last state published through the service */
-    seq: number;
-    /** Goes up with every change, so the page can tell the newer of two states */
-    rev: number;
-    createdAt: number;
-    startedAt?: number;
-    endsAt?: number;
-    finishedAt?: number;
+export type MinesData = RaceData<Racer, Ending> & {
     /** The field, once the race has started: where its mines are, and the cell it opens from */
     mineCells?: number[];
     start?: number;
-    ended?: Ending;
-    winner?: string;
-    settings?: Settings;
-    host?: string;
-    hostName?: string;
-};
-
-export type MinesOptions = {
-    random?: () => number;
-    now?: () => number;
-    settings?: Settings;
-    host?: Host;
 };
 
 /** What a racer's request did: the answer, and whether the race changed, so it's published */
@@ -77,51 +50,16 @@ export type ActOutcome = { result: ActResponse; changed: boolean };
 /** What one action did to a racer's board, or why it was refused */
 type Applied = { changed: boolean; error?: string };
 
-export class MinesweeperRace implements Game {
+export class MinesweeperRace extends Race<Racer, Ending, MinesData> {
     readonly kind = GAME_ID;
-    readonly #data: MinesData;
-    readonly #random: () => number;
-    readonly #now: () => number;
     #field?: Field;
 
-    constructor(data: MinesData, options: MinesOptions = {}) {
-        this.#data = data;
-        this.#random = options.random ?? Math.random;
-        this.#now = options.now ?? Date.now;
+    constructor(data: MinesData, options: RaceOptions = {}) {
+        super({ settings: MINESWEEPER_SETTINGS, maxPlayers: MAX_PLAYERS }, data, options);
     }
 
-    static create(options: MinesOptions = {}): MinesweeperRace {
-        const now = options.now ?? Date.now;
-        return new MinesweeperRace(
-            {
-                phase: "open",
-                seats: [],
-                players: [],
-                seq: 0,
-                rev: 0,
-                createdAt: now(),
-                settings: options.settings,
-                host: options.host?.id,
-                hostName: options.host?.name,
-            },
-            options,
-        );
-    }
-
-    get data(): MinesData {
-        return this.#data;
-    }
-
-    get phase(): Phase {
-        return this.#data.phase;
-    }
-
-    get createdAt(): number {
-        return this.#data.createdAt;
-    }
-
-    get finishedAt(): number | undefined {
-        return this.#data.finishedAt;
+    static create(options: RaceOptions = {}): MinesweeperRace {
+        return new MinesweeperRace(openRace(options), options);
     }
 
     get size(): number {
@@ -134,132 +72,52 @@ export class MinesweeperRace implements Game {
 
     /** The field, once the race has started */
     get field(): Field | undefined {
-        const d = this.#data;
+        const d = this.data;
         if (this.#field === undefined && d.mineCells !== undefined && d.start !== undefined) {
             this.#field = fieldOf(this.size, d.mineCells, d.start);
         }
         return this.#field;
     }
 
-    isSeated(userId: string): boolean {
-        return (
-            this.#data.seats.some((s) => s.id === userId) ||
-            this.#data.players.some((p) => p.id === userId)
-        );
-    }
-
-    isPlayer(userId: string): boolean {
-        return this.#data.players.some((p) => p.id === userId);
-    }
-
-    join(userId: string, name: string): string | undefined {
-        if (this.#data.phase !== "open") return "The race has started";
-        if (this.isSeated(userId)) return undefined;
-        if (this.#data.seats.length >= MAX_PLAYERS) return `All ${MAX_PLAYERS} places are taken`;
-        this.#data.seats.push({ id: userId, name });
-        this.#changed();
-        return undefined;
-    }
-
-    /** Frees the seat before the start; a racer who leaves after it keeps what they've cleared */
-    leave(userId: string): boolean {
-        if (this.#data.phase !== "open") return false;
-        const before = this.#data.seats.length;
-        this.#data.seats = this.#data.seats.filter((s) => s.id !== userId);
-        if (this.#data.seats.length === before) return false;
-        this.#changed();
-        return true;
-    }
-
-    settings(): Settings {
-        return { ...defaultSettings(MINESWEEPER_SETTINGS), ...this.#data.settings };
-    }
-
-    configure(userId: string, settings: Settings): ConfigureResult {
-        if (this.#data.phase !== "open") return { ok: false, error: "The race has started" };
-        if (userId !== this.#data.host) {
-            return { ok: false, error: "Only the host can change the settings" };
-        }
-        this.#data.settings = { ...this.#data.settings, ...settings };
-        this.#changed();
-        return { ok: true };
-    }
-
-    cannotStart(): string | undefined {
-        if (this.#data.phase !== "open") return undefined;
-        return this.#data.seats.length === 0 ? "Nobody has joined yet" : undefined;
-    }
-
     /** Lays a field from a new seed, and deals everyone seated a board with its start open */
-    start(): string[] {
-        const d = this.#data;
-        if (d.phase === "open" && d.seats.length > 0) {
-            const now = this.#now();
-            const field = lay(this.size, this.mines, Math.floor(this.#random() * 2 ** 31));
-            this.#field = field;
-            d.mineCells = mineCells(field);
-            d.start = field.start;
-            const cells = Array.from({ length: this.size * this.size }, () => HIDDEN);
-            const cleared = openFrom(field, cells, field.start);
-            const view = cells.join("");
-            d.players = d.seats.map((s) => ({ ...s, view, cleared, hits: 0, rev: 0 }));
-            d.seats = [];
-            d.phase = "active";
-            d.startedAt = now;
-            d.endsAt = now + this.settings().minutes * 60_000;
-            this.#changed();
-        }
-        return d.players.map((p) => p.id);
+    protected begin(seats: readonly Seat[]): Racer[] {
+        const field = lay(this.size, this.mines, Math.floor(this.random() * 2 ** 31));
+        this.#field = field;
+        this.data.mineCells = mineCells(field);
+        this.data.start = field.start;
+        const cells = Array.from({ length: this.size * this.size }, () => HIDDEN);
+        const cleared = openFrom(field, cells, field.start);
+        const view = cells.join("");
+        return seats.map((s) => ({ ...s, view, cleared, hits: 0, rev: 0 }));
     }
 
-    /** Everyone races at once */
-    waitingFor(): string[] {
-        return [];
-    }
-
-    /**
-     * Ends the race when the time's up: whoever's opened the most safe cells wins, then whoever set
-     * off fewer mines, then whoever got there first
-     */
-    endIfTimeUp(): boolean {
-        const d = this.#data;
-        if (d.phase !== "active" || d.endsAt === undefined || this.#now() < d.endsAt) return false;
+    /** Whoever's opened the most safe cells, then whoever set off fewer mines, then got there first */
+    protected leader(): string | undefined {
+        const d = this.data;
         const at = (r: Racer) => r.clearedAt ?? d.startedAt ?? 0;
         const ranked = [...d.players].sort(
             (a, b) => b.cleared - a.cleared || a.hits - b.hits || at(a) - at(b),
         );
-        this.#finish("time", ranked[0]?.id, d.endsAt);
-        return true;
+        return ranked[0]?.id;
     }
 
     /** The bot was down: the race's clock doesn't run meanwhile, nor does a racer's wait */
-    resume(downMs: number): boolean {
-        const d = this.#data;
-        if (d.phase !== "active" || d.endsAt === undefined || downMs <= 0) return false;
-        d.endsAt += downMs;
-        for (const p of d.players) {
+    override resume(downMs: number): boolean {
+        if (!super.resume(downMs)) return false;
+        for (const p of this.data.players) {
             if (p.frozenUntil !== undefined) p.frozenUntil += downMs;
         }
-        this.#changed();
         return true;
-    }
-
-    publishEveryMs(): number {
-        return PUBLISH_EVERY_MS;
-    }
-
-    nextSeq(): number {
-        return ++this.#data.seq;
     }
 
     /** A racer's own board, which only they see while the race is on */
     own(userId: string): OwnBoard | undefined {
-        const racer = this.#data.players.find((p) => p.id === userId);
+        const racer = this.racer(userId);
         if (racer === undefined) return undefined;
         const { view, rev, cleared, hits, frozenUntil } = racer;
         const frozenMs =
-            this.#data.phase === "active" && frozenUntil !== undefined
-                ? Math.max(0, frozenUntil - this.#now())
+            this.data.phase === "active" && frozenUntil !== undefined
+                ? Math.max(0, frozenUntil - this.now())
                 : 0;
         return { view, rev, cleared, hits, frozenMs };
     }
@@ -270,13 +128,13 @@ export class MinesweeperRace implements Game {
      * wait after setting off a mine, doesn't stop the rest, and the answer says why.
      */
     act(userId: string, body: unknown): ActOutcome {
-        const d = this.#data;
+        const d = this.data;
         const fail = (error: string, changed = false): ActOutcome => ({
             result: { ok: false, error, own: this.own(userId) },
             changed,
         });
         if (d.phase === "open") return fail("The race hasn't started");
-        const racer = d.players.find((p) => p.id === userId);
+        const racer = this.racer(userId);
         if (racer === undefined) return fail("You aren't in this race");
         const acts = (body as { acts?: unknown } | undefined)?.acts;
         if (!Array.isArray(acts) || acts.length > MAX_ACTS) {
@@ -295,12 +153,12 @@ export class MinesweeperRace implements Game {
             changed = true;
             racer.view = cells.join("");
             racer.rev++;
-            if (racer.cleared > before) racer.clearedAt = this.#now();
+            if (racer.cleared > before) racer.clearedAt = this.now();
             if (racer.cleared === this.size * this.size - this.mines) {
-                this.#finish("cleared", racer.id, this.#now());
+                this.finish("cleared", racer.id, this.now());
             }
         }
-        if (changed && d.phase === "active") this.#changed();
+        if (changed && d.phase === "active") this.changed();
         if (error !== undefined) return fail(error, changed);
         return { result: { ok: true, own: this.own(userId)! }, changed };
     }
@@ -309,7 +167,7 @@ export class MinesweeperRace implements Game {
         const field = this.field!;
         const parsed = parseAct(act, cells.length);
         if (parsed === undefined) return { changed: false, error: "That isn't an action" };
-        const now = this.#now();
+        const now = this.now();
         if (racer.frozenUntil !== undefined && now < racer.frozenUntil) {
             const seconds = Math.ceil((racer.frozenUntil - now) / 1000);
             return { changed: false, error: `You set off a mine: wait ${seconds}s` };
@@ -346,50 +204,26 @@ export class MinesweeperRace implements Game {
         return { changed: true };
     }
 
-    #finish(ended: Ending, winner: string | undefined, at: number): void {
-        const d = this.#data;
-        d.phase = "finished";
-        d.ended = ended;
-        d.winner = winner;
-        d.finishedAt = at;
-        this.#changed();
-    }
-
-    #changed(): void {
-        this.#data.rev++;
-    }
-
     /** Each racer's own board while the race is on, which the service gives only to them */
     privateState(): Record<string, OwnBoard> | undefined {
-        if (this.#data.phase !== "active") return undefined;
-        return Object.fromEntries(this.#data.players.map((p) => [p.id, this.own(p.id)!]));
+        if (this.data.phase !== "active") return undefined;
+        return Object.fromEntries(this.data.players.map((p) => [p.id, this.own(p.id)!]));
     }
 
     /** What everyone sees: how far each racer's got, and, once it's over, their boards too */
     shared(): SharedState {
-        const d = this.#data;
+        const d = this.data;
         const finished = d.phase === "finished";
-        const names: Record<string, string> = {};
-        for (const p of [...d.seats, ...d.players]) names[p.id] = p.name;
         return {
             version: STATE_VERSION,
             game: GAME_ID,
-            phase: d.phase,
-            settings: this.settings(),
-            host: d.host,
-            hostName: d.hostName,
-            seats: d.seats.map((s) => ({ ...s })),
-            names,
+            ...this.base(),
+            names: this.names(),
             size: this.size,
             mines: this.mines,
             racers: d.players.map(({ id, cleared, hits, rev, view }) =>
                 finished ? { id, cleared, hits, rev, view } : { id, cleared, hits, rev },
             ),
-            startedAt: d.startedAt,
-            endsAt: d.endsAt,
-            finishedAt: d.finishedAt,
-            ended: d.ended,
-            winner: d.winner,
             mineCells: finished ? d.mineCells : undefined,
             rev: d.rev,
         };
@@ -401,7 +235,7 @@ export class MinesweeperRace implements Game {
      * username as it is now
      */
     result(): string | undefined {
-        const d = this.#data;
+        const d = this.data;
         if (d.phase !== "finished") return undefined;
         if (d.winner === undefined) return "The race ended with nobody in it";
         const who = `@UserId(${d.winner})`;
@@ -409,15 +243,6 @@ export class MinesweeperRace implements Game {
             return `${who} cleared the field in ${duration(d.finishedAt - d.startedAt)}`;
         }
         return `Time's up! ${who} cleared the most`;
-    }
-
-    /** How the race ended is its final state: everyone's board, and where the mines were */
-    endState(): SharedState | undefined {
-        return this.#data.phase === "finished" ? this.shared() : undefined;
-    }
-
-    toJson(): MinesData {
-        return this.#data;
     }
 }
 

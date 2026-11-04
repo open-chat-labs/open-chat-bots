@@ -16,7 +16,8 @@ import {
     type Position,
     type Seat,
 } from "../../games/duel/types";
-import { fetchUsernames, usernameOf } from "../names";
+import { escape, formatClock, formatFirstMove, shortId } from "../format";
+import { fetchUsernames, nameOf } from "../names";
 import type { GameView, Lobby, ViewContext } from "../view";
 
 const LOW_TIME_MS = 20_000;
@@ -93,11 +94,6 @@ export function duelView<M, P extends Position<M>>(
     let extraDrawn = "";
 
     const current = () => end ?? shared;
-
-    function name(s: DuelState<M>, id: string | undefined): string {
-        if (id === undefined) return "A player";
-        return usernameOf(id) ?? s.names[id] ?? shortId(id);
-    }
 
     /** The viewer's seat, if they play in this game */
     function mySeat(s: DuelState<M>): Seat | undefined {
@@ -244,7 +240,7 @@ export function duelView<M, P extends Position<M>>(
         if (s.ending !== undefined) {
             const final = end !== undefined ? replay(rules, end.moves, end.settings) : position;
             dom.status.textContent = describeEnding(rules, s.ending, final, (seat) =>
-                name(s, s.players[seat]),
+                nameOf(s.players[seat], s.names, "A player"),
             );
         } else if (s.phase === "open") {
             dom.status.textContent = "Waiting for the game to start";
@@ -253,19 +249,20 @@ export function duelView<M, P extends Position<M>>(
             dom.status.textContent =
                 mine === position.turn
                     ? "Your first move"
-                    : `${name(s, s.players[position.turn])}'s first move`;
+                    : `${nameOf(s.players[position.turn], s.names, "A player")}'s first move`;
             dom.status.append(dom.firstMove);
         } else {
             dom.status.textContent =
                 mine === position.turn
                     ? "Your move"
-                    : `${name(s, s.players[position.turn])} to move`;
+                    : `${nameOf(s.players[position.turn], s.names, "A player")} to move`;
         }
 
         dom.note.textContent =
             s.phase === "open"
                 ? ""
-                : (board.note?.(position, (seat) => name(s, s.players[seat])) ?? "");
+                : (board.note?.(position, (seat) => nameOf(s.players[seat], s.names, "A player")) ??
+                  "");
 
         // The viewer's seat at the bottom, or the first to move if they're watching
         const bottom: Seat = mine ?? 0;
@@ -280,7 +277,7 @@ export function duelView<M, P extends Position<M>>(
                     ? ""
                     : `<span class="score">${board.score(position, seat)}</span>`;
             row.querySelector(".name")!.innerHTML =
-                `<span class="disc-swatch seat-${seat}"></span>${escape(name(s, id))}${score}`;
+                `<span class="disc-swatch seat-${seat}"></span>${escape(nameOf(id, s.names, "A player"))}${score}`;
             row.classList.toggle("active", toMove === seat);
             (row.querySelector(".duel-clock") as HTMLElement).hidden = end !== undefined;
         }
@@ -476,29 +473,4 @@ export function duelView<M, P extends Position<M>>(
             }
         },
     };
-}
-
-function formatClock(ms: number): string {
-    if (ms < 10_000) return `0:0${Math.floor(ms / 1000)}.${Math.floor((ms % 1000) / 100)}`;
-    const minutes = Math.floor(ms / 60_000);
-    const seconds = Math.floor((ms % 60_000) / 1000);
-    return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-/**
- * The time left for a first move, eg. "0:42", in whole seconds even near the end, where a clock
- * shows tenths: so the status line it ends keeps its length, and can't start to wrap between the
- * redraws that fit the board
- */
-function formatFirstMove(ms: number): string {
-    const seconds = Math.ceil(ms / 1000);
-    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-}
-
-function shortId(id: string): string {
-    return id.length > 13 ? `${id.slice(0, 5)}…${id.slice(-5)}` : id;
-}
-
-function escape(text: string): string {
-    return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }

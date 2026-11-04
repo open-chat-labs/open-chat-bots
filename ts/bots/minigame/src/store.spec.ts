@@ -34,7 +34,7 @@ describe("the store", () => {
         chess.move("alice", "e2e4");
         store.create(chessCard, chess);
         const race = Race2048.create({ now });
-        race.takeSeat("carol", "Carol");
+        race.join("carol", "Carol");
         store.create(raceCard, race);
         store.apiGateway = "umunu-kh777-77774-qaaca-cai";
         store.flush();

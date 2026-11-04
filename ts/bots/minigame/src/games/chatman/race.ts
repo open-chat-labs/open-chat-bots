@@ -5,9 +5,9 @@
 // itself, with the same rules (`rules.ts`), a little behind the game's clock, taking each turn at
 // its tick, so a turn has that long to arrive. One that's later is taken as soon as the bot can, and
 // the page puts its board where the bot has it. The mazes are built from a seed chosen at the start.
-import type { ConfigureResult, Game, Host, LiveResult } from "../game";
+import type { LiveResult, Seat } from "../game";
 import { isDirection } from "../maze/maze";
-import { defaultSettings, type Settings } from "../settings";
+import { openRace, Race, type RaceData, type RaceOptions } from "../race";
 import { Mazes, newBoard, pack, play, TICK_MS, TICKS_PER_SECOND, unpack, type Board, type PackedBoard, type Turn } from "./rules";
 import { CHATMAN_SETTINGS } from "./settings";
 import {
@@ -20,8 +20,6 @@ import {
     MAX_QUEUE,
     STATE_VERSION,
     type Ending,
-    type Phase,
-    type Seat,
     type SharedState,
 } from "./types";
 
@@ -34,34 +32,10 @@ export type ChatPlayer = Seat & {
     ack: number;
 };
 
-export type ChatManData = {
-    phase: Phase;
-    /** Who's joined, before the start */
-    seats: Seat[];
-    /** Everyone playing, once it starts, in the order they joined */
-    players: ChatPlayer[];
-    /** The `seq` of the last state published through the service */
-    seq: number;
-    /** Goes up with every change, so the page can tell the newer of two states */
-    rev: number;
-    createdAt: number;
-    startedAt?: number;
+export type ChatManData = RaceData<ChatPlayer, Ending> & {
+    /** When the boards start moving, after the countdown */
     playsAt?: number;
-    endsAt?: number;
-    finishedAt?: number;
     seed?: number;
-    ended?: Ending;
-    winner?: string;
-    settings?: Settings;
-    host?: string;
-    hostName?: string;
-};
-
-export type ChatManOptions = {
-    random?: () => number;
-    now?: () => number;
-    settings?: Settings;
-    host?: Host;
 };
 
 /**
@@ -74,61 +48,26 @@ const LIVE_MS = 100;
 
 const refused = (error: string): LiveResult => ({ ok: false, error, changed: true });
 
-export class ChatManRace implements Game {
+export class ChatManRace extends Race<ChatPlayer, Ending, ChatManData> {
     readonly kind = GAME_ID;
-    readonly #data: ChatManData;
-    readonly #random: () => number;
-    readonly #now: () => number;
     #mazes?: Mazes;
     /** Each player's board, unpacked, as it's played on */
     readonly #boards = new Map<string, Board>();
     /** Whether the boards have moved on since `tick` last said so */
     #moved = false;
 
-    constructor(data: ChatManData, options: ChatManOptions = {}) {
-        this.#data = data;
-        this.#random = options.random ?? Math.random;
-        this.#now = options.now ?? Date.now;
+    constructor(data: ChatManData, options: RaceOptions = {}) {
+        super({ settings: CHATMAN_SETTINGS, maxPlayers: MAX_PLAYERS, noun: "game" }, data, options);
     }
 
-    static create(options: ChatManOptions = {}): ChatManRace {
-        const now = options.now ?? Date.now;
-        return new ChatManRace(
-            {
-                phase: "open",
-                seats: [],
-                players: [],
-                seq: 0,
-                rev: 0,
-                createdAt: now(),
-                settings: options.settings,
-                host: options.host?.id,
-                hostName: options.host?.name,
-            },
-            options,
-        );
-    }
-
-    get data(): ChatManData {
-        return this.#data;
-    }
-
-    get phase(): Phase {
-        return this.#data.phase;
-    }
-
-    get createdAt(): number {
-        return this.#data.createdAt;
-    }
-
-    get finishedAt(): number | undefined {
-        return this.#data.finishedAt;
+    static create(options: RaceOptions = {}): ChatManRace {
+        return new ChatManRace(openRace(options), options);
     }
 
     /** The mazes, once the game has started */
     get mazes(): Mazes | undefined {
-        if (this.#mazes === undefined && this.#data.seed !== undefined) {
-            this.#mazes = new Mazes(this.#data.seed);
+        if (this.#mazes === undefined && this.data.seed !== undefined) {
+            this.#mazes = new Mazes(this.data.seed);
         }
         return this.#mazes;
     }
@@ -140,132 +79,73 @@ export class ChatManRace implements Game {
 
     /** A player's board as the bot has it */
     board(userId: string): Board | undefined {
-        const player = this.#data.players.find((p) => p.id === userId);
+        const player = this.racer(userId);
         return player === undefined ? undefined : this.#board(player);
     }
 
-    isSeated(userId: string): boolean {
-        return (
-            this.#data.seats.some((s) => s.id === userId) ||
-            this.#data.players.some((p) => p.id === userId)
-        );
-    }
-
-    isPlayer(userId: string): boolean {
-        return this.#data.players.some((p) => p.id === userId);
-    }
-
-    join(userId: string, name: string): string | undefined {
-        if (this.#data.phase !== "open") return "The game has started";
-        if (this.isSeated(userId)) return undefined;
-        if (this.#data.seats.length >= MAX_PLAYERS) return `All ${MAX_PLAYERS} places are taken`;
-        this.#data.seats.push({ id: userId, name });
-        this.#changed();
-        return undefined;
-    }
-
-    /** Frees the seat before the start; a player who leaves after it plays on without turning */
-    leave(userId: string): boolean {
-        if (this.#data.phase !== "open") return false;
-        const before = this.#data.seats.length;
-        this.#data.seats = this.#data.seats.filter((s) => s.id !== userId);
-        if (this.#data.seats.length === before) return false;
-        this.#changed();
-        return true;
-    }
-
-    settings(): Settings {
-        return { ...defaultSettings(CHATMAN_SETTINGS), ...this.#data.settings };
-    }
-
-    configure(userId: string, settings: Settings): ConfigureResult {
-        if (this.#data.phase !== "open") return { ok: false, error: "The game has started" };
-        if (userId !== this.#data.host) {
-            return { ok: false, error: "Only the host can change the settings" };
-        }
-        this.#data.settings = { ...this.#data.settings, ...settings };
-        this.#changed();
-        return { ok: true };
-    }
-
-    cannotStart(): string | undefined {
-        if (this.#data.phase !== "open") return undefined;
-        return this.#data.seats.length === 0 ? "Nobody has joined yet" : undefined;
-    }
-
     /** Gives everyone seated the same new board, in mazes from a new seed, after a countdown */
-    start(): string[] {
-        const d = this.#data;
-        if (d.phase === "open" && d.seats.length > 0) {
-            const now = this.#now();
-            d.seed = Math.floor(this.#random() * 2 ** 31);
-            const first = this.mazes!.level(1);
-            const board = pack(newBoard(d.seed, this.settings().lives), first);
-            d.players = d.seats.map((s) => ({ ...s, board: { ...board }, queue: [], ack: 0 }));
-            d.seats = [];
-            d.phase = "active";
-            d.startedAt = now;
-            d.playsAt = now + COUNTDOWN_MS;
-            d.endsAt = d.playsAt + this.settings().minutes * 60_000;
-            this.#changed();
-        }
-        return d.players.map((p) => p.id);
+    protected begin(seats: readonly Seat[], now: number): ChatPlayer[] {
+        const d = this.data;
+        d.seed = Math.floor(this.random() * 2 ** 31);
+        d.playsAt = now + COUNTDOWN_MS;
+        const board = pack(newBoard(d.seed, this.settings().lives), this.mazes!.level(1));
+        return seats.map((s) => ({ ...s, board: { ...board }, queue: [], ack: 0 }));
     }
 
-    /** Everyone plays at once */
-    waitingFor(): string[] {
-        return [];
+    /** The countdown, then the game's minutes */
+    protected override lengthMs(): number {
+        return COUNTDOWN_MS + super.lengthMs();
     }
 
     /**
      * Ends the game once the time's up, and the turns on their way have had time to arrive, or
      * once everyone's out of lives: the top score wins
      */
-    endIfTimeUp(): boolean {
-        const d = this.#data;
+    override endIfTimeUp(): boolean {
+        const d = this.data;
         if (d.phase !== "active" || d.endsAt === undefined) return false;
-        const now = this.#now();
+        const now = this.now();
         this.#advance(now);
         if (now >= d.endsAt + LAG_TICKS * TICK_MS) {
-            this.#finish("time", d.endsAt);
+            this.finish("time", this.leader(), d.endsAt);
             return true;
         }
         if (d.players.every((p) => this.#board(p).out)) {
-            this.#finish("out", now);
+            this.finish("out", this.leader(), now);
             return true;
         }
         return false;
     }
 
+    /** The top score */
+    protected leader(): string | undefined {
+        return this.ranked()[0]?.id;
+    }
+
     /** Plays the boards on to now, and says whether they've moved since this was last called */
     tick(): boolean {
-        this.#advance(this.#now());
+        this.#advance(this.now());
         const moved = this.#moved;
         this.#moved = false;
         return moved;
     }
 
-    /** The bot was down: the game's clock doesn't run meanwhile */
-    resume(downMs: number): boolean {
-        const d = this.#data;
-        if (d.phase !== "active" || downMs <= 0) return false;
-        for (const key of ["startedAt", "playsAt", "endsAt"] as const) {
+    /** The bot was down: the game's clock doesn't run meanwhile, the countdown's neither */
+    override resume(downMs: number): boolean {
+        if (!super.resume(downMs)) return false;
+        const d = this.data;
+        for (const key of ["startedAt", "playsAt"] as const) {
             if (d[key] !== undefined) d[key] += downMs;
         }
-        this.#changed();
         return true;
     }
 
-    publishEveryMs(): number {
+    override publishEveryMs(): number {
         return PUBLISH_MS;
     }
 
     liveEveryMs(): number {
         return LIVE_MS;
-    }
-
-    nextSeq(): number {
-        return ++this.#data.seq;
     }
 
     /**
@@ -274,10 +154,10 @@ export class ChatManRace implements Game {
      * reconnect, changes nothing. One it refuses is still counted as had, so the page drops it.
      */
     receive(userId: string, message: unknown): LiveResult {
-        const d = this.#data;
+        const d = this.data;
         if (d.phase === "open") return { ...refused("The game hasn't started"), changed: false };
         if (d.phase === "finished") return { ...refused("The game is over"), changed: false };
-        const player = d.players.find((p) => p.id === userId);
+        const player = this.racer(userId);
         if (player === undefined) return { ...refused("You aren't in this game"), changed: false };
         const { turn, n, tick } = (message ?? {}) as Partial<Record<"turn" | "n" | "tick", unknown>>;
         if (
@@ -293,8 +173,8 @@ export class ChatManRace implements Game {
         }
         if (n <= player.ack) return { ok: true, changed: false };
         player.ack = n;
-        this.#changed();
-        const now = this.#now();
+        this.changed();
+        const now = this.now();
         this.#advance(now);
         const board = this.#board(player);
         if (board.out) return refused("You're out of lives");
@@ -308,12 +188,12 @@ export class ChatManRace implements Game {
 
     /** The game's tick at `now`: below 0 during the countdown */
     #tickAt(now: number): number {
-        return Math.floor((now - (this.#data.playsAt ?? now)) / TICK_MS);
+        return Math.floor((now - (this.data.playsAt ?? now)) / TICK_MS);
     }
 
     /** Plays every board on to where the bot keeps them, `LAG_TICKS` behind the clock */
     #advance(now: number): void {
-        const d = this.#data;
+        const d = this.data;
         const mazes = this.mazes;
         if (d.phase !== "active" || mazes === undefined) return;
         const to = Math.min(this.lastTick, Math.max(0, this.#tickAt(now) - LAG_TICKS));
@@ -327,7 +207,7 @@ export class ChatManRace implements Game {
         }
         if (moved) {
             this.#moved = true;
-            this.#changed();
+            this.changed();
         }
     }
 
@@ -342,54 +222,34 @@ export class ChatManRace implements Game {
 
     /** The players by score, the top first, the first to join first of those level with them */
     ranked(): ChatPlayer[] {
-        return this.#data.players
+        return this.data.players
             .map((p, i) => ({ p, i, score: this.#board(p).score }))
             .sort((a, b) => b.score - a.score || a.i - b.i)
             .map(({ p }) => p);
     }
 
-    #finish(ended: Ending, at: number): void {
-        const d = this.#data;
-        d.phase = "finished";
-        d.ended = ended;
-        d.winner = this.ranked()[0]?.id;
-        d.finishedAt = at;
+    protected override finish(ended: Ending, winner: string | undefined, at: number): void {
         // Turns the boards never reached are no use now
-        for (const p of d.players) p.queue = [];
-        this.#changed();
-    }
-
-    #changed(): void {
-        this.#data.rev++;
+        for (const p of this.data.players) p.queue = [];
+        super.finish(ended, winner, at);
     }
 
     shared(): SharedState {
-        const d = this.#data;
-        const names: Record<string, string> = {};
-        for (const p of [...d.seats, ...d.players]) names[p.id] = p.name;
+        const d = this.data;
         return {
             version: STATE_VERSION,
             game: GAME_ID,
-            phase: d.phase,
-            settings: this.settings(),
-            host: d.host,
-            hostName: d.hostName,
-            seats: d.seats.map((s) => ({ ...s })),
-            names,
+            ...this.base(),
+            names: this.names(),
             seed: d.seed,
-            startedAt: d.startedAt,
             playsAt: d.playsAt,
-            endsAt: d.endsAt,
-            finishedAt: d.finishedAt,
-            ended: d.ended,
-            winner: d.winner,
             players: d.players.map((p) => ({
                 id: p.id,
                 ack: p.ack,
                 board: p.board,
                 queue: p.queue.map((q) => [q.n, q.t, q.d]),
             })),
-            now: this.#now(),
+            now: this.now(),
             rev: d.rev,
         };
     }
@@ -399,21 +259,12 @@ export class ChatManRace implements Game {
      * points", the winner a mention so the card shows their username as it is now
      */
     result(): string | undefined {
-        const d = this.#data;
+        const d = this.data;
         if (d.phase !== "finished") return undefined;
         const winner = d.players.find((p) => p.id === d.winner);
         if (winner === undefined) return "The game ended with nobody in it";
         const points = this.#board(winner).score.toLocaleString("en-US");
         const what = d.players.length > 1 ? `won with ${points} points` : `scored ${points} points`;
         return `${d.ended === "time" ? "Time's up! " : ""}@UserId(${winner.id}) ${what}`;
-    }
-
-    /** How the game ended is its final state: every board as it finished */
-    endState(): SharedState | undefined {
-        return this.#data.phase === "finished" ? this.shared() : undefined;
-    }
-
-    toJson(): ChatManData {
-        return this.#data;
     }
 }

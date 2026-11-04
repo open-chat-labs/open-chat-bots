@@ -2,17 +2,19 @@
 // and answers straight away, so the app needn't wait for the state to come round through the
 // service: a racer gets their board, a chess player the new shared state. The game's own player
 // list is checked on every request: a player token outlives a removal by up to an hour.
-import { MINI_APP_TOKEN_HEADER, TokenError } from "@open-ic/openchat-botclient-ts";
+import {
+    MINI_APP_TOKEN_HEADER,
+    TokenError,
+    type MiniAppGame,
+} from "@open-ic/openchat-botclient-ts";
 import type { Request, Response } from "express";
 import type { Deps } from "../deps";
-import type { ChatManRace } from "../games/chatman/race";
 import type { ChessGame } from "../games/chess/chess";
 import type { ActionResponse } from "../games/chess/types";
 import type { CrateRace } from "../games/crates/race";
 import type { Duel } from "../games/duel/duel";
 import type { Position } from "../games/duel/types";
 import type { Game, GameKind, NamesResponse } from "../games/game";
-import type { MazeRace } from "../games/maze/race";
 import type { MinesweeperRace } from "../games/minesweeper/race";
 import type { Race2048 } from "../games/race2048/race";
 import { MAX_PLAYERS, type MoveResponse } from "../games/race2048/types";
@@ -25,13 +27,15 @@ type Outcome = { result: { ok: boolean }; changed: boolean };
 
 type Act<G extends Game> = (play: G, userId: string, body: unknown) => Outcome;
 
-async function act<G extends Game>(
+/**
+ * The player the request's token names, and the game it's for, or undefined once the answer's
+ * been sent: the token isn't good, or the game's over
+ */
+async function player(
     req: Request,
     res: Response,
     deps: Deps,
-    kind: GameKind,
-    action: Act<G>,
-): Promise<void> {
+): Promise<{ userId: string; game: MiniAppGame; play: Game } | undefined> {
     let userId: string;
     let game;
     try {
@@ -43,14 +47,26 @@ async function act<G extends Game>(
             console.error("Couldn't verify the player's token:", err);
             res.status(500).json({ ok: false, error: "Couldn't verify the token" });
         }
-        return;
+        return undefined;
     }
     const entry = deps.store.get(game);
     if (entry === undefined) {
         res.status(404).json({ ok: false, error: "This game is over" });
-        return;
+        return undefined;
     }
-    const { play } = entry;
+    return { userId, game, play: entry.play };
+}
+
+async function act<G extends Game>(
+    req: Request,
+    res: Response,
+    deps: Deps,
+    kind: GameKind,
+    action: Act<G>,
+): Promise<void> {
+    const p = await player(req, res, deps);
+    if (p === undefined) return;
+    const { userId, game, play } = p;
     if (play.kind !== kind) {
         res.status(409).json({ ok: false, error: `This isn't a ${kind} game` });
         return;
@@ -75,25 +91,9 @@ async function act<G extends Game>(
  * so the game itself says who may change them.
  */
 export async function settings(req: Request, res: Response, deps: Deps): Promise<void> {
-    let userId: string;
-    let game;
-    try {
-        ({ userId, game } = (await deps.tokens()).verifyPlayer(req.headers[MINI_APP_TOKEN_HEADER]));
-    } catch (err) {
-        if (err instanceof TokenError) {
-            res.status(401).json({ ok: false, error: err.message });
-        } else {
-            console.error("Couldn't verify the player's token:", err);
-            res.status(500).json({ ok: false, error: "Couldn't verify the token" });
-        }
-        return;
-    }
-    const entry = deps.store.get(game);
-    if (entry === undefined) {
-        res.status(404).json({ ok: false, error: "This game is over" });
-        return;
-    }
-    const { play } = entry;
+    const p = await player(req, res, deps);
+    if (p === undefined) return;
+    const { userId, game, play } = p;
     const parsed = parseSettings(gameType(play.kind)?.settings ?? [], req.body);
     if (!parsed.ok) {
         res.status(400).json(parsed);
@@ -205,33 +205,20 @@ export function duelResign(kind: GameKind): Handler {
 }
 
 /**
- * `POST /api/maze/move` with `{ "move": "left", "n": 7 }`: a racer's move while their live socket
- * (`live.ts`) isn't open, eg. as it reconnects, taken as the socket takes it. Answers the new
- * state, which also goes to everyone live.
+ * A move in a game played live, while the player's socket (`live.ts`) isn't open, eg. as it
+ * reconnects, taken as the socket takes it, and answered with the new state, which also goes to
+ * everyone live: `POST /api/maze/move` with `{ "move": "left", "n": 7 }`, a racer's move, or
+ * `POST /api/chatman/turn` with `{ "turn": "left", "n": 7, "tick": 1234 }`, a ChatMan turn
  */
-export function mazeMove(req: Request, res: Response, deps: Deps): Promise<void> {
-    return act<MazeRace>(req, res, deps, "maze", (maze, userId, body) => {
-        const result = maze.receive(userId, body);
-        return {
-            result: result.ok ? { ok: true, shared: maze.shared() } : result,
-            changed: result.changed,
-        };
-    });
-}
-
-/**
- * `POST /api/chatman/turn` with `{ "turn": "left", "n": 7, "tick": 1234 }`: a player's turn while
- * their live socket (`live.ts`) isn't open, eg. as it reconnects, taken as the socket takes it.
- * Answers the new state, which also goes to everyone live.
- */
-export function chatmanTurn(req: Request, res: Response, deps: Deps): Promise<void> {
-    return act<ChatManRace>(req, res, deps, "chatman", (game, userId, body) => {
-        const result = game.receive(userId, body);
-        return {
-            result: result.ok ? { ok: true, shared: game.shared() } : result,
-            changed: result.changed,
-        };
-    });
+export function liveMove(kind: GameKind): Handler {
+    return (req, res, deps) =>
+        act<Game & Required<Pick<Game, "receive">>>(req, res, deps, kind, (game, userId, body) => {
+            const result = game.receive(userId, body);
+            return {
+                result: result.ok ? { ok: true, shared: game.shared() } : result,
+                changed: result.changed,
+            };
+        });
 }
 
 /**

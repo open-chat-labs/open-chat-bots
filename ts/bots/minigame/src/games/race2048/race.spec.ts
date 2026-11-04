@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Settings } from "../settings";
-import { duration, publishEveryMs, Race2048 } from "./race";
+import { duration } from "../duration";
+import { publishEveryMs, Race2048 } from "./race";
 import { DEAD, MAX_PLAYERS, STATE_VERSION, TARGET, TIME_LIMIT_MS, WON } from "./types";
 
 // Spawns always put a 2 in the first empty cell
@@ -19,7 +20,7 @@ function started(names = ["alice", "bob"], settings?: Settings) {
         settings,
         host: { id: "alice", name: "ALICE" },
     });
-    names.forEach((name) => race.takeSeat(name, name.toUpperCase()));
+    names.forEach((name) => race.join(name, name.toUpperCase()));
     race.start();
     return { race, time };
 }
@@ -28,15 +29,15 @@ describe("seats", () => {
     it("seats up to the limit, once each, until the race starts", () => {
         const race = Race2048.create({ random: first2 });
         for (let i = 0; i < MAX_PLAYERS; i++) {
-            expect(race.takeSeat(`u${i}`, `U${i}`)).toBe("seated");
+            expect(race.join(`u${i}`, `U${i}`)).toBeUndefined();
         }
-        expect(race.takeSeat("u0", "U0")).toBe("already_seated");
-        expect(race.takeSeat("late", "Late")).toBe("full");
-        expect(race.leaveSeat("u3")).toBe(true);
-        expect(race.leaveSeat("u3")).toBe(false);
-        expect(race.takeSeat("late", "Late")).toBe("seated");
+        expect(race.join("u0", "U0")).toBeUndefined();
+        expect(race.join("late", "Late")).toBe(`All ${MAX_PLAYERS} places are taken`);
+        expect(race.leave("u3")).toBe(true);
+        expect(race.leave("u3")).toBe(false);
+        expect(race.join("late", "Late")).toBeUndefined();
         race.start();
-        expect(race.takeSeat("later", "Later")).toBe("started");
+        expect(race.join("later", "Later")).toBe("The race has started");
         expect(race.isPlayer("late")).toBe(true);
         expect(race.isPlayer("u3")).toBe(false);
     });
@@ -44,7 +45,7 @@ describe("seats", () => {
     it("can't start with nobody seated", () => {
         const race = Race2048.create();
         expect(race.cannotStart()).toBe("Nobody has joined yet");
-        race.takeSeat("a", "A");
+        race.join("a", "A");
         expect(race.cannotStart()).toBeUndefined();
     });
 });
@@ -101,7 +102,7 @@ describe("moves", () => {
 
     it("refuses a move from someone not racing, before the start, or with no direction", () => {
         const race = Race2048.create({ random: first2 });
-        race.takeSeat("alice", "ALICE");
+        race.join("alice", "ALICE");
         expect(race.move("alice", "left")).toEqual({ ok: false, error: "The race hasn't started" });
         race.start();
         expect(race.move("carol", "left")).toEqual({ ok: false, error: "You aren't in this race" });
@@ -266,7 +267,7 @@ describe("settings", () => {
         expect(race.settings()).toEqual({ target: 512, minutes: 5 });
         expect(race.timeLimit).toBe(5 * 60_000);
 
-        race.takeSeat("alice", "ALICE");
+        race.join("alice", "ALICE");
         race.start();
         expect(race.configure("alice", { target: 256 })).toEqual({
             ok: false,
@@ -279,7 +280,7 @@ describe("settings", () => {
 describe("shared state", () => {
     it("has the version, phase, seats and every board", () => {
         const race = Race2048.create({ random: first2 });
-        race.takeSeat("alice", "ALICE");
+        race.join("alice", "ALICE");
         expect(race.shared()).toMatchObject({
             version: STATE_VERSION,
             game: "2048",
@@ -328,7 +329,7 @@ describe("shared state", () => {
         // A hundred racers packed stay within the end state's 16 KB
         const big = Race2048.create({ random: first2 });
         for (let i = 0; i < MAX_PLAYERS; i++) {
-            big.takeSeat(`aaaaa-bbbbb-ccccc-ddddd-eee-${String(i).padStart(2, "0")}`, `Racer ${i}`);
+            big.join(`aaaaa-bbbbb-ccccc-ddddd-eee-${String(i).padStart(2, "0")}`, `Racer ${i}`);
         }
         big.start();
         for (const p of big.data.players) {

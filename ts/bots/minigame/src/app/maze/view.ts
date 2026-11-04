@@ -10,7 +10,7 @@
 // Once the race is over, the card's end state is its final state: the maze, where everyone got to,
 // and the way out, drawn faintly.
 import type { LiveResult } from "../../games/game";
-import { duration } from "../../games/race2048/race";
+import { duration } from "../../games/duration";
 import {
     canMove,
     carve,
@@ -34,9 +34,11 @@ import {
     type RacerState,
     type SharedState,
 } from "../../games/maze/types";
+import { roomFor } from "../layout";
 import { LiveSocket } from "../live";
-import { fetchUsernames, usernameOf } from "../names";
-import type { GameView, Lobby, ViewContext } from "../view";
+import { fetchUsernames, nameOf } from "../names";
+import { raceClock, raceLobby } from "../race";
+import type { GameView, ViewContext } from "../view";
 
 /** The racers' colours, in the order they joined */
 const COLOURS = [
@@ -129,23 +131,17 @@ export const mazeView: GameView = {
         return (state as SharedState).phase === "open";
     },
 
-    lobby(state): Lobby {
+    lobby(state) {
         const s = state as SharedState;
         const { size, minutes } = s.settings;
-        return {
+        return raceLobby(s, {
             blurb: `Everyone races through the same <strong>${size} by ${size}</strong> maze, from the
                 top left to the bottom right, and sees everyone else as they go. The first out wins,
                 or whoever's closest when the <strong>${minutes} minute${minutes === 1 ? "" : "s"}</strong>
                 are up.`,
-            seats: s.seats,
-            hint: `Start when everyone has joined. Up to ${MAX_PLAYERS} can race.`,
-            settings: {
-                specs: MAZE_SETTINGS,
-                current: s.settings,
-                host: s.host,
-                hostName: s.hostName,
-            },
-        };
+            settings: MAZE_SETTINGS,
+            maxPlayers: MAX_PLAYERS,
+        });
     },
 
     renderLive(body, shared) {
@@ -170,11 +166,7 @@ export const mazeView: GameView = {
     },
 
     clock() {
-        const s = shown();
-        if (s?.startedAt === undefined) return "";
-        // Rounded once it's over, as the result is, eg. "got out in 56s"
-        if (s.phase === "finished") return mmss((s.finishedAt ?? Date.now()) - s.startedAt, true);
-        return s.endsAt === undefined ? "" : `${mmss(s.endsAt - Date.now())} left`;
+        return raceClock(shown());
     },
 
     onKey(event) {
@@ -305,7 +297,7 @@ function ensureDom(body: HTMLElement) {
                 </div>
                 <p class="muted small"><span class="hint"></span> <span class="note"></span></p>
             </div>
-            <ol class="maze-standings"></ol>
+            <ol class="race-standings maze-standings"></ol>
         </div>`;
     const root = body.firstElementChild as HTMLElement;
     const q = <T extends HTMLElement>(selector: string) => root.querySelector(selector) as T;
@@ -351,11 +343,6 @@ function ensureDom(body: HTMLElement) {
     });
 }
 
-function name(s: SharedState, id: string | undefined): string {
-    if (id === undefined) return "Nobody";
-    return usernameOf(id) ?? s.names[id] ?? id.slice(0, 5);
-}
-
 function render() {
     const s = shown();
     if (dom === undefined || s === undefined || ctx === undefined) return;
@@ -372,8 +359,8 @@ function render() {
             s.winner === undefined
                 ? "The race is over"
                 : s.ended === "out" && s.startedAt !== undefined && s.finishedAt !== undefined
-                  ? `${name(s, s.winner)} got out in ${duration(s.finishedAt - s.startedAt)}`
-                  : `Time's up! ${name(s, s.winner)} got closest to the way out`;
+                  ? `${nameOf(s.winner, s.names)} got out in ${duration(s.finishedAt - s.startedAt)}`
+                  : `Time's up! ${nameOf(s.winner, s.names)} got closest to the way out`;
     } else {
         dom.status.textContent = racing
             ? "Find the way out, bottom right"
@@ -399,7 +386,7 @@ function render() {
                 swatch.style.background = colour.get(r.id)!;
                 const who = document.createElement("span");
                 who.className = "who";
-                who.textContent = name(s, r.id);
+                who.textContent = nameOf(r.id, s.names);
                 const steps = document.createElement("span");
                 steps.className = "steps";
                 steps.textContent = left === 0 ? "Out" : `${left} to go`;
@@ -559,22 +546,6 @@ function draw() {
 // The maze is square: as wide as the frame, unless what's around it leaves less height than that
 function fitCanvas() {
     if (dom === undefined) return;
-    let used = 0;
-    for (const el of dom.root.children) {
-        if (el === dom.canvas) continue;
-        const style = getComputedStyle(el);
-        if (style.display === "none") continue;
-        used +=
-            (el as HTMLElement).offsetHeight +
-            parseFloat(style.marginTop) +
-            parseFloat(style.marginBottom);
-    }
-    const available =
-        document.documentElement.clientHeight - dom.root.getBoundingClientRect().top - 16;
-    dom.canvas.style.maxWidth = `${Math.max(160, Math.floor(available - used))}px`;
-}
-
-function mmss(ms: number, round = false): string {
-    const seconds = Math.max(0, (round ? Math.round : Math.floor)(ms / 1000));
-    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+    const room = roomFor(dom.root, [dom.canvas]);
+    dom.canvas.style.maxWidth = `${Math.max(160, Math.floor(room))}px`;
 }

@@ -26,8 +26,11 @@ import {
     type RacerState,
     type SharedState,
 } from "../../games/words/types";
-import { fetchUsernames, usernameOf } from "../names";
-import type { GameView, Lobby, ViewContext } from "../view";
+import { roomFor } from "../layout";
+import { fetchUsernames, nameOf } from "../names";
+import { raceClock, raceLobby } from "../race";
+import { drawRows, pickable } from "../rows";
+import type { GameView, ViewContext } from "../view";
 
 /** How long the page waits to ask for the racer's guesses again after asking failed */
 const RETRY_MS = 3000;
@@ -97,23 +100,17 @@ export const wordsView: GameView = {
         return (state as SharedState).phase === "open";
     },
 
-    lobby(state): Lobby {
+    lobby(state) {
         const s = state as SharedState;
-        return {
+        return raceLobby(s, {
             blurb: `Everyone races to guess the same word of <strong>${LENGTH} letters</strong>, each
                 with <strong>${TRIES} guesses</strong>. Each guess's letters are marked: in the
                 word in that place, in the word elsewhere, or not in it. The first to guess the word
                 wins, or whoever came closest when the <strong>${s.settings.minutes} minutes</strong>
                 are up. Everyone sees how the others' guesses were marked, but not their letters.`,
-            seats: s.seats,
-            hint: `Start when everyone has joined. Up to ${MAX_PLAYERS} can race.`,
-            settings: {
-                specs: WORDS_SETTINGS,
-                current: s.settings,
-                host: s.host,
-                hostName: s.hostName,
-            },
-        };
+            settings: WORDS_SETTINGS,
+            maxPlayers: MAX_PLAYERS,
+        });
     },
 
     renderLive(body, shared) {
@@ -136,11 +133,7 @@ export const wordsView: GameView = {
     },
 
     clock() {
-        const s = shown();
-        if (s?.startedAt === undefined) return "";
-        // Rounded once it's over, as the result is, eg. "guessed CRANE in 48s"
-        if (s.phase === "finished") return mmss((s.finishedAt ?? Date.now()) - s.startedAt, true);
-        return s.endsAt === undefined ? "" : `${mmss(s.endsAt - Date.now())} left`;
+        return raceClock(shown());
     },
 
     onKey(event) {
@@ -388,11 +381,6 @@ function ensureDom(body: HTMLElement) {
     fitted = "";
 }
 
-function name(s: SharedState, id: string | undefined): string {
-    if (id === undefined) return "Nobody";
-    return usernameOf(id) ?? s.names[id] ?? id.slice(0, 5);
-}
-
 /** A racer's closest guess's marks, or none before their first */
 function closest(r: RacerState): Marks | undefined {
     return r.marks.reduce<Marks | undefined>(
@@ -449,7 +437,7 @@ function render() {
     const left = TRIES - (own?.guesses.length ?? 0);
     if (finished) {
         const tries = s.racers.find((r) => r.id === s.winner)?.marks.length ?? 0;
-        dom.status.textContent = describeResult(s, tries, (id) => name(s, id));
+        dom.status.textContent = describeResult(s, tries, (id) => nameOf(id, s.names));
     } else if (racing && won()) {
         // Until the state says the race is over, as the bot's answer comes first
         dom.status.textContent = `You guessed ${own!.guesses.at(-1)!.toUpperCase()}!`;
@@ -523,7 +511,8 @@ function drawKeys() {
 function renderHint(s: SharedState, racing: boolean, finished: boolean, whose: string | undefined) {
     if (dom === undefined) return;
     if (finished) {
-        const theirs = whose === ctx?.oc.userId ? "Your guesses" : `${name(s, whose)}'s guesses`;
+        const theirs =
+            whose === ctx?.oc.userId ? "Your guesses" : `${nameOf(whose, s.names)}'s guesses`;
         dom.hint.textContent = s.racers.length > 1 ? `${theirs}. Tap a name for theirs.` : theirs;
     } else if (racing && own === undefined) {
         dom.hint.textContent = "Getting your guesses…";
@@ -537,25 +526,13 @@ function renderHint(s: SharedState, racing: boolean, finished: boolean, whose: s
 function renderOthers(s: SharedState, finished: boolean, whose: string | undefined) {
     if (dom === undefined) return;
     const me = ctx?.oc.userId;
-    const seen = new Set<string>();
-    for (const r of ranked(s)) {
-        let card = dom.cards.get(r.id);
-        if (card === undefined) {
-            card = othersCard();
-            dom.cards.set(r.id, card);
-        }
+    drawRows(dom.others, dom.cards, ranked(s), othersCard, (card, r) => {
         const li = card.li;
         li.classList.toggle("mine", r.id === me);
         li.classList.toggle("picked", finished && r.id === whose);
         li.classList.toggle("winner", finished && r.id === s.winner);
-        if (finished) {
-            li.dataset.action = "pick";
-            li.dataset.id = r.id;
-        } else {
-            delete li.dataset.action;
-            delete li.dataset.id;
-        }
-        const who = name(s, r.id);
+        pickable(li, r.id, finished ? "pick" : undefined);
+        const who = nameOf(r.id, s.names);
         if (card.who.textContent !== who) card.who.textContent = who;
         const drawn = r.marks.join(",");
         if (card.drawn !== drawn) {
@@ -576,17 +553,7 @@ function renderOthers(s: SharedState, finished: boolean, whose: string | undefin
                 : `${r.marks.length}/${TRIES}`;
         if (card.count.textContent !== count) card.count.textContent = count;
         li.setAttribute("aria-label", `${who}: ${r.marks.length} of ${TRIES} guesses`);
-        // Into its place, if it isn't there already
-        const at = dom.others.children[seen.size] ?? null;
-        if (at !== li) dom.others.insertBefore(li, at);
-        seen.add(r.id);
-    }
-    for (const [id, card] of dom.cards) {
-        if (!seen.has(id)) {
-            card.li.remove();
-            dom.cards.delete(id);
-        }
-    }
+    });
 }
 
 function othersCard(): Card {
@@ -617,26 +584,9 @@ function fit(force = false) {
     ].join("|");
     if (!force && around === fitted) return;
     fitted = around;
-    let used = 0;
-    for (const el of dom.root.children) {
-        if (el === dom.grid) continue;
-        const style = getComputedStyle(el);
-        if (style.display === "none") continue;
-        used +=
-            (el as HTMLElement).offsetHeight +
-            parseFloat(style.marginTop) +
-            parseFloat(style.marginBottom);
-    }
     const gap = 6;
-    const available =
-        document.documentElement.clientHeight - dom.root.getBoundingClientRect().top - 16;
-    const byHeight = (available - used - gap * (TRIES - 1)) / TRIES;
+    const byHeight = (roomFor(dom.root, [dom.grid]) - gap * (TRIES - 1)) / TRIES;
     const byWidth = (dom.root.clientWidth - gap * (LENGTH - 1)) / LENGTH;
     const tile = Math.floor(Math.max(28, Math.min(58, byHeight, byWidth)));
     dom.grid.style.setProperty("--tile", `${tile}px`);
-}
-
-function mmss(ms: number, round = false): string {
-    const seconds = Math.max(0, (round ? Math.round : Math.floor)(ms / 1000));
-    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }

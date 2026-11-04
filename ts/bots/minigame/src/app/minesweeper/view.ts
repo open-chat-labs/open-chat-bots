@@ -26,9 +26,12 @@ import {
     type RacerState,
     type SharedState,
 } from "../../games/minesweeper/types";
-import { duration } from "../../games/race2048/race";
-import { fetchUsernames, usernameOf } from "../names";
-import type { GameView, Lobby, ViewContext } from "../view";
+import { duration } from "../../games/duration";
+import { roomFor } from "../layout";
+import { fetchUsernames, nameOf } from "../names";
+import { raceClock, raceLobby } from "../race";
+import { drawRows, pickable } from "../rows";
+import type { GameView, ViewContext } from "../view";
 
 /** How long a press is held to flag a cell, or, in flag mode, to open it */
 const LONG_PRESS_MS = 350;
@@ -103,24 +106,18 @@ export const minesweeperView: GameView = {
         return (state as SharedState).phase === "open";
     },
 
-    lobby(state): Lobby {
+    lobby(state) {
         const s = state as SharedState;
         const { size, minutes } = s.settings;
-        return {
+        return raceLobby(s, {
             blurb: `Everyone races to clear the same <strong>${size} by ${size}</strong> field of
                 <strong>${s.mines} mines</strong>, each on their own board, and it can always be
                 cleared by working it out, without a guess. A mine you set off stops you for
                 ${PENALTY_MS / 1000} seconds. The first to clear the field wins, or whoever's
                 cleared the most when the <strong>${minutes} minutes</strong> are up.`,
-            seats: s.seats,
-            hint: `Start when everyone has joined. Up to ${MAX_PLAYERS} can race.`,
-            settings: {
-                specs: MINESWEEPER_SETTINGS,
-                current: s.settings,
-                host: s.host,
-                hostName: s.hostName,
-            },
-        };
+            settings: MINESWEEPER_SETTINGS,
+            maxPlayers: MAX_PLAYERS,
+        });
     },
 
     renderLive(body, shared) {
@@ -143,11 +140,7 @@ export const minesweeperView: GameView = {
     },
 
     clock() {
-        const s = shown();
-        if (s?.startedAt === undefined) return "";
-        // Rounded once it's over, as the result is, eg. "cleared the field in 56s"
-        if (s.phase === "finished") return mmss((s.finishedAt ?? Date.now()) - s.startedAt, true);
-        return s.endsAt === undefined ? "" : `${mmss(s.endsAt - Date.now())} left`;
+        return raceClock(shown());
     },
 
     onKey() {
@@ -342,7 +335,7 @@ function ensureDom(body: HTMLElement) {
                 <div class="ms-frozen" hidden></div>
             </div>
             <p class="ms-hint muted small"></p>
-            <ol class="ms-standings"></ol>
+            <ol class="race-standings ms-standings"></ol>
         </div>`;
     const root = body.firstElementChild as HTMLElement;
     const q = <T extends HTMLElement>(selector: string) => root.querySelector(selector) as T;
@@ -428,11 +421,6 @@ function listen(board: HTMLElement) {
     board.addEventListener("contextmenu", (event) => event.preventDefault());
 }
 
-function name(s: SharedState, id: string | undefined): string {
-    if (id === undefined) return "Nobody";
-    return usernameOf(id) ?? s.names[id] ?? id.slice(0, 5);
-}
-
 /** Everyone, the furthest on first: the most cleared, then the fewest mines */
 function ranked(s: SharedState): RacerState[] {
     // Level on both, the winner first: the bot gives a tie to whoever got there first
@@ -473,8 +461,8 @@ function render() {
             s.winner === undefined
                 ? "The race is over"
                 : s.ended === "cleared" && s.startedAt !== undefined && s.finishedAt !== undefined
-                  ? `${name(s, s.winner)} cleared the field in ${duration(s.finishedAt - s.startedAt)}`
-                  : `Time's up! ${name(s, s.winner)} cleared the most`;
+                  ? `${nameOf(s.winner, s.names)} cleared the field in ${duration(s.finishedAt - s.startedAt)}`
+                  : `Time's up! ${nameOf(s.winner, s.names)} cleared the most`;
     } else {
         dom.status.textContent = racing
             ? "Open every cell that isn't a mine"
@@ -582,7 +570,7 @@ function renderHint(s: SharedState, racing: boolean, finished: boolean, whose: s
     if (dom === undefined) return;
     const touch = !matchMedia("(hover: hover) and (pointer: fine)").matches;
     if (finished) {
-        const board = whose === ctx?.oc.userId ? "Your board" : `${name(s, whose)}'s board`;
+        const board = whose === ctx?.oc.userId ? "Your board" : `${nameOf(whose, s.names)}'s board`;
         dom.hint.textContent = s.racers.length > 1 ? `${board}. Tap a name for theirs.` : board;
     } else if (racing && own === undefined) {
         dom.hint.textContent = "Getting your board…";
@@ -603,25 +591,13 @@ function renderStandings(s: SharedState, finished: boolean, whose: string | unde
     if (dom === undefined) return;
     const me = ctx?.oc.userId;
     const safe = s.size * s.size - s.mines;
-    const seen = new Set<string>();
-    for (const r of ranked(s)) {
-        let row = dom.rows.get(r.id);
-        if (row === undefined) {
-            row = standingsRow();
-            dom.rows.set(r.id, row);
-        }
+    drawRows(dom.standings, dom.rows, ranked(s), standingsRow, (row, r) => {
         const li = row.li;
         li.classList.toggle("mine", r.id === me);
         li.classList.toggle("picked", finished && r.id === whose);
         li.classList.toggle("winner", finished && r.id === s.winner);
-        if (finished) {
-            li.dataset.action = "pick";
-            li.dataset.id = r.id;
-        } else {
-            delete li.dataset.action;
-            delete li.dataset.id;
-        }
-        const who = name(s, r.id);
+        pickable(li, r.id, finished ? "pick" : undefined);
+        const who = nameOf(r.id, s.names);
         if (row.who.textContent !== who) row.who.textContent = who;
         row.fill.style.width = `${Math.round((100 * r.cleared) / safe)}%`;
         const count = r.cleared === safe ? "Cleared" : `${r.cleared}/${safe}`;
@@ -629,17 +605,7 @@ function renderStandings(s: SharedState, finished: boolean, whose: string | unde
         row.hits.hidden = r.hits === 0;
         const hits = `${MINE_SVG}${r.hits}`;
         if (row.hits.innerHTML !== hits) row.hits.innerHTML = hits;
-        // Into its place, if it isn't there already
-        const at = dom.standings.children[seen.size] ?? null;
-        if (at !== li) dom.standings.insertBefore(li, at);
-        seen.add(r.id);
-    }
-    for (const [id, row] of dom.rows) {
-        if (!seen.has(id)) {
-            row.li.remove();
-            dom.rows.delete(id);
-        }
-    }
+    });
 }
 
 function standingsRow(): Row {
@@ -676,26 +642,9 @@ function fitBoard(force = false) {
     ].join("|");
     if (!force && around === fitted) return;
     fitted = around;
-    let used = 0;
-    for (const el of dom.root.children) {
-        if (el === dom.wrap) continue;
-        const style = getComputedStyle(el);
-        if (style.display === "none") continue;
-        used +=
-            (el as HTMLElement).offsetHeight +
-            parseFloat(style.marginTop) +
-            parseFloat(style.marginBottom);
-    }
-    const available =
-        document.documentElement.clientHeight - dom.root.getBoundingClientRect().top - 16;
-    const side = Math.max(180, Math.floor(available - used));
+    const side = Math.max(180, Math.floor(roomFor(dom.root, [dom.wrap])));
     dom.wrap.style.maxWidth = `${side}px`;
     const n = Math.sqrt(dom.cells.length) || 1;
     const width = Math.min(side, dom.root.clientWidth);
     dom.board.style.setProperty("--cell-font", `${Math.max(9, Math.floor((width / n) * 0.6))}px`);
-}
-
-function mmss(ms: number, round = false): string {
-    const seconds = Math.max(0, (round ? Math.round : Math.floor)(ms / 1000));
-    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
