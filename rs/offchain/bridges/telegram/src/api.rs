@@ -29,18 +29,25 @@ impl TelegramApi {
         html: &str,
         reply_to: Option<i64>,
     ) -> Result<SentMessage> {
-        let mut body = json!({
-            "chat_id": chat_id,
-            "text": html,
-            "parse_mode": "HTML",
-            "link_preview_options": { "is_disabled": true },
-        });
+        let mut body = message_body(chat_id, html);
         if let Some(reply_to) = reply_to {
             body["reply_parameters"] = json!({
                 "message_id": reply_to,
                 "allow_sending_without_reply": true,
             });
         }
+        self.call("sendMessage", &body).await
+    }
+
+    /// Sends a message in a private chat which shows the keyboard, or removes it
+    pub async fn send_message_with_keyboard(
+        &self,
+        chat_id: i64,
+        html: &str,
+        keyboard: Keyboard,
+    ) -> Result<SentMessage> {
+        let mut body = message_body(chat_id, html);
+        body["reply_markup"] = keyboard.markup();
         self.call("sendMessage", &body).await
     }
 
@@ -124,7 +131,7 @@ impl TelegramApi {
             "url": url,
             "secret_token": secret,
             "max_connections": 10,
-            "allowed_updates": ["message", "edited_message"],
+            "allowed_updates": ["message", "edited_message", "channel_post", "edited_channel_post"],
         });
         self.call::<bool>("setWebhook", &body).await.map(|_| ())
     }
@@ -170,6 +177,45 @@ impl TelegramApi {
                 description,
                 ..
             } => Err(api_error(method, error_code.unwrap_or(status), description)),
+        }
+    }
+}
+
+fn message_body(chat_id: i64, html: &str) -> Value {
+    json!({
+        "chat_id": chat_id,
+        "text": html,
+        "parse_mode": "HTML",
+        "link_preview_options": { "is_disabled": true },
+    })
+}
+
+/// The keyboard shown in place of the user's in a private chat with the bot
+pub enum Keyboard {
+    /// A button which lists the user's channels the bot is in. Choosing one shares it with the bot,
+    /// in a message with `chat_shared` set.
+    ChooseChannel,
+    Remove,
+}
+
+impl Keyboard {
+    fn markup(&self) -> Value {
+        match self {
+            Keyboard::ChooseChannel => json!({
+                "keyboard": [[{
+                    "text": "Choose a channel",
+                    "request_chat": {
+                        // There's only the one request, so its id isn't checked
+                        "request_id": 1,
+                        "chat_is_channel": true,
+                        "bot_is_member": true,
+                        "request_title": true,
+                    },
+                }]],
+                "resize_keyboard": true,
+                "one_time_keyboard": true,
+            }),
+            Keyboard::Remove => json!({ "remove_keyboard": true }),
         }
     }
 }
@@ -244,6 +290,8 @@ pub struct SentMessage {
 pub struct Update {
     pub message: Option<Message>,
     pub edited_message: Option<Message>,
+    pub channel_post: Option<Message>,
+    pub edited_channel_post: Option<Message>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -272,6 +320,19 @@ pub struct Message {
     /// Set on the service message Telegram sends in a group when it's upgraded to a supergroup,
     /// which has a new id
     pub migrate_to_chat_id: Option<i64>,
+    /// Set on the copy of a channel's post Telegram sends in the channel's discussion group
+    #[serde(default)]
+    pub is_automatic_forward: bool,
+    /// Set on the service message Telegram sends in a private chat when the user chooses a chat
+    /// with a `Keyboard::ChooseChannel` button
+    pub chat_shared: Option<ChatShared>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ChatShared {
+    pub chat_id: i64,
+    /// The bot asks for it
+    pub title: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -380,6 +441,74 @@ mod tests {
         assert_eq!(message.chat.id, -100123);
         assert_eq!(message.text.as_deref(), Some("hello"));
         assert_eq!(message.reply_to_message.unwrap().message_id, 4);
+        assert!(!message.is_automatic_forward);
+    }
+
+    #[test]
+    fn channel_posts_and_shared_chats_decode() {
+        let post = json!({
+            "message_id": 7,
+            "date": 0,
+            "chat": { "id": -100456, "type": "channel", "title": "News" },
+            "sender_chat": { "id": -100456, "type": "channel", "title": "News" },
+            "author_signature": "Nelly",
+            "text": "hello",
+        });
+        let update: Update =
+            serde_json::from_value(json!({ "update_id": 1, "channel_post": post })).unwrap();
+        let message = update.channel_post.unwrap();
+        assert_eq!(message.chat.kind, "channel");
+        assert_eq!(message.sender_chat.unwrap().id, -100456);
+
+        let update: Update =
+            serde_json::from_value(json!({ "update_id": 2, "edited_channel_post": post })).unwrap();
+        assert_eq!(update.edited_channel_post.unwrap().message_id, 7);
+
+        let update: Update = serde_json::from_value(json!({
+            "update_id": 3,
+            "message": {
+                "message_id": 8,
+                "date": 0,
+                "chat": { "id": 42, "type": "private", "first_name": "Nelly" },
+                "from": { "id": 42, "is_bot": false, "first_name": "Nelly" },
+                "chat_shared": { "request_id": 1, "chat_id": -100456, "title": "News" },
+            }
+        }))
+        .unwrap();
+        let shared = update.message.unwrap().chat_shared.unwrap();
+        assert_eq!(shared.chat_id, -100456);
+        assert_eq!(shared.title.as_deref(), Some("News"));
+
+        let update: Update = serde_json::from_value(json!({
+            "update_id": 4,
+            "message": {
+                "message_id": 9,
+                "date": 0,
+                "chat": { "id": -100789, "type": "supergroup", "title": "News chat" },
+                "from": { "id": 777000, "is_bot": false, "first_name": "Telegram" },
+                "sender_chat": { "id": -100456, "type": "channel", "title": "News" },
+                "is_automatic_forward": true,
+                "text": "/bridge",
+            }
+        }))
+        .unwrap();
+        assert!(update.message.unwrap().is_automatic_forward);
+    }
+
+    #[test]
+    fn the_channel_button_asks_for_a_channel_the_bot_is_in() {
+        let markup = Keyboard::ChooseChannel.markup();
+        let request = &markup["keyboard"][0][0]["request_chat"];
+        assert_eq!(request["chat_is_channel"], true);
+        assert_eq!(request["bot_is_member"], true);
+        assert_eq!(request["request_title"], true);
+        assert!(request["request_id"].is_i64());
+        assert_eq!(markup["one_time_keyboard"], true);
+
+        assert_eq!(
+            Keyboard::Remove.markup(),
+            json!({ "remove_keyboard": true })
+        );
     }
 
     #[test]

@@ -1,4 +1,5 @@
-//! Bridges Telegram groups with OpenChat groups and public channels, both ways. See the README.
+//! Bridges Telegram groups and channels with OpenChat groups and public channels, both ways. See
+//! the README.
 
 use crate::api::{TelegramApi, Update};
 use crate::avatars::Avatars;
@@ -159,6 +160,7 @@ async fn setup(api: &TelegramApi, config: &Config) -> Result<()> {
     .await?;
     api.set_my_commands(
         &[
+            ("bridge", "Bridge one of your channels with OpenChat"),
             (
                 "status",
                 "Show whether your Telegram account is linked to OpenChat",
