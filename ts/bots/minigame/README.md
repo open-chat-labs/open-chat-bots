@@ -55,8 +55,8 @@ card, a player starts the game, and it's played in the card, in the bot's own pa
   a crate but not pull it, or push two at once, and can undo a move. The first to put every crate
   on a goal wins, or whoever has the most on goals when the 5 minutes are up. Its levels are
   DeepMind's Boxoban levels, and the rest is built from scratch (see "Crate Race");
-- a **Dash Race**: up to 20 players race along the same course, easy at first and hard after a
-  few obstacles, each with their own runner, which runs by itself. A tap jumps, higher the longer
+- a **Dash Race**: up to 20 players race along the same course, easy at first, then medium, then
+  hard, each with their own runner, which runs by itself. A tap jumps, higher the longer
   it's held, over spikes and pits and up steps, and a spike or a pit sends the runner back to the
   last checkpoint. The first to the flag wins, or whoever got furthest when the 3 minutes are up.
   It's built from scratch, its courses and look its own (see "Dash Race").
@@ -496,11 +496,11 @@ Everyone runs the same course, so it's a race of timing: each racer's own runner
 they've got for everyone else to see.
 
 - **The course** (`src/games/dash/course.ts`) is twelve sections (`sections.ts`), picked as the
-  race starts and joined end to end between a flat start and a flat finish: an easy one, then two
-  medium, then nine hard, with a checkpoint every three, the first where the hard ones start. A
-  section is a few obstacles drawn in rows of characters: solid ground, spikes on a floor or
-  hanging from a ceiling, and air. Each starts and ends on the same flat ground, so any can follow
-  any. There's no setting for how hard it is, only for how long the race lasts.
+  race starts and joined end to end between a flat start and a flat finish, with a checkpoint
+  every four. It's easy to the first checkpoint, medium to the second, then hard. A section is a
+  few obstacles drawn in rows of characters: solid ground, spikes on a floor or hanging from a
+  ceiling, and air. Each starts and ends on the same flat ground, so any can follow any. There's
+  no setting for how hard it is, only for how long the race lasts.
 - **The runner** (`runner.ts`) runs right by itself, seven tiles a second, and jumps when the
   button's pressed, higher the longer it's held, nearly three tiles at most. It still jumps a few
   ticks after running off an edge, or pressed a few ticks before it lands. A wall stops it until it

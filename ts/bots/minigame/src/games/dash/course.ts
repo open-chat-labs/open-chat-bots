@@ -1,9 +1,9 @@
 // A Dash Race's course: a strip of tiles ten high, which everyone runs from left to right. It's
 // made of sections (`sections.ts`), a run of obstacles each, picked as the race starts and joined
-// end to end between a flat start and a flat finish: an easy one first, then a couple of medium
-// ones, then hard ones the rest of the way. Every section starts and ends on the same flat ground,
-// so any can follow any. Some of the joins have a checkpoint, where a runner who falls starts
-// again: the first where the hard ones start.
+// end to end between a flat start and a flat finish. Every section starts and ends on the same
+// flat ground, so any can follow any. Some of the joins have a checkpoint, where a runner who
+// falls starts again, and the course gets harder at each: easy to the first, medium to the
+// second, then hard.
 import { SECTIONS, type Section } from "./sections";
 
 /** A tile's width and height, in the units the runner's moves are counted in */
@@ -23,12 +23,12 @@ export const SPIKE_DOWN = 3;
 
 export type Tile = typeof AIR | typeof SOLID | typeof SPIKE_UP | typeof SPIKE_DOWN;
 
-/** How many sections of each level a course has, in the order they come: easy, medium, then hard */
-export const LEVEL_SECTIONS: readonly number[] = [1, 2, 9];
-export const SECTIONS_PER_COURSE = LEVEL_SECTIONS.reduce((a, b) => a + b);
+/** How many sections are between checkpoints */
+export const CHECKPOINT_EVERY = 4;
 
-/** How many sections are between checkpoints: the easy and medium ones, then the hard ones */
-export const CHECKPOINT_EVERY = 3;
+/** The level of each stretch between checkpoints, from the start: easy, medium, then hard */
+export const STRETCH_LEVELS: readonly number[] = [1, 2, 3];
+export const SECTIONS_PER_COURSE = STRETCH_LEVELS.length * CHECKPOINT_EVERY;
 
 /** The flat ground before the first section, and after the last, with the finish line on it */
 const START_COLUMNS = 6;
@@ -125,11 +125,11 @@ export function buildCourse(sections: readonly number[]): Course | undefined {
 }
 
 /**
- * Picks a course's sections, harder as it goes: an easy one, then medium ones, then hard ones,
- * each of its level's in a random order
+ * Picks a course's sections, harder at each checkpoint: a stretch of easy ones, then medium, then
+ * hard, each a few of its level's in a random order
  */
 export function pickSections(random: () => number): number[] {
-    return LEVEL_SECTIONS.flatMap((count, i) => shuffled(i + 1, random).slice(0, count));
+    return STRETCH_LEVELS.flatMap((level) => shuffled(level, random).slice(0, CHECKPOINT_EVERY));
 }
 
 /** The sections of a level, in a random order */
