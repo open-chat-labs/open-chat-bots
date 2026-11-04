@@ -222,7 +222,7 @@ export const DASH_RACE: GameType = {
     id: DASH_ID,
     title: "Dash Race",
     image: "app/dash.svg",
-    // One line, as the others': the course's difficulty and the time are settings, in the lobby
+    // One line, as the others': the time is a setting, in the lobby
     cardText: `**Dash Race** · up to ${DASH_MAX_PLAYERS} players`,
     maxPlayers: DASH_MAX_PLAYERS,
     spectators: true,
