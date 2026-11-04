@@ -11,6 +11,9 @@ import { GAME_ID as CHESS_ID } from "./chess/types";
 import { CrateRace, type CratesData } from "./crates/race";
 import { CRATES_SETTINGS } from "./crates/settings";
 import { GAME_ID as CRATES_ID, MAX_PLAYERS as CRATES_MAX_PLAYERS } from "./crates/types";
+import { DashRace, type DashData } from "./dash/race";
+import { DASH_SETTINGS } from "./dash/settings";
+import { GAME_ID as DASH_ID, MAX_PLAYERS as DASH_MAX_PLAYERS } from "./dash/types";
 import { Duel, type DuelData } from "./duel/duel";
 import type { DuelRules, Position } from "./duel/types";
 import { FOUR_IN_A_ROW } from "./fourinarow/rules";
@@ -215,6 +218,21 @@ export const CRATE_RACE: GameType = {
     fromJson: (data) => new CrateRace(data as CratesData),
 };
 
+export const DASH_RACE: GameType = {
+    id: DASH_ID,
+    title: "Dash Race",
+    image: "app/dash.svg",
+    // One line, as the others': the course's difficulty and the time are settings, in the lobby
+    cardText: `**Dash Race** · up to ${DASH_MAX_PLAYERS} players`,
+    maxPlayers: DASH_MAX_PLAYERS,
+    spectators: true,
+    settings: DASH_SETTINGS,
+    // A portrait frame: the course, with how far everyone's got under it
+    appSize: { width: 440, height: 720 },
+    create: (_config, host) => DashRace.create({ host }),
+    fromJson: (data) => new DashRace(data as DashData),
+};
+
 export const GAMES: readonly GameType[] = [
     RACE_2048,
     CHESS,
@@ -226,6 +244,7 @@ export const GAMES: readonly GameType[] = [
     HEX_GAME,
     WORD_RACE,
     CRATE_RACE,
+    DASH_RACE,
 ];
 
 /** The games played as a duel (`games/duel`), whose moves and resignations are the same requests */

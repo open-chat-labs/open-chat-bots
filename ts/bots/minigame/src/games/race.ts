@@ -2,7 +2,8 @@
 // settings in the lobby, and once someone starts it, everyone seated races at once, each on their
 // own, until someone wins or the time's up, when whoever's furthest on wins. A race keeps its whole
 // state in its data, which the store writes as it is. Each race (2048, the maze, ChatMan,
-// Minesweeper, the Word Race and the Crate Race) adds what's raced on, and how a racer gets on.
+// Minesweeper, the Word Race, the Crate Race and the Dash Race) adds what's raced on, and how a
+// racer gets on.
 import {
     PUBLISH_EVERY_MS,
     type ConfigureResult,

@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 720" width="440" height="720" role="img" aria-label="Dash Race">
+  <!--
+    The Dash Race's image, at the app's aspect ratio (440 by 720): OpenChat shows it in the card's
+    frame box whenever there's no app to show. Its background is opaque, in OpenChat's theme, light
+    or dark (below). No fonts, scripts or references. A stretch of a course drawn as the page draws
+    it (src/app/dash/view.ts), the runner jumping a pit, with another racer ahead, and under it,
+    the line with everyone's dot as far along as they've got.
+  -->
+  <!-- OpenChat names its theme in the image's fragment, as it does in the app's, eg.
+       dash.svg#oc_theme=dark, which targets the group below. In a dark one, the colours are the
+       page's dark ones (style.css). -->
+  <style>
+    :root:has([id="oc_theme=dark"]:target) [fill="#faf8ef"] { fill: #1b1a19 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#ffffff"] { fill: #26241f }
+    :root:has([id="oc_theme=dark"]:target) [fill="#eee9e1"] { fill: #34312a }
+    :root:has([id="oc_theme=dark"]:target) [fill="#efeae5"] { fill: #3a362e }
+    :root:has([id="oc_theme=dark"]:target) [fill="#e6e0d4"] { fill: #3a362f }
+    :root:has([id="oc_theme=dark"]:target) [stroke="#e6e0d4"] { stroke: #3a362f }
+    :root:has([id="oc_theme=dark"]:target) [fill="#bbada0"] { fill: #4e463b }
+    :root:has([id="oc_theme=dark"]:target) [fill="#2f7d4f"] { fill: #286b44 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#3b3630"] { fill: #ece7dd }
+    :root:has([id="oc_theme=dark"]:target) [fill="#e8704a"] { fill: #f08a5d }
+    :root:has([id="oc_theme=dark"]:target) [fill="#3f7fd0"] { fill: #5b9bef }
+    :root:has([id="oc_theme=dark"]:target) [stroke="#3f7fd0"] { stroke: #5b9bef }
+    :root:has([id="oc_theme=dark"]:target) [fill="#7a7267"] { fill: #a39b8f }
+    :root:has([id="oc_theme=dark"]:target) [fill="#2fa36b"] { fill: #3cb87c }
+  </style>
+  <g id="oc_theme=dark"/>
+  <rect width="440" height="720" fill="#faf8ef"/>
+  <clipPath id="course"><rect x="28" y="160" width="384" height="320" rx="8"/></clipPath>
+  <g clip-path="url(#course)">
+  <rect x="28" y="160" width="384" height="320" fill="#ffffff"/>
+  <ellipse cx="120" cy="225" rx="36" ry="11.5" fill="#eee9e1"/>
+  <ellipse cx="136" cy="218.5" rx="20" ry="10.8" fill="#eee9e1"/>
+  <ellipse cx="330" cy="255" rx="45" ry="14.375" fill="#eee9e1"/>
+  <ellipse cx="350" cy="246.875" rx="25" ry="13.5" fill="#eee9e1"/>
+  <path d="M12 416 A58 30 0 0 1 128 416 Z" fill="#efeae5"/>
+  <path d="M172 416 A58 42 0 0 1 288 416 Z" fill="#efeae5"/>
+  <path d="M332 416 A58 34 0 0 1 448 416 Z" fill="#efeae5"/>
+  <rect x="28" y="416" width="32" height="64" fill="#bbada0"/>
+  <rect x="28" y="416" width="32" height="5" fill="#2f7d4f"/>
+  <rect x="60" y="416" width="32" height="64" fill="#bbada0"/>
+  <rect x="60" y="416" width="32" height="5" fill="#2f7d4f"/>
+  <rect x="92" y="416" width="32" height="64" fill="#bbada0"/>
+  <rect x="92" y="416" width="32" height="5" fill="#2f7d4f"/>
+  <rect x="124" y="416" width="32" height="64" fill="#bbada0"/>
+  <rect x="124" y="416" width="32" height="5" fill="#2f7d4f"/>
+  <rect x="156" y="416" width="32" height="64" fill="#e6e0d4"/>
+  <rect x="188" y="416" width="32" height="64" fill="#e6e0d4"/>
+  <rect x="220" y="416" width="32" height="64" fill="#bbada0"/>
+  <rect x="220" y="416" width="32" height="5" fill="#2f7d4f"/>
+  <rect x="252" y="416" width="32" height="64" fill="#bbada0"/>
+  <rect x="252" y="416" width="32" height="5" fill="#2f7d4f"/>
+  <rect x="284" y="416" width="32" height="64" fill="#bbada0"/>
+  <rect x="284" y="416" width="32" height="5" fill="#2f7d4f"/>
+  <rect x="316" y="416" width="32" height="64" fill="#bbada0"/>
+  <rect x="316" y="416" width="32" height="5" fill="#2f7d4f"/>
+  <rect x="348" y="384" width="32" height="96" fill="#bbada0"/>
+  <rect x="348" y="384" width="32" height="5" fill="#2f7d4f"/>
+  <rect x="380" y="384" width="32" height="96" fill="#bbada0"/>
+  <rect x="380" y="384" width="32" height="5" fill="#2f7d4f"/>
+  <path d="M287.84 416 L300 392 L312.16 416 Z" fill="#3b3630"/>
+  <rect x="266.7" y="361.6" width="2.6" height="54.4" fill="#e8704a"/>
+  <path d="M269.3 361.6 L287.84 368.64 L269.3 375.68 Z" fill="#e8704a"/>
+  <rect x="321" y="390" width="22" height="26" rx="5.76" fill="none" stroke="#3f7fd0" stroke-width="2.6" opacity="0.5"/>
+  <g transform="translate(176.6 368.2) rotate(-12)">
+    <rect x="-11" y="-13" width="22" height="26" rx="6.16" fill="#e8704a"/>
+    <circle cx="3.52" cy="-3.12" r="4.18" fill="#fff"/>
+    <circle cx="5.06" cy="-3.12" r="1.98" fill="#1b1a19"/>
+  </g>
+  </g>
+  <rect x="28.5" y="160.5" width="383" height="319" rx="8" fill="none" stroke="#e6e0d4"/>
+  <rect x="34" y="509" width="372" height="2" fill="#e6e0d4" rx="1"/>
+  <rect x="166.92" y="505" width="2" height="10" fill="#7a7267"/>
+  <rect x="293.4" y="505" width="2" height="10" fill="#7a7267"/>
+  <circle cx="264.64" cy="510" r="6.5" fill="#ffffff"/>
+  <circle cx="264.64" cy="510" r="5" fill="#3f7fd0"/>
+  <circle cx="201.4" cy="510" r="6.5" fill="#ffffff"/>
+  <circle cx="201.4" cy="510" r="5" fill="#2fa36b"/>
+  <circle cx="227.44" cy="510" r="8.5" fill="#ffffff"/>
+  <circle cx="227.44" cy="510" r="7" fill="#e8704a"/>
+</svg>

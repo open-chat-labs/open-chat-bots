@@ -12,6 +12,7 @@ import type { Deps } from "../deps";
 import type { ChessGame } from "../games/chess/chess";
 import type { ActionResponse } from "../games/chess/types";
 import type { CrateRace } from "../games/crates/race";
+import type { DashRace } from "../games/dash/race";
 import type { Duel } from "../games/duel/duel";
 import type { Position } from "../games/duel/types";
 import type { Game, GameKind, NamesResponse } from "../games/game";
@@ -250,4 +251,14 @@ export function cratesPath(req: Request, res: Response, deps: Deps): Promise<voi
     return act<CrateRace>(req, res, deps, "crates", (race, userId, body) =>
         race.path(userId, body),
     );
+}
+
+/**
+ * `POST /api/dash/run` with `{ "changes": [40, 52, 97], "upTo": 120 }`: a Dash racer's run, the
+ * ticks their button went down and came up from the race's start, and the tick their page has
+ * played it to, answered with their run as the bot has it, which only they see while the race is
+ * on, and the bot's clock. No run at all asks for it, eg. as the page opens.
+ */
+export function dashRun(req: Request, res: Response, deps: Deps): Promise<void> {
+    return act<DashRace>(req, res, deps, "dash", (race, userId, body) => race.run(userId, body));
 }

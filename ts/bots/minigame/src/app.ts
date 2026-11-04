@@ -11,6 +11,7 @@ import {
     chessMove,
     chessResign,
     cratesPath,
+    dashRun,
     duelMove,
     duelResign,
     liveMove,
@@ -69,6 +70,8 @@ export function createApp(deps: Deps, appDir: string): Express {
     app.post("/api/words/guess", express.json(), handle(wordsGuess));
     // A Crate racer's moves, answered with their path as the bot has it, which only they see
     app.post("/api/crates/path", express.json(), handle(cratesPath));
+    // A Dash racer's run, answered with it as the bot has it, which only they see
+    app.post("/api/dash/run", express.json(), handle(dashRun));
 
     // Anyone with a game open, watching included, and anyone opening a finished card: no token
     app.get("/api/names", handle(userNames));

@@ -2437,3 +2437,136 @@ button.link {
 .cr-standings .count {
     min-width: 5.5em;
 }
+
+/*
+ * The Dash Race: the course on a canvas as wide as the frame allows, with what to press over it,
+ * a line under it with everyone's dot as far along as they've got, and the standings
+ */
+.dash {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    max-width: 440px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.dash-status {
+    margin: 0 0 6px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.dash-wrap {
+    position: relative;
+    width: 100%;
+    margin: 0 auto;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: pointer;
+}
+
+.dash-course {
+    display: block;
+    width: 100%;
+    aspect-ratio: 12 / 10;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.dash-banner {
+    position: absolute;
+    left: 50%;
+    top: 30%;
+    transform: translate(-50%, -50%);
+    padding: 6px 16px;
+    border-radius: 10px;
+    background: var(--fg);
+    color: var(--bg);
+    font-size: 18px;
+    font-weight: 700;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0.9;
+}
+
+.dash-track {
+    position: relative;
+    height: 14px;
+    margin: 8px 7px 2px;
+}
+
+.dash-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 6px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--border);
+}
+
+.dash-checkpoint {
+    position: absolute;
+    top: 2px;
+    width: 2px;
+    height: 10px;
+    margin-left: -1px;
+    background: var(--muted);
+}
+
+.dash-dot {
+    position: absolute;
+    top: 2px;
+    width: 10px;
+    height: 10px;
+    margin-left: -5px;
+    border-radius: 50%;
+    border: 1.5px solid var(--panel);
+    transition: left 0.4s linear;
+}
+
+.dash-dot.mine {
+    top: 0;
+    width: 14px;
+    height: 14px;
+    margin-left: -7px;
+    z-index: 1;
+}
+
+.dash-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 28px;
+    font-size: 14px;
+}
+
+.dash-count {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.dash-bar button {
+    padding: 4px 10px;
+    font-size: 13px;
+}
+
+.dash-hint {
+    margin: 2px 0 0;
+    text-align: center;
+}
+
+.dash-standings {
+    max-height: 160px;
+    overflow-y: auto;
+}
+
+.dash-standings .swatch {
+    width: 0.8em;
+    height: 0.8em;
+    border-radius: 50%;
+    flex: none;
+}
