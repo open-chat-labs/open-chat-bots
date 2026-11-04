@@ -1,4 +1,4 @@
-use crate::api::{Message, TelegramApi, Update};
+use crate::api::{Chat, ChatShared, Keyboard, Message, TelegramApi, Update};
 use crate::platform::{Telegram, escape};
 use anyhow::Result;
 use oc_bots_sdk::types::{BridgedUser, BridgedUserId, TelegramUser};
@@ -21,7 +21,8 @@ pub struct UpdateHandler {
 
 impl UpdateHandler {
     pub async fn handle(&self, update: Update) -> Result<()> {
-        if let Some(message) = update.message {
+        // A channel's posts are its messages
+        if let Some(message) = update.message.or(update.channel_post) {
             if let Some(new_chat_id) = message.migrate_to_chat_id {
                 // Upgraded to a supergroup, which has a new id
                 self.bridge
@@ -30,7 +31,7 @@ impl UpdateHandler {
                 return Ok(());
             }
             self.message(message).await
-        } else if let Some(message) = update.edited_message {
+        } else if let Some(message) = update.edited_message.or(update.edited_channel_post) {
             self.edit(message).await
         } else {
             Ok(())
@@ -39,17 +40,33 @@ impl UpdateHandler {
 
     async fn message(&self, message: Message) -> Result<()> {
         let is_private = message.chat.kind == "private";
+        if let Some(shared) = message.chat_shared.as_ref().filter(|_| is_private) {
+            let reply = self.channel_chosen(&message, shared).await;
+            // The button it was chosen with is done with
+            if let Err(error) = self
+                .api
+                .send_message_with_keyboard(message.chat.id, &reply, Keyboard::Remove)
+                .await
+            {
+                warn!(%error, "Failed to reply to a chosen channel");
+            }
+            return Ok(());
+        }
         if let Some((command, arg)) = self
             .command(&message)
             .filter(|(command, arg)| is_private || is_group_command(command, arg.as_deref()))
         {
+            if is_private && command == "bridge" {
+                self.offer_channels(&message).await;
+                return Ok(());
+            }
             let reply = if is_private {
                 self.private_command(&message, &command, arg).await
             } else {
                 self.group_command(&message, &command).await
             };
             if let Some(reply) = reply {
-                // In a group, replying to the command shows whose it is
+                // In a group or channel, replying to the command shows whose it is
                 let reply_to = (!is_private).then_some(message.message_id);
                 // A failed reply isn't worth Telegram retrying the command for
                 if let Err(error) = self
@@ -64,8 +81,22 @@ impl UpdateHandler {
         }
         if is_private {
             let help = "To link your Telegram account to OpenChat, open your profile in \
-                OpenChat, then choose Link Telegram under Linked accounts.";
+                OpenChat, then choose Link Telegram under Linked accounts. To bridge a group or \
+                channel with OpenChat, run /bridge.";
             self.api.send_message(message.chat.id, help, None).await?;
+            return Ok(());
+        }
+        // A bridged channel's posts, including the bridge's own, reach OpenChat through its
+        // pairing, so their copies in its discussion group aren't relayed from there too
+        if message.is_automatic_forward
+            && let Some(channel) = &message.sender_chat
+            && self
+                .bridge
+                .store
+                .pairing(&channel.id.to_string())
+                .await?
+                .is_some()
+        {
             return Ok(());
         }
 
@@ -97,14 +128,27 @@ impl UpdateHandler {
     }
 
     fn command(&self, message: &Message) -> Option<(String, Option<String>)> {
-        parse_command(message.text.as_deref()?, &self.username)
+        message_command(message, &self.username)
     }
 
     async fn group_command(&self, message: &Message, command: &str) -> Option<String> {
         let chat = &message.chat;
         // Anyone in the group can see whether it's bridged
         if command == "status" {
-            return Some(self.status(message, Some(&chat.id.to_string())).await);
+            return Some(self.status(message, Some(chat)).await);
+        }
+        // Only a channel's admins can post in it, so they can unbridge it there. They post as the
+        // channel, so the bridge can't tell which of them to send a code to, and they choose the
+        // channel to bridge in a private chat with it instead.
+        if chat.kind == "channel" {
+            if command == "unbridge" {
+                return self.unbridge(chat).await;
+            }
+            return Some(format!(
+                "To bridge this channel with OpenChat, run /bridge in a private chat with me, at \
+                t.me/{}, and choose the channel there.",
+                self.username
+            ));
         }
         // Run as themself, as the bridge can't message an anonymous admin privately
         let Some(from) = message
@@ -126,15 +170,7 @@ impl UpdateHandler {
         }
 
         if command == "unbridge" {
-            return match self.bridge.unpair_platform_chat(&chat.id.to_string()).await {
-                // Unpairing says so in the group itself
-                Ok(true) => None,
-                Ok(false) => Some("This group isn't bridged with OpenChat.".to_string()),
-                Err(error) => {
-                    warn!(%error, "Failed to unbridge");
-                    Some("Something went wrong. Please try again.".to_string())
-                }
-            };
+            return self.unbridge(chat).await;
         }
 
         let pending = PendingPairing {
@@ -154,11 +190,7 @@ impl UpdateHandler {
         };
         // Sent privately, as anyone in the group who saw the code could pair the group with an
         // OpenChat chat of their own
-        let instructions = format!(
-            "To bridge {} with OpenChat, install the bridge bot in the OpenChat group or public \
-            channel to bridge with, then run <code>/bridge {code}</code> there within 15 minutes.",
-            escape(&pending.name)
-        );
+        let instructions = pairing_instructions(&pending.name, &code);
         match self.api.send_message(from.id, &instructions, None).await {
             Ok(_) => Some("I've sent you the code privately.".to_string()),
             Err(_) => Some(format!(
@@ -200,29 +232,111 @@ impl UpdateHandler {
                     "Something went wrong. Please try again.".to_string()
                 }
             },
-            ("bridge" | "unbridge", _) => "Run this in the group to bridge.".to_string(),
+            ("unbridge", _) => {
+                "Run /unbridge in the group or channel to stop bridging it.".to_string()
+            }
             _ => "To link your Telegram account to OpenChat, open your profile in OpenChat, then \
-                choose Link Telegram under Linked accounts. Add me to a group and run /bridge \
-                there to bridge it with OpenChat."
+                choose Link Telegram under Linked accounts. To bridge a group or channel with \
+                OpenChat, run /bridge."
                 .to_string(),
         })
     }
 
-    /// Whether the group is bridged, when run in one, and whether the user's account is linked
-    async fn status(&self, message: &Message, group: Option<&str>) -> String {
+    /// /bridge in a private chat: a group's admins run it in the group, so this is for channels,
+    /// which are chosen with a button
+    async fn offer_channels(&self, message: &Message) {
+        let text = "To bridge a channel with OpenChat, add me to it as an admin who can post \
+            messages, then choose it below. To bridge a group, add me to it and run /bridge there \
+            instead.";
+        if let Err(error) = self
+            .api
+            .send_message_with_keyboard(message.chat.id, text, Keyboard::ChooseChannel)
+            .await
+        {
+            warn!(%error, "Failed to offer the user's channels");
+        }
+    }
+
+    /// Sends the code to bridge the channel the user chose, if they're one of its admins
+    async fn channel_chosen(&self, message: &Message, shared: &ChatShared) -> String {
+        let Some(from) = &message.from else {
+            return "Something went wrong. Please try again.".to_string();
+        };
+        // Telegram lists the channels the bot is in, which may include those the user only reads
+        match self.api.is_admin(shared.chat_id, from.id).await {
+            Ok(true) => {}
+            Ok(false) => return "Only the channel's admins can bridge it.".to_string(),
+            Err(error) => {
+                warn!(%error, "Failed to check whether a user is a channel's admin");
+                return "Something went wrong. Check I'm one of the channel's admins, then run \
+                    /bridge again."
+                    .to_string();
+            }
+        }
+        // Otherwise it would be paired, but nothing from OpenChat could be posted in it
+        match self.api.can_post_in_channel(shared.chat_id).await {
+            Ok(true) => {}
+            Ok(false) => {
+                return "I can't post in that channel. Make me one of its admins, able to post \
+                    messages, then run /bridge again."
+                    .to_string();
+            }
+            Err(error) => {
+                warn!(%error, "Failed to check whether the bot can post in a channel");
+                return "Something went wrong. Please run /bridge again.".to_string();
+            }
+        }
+        let pending = PendingPairing {
+            platform_chat: shared.chat_id.to_string(),
+            name: shared
+                .title
+                .clone()
+                .unwrap_or_else(|| "this channel".to_string()),
+            platform_data: None,
+        };
+        match self.bridge.start_pairing(&pending).await {
+            Ok(code) => pairing_instructions(&pending.name, &code),
+            Err(error) => {
+                warn!(%error, "Failed to start pairing");
+                "Something went wrong. Please try again.".to_string()
+            }
+        }
+    }
+
+    async fn unbridge(&self, chat: &Chat) -> Option<String> {
+        match self.bridge.unpair_platform_chat(&chat.id.to_string()).await {
+            // Unpairing says so in the group or channel itself
+            Ok(true) => None,
+            Ok(false) => Some(format!(
+                "This {} isn't bridged with OpenChat.",
+                chat_noun(chat)
+            )),
+            Err(error) => {
+                warn!(%error, "Failed to unbridge");
+                Some("Something went wrong. Please try again.".to_string())
+            }
+        }
+    }
+
+    /// Whether the group or channel is bridged, when run in one, and whether the user's account is
+    /// linked
+    async fn status(&self, message: &Message, chat: Option<&Chat>) -> String {
         let mut lines = Vec::new();
-        if let Some(group) = group {
-            lines.push(match self.bridge.store.pairing(group).await {
-                Ok(Some(pairing)) => format!(
-                    "This group is bridged with {}.",
-                    oc_chat_url(&pairing.oc_chat)
-                ),
-                Ok(None) => "This group isn't bridged with OpenChat.".to_string(),
-                Err(error) => {
-                    warn!(%error, "Failed to look up a group's pairing");
-                    return "Something went wrong. Please try again.".to_string();
-                }
-            });
+        if let Some(chat) = chat {
+            let noun = chat_noun(chat);
+            lines.push(
+                match self.bridge.store.pairing(&chat.id.to_string()).await {
+                    Ok(Some(pairing)) => format!(
+                        "This {noun} is bridged with {}.",
+                        oc_chat_url(&pairing.oc_chat)
+                    ),
+                    Ok(None) => format!("This {noun} isn't bridged with OpenChat."),
+                    Err(error) => {
+                        warn!(%error, "Failed to look up a group's pairing");
+                        return "Something went wrong. Please try again.".to_string();
+                    }
+                },
+            );
         }
         // A group's anonymous admins, or a channel, have no account to link
         if let Some(from) = message
@@ -254,15 +368,42 @@ impl UpdateHandler {
     }
 }
 
-/// The command and its argument, if the text is one of this bot's commands. `/bridge@OtherBot` is
-/// another bot's.
-/// Whether the bridge answers a command in a group. The rest, eg. another bot's /start, are relayed
-/// like any message. /status is a common name, so it's only taken on its own, not, say, in
-/// "/status is green".
+/// What the code to bridge a group or channel is sent with, privately, as anyone who saw it could
+/// pair the chat with an OpenChat chat of their own
+fn pairing_instructions(name: &str, code: &str) -> String {
+    format!(
+        "To bridge {} with OpenChat, install the bridge bot in the OpenChat group or public \
+        channel to bridge with, then run <code>/bridge {code}</code> there within 15 minutes.",
+        escape(name)
+    )
+}
+
+fn chat_noun(chat: &Chat) -> &'static str {
+    if chat.kind == "channel" {
+        "channel"
+    } else {
+        "group"
+    }
+}
+
+/// The message's command, if it's one of this bot's. A channel's post copied into its discussion
+/// group isn't one there, so a channel's /unbridge doesn't unbridge the group too.
+fn message_command(message: &Message, username: &str) -> Option<(String, Option<String>)> {
+    if message.is_automatic_forward {
+        return None;
+    }
+    parse_command(message.text.as_deref()?, username)
+}
+
+/// Whether the bridge answers a command in a group or channel. The rest, eg. another bot's /start,
+/// are relayed like any message. /status is a common name, so it's only taken on its own, not, say,
+/// in "/status is green".
 fn is_group_command(command: &str, arg: Option<&str>) -> bool {
     matches!(command, "bridge" | "unbridge") || (command == "status" && arg.is_none())
 }
 
+/// The command and its argument, if the text is one of this bot's commands. `/bridge@OtherBot` is
+/// another bot's.
 fn parse_command(text: &str, username: &str) -> Option<(String, Option<String>)> {
     let mut parts = text.trim().splitn(2, char::is_whitespace);
     let command = parts.next()?.strip_prefix('/')?;
@@ -281,9 +422,14 @@ fn parse_command(text: &str, username: &str) -> Option<(String, Option<String>)>
     .then(|| (command.to_string(), arg.map(str::to_string)))
 }
 
-/// Who sent the message: a user, or a chat, eg. a group's anonymous admins
+/// Who sent the message: a user, or a chat, eg. a channel, or a group's anonymous admins
 pub fn author(message: &Message) -> BridgedUser {
-    let (id, username, display_name) = match (&message.sender_chat, &message.from) {
+    // A channel's posts are the channel's, which Telegram sets as their sender
+    let sender_chat = message
+        .sender_chat
+        .as_ref()
+        .or_else(|| (message.chat.kind == "channel").then_some(&message.chat));
+    let (id, username, display_name) = match (sender_chat, &message.from) {
         (Some(chat), _) => (
             chat.id,
             None,
@@ -437,6 +583,75 @@ mod tests {
         assert_eq!(user.id, 42);
         assert_eq!(user.display_name, "Nelly Smith");
         assert_eq!(user.username.as_deref(), Some("nelly"));
+    }
+
+    #[test]
+    fn a_channels_posts_are_the_channels() {
+        let post = message(json!({
+            "message_id": 1,
+            "chat": { "id": -100456, "type": "channel", "title": "News" },
+            "sender_chat": { "id": -100456, "type": "channel", "title": "News" },
+            "author_signature": "Nelly",
+            "text": "hi",
+        }));
+        let BridgedUser::Telegram(user) = author(&post) else {
+            panic!("Expected a Telegram user");
+        };
+        assert_eq!(user.id, -100456);
+        assert_eq!(user.display_name, "News");
+        assert_eq!(user.username, None);
+
+        // Without a sender, it's still the channel's, not an unknown user's
+        let unsigned = message(json!({
+            "message_id": 2,
+            "chat": { "id": -100456, "type": "channel", "title": "News" },
+            "text": "hi",
+        }));
+        let BridgedUser::Telegram(user) = author(&unsigned) else {
+            panic!("Expected a Telegram user");
+        };
+        assert_eq!(user.id, -100456);
+        assert_eq!(user.display_name, "News");
+    }
+
+    #[test]
+    fn a_channels_commands_arent_commands_in_its_discussion_group() {
+        let post = json!({
+            "message_id": 1,
+            "chat": { "id": -100456, "type": "channel", "title": "News" },
+            "sender_chat": { "id": -100456, "type": "channel", "title": "News" },
+            "text": "/unbridge",
+        });
+        assert_eq!(
+            message_command(&message(post), "OCBridgeBot"),
+            Some(("unbridge".to_string(), None))
+        );
+
+        let copy = message(json!({
+            "message_id": 9,
+            "chat": { "id": -100789, "type": "supergroup", "title": "News chat" },
+            "from": { "id": 777000, "is_bot": false, "first_name": "Telegram" },
+            "sender_chat": { "id": -100456, "type": "channel", "title": "News" },
+            "is_automatic_forward": true,
+            "text": "/unbridge",
+        }));
+        assert_eq!(message_command(&copy, "OCBridgeBot"), None);
+    }
+
+    #[test]
+    fn the_code_is_sent_with_the_chats_name() {
+        let instructions = pairing_instructions("News <daily>", "abc123");
+        assert!(instructions.starts_with("To bridge News &lt;daily&gt; with OpenChat"));
+        assert!(instructions.contains("<code>/bridge abc123</code>"));
+
+        let chat = |kind: &str| Chat {
+            id: -100,
+            kind: kind.to_string(),
+            title: None,
+        };
+        assert_eq!(chat_noun(&chat("channel")), "channel");
+        assert_eq!(chat_noun(&chat("supergroup")), "group");
+        assert_eq!(chat_noun(&chat("group")), "group");
     }
 
     #[test]

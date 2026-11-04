@@ -1,7 +1,7 @@
 # OpenChat ↔ Telegram bridge
 
-Bridges Telegram groups with OpenChat groups and public channels. Messages and edits in either
-appear in both:
+Bridges Telegram groups and channels with OpenChat groups and public channels. Messages and edits
+in either appear in both:
 
 - **Telegram → OpenChat:** messages are relayed as their Telegram authors. OpenChat shows the
   author's Telegram name with a "Telegram" badge, or their OpenChat profile if they've linked their
@@ -25,6 +25,22 @@ the Discord bridge, are in [`../core`](../core).
      for.
   3. An admin runs `/bridge <code>` in the group or channel to bridge with. Run there without a
      code, `/bridge` says how to get one.
+
+- **Pairing a channel:** a channel's admins post as the channel, so the bridge can't tell which of
+  them ran a command there, or send them a code. Instead:
+  1. An admin adds the bot to the channel as an admin who can post messages.
+  2. They run `/bridge` in a private chat with the bot, which shows a *Choose a channel* button.
+     It lists their channels the bot is in.
+  3. They choose the channel. The bridge checks they're one of its admins, and that it can post
+     there, and sends them the code.
+  4. They install the bridge bot in OpenChat and run `/bridge <code>` there, as for a group.
+
+  `/bridge` run in the channel says to do this. `/unbridge` and `/status` work in the channel, as
+  only its admins can post there. A channel's posts are relayed as the channel, with its title as
+  their author's name, and can't be linked to an OpenChat account. A post copied into the channel's
+  discussion group isn't taken as a command there, so a channel's `/unbridge` leaves its group
+  bridged. If the channel is bridged, those copies aren't relayed from the group either, as its
+  posts, and the bridge's own, already reach OpenChat through the channel.
 
   Both chats are told once they're bridged, with a link to the OpenChat chat on the other side,
   and again if they stop being bridged. The bridge doesn't relay its own notices.
@@ -76,7 +92,6 @@ the Discord bridge, are in [`../core`](../core).
 
 ## Not yet
 
-- **Telegram channels.** Only groups are bridged.
 - **Telegram deletions.** Telegram doesn't tell bots when a message is deleted, so they aren't
   relayed into OpenChat.
 - **Media:**
@@ -164,7 +179,9 @@ the Discord bridge, are in [`../core`](../core).
    cargo run --release -p oc_telegram_bridge -- setup
    ```
 
-   It warns if privacy mode is still on.
+   It warns if privacy mode is still on. Run it again after a deploy which changes the updates the
+   bridge asks Telegram for (`allowed_updates`), as Telegram keeps sending the ones it was set up
+   with. Channels' posts were added in November 2026.
 
 8. **Point the website at it:** build the website with
    `OC_TELEGRAM_BRIDGE_LINK_URL=https://t.me/<bot username>?start={code}`, so the *Link Telegram*

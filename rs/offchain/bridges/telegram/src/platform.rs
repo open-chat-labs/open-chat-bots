@@ -25,6 +25,13 @@ impl Platform for Telegram {
     const PLATFORM: BridgePlatform = BridgePlatform::Telegram;
     const NAME: &'static str = "Telegram";
 
+    // A channel's admins post as the channel, so they get its code in a private chat with the bot
+    fn how_to_get_a_code() -> String {
+        "In Telegram, run /bridge in the group to bridge, or in a private chat with the bot to \
+        bridge a channel, to get a code"
+            .to_string()
+    }
+
     fn bridge_instructions(&self) -> String {
         bridge_instructions(&self.username)
     }
@@ -160,13 +167,14 @@ pub(crate) fn escape(text: &str) -> String {
 }
 
 // Only a group's admins can run /bridge there, and the code is sent to them privately, as anyone
-// who saw it could pair the group with an OpenChat chat of their own
+// who saw it could pair the group with an OpenChat chat of their own. A channel's admins post as
+// the channel, so they run /bridge in a private chat with the bot and choose the channel there.
 fn bridge_instructions(bot: &str) -> String {
     format!(
-        "To bridge this chat with a Telegram group:\n\
-        1. Add @{bot} to the group.\n\
+        "To bridge this chat with a Telegram group or channel:\n\
+        1. Add @{bot} to the group, or to the channel as an admin who can post messages.\n\
         2. Start a private chat with it, at https://t.me/{bot}, so it can send you a code.\n\
-        3. Run /bridge in the group (you'll need to be an admin). The bot sends you the code privately.\n\
+        3. For a group, run /bridge in the group (you'll need to be an admin). For a channel, run /bridge in the private chat and choose the channel (you'll need to be one of its admins). The bot sends you the code privately.\n\
         4. Run `/bridge <code>` here within 15 minutes."
     )
 }
@@ -179,9 +187,19 @@ mod tests {
     #[test]
     fn the_instructions_name_the_bot() {
         let instructions = bridge_instructions("OpenChat_Bot");
-        assert!(instructions.contains("Add @OpenChat_Bot to the group"));
+        assert!(instructions.contains("Add @OpenChat_Bot to the group, or to the channel"));
         assert!(instructions.contains("https://t.me/OpenChat_Bot"));
+        assert!(instructions.contains("run /bridge in the private chat and choose the channel"));
         assert!(instructions.contains("`/bridge <code>`"));
+    }
+
+    #[test]
+    fn the_definition_says_how_to_bridge_a_channel() {
+        let description = oc_bridge_core::http::definition::<Telegram>().description;
+        assert!(description.contains(
+            "In Telegram, run /bridge in the group to bridge, or in a private chat with the bot to \
+            bridge a channel, to get a code, then run /bridge with the code here."
+        ));
     }
 
     fn message(name: &str, text: &str) -> OutboundMessage {
