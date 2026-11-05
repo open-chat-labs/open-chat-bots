@@ -15,6 +15,7 @@ use oc_bots_sdk::types::BridgePlatform;
 use oc_bridge_core::{Bridge, BridgeStore, OpenChat, PermanentFailure, http};
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
+use std::time::Duration;
 use tracing::{info, warn};
 
 mod api;
@@ -39,6 +40,17 @@ async fn main() -> Result<()> {
     if std::env::args().nth(1).as_deref() == Some("setup") {
         return setup(&api, &config).await;
     }
+
+    // Alongside the rest of the cold start, but waited for before serving, as Lambda freezes the
+    // function between invocations, which could pause it mid-call for hours. Lambda allows a cold
+    // start 10 seconds.
+    let api_for_webhook = api.clone();
+    let secret = config.webhook_secret.clone();
+    let webhook_check = tokio::spawn(async move {
+        if let Err(error) = update_webhook(&api_for_webhook, &secret).await {
+            warn!(%error, "Failed to check the webhook's updates");
+        }
+    });
 
     let username = match config.bot_username {
         Some(username) => username,
@@ -75,6 +87,12 @@ async fn main() -> Result<()> {
         username,
     };
     let routes = http::router(bridge).merge(webhook_router(handler, config.webhook_secret));
+    if tokio::time::timeout(Duration::from_secs(5), webhook_check)
+        .await
+        .is_err()
+    {
+        warn!("Still checking the webhook's updates, so serving without waiting");
+    }
 
     if on_lambda {
         lambda_http::run(routes).await.map_err(|e| anyhow!(e))
@@ -126,6 +144,21 @@ async fn webhook(
             StatusCode::INTERNAL_SERVER_ERROR
         }
     }
+}
+
+// Run on each cold start, so a deploy which handles a new kind of update, eg. channels' posts, needs
+// no `setup`. Telegram would otherwise keep sending only the kinds the webhook was registered with.
+async fn update_webhook(api: &TelegramApi, secret: &str) -> Result<()> {
+    let webhook = api.webhook_info().await?;
+    if !webhook.is_missing_updates() {
+        return Ok(());
+    }
+    api.set_webhook(&webhook.url, secret).await?;
+    info!(
+        url = webhook.url,
+        "Asked Telegram for the updates the webhook was missing"
+    );
+    Ok(())
 }
 
 // Registers the webhook and the bot's commands with Telegram, run once after deploying
