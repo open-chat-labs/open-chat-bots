@@ -14,15 +14,18 @@ export type Lobby = {
     /** What the game is, as HTML */
     blurb: string;
     seats: Seat[];
-    /** For the player with the Start button, eg. "Start when everyone has joined." */
+    /** For the host, with the Start button, eg. "Start when everyone has joined." */
     hint: string;
+    /**
+     * The user who ran `/play`, who starts the game and changes its settings, and their name.
+     * Undefined for a game made without one, which any player can start.
+     */
+    host: string | undefined;
+    hostName?: string;
     /** The game's settings, if it has any: the host changes them from the lobby */
     settings?: {
         specs: readonly SettingSpec[];
         current: Settings;
-        /** Who may change them, the user who ran `/play`, and their name */
-        host: string | undefined;
-        hostName?: string;
     };
 };
 

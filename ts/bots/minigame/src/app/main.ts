@@ -26,7 +26,7 @@ import { mazeView } from "./maze/view";
 import { minesweeperView } from "./minesweeper/view";
 import { raceView } from "./race2048/view";
 import { reversiView } from "./reversi/view";
-import type { BaseState, GameView, Lobby, Seat, ViewContext } from "./view";
+import type { BaseState, GameView, Lobby, ViewContext } from "./view";
 import { wordsView } from "./words/view";
 
 const VIEWS: readonly GameView[] = [
@@ -265,7 +265,7 @@ type Field = { id: string; html: string };
 const drawn = new WeakMap<Element, string>();
 
 /**
- * The lobby: who's joined, the host's settings, and the Start button for a player. It's drawn in
+ * The lobby: who's joined, the host's settings, and the Start button for the host. It's drawn in
  * parts, and a part is only replaced when what it shows has changed: the page redraws often, eg.
  * every second for a live game's clock, and replacing a dropdown closes it. The host's form is
  * drawn a setting at a time, so a change to one, which comes back in the state, doesn't close
@@ -309,10 +309,13 @@ function draw(part: Element, html: string) {
 function lobbyParts(info: LobbyInfo): Record<(typeof LOBBY_PARTS)[number], string | Field[]> {
     const player = oc?.role === "player";
     const seats = info.seats;
+    const host = hostOf(info);
+    // Only the host starts the game, once they've joined, as OpenChat only lets a player start one.
+    // A game with no host, any player can.
+    const starts = player && (info.host === undefined || info.host === oc?.userId);
     return {
         blurb: `<p class="muted">${info.blurb}</p>`,
-        settings:
-            info.settings === undefined ? "" : settingsForm(info.settings, info.seats, player),
+        settings: info.settings === undefined ? "" : settingsForm(info.settings, host, player),
         seats:
             seats.length === 0
                 ? `<p class="muted">Nobody has joined yet.</p>`
@@ -322,31 +325,40 @@ function lobbyParts(info: LobbyInfo): Record<(typeof LOBBY_PARTS)[number], strin
                               `<li>${escape(s.name)}${s.id === oc?.userId ? " <em>(you)</em>" : ""}</li>`,
                       )
                       .join("")}</ul>`,
-        action: player
+        action: starts
             ? `<p class="center"><button class="primary" data-action="start" ${starting ? "disabled" : ""}>
                ${starting ? "Starting…" : "Start the game"}</button></p>
            <p class="muted center">${info.hint}</p>`
-            : `<p class="muted center">Join from the card in the chat to play. Watching starts when a player does.</p>`,
+            : player
+              ? `<p class="muted center">Waiting for ${host.name === undefined ? "the host" : escape(host.name)}
+                 to ${host.seated ? "" : "join and "}start the game.</p>`
+              : `<p class="muted center">Join from the card in the chat to play. Watching starts when the game does.</p>`,
     };
+}
+
+/** The host, as the lobby names them, and whether they've joined */
+type HostInfo = { id: string | undefined; name: string | undefined; seated: boolean };
+
+function hostOf(info: LobbyInfo): HostInfo {
+    // The name from the seat, looked up as they joined, over the one from the command, which may
+    // have been a placeholder if the lookup failed then
+    const seat = info.host === undefined ? undefined : info.seats.find((s) => s.id === info.host);
+    return { id: info.host, name: seat?.name ?? info.hostName, seated: seat !== undefined };
 }
 
 /** The host's form for the game's settings; everyone else sees who can change them */
 function settingsForm(
     settings: NonNullable<Lobby["settings"]>,
-    seats: Seat[],
+    host: HostInfo,
     player: boolean,
 ): string | Field[] {
-    const { specs, current, host, hostName } = settings;
+    const { specs, current } = settings;
     const what = specs.map((spec) => spec.label.toLowerCase()).join(" and the ");
     // Only a seated host gets the form, as only a player's token reaches the bot. OpenChat doesn't
     // say who a spectator is, so a host who hasn't joined can't be told it's them.
-    if (host === undefined || host !== oc?.userId || !player) {
-        // The name from the seat, looked up as they joined, over the one from the command, which
-        // may have been a placeholder if the lookup failed then
-        const seat = seats.find((s) => s.id === host);
-        const name = seat?.name ?? hostName;
-        const once = host !== undefined && seat === undefined ? " once they've joined" : "";
-        return `<p class="muted small">${name === undefined ? "The host" : escape(name)} can change the ${what}${once}.</p>`;
+    if (host.id === undefined || host.id !== oc?.userId || !player) {
+        const once = host.id !== undefined && !host.seated ? " once they've joined" : "";
+        return `<p class="muted small">${host.name === undefined ? "The host" : escape(host.name)} can change the ${what}${once}.</p>`;
     }
     return specs.map((spec) => {
         const value = current[spec.id] ?? spec.default;

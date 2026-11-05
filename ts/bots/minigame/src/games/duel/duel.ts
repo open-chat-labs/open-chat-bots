@@ -1,4 +1,4 @@
-// A duel as the bot hosts it: two join, and when one starts the game, who moves first is the host,
+// A duel as the bot hosts it: two join, and once the host starts it, who moves first is the host,
 // their opponent, or random, as the settings say. Each side has its minutes for the whole game,
 // which its clock runs down on its turns once it's made its first move, and a flag falling loses.
 // The first move is free, but if it isn't made within `FIRST_MOVE_MS`, the game's called off. A
@@ -38,7 +38,10 @@ export type DuelData<M> = {
     finishedAt?: number;
     /** The settings chosen, by id; the rest are the defaults */
     settings?: Settings;
-    /** Who ran `/play`: the one who can change the settings, and "the host" in `first` */
+    /**
+     * Who ran `/play`: the one who can change the settings and start the game, and "the host" in
+     * `first`
+     */
     host?: string;
     hostName?: string;
     moves: M[];

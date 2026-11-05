@@ -1,5 +1,5 @@
-// A game of chess between two members of a chat, which everyone else can watch. Two join; when a
-// player starts the game, White is whoever the settings say, or is chosen at random, and it's
+// A game of chess between two members of a chat, which everyone else can watch. Two join; when the
+// host starts the game, White is whoever the settings say, or is chosen at random, and it's
 // White's move, with each side's time and the increment from the settings, though a side's clock
 // doesn't run for its first move. The rules and the clocks are the `Match`'s; this knows who plays
 // each side, and what the card and the app are told.
@@ -36,7 +36,10 @@ export type ChessData = {
     match?: MatchData;
     /** The settings chosen, by id (`CHESS_SETTINGS`); the rest are the defaults */
     settings?: Settings;
-    /** Who ran `/play`: the one who can change the settings, and "the host" in the `white` setting */
+    /**
+     * Who ran `/play`: the one who can change the settings and start the game, and "the host" in
+     * `white`
+     */
     host?: string;
     hostName?: string;
 };

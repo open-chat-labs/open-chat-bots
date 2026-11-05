@@ -1,5 +1,5 @@
 // What every race has in common, whatever's raced: up to so many join, the host changes the
-// settings in the lobby, and once someone starts it, everyone seated races at once, each on their
+// settings in the lobby, and once the host starts it, everyone seated races at once, each on their
 // own, until someone wins or the time's up, when whoever's furthest on wins. A race keeps its whole
 // state in its data, which the store writes as it is. Each race (2048, the maze, ChatMan,
 // Minesweeper, the Word Race, the Crate Race and the Dash Race) adds what's raced on, and how a
@@ -35,7 +35,7 @@ export type RaceData<R extends Seat, E extends string> = {
     winner?: string;
     /** The settings chosen, by id; the rest are the defaults */
     settings?: Settings;
-    /** Who ran `/play`: the one who can change the settings */
+    /** Who ran `/play`: the one who can change the settings and start the race */
     host?: string;
     hostName?: string;
 };
@@ -114,6 +114,10 @@ export abstract class Race<R extends Seat, E extends string, D extends RaceData<
 
     get finishedAt(): number | undefined {
         return this.data.finishedAt;
+    }
+
+    get host(): string | undefined {
+        return this.data.host;
     }
 
     /** The racer, if the user is one */
