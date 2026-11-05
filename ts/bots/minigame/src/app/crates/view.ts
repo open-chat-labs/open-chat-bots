@@ -726,9 +726,9 @@ function standingsRow(): Row {
     return { li, who, crates, pushes, placed: undefined };
 }
 
-// The level is square: as wide as the frame, unless what's around it leaves less height than that.
-// Measuring lays the page out, so it's done again only when what's round the level has changed, or
-// the frame has.
+// The level is square: as wide as the frame, unless what's around it leaves less height than that,
+// which in a phone's card is about 180. Measuring lays the page out, so it's done again only when
+// what's round the level has changed, or the frame has.
 let fitted = "";
 
 function fit(force = false) {
@@ -742,5 +742,5 @@ function fit(force = false) {
     ].join("|");
     if (!force && around === fitted) return;
     fitted = around;
-    dom.wrap.style.maxWidth = `${Math.max(200, Math.floor(roomFor(dom.root, [dom.wrap])))}px`;
+    dom.wrap.style.maxWidth = `${Math.max(160, Math.floor(roomFor(dom.root, [dom.wrap])))}px`;
 }

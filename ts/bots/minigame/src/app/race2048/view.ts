@@ -25,6 +25,7 @@ import {
     type SharedState,
 } from "../../games/race2048/types";
 import { escape, mmss } from "../format";
+import { roomFor } from "../layout";
 import { fetchUsernames, nameOf } from "../names";
 import { raceLobby } from "../race";
 import type { BaseState, GameView, ViewContext } from "../view";
@@ -95,6 +96,7 @@ export const raceView: GameView = {
                 Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up",
             );
         });
+        window.addEventListener("resize", () => fitMain(true));
         setInterval(renderClock, 1000);
     },
 
@@ -390,6 +392,34 @@ function renderRace(body: HTMLElement, race: Race) {
                 <span class="scores">${p.best} <em>top</em> ${p.score} <em>now</em>${mark}</span></li>`;
         })
         .join("");
+    fitMain();
+}
+
+// The big board is as wide as the column, unless what's round it leaves less height than that, eg.
+// in a phone's card: then it's as tall as they leave, so the arrows and the others' boards under it
+// aren't cut off. Measuring lays the page out, so it's done again only when what's round the board
+// has changed, or the frame has.
+let fitted = "";
+
+function fitMain(force = false) {
+    const dom = raceDom;
+    if (dom === undefined || !document.body.contains(dom.root)) return;
+    const around = [
+        dom.banner.hidden,
+        dom.controls.hidden,
+        dom.others.hidden,
+        dom.standings.childElementCount,
+    ].join("|");
+    if (!force && around === fitted) return;
+    fitted = around;
+    const main = dom.main.el.parentElement!;
+    // The card's name and scores over the board, and its padding round it
+    const card = dom.main.el;
+    const board = dom.main.view.el;
+    const tall = card.offsetHeight - board.offsetHeight;
+    const wide = card.offsetWidth - board.offsetWidth;
+    const side = Math.max(140, Math.floor(roomFor(dom.root, [main]) - tall));
+    main.style.setProperty("--main-max", `${side + wide}px`);
 }
 
 function buildRace(body: HTMLElement, main: PlayerView, mine: Own | undefined): RaceDom {
@@ -412,6 +442,7 @@ function buildRace(body: HTMLElement, main: PlayerView, mine: Own | undefined): 
     const root = body.firstElementChild as HTMLElement;
     const card = buildCard(main, mine, "main");
     root.querySelector(".main")!.append(card.el);
+    fitted = "";
     return {
         root,
         mainId: main.id,
