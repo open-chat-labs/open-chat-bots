@@ -2559,6 +2559,17 @@ button.link {
     text-align: center;
 }
 
+/* While racing, a press anywhere on the page jumps: it neither scrolls the page, nor zooms it,
+   nor selects what's under it */
+html.dash-racing,
+html.dash-racing body,
+html.dash-racing .dash-standings {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
 .dash-standings {
     max-height: 160px;
     overflow-y: auto;
