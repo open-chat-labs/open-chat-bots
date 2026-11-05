@@ -84,6 +84,11 @@ export class MiniAppServiceClient {
      * message at the event index `repliesTo`, if any; a `MiniAppMessage`'s own settings are the
      * defaults. A token is for one card, and lasts an hour.
      *
+     * With `joinInitiator`, the user whose command the card answers is playing from the moment
+     * it's posted, its first player, eg. a game's host. The service doesn't ask the bot, so the
+     * bot has them playing already: `BotClient.initiator`. A card posted autonomously has no such
+     * user.
+     *
      * Posting the same token again posts nothing new, and resolves with the same game, so a bot
      * which got no answer, eg. an `unavailable` error, posts it again with the same token. The game
      * is in the token, `miniAppGameFromPostToken`, so a token that isn't a post token is refused
@@ -92,7 +97,7 @@ export class MiniAppServiceClient {
     async post(
         token: string,
         card: MiniAppMessage | MiniAppCard,
-        options: { blockLevelMarkdown?: boolean; repliesTo?: number } = {},
+        options: { blockLevelMarkdown?: boolean; repliesTo?: number; joinInitiator?: boolean } = {},
     ): Promise<MiniAppGame> {
         const game = miniAppGameFromPostToken(token);
         const message = card instanceof MiniAppMessage ? card : undefined;
@@ -103,6 +108,7 @@ export class MiniAppServiceClient {
                 options.blockLevelMarkdown ?? message?.blockLevelMarkdown ?? false,
             replies_to: options.repliesTo ?? message?.repliesTo ?? null,
         };
+        if (options.joinInitiator) body.join_initiator = true;
         await this.#call("/bot/post", body);
         return game;
     }

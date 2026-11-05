@@ -29,6 +29,7 @@ function postToken(): string {
 function setUp(post: (token: string, card: MiniAppMessage) => Promise<unknown>) {
     const store = new GameStore();
     const posted: MiniAppCard[] = [];
+    const options: unknown[] = [];
     // `/play 2048` in a group, from alice
     const client = {
         commandName: "play",
@@ -51,13 +52,14 @@ function setUp(post: (token: string, card: MiniAppMessage) => Promise<unknown>) 
         publisher: { publish: vi.fn() },
         names: { lookup: async (id: string) => id.toUpperCase() },
         useApiGateway: () => ({
-            post: async (token: string, card: MiniAppMessage) => {
+            post: async (token: string, card: MiniAppMessage, opts: unknown) => {
                 posted.push(card.card);
+                options.push(opts);
                 return post(token, card);
             },
         }),
     } as unknown as Deps;
-    return { store, posted, deps };
+    return { store, posted, options, deps };
 }
 
 /** Every answer the command gives, of which there should be one, and when it's finished */
@@ -120,6 +122,20 @@ describe("/play", () => {
         expect(
             store.get({ chat: new GroupChatIdentifier(GROUP), messageId: MESSAGE_ID }),
         ).toBeDefined();
+    });
+
+    it("has the host playing from the start, and asks the service to put them on the card", async () => {
+        const { store, options, deps } = setUp(async () => undefined);
+
+        await run(deps).done;
+
+        const play = store.get({
+            chat: new GroupChatIdentifier(GROUP),
+            messageId: MESSAGE_ID,
+        })!.play;
+        expect(play.isSeated("alice")).toBe(true);
+        expect(play.host).toBe("alice");
+        expect(options).toEqual([{ joinInitiator: true }]);
     });
 
     it("answers with only an ephemeral message if the card couldn't be posted", async () => {

@@ -2254,6 +2254,8 @@ export type ApiMiniAppPostArgs = {
     card: ApiMiniAppCard;
     block_level_markdown: boolean;
     replies_to: number | null;
+    // Sent only when true, as the service takes it as false when it's left out
+    join_initiator?: true;
 };
 
 // The body of the MiniApp service's `POST /bot/update`, in which every field but `game` is optional.
