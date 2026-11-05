@@ -531,8 +531,9 @@ they've got for everyone else to see.
 - **The page** draws the course on a canvas, twelve tiles across, following the racer's runner,
   with everyone else faint where they've got furthest, and a line under it with everyone's dot. A
   press anywhere on the page but a button, Space or the up arrow jumps, as on a phone a thumb on
-  the course would hide it, and the page doesn't scroll while the racer's running. Someone
-  watching follows the leader.
+  the course would hide it, and the page doesn't scroll while the racer's running. In a card, the
+  keys reach the page only once it has the focus, which a mouse's press gives it, so until then
+  the hint says to click. Someone watching follows the leader.
 
 ## Adding a game
 
