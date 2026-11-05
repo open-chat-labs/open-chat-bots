@@ -103,11 +103,10 @@ export const wordsView: GameView = {
     lobby(state) {
         const s = state as SharedState;
         return raceLobby(s, {
-            blurb: `Everyone races to guess the same word of <strong>${LENGTH} letters</strong>, each
-                with <strong>${TRIES} guesses</strong>. Each guess's letters are marked: in the
-                word in that place, in the word elsewhere, or not in it. The first to guess the word
-                wins, or whoever came closest when the <strong>${s.settings.minutes} minutes</strong>
-                are up. Everyone sees how the others' guesses were marked, but not their letters.`,
+            blurb: `Everyone races to guess the same <strong>${LENGTH} letter</strong> word. Each
+                guess's letters are marked: in the word in that place, in the word elsewhere, or not
+                in it. First to guess the word wins, or whoever came closest when the
+                <strong>${s.settings.minutes} minutes</strong> are up.`,
             settings: WORDS_SETTINGS,
             maxPlayers: MAX_PLAYERS,
         });

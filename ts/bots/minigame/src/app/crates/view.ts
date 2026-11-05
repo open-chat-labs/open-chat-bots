@@ -60,7 +60,7 @@ const KEYS: Readonly<Record<string, Move>> = {
 /** The arrows under the level, named as the maze race's are, which the page's styles lay out */
 const ARROWS: Readonly<Record<string, Move>> = { up: "u", down: "d", left: "l", right: "r" };
 
-const LEVEL_NAMES: Readonly<Record<number, string>> = { 1: "an easy", 2: "a medium", 3: "a hard" };
+const LEVEL_NAMES: Readonly<Record<number, string>> = { 1: "easy", 2: "medium", 3: "hard" };
 
 type Row = {
     li: HTMLElement;
@@ -148,11 +148,11 @@ export const cratesView: GameView = {
         const s = state as SharedState;
         const { difficulty, minutes } = s.settings;
         return raceLobby(s, {
-            blurb: `Everyone races to push the same four crates onto the same four goals, each on
-                their own copy of <strong>${LEVEL_NAMES[difficulty] ?? "a"} level</strong>. You can
-                push a crate but not pull it, or push two at once, and you can undo a move. The
-                first to put every crate on a goal wins, or whoever has the most on goals when the
-                <strong>${minutes} minutes</strong> are up.`,
+            blurb: `Everyone races to push the same four crates onto the same four goals. You can
+                push a crate but cannot pull it or push two at once. First to put every crate on a
+                goal wins, or whoever has the most on goals when the
+                <strong>${minutes} minutes</strong> are up. Difficulty:
+                <strong>${LEVEL_NAMES[difficulty] ?? "medium"}</strong>.`,
             settings: CRATES_SETTINGS,
             maxPlayers: MAX_PLAYERS,
         });

@@ -171,11 +171,9 @@ export const dashView: GameView = {
         const s = state as SharedState;
         const { minutes } = s.settings;
         return raceLobby(s, {
-            blurb: `Everyone runs the same course, <strong>easy at first, then medium, then
-                hard</strong>, each with their own runner. They all set off together on a count of
-                three, and run by themselves: tap anywhere to jump, and hold on to jump higher. A
-                spike or a pit sends you back to the last checkpoint. The first to the flag wins, or whoever
-                got furthest when the <strong>${minutes} minutes</strong> are up.`,
+            blurb: `Everyone runs the same course. Tap anywhere to jump, hold to jump higher. A
+                spike or a pit sends you back to the last checkpoint. First to the flag wins, or
+                whoever got furthest when the <strong>${minutes} minutes</strong> are up.`,
             settings: DASH_SETTINGS,
             maxPlayers: MAX_PLAYERS,
         });
