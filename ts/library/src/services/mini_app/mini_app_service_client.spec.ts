@@ -185,6 +185,18 @@ describe("MiniAppServiceClient.post", () => {
         expect(sent[2].body).toContain(`"block_level_markdown":false,"replies_to":3}`);
     });
 
+    test("asks for the command's user to be playing from the post only when told to", async () => {
+        const { fetch, sent } = service(posted, posted);
+        const { client: miniApps } = client(fetch);
+        const card = new MiniAppMessage(APP, TEXT, { width: 440, height: 740 });
+
+        await miniApps.post(token, card, { joinInitiator: true });
+        await miniApps.post(token, card, { joinInitiator: false });
+
+        expect(sent[0].body).toContain(`"replies_to":null,"join_initiator":true}`);
+        expect(sent[1].body).not.toContain("join_initiator");
+    });
+
     test("posts the same token again, eg. after no answer, for the same game", async () => {
         const { fetch, sent } = service([503, '{"error":"Unavailable"}'], posted);
         const { client: miniApps } = client(fetch);

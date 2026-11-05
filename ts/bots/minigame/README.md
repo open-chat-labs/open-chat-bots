@@ -1,8 +1,8 @@
 # MiniGameBot
 
-Games played from MiniApp cards in OpenChat chats. `/play <game>` posts a card; people join from the
-card, whoever ran the command starts the game, and it's played in the card, in the bot's own page.
-Eleven games:
+Games played from MiniApp cards in OpenChat chats. `/play <game>` posts a card with whoever ran the
+command in the game already, as its host; others join from the card, the host starts the game, and
+it's played in the card, in the bot's own page. Eleven games:
 
 - a **2048 race**: up to 100 players, each on their own board, and the first to make a 2048 tile
   wins, or the top score when 10 minutes are up. A player whose board gets stuck restarts on a fresh
@@ -76,13 +76,14 @@ which the store, the handlers, the sweep and the publisher use, and which each g
 1. **`/play 2048`** or **`/play chess`** asks the LocalUserIndex for a post token, records the game,
    and has the MiniApp service post the card. The service is the only thing that posts a card or
    writes its status; the protocol is open-chat's `backend/docs/mini_app_service_protocol.md`. The
-   empty lobby is published once the card is up, so the page knows which game it's showing. The
-   game starts with its default settings, eg. the race's winning tile and time limit; the game's
-   host, who ran the command, can change them in the lobby until the start (`POST /api/settings`),
-   and everyone in the lobby sees them. They aren't the command's parameters: they differ by game,
-   and OpenChat's form for a command shows every parameter whichever game is chosen. A game
-   declares its settings (`src/games/settings.ts`), which gives it the check on a change and the
-   lobby's form.
+   game's host, who ran the command, is playing from the start: the bot seats them as it records the
+   game, and has the service put them on the card as it posts it (`joinInitiator`), so they don't
+   press Join. The lobby is published once the card is up, so the page knows which game it's
+   showing. The game starts with its default settings, eg. the race's winning tile and time limit;
+   the host can change them in the lobby until the start (`POST /api/settings`), and everyone in the
+   lobby sees them. They aren't the command's parameters: they differ by game, and OpenChat's form
+   for a command shows every parameter whichever game is chosen. A game declares its settings
+   (`src/games/settings.ts`), which gives it the check on a change and the lobby's form.
 2. **Joining** goes through OpenChat's buttons on the card. The service asks the bot at
    `POST /mini_app/join`, which looks the user's name up and gives them a seat: up to 100 in a race,
    10 in a maze race, at ChatMan or in a Minesweeper race, 20 in a Word Race, a Crate Race or a
@@ -91,15 +92,15 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    Leaving, `POST /mini_app/leave`, frees the seat before the start. After it, a race goes on
    without them; a game of two can't, so it ends, the result being that they "left the game". The
    lobby's seats are published as the game's state, so the page shows who's joined.
-3. **Starting**: the host, who ran the command, joins and presses Start in the page, OpenChat asks
-   the bot at `POST /mini_app/start`, and the bot answers with the players, the first state and the
-   game's settings, which the card keeps from then on and OpenChat hands to the app. Only the host
-   gets the Start button, and the bot refuses anyone else ("Only the host can start the game"); a
-   game made without a host, any player can start. A race deals everyone seated a board with two
-   tiles, and it's everyone's turn at once. Chess needs two, picks White at random unless set, lists
-   the players White first, and says it's waiting for White, though White's clock doesn't run until
-   White's second move: White has a minute to make the first, and Black a minute after that for
-   theirs, or the game's called off.
+3. **Starting**: the host presses Start in the page, OpenChat asks the bot at
+   `POST /mini_app/start`, and the bot answers with the players, the first state and the game's
+   settings, which the card keeps from then on and OpenChat hands to the app. Only the host gets the
+   Start button, and the bot refuses anyone else ("Only the host can start the game"), or the host
+   if they've left, until they join again; a game made without a host, any player can start. A race
+   deals everyone seated a board with two tiles, and it's everyone's turn at once. Chess needs two,
+   picks White at random unless set, lists the players White first, and says it's waiting for White,
+   though White's clock doesn't run until White's second move: White has a minute to make the first,
+   and Black a minute after that for theirs, or the game's called off.
 4. **Moves** go from the page straight to the bot, with the player's token in `x-oc-jwt`, which
    checks the game's own player list on every request and publishes the whole game's state through
    the service after each change, coalescing fast moves into one update every 80 ms. The service

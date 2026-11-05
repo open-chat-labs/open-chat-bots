@@ -78,10 +78,13 @@ async function play(client: BotClient, res: Response, deps: Deps): Promise<void>
         initiator === undefined || hostName === undefined
             ? undefined
             : { id: initiator, name: await hostName };
-    // With the default settings, which the host can change in the lobby
-    deps.store.create(miniAppGame, game.create({ raceSettings: deps.raceSettings }, host));
+    // With the default settings, which the host can change in the lobby, and the host playing: the
+    // service has them on the card from its post, as the bot asks, without asking the bot
+    const play = game.create({ raceSettings: deps.raceSettings }, host);
+    if (host !== undefined) play.join(host.id, host.name);
+    deps.store.create(miniAppGame, play);
     try {
-        await post(miniApps, token, card);
+        await post(miniApps, token, card, host !== undefined);
     } catch (err) {
         deps.store.delete(miniAppGame);
         const reason =
@@ -103,11 +106,19 @@ async function play(client: BotClient, res: Response, deps: Deps): Promise<void>
     res.json({ message: card.toResponse() });
 }
 
-/** Posts the card, trying again with the same token while the service can't reach OpenChat */
-async function post(miniApps: MiniAppServiceClient, token: string, card: MiniAppMessage) {
+/**
+ * Posts the card, with the host on it if there is one, trying again with the same token while the
+ * service can't reach OpenChat
+ */
+async function post(
+    miniApps: MiniAppServiceClient,
+    token: string,
+    card: MiniAppMessage,
+    joinInitiator: boolean,
+) {
     for (let attempt = 1; ; attempt++) {
         try {
-            await miniApps.post(token, card);
+            await miniApps.post(token, card, { joinInitiator });
             return;
         } catch (err) {
             const again =
