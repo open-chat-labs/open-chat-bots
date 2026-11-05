@@ -174,6 +174,29 @@ describe("the service's calls for a chess game", () => {
         });
     });
 
+    it("lets only the host, who ran /play, start it", async () => {
+        const { store, deps } = setUp();
+        store.create(game, ChessGame.create({ host: { id: "alice", name: "ALICE" } }));
+        await send(join, deps, "alice");
+        await send(join, deps, "bob");
+        expect(await send(start, deps, "bob")).toEqual({
+            status: 200,
+            body: { accepted: false, message: "Only the host can start the game" },
+        });
+        expect(await send(start, deps, "carol")).toEqual({
+            status: 200,
+            body: { accepted: false, message: "Only the host can start the game" },
+        });
+        expect(store.get(game)!.play.phase).toBe("open");
+
+        expect((await send(start, deps, "alice")).body).toMatchObject({
+            accepted: true,
+            players: expect.arrayContaining(["alice", "bob"]),
+        });
+        // Once it's started, either player gets the players again, eg. as the first answer was lost
+        expect((await send(start, deps, "bob")).body).toMatchObject({ accepted: true });
+    });
+
     it("frees a seat left before the start, and ends the game by abandonment after it", async () => {
         const { store, publish, deps } = setUp();
         seated(deps, store);
@@ -355,6 +378,26 @@ describe("a race through the same handlers", () => {
         expect(await send(leave, deps, "bob")).toEqual({ status: 200, body: {} });
         expect(store.get(game)!.play.isPlayer("bob")).toBe(true);
         expect(publish).not.toHaveBeenCalled();
+    });
+
+    it("waits for the host to join and start it", async () => {
+        const { store, deps } = setUp();
+        store.create(game, Race2048.create({ host: { id: "alice", name: "ALICE" } }));
+        await send(join, deps, "bob");
+        expect(await send(start, deps, "bob")).toEqual({
+            status: 200,
+            body: { accepted: false, message: "Only the host can start the game" },
+        });
+        expect(await send(start, deps, "alice")).toEqual({
+            status: 200,
+            body: { accepted: false, message: "Join the game before starting it" },
+        });
+        await send(join, deps, "alice");
+
+        expect((await send(start, deps, "alice")).body).toMatchObject({
+            accepted: true,
+            players: ["bob", "alice"],
+        });
     });
 
     it("gives usernames by id, with no token, leaving out anyone OpenChat doesn't know", async () => {

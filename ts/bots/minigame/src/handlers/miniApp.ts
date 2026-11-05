@@ -1,4 +1,4 @@
-// The MiniApp service's calls: someone asks to join a game, a player asks to start it, or someone
+// The MiniApp service's calls: someone asks to join a game, the host asks to start it, or someone
 // leaves. Each comes with the service's token in `x-oc-jwt`, and must be answered within 5
 // seconds. Nothing here waits on a publish: the service holds a game while it asks to start it.
 import {
@@ -81,6 +81,12 @@ export async function start(req: Request, res: Response, deps: Deps): Promise<vo
     }
     const { play } = entry;
     if (play.phase === "open") {
+        // Only the host, who ran `/play`, starts it, once they've joined. A game made without a
+        // host, any player can.
+        if (play.host !== undefined && c.userId !== play.host) {
+            res.json(refuseMiniAppStart("Only the host can start the game"));
+            return;
+        }
         if (!play.isSeated(c.userId)) {
             res.json(refuseMiniAppStart("Join the game before starting it"));
             return;

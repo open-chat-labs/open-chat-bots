@@ -14,12 +14,9 @@ export function raceLobby(
         blurb: race.blurb,
         seats: s.seats,
         hint: `Start when everyone has joined. Up to ${race.maxPlayers} can ${race.verb ?? "race"}.`,
-        settings: {
-            specs: race.settings,
-            current: s.settings,
-            host: s.host,
-            hostName: s.hostName,
-        },
+        host: s.host,
+        hostName: s.hostName,
+        settings: { specs: race.settings, current: s.settings },
     };
 }
 

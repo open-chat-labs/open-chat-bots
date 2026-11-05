@@ -401,12 +401,9 @@ export function duelView<M, P extends Position<M>>(
                 blurb: `${own === undefined ? "" : `${own} `}<strong>${minutes} minute${minutes === 1 ? "" : "s"}</strong> each, and ${firstText}.`,
                 seats: s.players.map((id) => ({ id, name: s.names[id] ?? shortId(id) })),
                 hint: "Start once you're both here.",
-                settings: {
-                    specs: rules.settings,
-                    current: s.settings,
-                    host: s.host,
-                    hostName: s.host === undefined ? undefined : s.names[s.host],
-                },
+                host: s.host,
+                hostName: s.host === undefined ? undefined : s.names[s.host],
+                settings: { specs: rules.settings, current: s.settings },
             };
         },
 

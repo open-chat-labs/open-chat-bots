@@ -41,6 +41,11 @@ export interface Game {
     readonly createdAt: number;
     /** When it finished, once it has */
     readonly finishedAt: number | undefined;
+    /**
+     * Who ran `/play`: the one who can change the settings and start the game. Undefined for a
+     * game made without one, which any player can start.
+     */
+    readonly host: string | undefined;
 
     /** Whether the user has a seat: they've joined, whether or not the game has started */
     isSeated(userId: string): boolean;

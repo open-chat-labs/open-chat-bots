@@ -1,7 +1,8 @@
 # MiniGameBot
 
 Games played from MiniApp cards in OpenChat chats. `/play <game>` posts a card; people join from the
-card, a player starts the game, and it's played in the card, in the bot's own page. Eleven games:
+card, whoever ran the command starts the game, and it's played in the card, in the bot's own page.
+Eleven games:
 
 - a **2048 race**: up to 100 players, each on their own board, and the first to make a 2048 tile
   wins, or the top score when 10 minutes are up. A player whose board gets stuck restarts on a fresh
@@ -90,13 +91,15 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    Leaving, `POST /mini_app/leave`, frees the seat before the start. After it, a race goes on
    without them; a game of two can't, so it ends, the result being that they "left the game". The
    lobby's seats are published as the game's state, so the page shows who's joined.
-3. **Starting**: a player presses Start in the page, OpenChat asks the bot at
-   `POST /mini_app/start`, and the bot answers with the players, the first state and the game's
-   settings, which the card keeps from then on and OpenChat hands to the app. A race deals
-   everyone seated a board with two tiles, and it's everyone's turn at once. Chess needs two,
-   picks White at random unless set, lists the players White first, and says it's waiting for
-   White, though White's clock doesn't run until White's second move: White has a minute to make
-   the first, and Black a minute after that for theirs, or the game's called off.
+3. **Starting**: the host, who ran the command, joins and presses Start in the page, OpenChat asks
+   the bot at `POST /mini_app/start`, and the bot answers with the players, the first state and the
+   game's settings, which the card keeps from then on and OpenChat hands to the app. Only the host
+   gets the Start button, and the bot refuses anyone else ("Only the host can start the game"); a
+   game made without a host, any player can start. A race deals everyone seated a board with two
+   tiles, and it's everyone's turn at once. Chess needs two, picks White at random unless set, lists
+   the players White first, and says it's waiting for White, though White's clock doesn't run until
+   White's second move: White has a minute to make the first, and Black a minute after that for
+   theirs, or the game's called off.
 4. **Moves** go from the page straight to the bot, with the player's token in `x-oc-jwt`, which
    checks the game's own player list on every request and publishes the whole game's state through
    the service after each change, coalescing fast moves into one update every 80 ms. The service
