@@ -149,7 +149,9 @@ export const dashView: GameView = {
             if (!canRace() || event.button !== 0) return;
             const target = event.target as Element | null;
             if (target?.closest("button, a, input, select, textarea, [data-action]")) return;
-            event.preventDefault();
+            // A mouse's press still focuses the page, so that Space reaches it after, in a card,
+            // where the chat has the focus until then
+            if (event.pointerType !== "mouse") event.preventDefault();
             pointers.add(event.pointerId);
             setButton(true);
         });
@@ -159,7 +161,10 @@ export const dashView: GameView = {
             pointers.clear();
             keyDown = false;
             setButton(false);
+            render();
         });
+        // For the hint, which says to click before Space works
+        window.addEventListener("focus", () => render());
         setInterval(() => ctx?.render(), 1000);
     },
 
@@ -580,7 +585,9 @@ function render() {
     } else if (racing) {
         dom.hint.textContent = touch
             ? "Tap anywhere to jump, and hold on to jump higher."
-            : "Space, the up arrow or a click to jump: hold on to jump higher.";
+            : document.hasFocus()
+              ? "Space, the up arrow or a click to jump: hold on to jump higher."
+              : "Click to jump, and Space or the up arrow will too.";
     } else {
         dom.hint.textContent = "";
     }
