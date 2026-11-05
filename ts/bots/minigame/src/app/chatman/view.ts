@@ -144,10 +144,10 @@ export const chatmanView: GameView = {
         const s = state as SharedState;
         const { minutes, lives } = s.settings;
         return raceLobby(s, {
-            blurb: `Everyone plays their own ChatMan in the same mazes, at the same time: eat the
-                dots and dodge the spam bots, and eat a power pellet to turn the tables for a few
-                seconds. The top score after <strong>${minutes} minute${minutes === 1 ? "" : "s"}</strong>
-                wins, with <strong>${lives} li${lives === 1 ? "fe" : "ves"}</strong> each.`,
+            blurb: `Everyone plays their own ChatMan: eat the dots and dodge the spam bots, and eat
+                a power pellet to turn the tables for a few seconds. The top score after
+                <strong>${minutes} minute${minutes === 1 ? "" : "s"}</strong> wins,
+                <strong>${lives} li${lives === 1 ? "fe" : "ves"}</strong> each.`,
             settings: CHATMAN_SETTINGS,
             maxPlayers: MAX_PLAYERS,
             verb: "play",

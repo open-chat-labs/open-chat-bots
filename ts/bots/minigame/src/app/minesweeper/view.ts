@@ -111,10 +111,9 @@ export const minesweeperView: GameView = {
         const { size, minutes } = s.settings;
         return raceLobby(s, {
             blurb: `Everyone races to clear the same <strong>${size} by ${size}</strong> field of
-                <strong>${s.mines} mines</strong>, each on their own board, and it can always be
-                cleared by working it out, without a guess. A mine you set off stops you for
-                ${PENALTY_MS / 1000} seconds. The first to clear the field wins, or whoever's
-                cleared the most when the <strong>${minutes} minutes</strong> are up.`,
+                <strong>${s.mines} mines</strong>. A mine you set off stops you for
+                ${PENALTY_MS / 1000} seconds. First to clear the field wins, or whoever's cleared
+                the most when the <strong>${minutes} minutes</strong> are up.`,
             settings: MINESWEEPER_SETTINGS,
             maxPlayers: MAX_PLAYERS,
         });
