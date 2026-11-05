@@ -556,7 +556,9 @@ they've got for everyone else to see.
   definition lists with the app. Add the id to `GameKind`. The page is drawn as wide as the card, so
   it has to work at a few hundred pixels, and full screen. Cap the game's column at
   `calc(440px + var(--grow))`, as the others do, so that full screen on a laptop, where the frame's
-  taller than a card, makes its board that much bigger.
+  taller than a card, makes its board that much bigger. A card on a phone is only about 441 high,
+  so fit the board to what's left with `roomFor` (`src/app/layout.ts`), and check that everything
+  round it fits there too, with touch: the rules for short frames are at the end of `style.css`.
 - Add its requests under `src/handlers/api.ts`, through `act`, which verifies the player's token,
   the game's kind and the player's membership, and route them in `src/app.ts`.
 - Draw it under `src/app/<game>/` as a `GameView` (`src/app/view.ts`), and list it in `main.ts`,

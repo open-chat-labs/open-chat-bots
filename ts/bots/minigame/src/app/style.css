@@ -99,16 +99,31 @@ body {
     flex: 1;
 }
 
+/* On one line, cut short if need be, so it's as high whatever the clock says: a view fits its board
+   to the room under it, and doesn't look again when the clock changes */
 .top {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
+    gap: 8px;
     margin-bottom: 8px;
 }
 
 h1 {
     font-size: 20px;
     margin: 0;
+}
+
+.top h1 {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.top .clock {
+    flex: none;
+    white-space: nowrap;
 }
 
 h2 {
@@ -286,10 +301,11 @@ button.link {
     font-size: 16px;
 }
 
-/* The big board, the player's own or the leader's */
+/* The big board, the player's own or the leader's: no wider than what's round it leaves the height
+   for (`--main-max`, from race2048/view.ts) */
 .main {
     width: 100%;
-    max-width: calc(400px + var(--grow));
+    max-width: min(calc(400px + var(--grow)), var(--main-max, 100%));
     margin: 0 auto;
 }
 
@@ -334,7 +350,8 @@ button.link {
     overflow: hidden;
 }
 
-/* Racers beyond the top boards, as a list of scores */
+/* Racers beyond the top boards, as a list of scores: a few rows, as the other races' standings, so
+   a race of a hundred leaves the big board room; the rest scroll */
 .standings {
     list-style: none;
     margin: 8px 0 0;
@@ -344,6 +361,8 @@ button.link {
     gap: 2px 12px;
     font-size: 12px;
     color: var(--muted);
+    max-height: 140px;
+    overflow-y: auto;
 }
 
 .standings li {
@@ -1557,6 +1576,13 @@ button.link {
     -webkit-user-select: none;
 }
 
+/* A few rows, as the other races' standings, so a race of ten leaves the maze room; the rest scroll */
+.maze-standings,
+.chatman-standings {
+    max-height: 140px;
+    overflow-y: auto;
+}
+
 .maze-standings .swatch {
     width: 0.8em;
     height: 0.8em;
@@ -2590,4 +2616,153 @@ html.dash-racing .dash-standings {
     height: 0.8em;
     border-radius: 50%;
     flex: none;
+}
+
+/*
+ * A short frame, eg. a game's card on a phone, which is about 441 high: the board keeps as much of
+ * it as it can. The standings show two rows and a bit, and scroll; 2048's cards put the name and
+ * scores on one line, and the others' boards are thumbnails; Word Race's keys are shorter, and
+ * everyone's marks make way while the racer's typing.
+ */
+@media (max-height: 560px) {
+    .race-standings {
+        max-height: 64px;
+        overflow-y: auto;
+    }
+
+    /* 2048's racers beyond the others' thumbnails, as there's no room for them under the boards */
+    .standings {
+        display: none;
+    }
+
+    h1 {
+        font-size: 17px;
+    }
+
+    /* The scores as they are, and the name in what's left, cut short if need be; and the scores cut
+       short at the end, if even they don't fit, rather than widening the board under them */
+    .player {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+        align-items: baseline;
+        column-gap: 8px;
+        padding: 6px 8px 8px;
+    }
+
+    .player header,
+    .player .stats {
+        margin-bottom: 4px;
+    }
+
+    /* Five figures of each fit in a phone's card, which is as many as a race to 2048 scores */
+    .player .stats {
+        gap: 6px;
+        font-size: 10.5px;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+
+    .player .stats [title="Restarts"] {
+        display: none;
+    }
+
+    /* The racer's own card is marked out already */
+    .player .name em {
+        display: none;
+    }
+
+    .player .board {
+        grid-column: 1 / -1;
+    }
+
+    .others .player {
+        flex-basis: 72px;
+        padding: 4px;
+        column-gap: 4px;
+    }
+
+    .player.small header {
+        margin-bottom: 2px;
+    }
+
+    .player.small .name {
+        font-size: 11px;
+    }
+
+    /* Just the top score, the one that ranks them, and a stuck board faded rather than marked */
+    .player.small .chip,
+    .player.small .stats > span:not(:first-child) {
+        display: none;
+    }
+
+    .player.small .stats {
+        flex-direction: row;
+        margin-bottom: 2px;
+    }
+
+    .player.small .stats > span:first-child {
+        font-size: 0;
+    }
+
+    .player.small .stats strong {
+        font-size: 11px;
+    }
+
+    .player.small:has(.chip.stuck) .board {
+        opacity: 0.5;
+    }
+
+    .others {
+        padding-bottom: 4px;
+    }
+
+    .wr-keys {
+        margin-top: 8px;
+        gap: 5px;
+    }
+
+    .wr-key {
+        height: 36px;
+    }
+
+    .wr-keys:not([hidden]) ~ .wr-others {
+        display: none;
+    }
+}
+
+/*
+ * A short frame on a touch screen: the arrows under the board go on one row, ← ↑ ↓ →, and the
+ * line under them saying how to move goes, as the arrows say it
+ */
+@media (max-height: 560px) and (hover: none), (max-height: 560px) and (pointer: coarse) {
+    .dpad {
+        grid-template-columns: repeat(4, 44px);
+        grid-template-rows: 44px;
+    }
+
+    .dpad button[data-direction="left"] {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .dpad button[data-direction="up"] {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .dpad button[data-direction="down"] {
+        grid-column: 3;
+        grid-row: 1;
+    }
+
+    .dpad button[data-direction="right"] {
+        grid-column: 4;
+        grid-row: 1;
+    }
+
+    .controls .hint,
+    .controls #hint,
+    .cr-dpad:not([hidden]) + .cr-hint {
+        display: none;
+    }
 }

@@ -215,6 +215,8 @@ function render() {
     const current = viewFor(base(endState) ?? live);
     byId("title").textContent = current?.title ?? "Game";
     byId("clock").textContent = current?.clock() ?? "";
+    // The header's up while the game's drawn, as a view fits its board to the room under it
+    byId("top").hidden = false;
     // Nothing to show yet but the spinner, without even the header
     let loading = false;
 

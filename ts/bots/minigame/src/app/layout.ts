@@ -12,8 +12,9 @@ export function roomFor(root: HTMLElement, skip: readonly Element[]): number {
         if (skip.includes(el)) continue;
         const style = getComputedStyle(el);
         if (style.display === "none" || style.position === "fixed") continue;
+        // Not offsetHeight, which is rounded: rounded down a few times, they'd overflow the frame
         used +=
-            (el as HTMLElement).offsetHeight +
+            el.getBoundingClientRect().height +
             parseFloat(style.marginTop) +
             parseFloat(style.marginBottom);
     }
