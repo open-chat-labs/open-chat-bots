@@ -56,8 +56,8 @@ card, a player starts the game, and it's played in the card, in the bot's own pa
   on a goal wins, or whoever has the most on goals when the 5 minutes are up. Its levels are
   DeepMind's Boxoban levels, and the rest is built from scratch (see "Crate Race");
 - a **Dash Race**: up to 20 players race along the same course, easy at first, then medium, then
-  hard, each with their own runner, which runs by itself. A tap jumps, higher the longer
-  it's held, over spikes and pits and up steps, and a spike or a pit sends the runner back to the
+  hard, each with their own runner. They all set off together on a count of three, and run by
+  themselves. A tap jumps, higher the longer it's held, over spikes and pits and up steps, and a spike or a pit sends the runner back to the
   last checkpoint. The first to the flag wins, or whoever got furthest when the 3 minutes are up.
   It's built from scratch, its courses and look its own (see "Dash Race").
 
@@ -138,10 +138,11 @@ which the store, the handlers, the sweep and the publisher use, and which each g
      `{ "ok": true, "own": { "path": "rrdlu" } }`, or `{ "ok": false, "error": "..", "own": .. }`
      with a 409 for a path with a move that can't be made, which the bot doesn't take. No path at
      all asks for it.
-   - **Dash Race**: `POST /api/dash/run` with `{ "changes": [40, 52, 97], "upTo": 120 }`, the ticks
-     the racer's button went down and came up, counted from the race's start at 60 a second, and
-     the tick their page has played them to, answers with their run as the bot has it and its
-     clock, `{ "ok": true, "own": { "changes": [40, 52, 97], "upTo": 120 }, "now": 1730000000000 }`,
+   - **Dash Race**: `POST /api/dash/run` with `{ "changes": [240, 252, 297], "upTo": 320 }`, the
+     ticks the racer's button went down and came up, counted from the race's start at 60 a
+     second, and the tick their page has played them to, answers with their run as the bot has it
+     and its clock,
+     `{ "ok": true, "own": { "changes": [240, 252, 297], "upTo": 320 }, "now": 1730000000000 }`,
      or `{ "ok": false, "error": "..", "own": .., "now": .. }` with a 409 for a run that doesn't
      go on from the bot's, or is further on than the race. No run at all asks for it.
 5. **The clock**. The bot checks every game's clock every second, and before every request, so a
@@ -502,11 +503,12 @@ they've got for everyone else to see.
   few obstacles drawn in rows of characters: solid ground, spikes on a floor or hanging from a
   ceiling, and air. Each starts and ends on the same flat ground, so any can follow any. There's
   no setting for how hard it is, only for how long the race lasts.
-- **The runner** (`runner.ts`) runs right by itself, seven tiles a second, and jumps when the
-  button's pressed, higher the longer it's held, nearly three tiles at most. It still jumps a few
-  ticks after running off an edge, or pressed a few ticks before it lands. A wall stops it until it
-  jumps; a spike or the bottom of the course is a fall, after which it waits at its last
-  checkpoint, as it does at the start, for the button. It moves a tick at a time, 60 to the
+- **The runner** (`runner.ts`) sets off with everyone else's three seconds after the race
+  starts, as the page counts them down, and the time limit is after that. It runs right by
+  itself, seven tiles a second, and jumps when the button's pressed, higher the longer it's held,
+  nearly three tiles at most. It still jumps a few ticks after running off an edge, or pressed a
+  few ticks before it lands. A wall stops it until it jumps; a spike or the bottom of the course is
+  a fall, after which it waits at its last checkpoint for the button. It moves a tick at a time, 60 to the
   second, in whole numbers only, so the page and the bot play the same presses to exactly the same
   place.
 - **Every section can be got through**, which `sections.spec.ts` checks by trying every way of

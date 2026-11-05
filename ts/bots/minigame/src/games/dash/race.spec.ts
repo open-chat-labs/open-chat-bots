@@ -2,11 +2,16 @@ import { describe, expect, it } from "vitest";
 import { parseSettings } from "../settings";
 import { SECTIONS_PER_COURSE } from "./course";
 import { DashRace } from "./race";
+import { START_TICK } from "./runner";
 import { SECTIONS } from "./sections";
 import { DASH_SETTINGS } from "./settings";
 import { AHEAD_TICKS, MAX_PLAYERS, type SharedState } from "./types";
 
 const MINUTE = 60_000;
+
+/** The count of three before everyone sets off, which the time limit is after */
+const COUNT = 3000;
+const S = START_TICK;
 
 /** A race with alice and bob seated, on a clock the test moves */
 function seated(settings = {}) {
@@ -19,7 +24,7 @@ function seated(settings = {}) {
 
 /**
  * The race started on a course of these sections: none is just the flat start and finish, which a
- * runner set off on tick 0 crosses on tick 60, and section 0 has a spike to fall on, 13 tiles in
+ * runner, off on tick `S`, crosses 60 ticks on, and section 0 has a spike to fall on, 13 tiles in
  */
 function started(sections: number[] = []) {
     const s = seated();
@@ -55,7 +60,7 @@ describe("a Dash Race", () => {
             { id: "alice", tiles: 1, falls: 0 },
             { id: "bob", tiles: 1, falls: 0 },
         ]);
-        expect(shared.endsAt).toBe(shared.startedAt! + 3 * MINUTE);
+        expect(shared.endsAt).toBe(shared.startedAt! + COUNT + 3 * MINUTE);
         // The time's the only setting
         expect(parseSettings(DASH_SETTINGS, { minutes: 5 })).toMatchObject({ ok: true });
         expect(parseSettings(DASH_SETTINGS, { difficulty: 3 })).toMatchObject({ ok: false });
@@ -63,9 +68,10 @@ describe("a Dash Race", () => {
 
     it("takes a racer's run, and tells everyone only how far they've got", () => {
         const { race, clock } = started([0]);
-        clock.now = at(race, 40);
-        expect(send(race, "alice", [0, 1], 30)).toEqual({
-            result: { ok: true, own: { changes: [0, 1], upTo: 30 }, now: clock.now },
+        clock.now = at(race, S + 40);
+        // Thirty ticks on from the start, with a hop
+        expect(send(race, "alice", [S + 2, S + 4], S + 29)).toEqual({
+            result: { ok: true, own: { changes: [S + 2, S + 4], upTo: S + 29 }, now: clock.now },
             changed: true,
         });
         const shared = race.shared();
@@ -75,14 +81,18 @@ describe("a Dash Race", () => {
         expect("privateState" in race).toBe(false);
         expect(race.own("bob")).toEqual({ changes: [], upTo: -1 });
         // On from there, into the spike
-        clock.now = at(race, 200);
-        expect(send(race, "alice", [0, 1], 200)).toMatchObject({ changed: true });
+        clock.now = at(race, S + 200);
+        expect(send(race, "alice", [S + 2, S + 4], S + 199)).toMatchObject({ changed: true });
         expect(race.shared().racers[0]).toEqual({ id: "alice", tiles: 13, falls: 1 });
         // No run just asks for it
         expect(send(race, "alice")).toMatchObject({
-            result: { ok: true, own: { changes: [0, 1], upTo: 200 } },
+            result: { ok: true, own: { changes: [S + 2, S + 4], upTo: S + 199 } },
             changed: false,
         });
+        // Nobody's further on for the count
+        const { race: counting } = started([0]);
+        expect(send(counting, "alice", [10, 20], 30)).toMatchObject({ changed: false });
+        expect(counting.shared().racers[0]).toEqual({ id: "alice", tiles: 1, falls: 0 });
     });
 
     it("refuses a run that isn't how the racer's went, or is ahead of the race", () => {
@@ -109,7 +119,7 @@ describe("a Dash Race", () => {
         expect(refused([0, 1, 45], 60 + AHEAD_TICKS)).toMatchObject({ ok: true });
         // But not past the race's end, however near it the clock is
         clock.now = race.data.endsAt! - 10;
-        const last = (3 * 60_000 * 60) / 1000 - 1;
+        const last = ((COUNT + 3 * MINUTE) * 60) / 1000 - 1;
         expect(refused([0, 1, 45], last + 1)).toMatchObject({
             error: "That run is ahead of the race",
         });
@@ -121,41 +131,57 @@ describe("a Dash Race", () => {
 
     it("gives the race to the first across the finish line, and shows how", () => {
         const { race, clock } = started();
-        clock.now = at(race, 70);
-        send(race, "bob", [10], 30);
-        expect(send(race, "alice", [0], 70)).toMatchObject({ result: { ok: true }, changed: true });
+        clock.now = at(race, S + 70);
+        send(race, "bob", [], S + 30);
+        expect(send(race, "alice", [S + 10, S + 12], S + 70)).toMatchObject({
+            result: { ok: true },
+            changed: true,
+        });
         expect(race.phase).toBe("finished");
-        expect(race.data.players[0].finished).toBe(60);
+        expect(race.data.players[0].finished).toBe(S + 59);
+        // Timed from when everyone set off
         expect(race.result()).toBe("@UserId(alice) reached the flag in 1.0s, without a fall");
         const end = race.endState()!;
-        expect(end).toMatchObject({ ended: "flag", winner: "alice", changes: [0] });
+        expect(end).toMatchObject({ ended: "flag", winner: "alice", changes: [S + 10, S + 12] });
         // As the tick's over
-        expect(end.finishedAt).toBe(race.data.startedAt! + 1017);
+        expect(end.finishedAt).toBe(race.data.startedAt! + COUNT + 1000);
         // Too late, and nothing changes
-        expect(send(race, "bob", [10], 60)).toMatchObject({
-            result: { ok: true, own: { changes: [10], upTo: 30 } },
+        expect(send(race, "bob", [], S + 60)).toMatchObject({
+            result: { ok: true, own: { changes: [], upTo: S + 30 } },
             changed: false,
         });
     });
 
-    it("gives the race, when the time's up, to whoever got furthest first", () => {
+    it("gives the race, when the time's up, to whoever got furthest", () => {
         const { race, clock } = started([0]);
-        clock.now = at(race, 200);
-        // Both into the spike, alice a tick later off the start
-        send(race, "bob", [0], 200);
-        send(race, "alice", [1], 200);
-        expect(race.shared().racers.map((r) => r.tiles)).toEqual([13, 13]);
-        clock.now += 3 * MINUTE;
+        clock.now = at(race, S + 200);
+        // Bob into the spike, alice not so far
+        send(race, "bob", [S + 5, S + 7], S + 199);
+        send(race, "alice", [], S + 29);
+        expect(race.shared().racers.map((r) => r.tiles)).toEqual([4, 13]);
+        clock.now = race.data.startedAt! + COUNT + 3 * MINUTE;
         expect(race.endIfTimeUp()).toBe(true);
         expect(race.data).toMatchObject({ ended: "time", winner: "bob" });
         expect(race.result()).toBe("Time's up! @UserId(bob) got furthest, 52% of the way");
         // Their run to where they got, to show
-        expect((race.endState() as SharedState).changes).toEqual([0]);
+        expect((race.endState() as SharedState).changes).toEqual([S + 5, S + 7]);
+    });
+
+    it("breaks a tie, when the time's up, for whoever got that far first", () => {
+        const { race, clock } = started([0]);
+        clock.now = at(race, S + 200);
+        send(race, "alice", [], S + 199);
+        send(race, "bob", [], S + 199);
+        // As far as each other, alice getting there later, as she might after a fall
+        race.data.players[0].furthestAt += 30;
+        clock.now = race.data.startedAt! + COUNT + 3 * MINUTE;
+        race.endIfTimeUp();
+        expect(race.data.winner).toBe("bob");
     });
 
     it("says nobody set off when the time's up before anyone has", () => {
         const { race, clock } = started();
-        clock.now += 3 * MINUTE;
+        clock.now += COUNT + 3 * MINUTE;
         race.endIfTimeUp();
         expect(race.data.winner).toBeUndefined();
         expect(race.result()).toBe("Time's up! Nobody set off");
@@ -163,16 +189,17 @@ describe("a Dash Race", () => {
 
     it("plays a run on from where it was, the same as from the start, read back from the store", () => {
         const { race, clock } = started([0, 1, 2]);
-        clock.now = at(race, 400);
-        send(race, "alice", [5, 20, 70, 84], 100);
-        send(race, "alice", [5, 20, 70, 84, 150, 160], 200);
+        clock.now = at(race, S + 400);
+        const on = (ticks: number[]) => ticks.map((t) => S + t);
+        send(race, "alice", on([5, 20, 70, 84]), S + 100);
+        send(race, "alice", on([5, 20, 70, 84, 150, 160]), S + 200);
         const back = new DashRace(JSON.parse(JSON.stringify(race.toJson())), {
             now: () => clock.now,
         });
         expect(back.shared()).toEqual(race.shared());
-        const changes = [5, 20, 70, 84, 150, 160, 230, 245];
-        send(race, "alice", changes, 380);
-        send(back, "alice", changes, 380);
+        const changes = on([5, 20, 70, 84, 150, 160, 230, 245]);
+        send(race, "alice", changes, S + 380);
+        send(back, "alice", changes, S + 380);
         expect(back.data.players[0]).toEqual(race.data.players[0]);
         // And the clock doesn't run while the bot was down
         const endsAt = back.data.endsAt!;
