@@ -8,6 +8,7 @@ import {
     JUMP_SPEED,
     RUN_SPEED,
     runTo,
+    START_TICK,
     startRunner,
     step,
     type Runner,
@@ -32,11 +33,10 @@ function course(rows: string[], checkpoint?: number, finish = Number.MAX_SAFE_IN
 
 const FLAT = course(["#".repeat(40), "#".repeat(40)]);
 
-/** A runner that's been set off, at tick 0 */
+/** A runner that's set off, a tick on */
 function running(c: Course): Runner {
     const r = startRunner(c);
-    step(c, r, true);
-    step(c, r, false);
+    runTo(c, r, [], START_TICK);
     return r;
 }
 
@@ -74,19 +74,15 @@ function jumpHeight(hold: number): number {
 }
 
 describe("a Dash runner", () => {
-    it("waits at the start until the button's pressed, then runs on by itself", () => {
+    it("sets off by itself after the count, whatever the button does before, and runs on", () => {
         const r = startRunner(FLAT);
         const x = r.x;
-        for (let t = 0; t < 30; t++) step(FLAT, r, false);
-        expect(r).toMatchObject({ mode: "ready", x, tick: 29 });
-        step(FLAT, r, true);
-        expect(r.mode).toBe("run");
-        // The press only sets it off
-        expect(r.x).toBe(x);
-        step(FLAT, r, true);
+        for (let t = 0; t < START_TICK; t++) step(FLAT, r, t % 20 < 10);
+        expect(r).toMatchObject({ mode: "start", x, y: GROUND, tick: START_TICK - 1 });
         step(FLAT, r, false);
-        expect(r).toMatchObject({ x: x + 2 * RUN_SPEED, y: GROUND, ground: true });
-        expect(r.furthestAt).toBe(32);
+        step(FLAT, r, false);
+        expect(r).toMatchObject({ mode: "run", x: x + 2 * RUN_SPEED, y: GROUND, ground: true });
+        expect(r.furthestAt).toBe(START_TICK + 1);
     });
 
     it("jumps higher the longer the button's held, up to near three tiles", () => {
@@ -167,16 +163,17 @@ describe("a Dash runner", () => {
     it("finishes as it crosses the finish line", () => {
         const c = course(["#".repeat(40), "#".repeat(40)], undefined, 10);
         const r = startRunner(c);
-        runTo(c, r, [5], 200);
+        runTo(c, r, [], START_TICK + 200);
         expect(r.mode).toBe("done");
-        // Set off at tick 5, from just past column 1, at 30 a tick
-        expect(r.finished).toBe(5 + Math.ceil((9 * TILE - 16) / RUN_SPEED));
+        // Off on the start tick, from just past column 1, at 30 a tick
+        expect(r.finished).toBe(START_TICK - 1 + Math.ceil((9 * TILE - 16) / RUN_SPEED));
         expect(r.tick).toBe(r.finished);
     });
 
     it("runs the same, run to a tick at a time or all at once, waiting skipped", () => {
         const c = course(["....^.....^.....####......", "#".repeat(26), "#".repeat(26)]);
-        const changes = [200, 210, 236, 250, 270, 271, 300, 330];
+        // Held through the count, which doesn't jump as it sets off, then pressed as it runs
+        const changes = [100, 185, 200, 210, 236, 250, 270, 271, 300, 330];
         const once = startRunner(c);
         runTo(c, once, changes, 600);
         const ticks = startRunner(c);

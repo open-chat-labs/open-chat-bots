@@ -1,13 +1,16 @@
 // How a Dash Race ended, in words, as the card's result says it, naming the winner with a mention,
 // and as the page says it, by their username
-import { TICKS_PER_SECOND } from "./runner";
+import { START_TICK, TICKS_PER_SECOND } from "./runner";
 import type { SharedState } from "./types";
 
 export type Ended = Pick<SharedState, "winner" | "ended">;
 
-/** How long a run took to a tick, eg. "41.3s" or "1m 12.0s": a tick's time is its end */
+/**
+ * How long a run took to a tick, from when everyone set off, eg. "41.3s" or "1m 12.0s": a tick's
+ * time is its end
+ */
 export function runTime(tick: number): string {
-    const tenths = Math.round(((tick + 1) * 10) / TICKS_PER_SECOND);
+    const tenths = Math.max(0, Math.round(((tick + 1 - START_TICK) * 10) / TICKS_PER_SECOND));
     const minutes = Math.floor(tenths / 600);
     const seconds = `${Math.floor((tenths % 600) / 10)}.${tenths % 10}s`;
     return minutes > 0 ? `${minutes}m ${seconds}` : seconds;

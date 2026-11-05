@@ -254,7 +254,7 @@ export function cratesPath(req: Request, res: Response, deps: Deps): Promise<voi
 }
 
 /**
- * `POST /api/dash/run` with `{ "changes": [40, 52, 97], "upTo": 120 }`: a Dash racer's run, the
+ * `POST /api/dash/run` with `{ "changes": [240, 252, 297], "upTo": 320 }`: a Dash racer's run, the
  * ticks their button went down and came up from the race's start, and the tick their page has
  * played it to, answered with their run as the bot has it, which only they see while the race is
  * on, and the bot's clock. No run at all asks for it, eg. as the page opens.

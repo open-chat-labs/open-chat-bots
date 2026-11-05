@@ -1,6 +1,6 @@
 // The Dash Race's view: the course on a canvas, scrolling along with the racer's runner, and how
-// far everyone's got under it. The runner runs by itself, and a press on the course, or Space or
-// the up arrow, jumps, higher the longer it's held. The page plays the racer's presses as they
+// far everyone's got under it. Every runner sets off together after a count of three, and runs by
+// itself, and a press on the course, or Space or the up arrow, jumps, higher the longer it's held. The page plays the racer's presses as they
 // make them, a tick at a time on the race's clock (`games/dash/runner.ts`), and sends the bot
 // their run as it goes, whole: the bot plays it too, and answers with the run it has, and its
 // clock, which the page keeps to. As the page opens, it asks the bot for both. Everyone else is
@@ -27,6 +27,7 @@ import {
     HEIGHT,
     isChanges,
     runTo,
+    START_TICK,
     startRunner,
     TICKS_PER_SECOND,
     WIDTH,
@@ -59,6 +60,9 @@ const SEND_EVERY_MS = 1000;
 const RETRY_MS = 3000;
 
 const JUMP_KEYS = new Set([" ", "ArrowUp", "w", "W"]);
+
+/** How long the banner says "Go!" once everyone's set off */
+const GO_TICKS = TICKS_PER_SECOND / 2;
 
 type Row = {
     li: HTMLElement;
@@ -158,10 +162,10 @@ export const dashView: GameView = {
         const { minutes } = s.settings;
         return raceLobby(s, {
             blurb: `Everyone runs the same course, <strong>easy at first, then medium, then
-                hard</strong>, each with their own runner, which runs by itself: tap to jump, and
-                hold on to jump higher. A spike or a pit sends you back to the last checkpoint. The
-                first to the flag wins, or whoever got furthest when the
-                <strong>${minutes} minutes</strong> are up.`,
+                hard</strong>, each with their own runner. They all set off together on a count of
+                three, and run by themselves: tap to jump, and hold on to jump higher. A spike or a
+                pit sends you back to the last checkpoint. The first to the flag wins, or whoever
+                got furthest when the <strong>${minutes} minutes</strong> are up.`,
             settings: DASH_SETTINGS,
             maxPlayers: MAX_PLAYERS,
         });
@@ -188,7 +192,14 @@ export const dashView: GameView = {
     },
 
     clock() {
-        return raceClock(shown());
+        const go = toGo();
+        if (go !== undefined && go > 0) return "Get ready";
+        // Counted from when everyone set off
+        const s = shown();
+        const setOff = (START_TICK * 1000) / TICKS_PER_SECOND;
+        return raceClock(
+            s?.startedAt === undefined ? s : { ...s, startedAt: s.startedAt + setOff },
+        );
     },
 
     onKey(event) {
@@ -240,6 +251,8 @@ function courseOf(s: SharedState | undefined): Course | undefined {
 /** Takes a state from OpenChat, and asks the bot once for the racer's run, and its clock */
 function take(state: SharedState) {
     latest = state;
+    // For the count, which someone watching sees too
+    if (state.phase === "active") wake();
     if (state.phase !== "active" || myRacer() === undefined) return;
     if (!asked && Date.now() >= retryAt) {
         asked = true;
@@ -274,6 +287,16 @@ function raceTime(): number | undefined {
     const startedAt = latest?.startedAt;
     if (offset === undefined || startedAt === undefined) return undefined;
     return ((Date.now() + offset - startedAt) * TICKS_PER_SECOND) / 1000;
+}
+
+/**
+ * The ticks to go until everyone sets off, with their fractions, below 0 once they have: on the
+ * bot's clock if the page has it, as a racer's does
+ */
+function toGo(): number | undefined {
+    const s = latest;
+    if (end !== undefined || s?.phase !== "active" || s.startedAt === undefined) return undefined;
+    return START_TICK - (raceTime() ?? ((Date.now() - s.startedAt) * TICKS_PER_SECOND) / 1000);
 }
 
 /**
@@ -312,7 +335,8 @@ function advance() {
         render();
     } else if (
         mine.runner.tick > confirmed.upTo &&
-        (mine.runner.mode !== "ready" || mine.changes.length > confirmed.changes) &&
+        ((mine.runner.mode !== "start" && mine.runner.mode !== "ready") ||
+            mine.changes.length > confirmed.changes) &&
         Date.now() - sentAt >= SEND_EVERY_MS
     ) {
         void request(true);
@@ -388,7 +412,7 @@ async function request(send: boolean) {
     }
 }
 
-/** Plays the winner's run through from just before they set off, or stops it playing */
+/** Plays the winner's run through from just before everyone set off, or stops it playing */
 function watch() {
     if (watching?.playing === true) {
         stopWatching();
@@ -397,9 +421,9 @@ function watch() {
     }
     const s = shown();
     const course = courseOf(s);
-    if (s?.changes === undefined || s.changes.length === 0 || course === undefined) return;
+    if (s?.changes === undefined || course === undefined) return;
     const runner = startRunner(course);
-    const first = Math.max(0, s.changes[0] - TICKS_PER_SECOND / 2);
+    const first = START_TICK - TICKS_PER_SECOND / 2;
     runTo(course, runner, s.changes, first);
     watching = {
         changes: s.changes,
@@ -497,7 +521,7 @@ function render() {
     const finished = s.phase === "finished";
     const racing = canRace();
     const runner = end === undefined ? mine?.runner : undefined;
-    const touch = !matchMedia("(hover: hover) and (pointer: fine)").matches;
+    const touch = isTouch();
 
     if (finished) {
         const winner = s.racers.find((r) => r.id === s.winner);
@@ -517,20 +541,10 @@ function render() {
         dom.status.textContent = "Watching: everyone as far as they've got";
     }
 
-    // Over the course: what to press, while the runner waits for it
-    let banner = "";
-    if (racing && runner?.mode === "ready") {
-        const go = touch ? "Tap" : "Press Space";
-        banner = runner.falls === 0 ? `${go} to run` : `${go} to go again`;
-    } else if (runner?.mode === "done" && !finished) {
-        banner = "Finished!";
-    }
-    dom.banner.hidden = banner === "";
-    if (dom.banner.textContent !== banner) dom.banner.textContent = banner;
-
+    renderBanner();
     const whose = focusId(s);
     renderCount(s);
-    dom.watch.hidden = !finished || s.changes === undefined || s.changes.length === 0;
+    dom.watch.hidden = !finished || s.changes === undefined;
     dom.watch.textContent = watching?.playing === true ? "Stop" : "Watch how";
 
     if (finished) {
@@ -548,6 +562,29 @@ function render() {
     renderStandings(s, finished, whose);
     fit();
     draw();
+}
+
+function isTouch(): boolean {
+    return !matchMedia("(hover: hover) and (pointer: fine)").matches;
+}
+
+/** Over the course: the count before everyone sets off, or what to press after a fall */
+function renderBanner() {
+    if (dom === undefined) return;
+    const runner = end === undefined ? mine?.runner : undefined;
+    const go = toGo();
+    let banner = "";
+    if (go !== undefined && go > 0) {
+        banner = String(Math.ceil(go / TICKS_PER_SECOND));
+    } else if (go !== undefined && go > -GO_TICKS) {
+        banner = "Go!";
+    } else if (canRace() && runner?.mode === "ready") {
+        banner = `${isTouch() ? "Tap" : "Press Space"} to go again`;
+    } else if (runner?.mode === "done" && shown()?.phase !== "finished") {
+        banner = "Finished!";
+    }
+    dom.banner.hidden = banner === "";
+    if (dom.banner.textContent !== banner) dom.banner.textContent = banner;
 }
 
 /**
@@ -677,12 +714,13 @@ function loop() {
     frame = undefined;
     if (dom === undefined || !document.body.contains(dom.root)) return;
     advance();
+    renderBanner();
     const course = courseOf(shown());
     if (watching?.playing === true && course !== undefined) {
         playTo(course, watching, Math.floor(watchTime(watching)));
         // Played through, to the line, or a while after the run's last press, when the button
         // goes back to Watch how
-        const last = watching.changes[watching.changes.length - 1];
+        const last = watching.changes[watching.changes.length - 1] ?? START_TICK;
         if (watching.runner.mode === "done" || watching.runner.tick > last + 3 * TICKS_PER_SECOND) {
             watching.playing = false;
             render();
@@ -693,7 +731,10 @@ function loop() {
     } else {
         draw();
     }
-    if (canRace() || watching?.playing === true) frame = requestAnimationFrame(loop);
+    const go = toGo();
+    if (canRace() || watching?.playing === true || (go !== undefined && go > -GO_TICKS)) {
+        frame = requestAnimationFrame(loop);
+    }
 }
 
 /** The tick the winner's run being played through is at, and part way through */
@@ -961,7 +1002,8 @@ function drawRunner(
         return;
     }
     // Waiting, it bobs; running, there are lines behind it; in the air, it leans with its speed
-    const bob = r.mode === "ready" ? Math.sin(Date.now() / 220) * h * 0.04 : 0;
+    const bob =
+        r.mode === "start" || r.mode === "ready" ? Math.sin(Date.now() / 220) * h * 0.04 : 0;
     const lean = r.ground ? 0 : Math.max(-0.35, Math.min(0.35, -at.vy / 220));
     g.save();
     if (r.mode === "run" && r.ground) {

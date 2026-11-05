@@ -5,13 +5,16 @@
 // their button went down and came up, its changes, counted from the race's start, so the bot can
 // play it again from those alone.
 //
-// The runner waits at the start until the button is first pressed, and again after each fall,
-// back at the last checkpoint: a runner whose racer isn't looking doesn't fall again and again. A
-// fall is into a spike, or off the bottom of the course. Running into a wall only stops it, until
-// it jumps.
+// Every runner sets off on the same tick, a count of three after the race starts, so everyone
+// starts together. After a fall, it waits at the last checkpoint until the button's pressed: a
+// runner whose racer isn't looking doesn't fall again and again. A fall is into a spike, or off
+// the bottom of the course. Running into a wall only stops it, until it jumps.
 import { GROUND_ROWS, SOLID, SPIKE_DOWN, SPIKE_UP, TILE, tileAt, type Course } from "./course";
 
 export const TICKS_PER_SECOND = 60;
+
+/** The tick every runner sets off on, after a count of three from the race's start */
+export const START_TICK = 3 * TICKS_PER_SECOND;
 
 /** How far the runner runs in a tick: seven tiles a second, near enough */
 export const RUN_SPEED = 30;
@@ -40,12 +43,12 @@ const SPIKE_HEIGHT = 150;
 /** Where the runner stands at a checkpoint, from its column's left side */
 const SPAWN_OFFSET = 16;
 
-export type Mode = "ready" | "run" | "fallen" | "done";
+export type Mode = "start" | "ready" | "run" | "fallen" | "done";
 
 export type Runner = {
     /**
-     * Waiting for the button, at the start or after a fall; running; falling, before it starts
-     * again; or finished
+     * Waiting to set off, at the start; waiting for the button, after a fall; running; falling,
+     * before it starts again; or finished
      */
     mode: Mode;
     /** The last tick it's been moved through, counted from the race's start: -1 before the first */
@@ -74,10 +77,10 @@ export type Runner = {
     finished?: number;
 };
 
-/** A runner at the start, waiting for the button */
+/** A runner at the start, waiting to set off */
 export function startRunner(course: Course): Runner {
     const runner: Runner = {
-        mode: "ready",
+        mode: "start",
         tick: -1,
         x: 0,
         y: 0,
@@ -93,6 +96,7 @@ export function startRunner(course: Course): Runner {
         falls: 0,
     };
     spawn(course, runner);
+    runner.mode = "start";
     runner.furthest = runner.x;
     return runner;
 }
@@ -145,6 +149,11 @@ export function step(course: Course, r: Runner, pressed: boolean): void {
         case "fallen":
             if (--r.wait <= 0) spawn(course, r);
             return;
+        case "start":
+            // Off with everyone else's, whatever the button's done
+            if (r.tick < START_TICK) return;
+            r.mode = "run";
+            break;
         case "ready":
             // The press only sets it off: it jumps on the next
             if (press) r.mode = "run";
@@ -213,12 +222,20 @@ export function step(course: Course, r: Runner, pressed: boolean): void {
 /**
  * Moves the runner on through tick `to`, the button going down at the first of `changes`, up at
  * the next, and so on: they're ticks, in order, the button down from the first, third and so on.
- * Waiting for the button, it skips straight to its next change.
+ * Waiting to set off, it skips straight to the tick before, and waiting for the button, to its
+ * next change.
  */
 export function runTo(course: Course, r: Runner, changes: readonly number[], to: number): void {
     let next = 0;
     while (next < changes.length && changes[next] <= r.tick) next++;
     while (r.tick < to && r.mode !== "done") {
+        if (r.mode === "start" && r.tick < START_TICK - 1) {
+            // Nothing happens until it sets off, whatever the button does
+            r.tick = Math.min(to, START_TICK - 1);
+            while (next < changes.length && changes[next] <= r.tick) next++;
+            r.held = next % 2 === 1;
+            continue;
+        }
         if (r.mode === "ready") {
             // Nothing happens until the button's next change
             const skip = Math.min(to, (changes[next] ?? Infinity) - 1);

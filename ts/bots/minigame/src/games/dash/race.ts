@@ -1,5 +1,6 @@
-// The Dash Race: up to twenty racers run the same course, each with their own runner, which runs
-// by itself and jumps when they press, higher the longer they hold. The first across the finish
+// The Dash Race: up to twenty racers run the same course, each with their own runner, which sets
+// off with everyone else's on a count of three, runs by itself, and jumps when they press, higher
+// the longer they hold. The first across the finish
 // line wins, or, when the time's up, whoever got furthest, then whoever got there first. A
 // racer's run is the ticks their button went down and came up (`runner.ts`), which their page
 // plays as they press and sends to the bot as it goes, whole: the bot plays it too, so it knows
@@ -11,7 +12,7 @@ import { jsonBytes, MAX_END_STATE_BYTES, type Seat } from "../game";
 import { openRace, Race, type RaceData, type RaceOptions } from "../race";
 import { buildCourse, percentOf, pickSections, TILE, type Course } from "./course";
 import { describeResult } from "./result";
-import { isChanges, runTo, startRunner, TICKS_PER_SECOND, type Runner } from "./runner";
+import { isChanges, runTo, START_TICK, startRunner, TICKS_PER_SECOND, type Runner } from "./runner";
 import { DASH_SETTINGS } from "./settings";
 import {
     AHEAD_TICKS,
@@ -101,6 +102,11 @@ export class DashRace extends Race<Racer, Ending, DashData, SharedState> {
         return PUBLISH_EVERY_MS;
     }
 
+    /** The time limit, from when everyone sets off, after the count of three */
+    protected lengthMs(): number {
+        return super.lengthMs() + (START_TICK * 1000) / TICKS_PER_SECOND;
+    }
+
     /** The race's tick at a time, counted from its start, as the page counts it */
     #tickAt(time: number): number {
         return Math.floor(((time - (this.data.startedAt ?? 0)) * TICKS_PER_SECOND) / 1000);
@@ -122,12 +128,12 @@ export class DashRace extends Race<Racer, Ending, DashData, SharedState> {
     }
 
     /**
-     * A racer's run, `{ "changes": [40, 52, 97], "upTo": 120 }`: the ticks their button went down
-     * and came up, from the race's start, and the tick their page has played it to, answered with
-     * their run as the bot has it. No run at all just asks for it, eg. as the page opens. A run
-     * goes on from the one the bot has, with the same changes up to its tick, and no further on
-     * than the race is: one that doesn't is refused, whole. Once the race is over, a run changes
-     * nothing.
+     * A racer's run, `{ "changes": [240, 252, 297], "upTo": 320 }`: the ticks their button went
+     * down and came up, from the race's start, and the tick their page has played it to, answered
+     * with their run as the bot has it. No run at all just asks for it, eg. as the page opens. A
+     * run goes on from the one the bot has, with the same changes up to its tick, and no further
+     * on than the race is: one that doesn't is refused, whole. Once the race is over, a run
+     * changes nothing.
      */
     run(userId: string, body: unknown): RunOutcome {
         const d = this.data;
