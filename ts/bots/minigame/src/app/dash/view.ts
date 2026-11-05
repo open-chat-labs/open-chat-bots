@@ -1,6 +1,7 @@
 // The Dash Race's view: the course on a canvas, scrolling along with the racer's runner, and how
 // far everyone's got under it. Every runner sets off together after a count of three, and runs by
-// itself, and a press on the course, or Space or the up arrow, jumps, higher the longer it's held.
+// itself, and a press anywhere on the page, or Space or the up arrow, jumps, higher the longer it's
+// held: on a phone, a thumb on the course would hide it.
 // The page plays the racer's presses as they make them, a tick at a time on the race's clock
 // (`games/dash/runner.ts`), and sends the bot their run as it goes, whole: the bot plays it too,
 // and answers with the run it has, and its clock, which the page keeps to. As the page opens, it
@@ -110,7 +111,7 @@ let sending = false;
 let asked = false;
 let retryAt = 0;
 let sentAt = 0;
-/** The button: the pointers down on the course, and whether a key is */
+/** The button: the pointers down on the page, and whether a key is */
 const pointers = new Set<number>();
 let keyDown = false;
 let down = false;
@@ -143,6 +144,15 @@ export const dashView: GameView = {
             pointers.delete(event.pointerId);
             if (pointers.size === 0 && !keyDown) setButton(false);
         };
+        // Anywhere but on a button, or something else that does something
+        document.addEventListener("pointerdown", (event) => {
+            if (!canRace() || event.button !== 0) return;
+            const target = event.target as Element | null;
+            if (target?.closest("button, a, input, select, textarea, [data-action]")) return;
+            event.preventDefault();
+            pointers.add(event.pointerId);
+            setButton(true);
+        });
         window.addEventListener("pointerup", lift);
         window.addEventListener("pointercancel", lift);
         window.addEventListener("blur", () => {
@@ -163,8 +173,8 @@ export const dashView: GameView = {
         return raceLobby(s, {
             blurb: `Everyone runs the same course, <strong>easy at first, then medium, then
                 hard</strong>, each with their own runner. They all set off together on a count of
-                three, and run by themselves: tap to jump, and hold on to jump higher. A spike or a
-                pit sends you back to the last checkpoint. The first to the flag wins, or whoever
+                three, and run by themselves: tap anywhere to jump, and hold on to jump higher. A
+                spike or a pit sends you back to the last checkpoint. The first to the flag wins, or whoever
                 got furthest when the <strong>${minutes} minutes</strong> are up.`,
             settings: DASH_SETTINGS,
             maxPlayers: MAX_PLAYERS,
@@ -499,12 +509,6 @@ function ensureDom(body: HTMLElement) {
         rows: new Map(),
     };
     fitted = "";
-    dom.wrap.addEventListener("pointerdown", (event) => {
-        if (!canRace()) return;
-        event.preventDefault();
-        pointers.add(event.pointerId);
-        setButton(true);
-    });
 }
 
 /** Everyone, the furthest on first: the winner, then whoever finished first, then furthest */
@@ -571,11 +575,13 @@ function render() {
     dom.watch.hidden = !finished || s.changes === undefined;
     dom.watch.textContent = watching?.playing === true ? "Stop" : "Watch how";
 
+    // While racing, a press anywhere jumps, so the page neither scrolls nor selects
+    document.documentElement.classList.toggle("dash-racing", racing);
     if (finished) {
         dom.hint.textContent = s.racers.length > 1 ? "Tap a name to see how far they got." : "";
     } else if (racing) {
         dom.hint.textContent = touch
-            ? "Tap the course to jump, and hold on to jump higher."
+            ? "Tap anywhere to jump, and hold on to jump higher."
             : "Space, the up arrow or a click to jump: hold on to jump higher.";
     } else {
         dom.hint.textContent = "";

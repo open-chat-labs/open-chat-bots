@@ -57,8 +57,9 @@ card, a player starts the game, and it's played in the card, in the bot's own pa
   DeepMind's Boxoban levels, and the rest is built from scratch (see "Crate Race");
 - a **Dash Race**: up to 20 players race along the same course, easy at first, then medium, then
   hard, each with their own runner. They all set off together on a count of three, and run by
-  themselves. A tap jumps, higher the longer it's held, over spikes and pits and up steps, and a spike or a pit sends the runner back to the
-  last checkpoint. The first to the flag wins, or whoever got furthest when the 3 minutes are up.
+  themselves. A tap anywhere jumps, higher the longer it's held, over spikes and pits and up
+  steps, and a spike or a pit sends the runner back to the last checkpoint. The first to the flag
+  wins, or whoever got furthest when the 3 minutes are up.
   It's built from scratch, its courses and look its own (see "Dash Race").
 
 The bot is a TypeScript Express server, built on the SDK in [`ts/library`](../../library), and the
@@ -529,7 +530,9 @@ they've got for everyone else to see.
   whoever got there first.
 - **The page** draws the course on a canvas, twelve tiles across, following the racer's runner,
   with everyone else faint where they've got furthest, and a line under it with everyone's dot. A
-  press on the course, Space or the up arrow jumps. Someone watching follows the leader.
+  press anywhere on the page but a button, Space or the up arrow jumps, as on a phone a thumb on
+  the course would hide it, and the page doesn't scroll while the racer's running. Someone
+  watching follows the leader.
 
 ## Adding a game
 
