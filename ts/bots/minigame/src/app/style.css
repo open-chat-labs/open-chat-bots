@@ -99,16 +99,31 @@ body {
     flex: 1;
 }
 
+/* On one line, cut short if need be, so it's as high whatever the clock says: a view fits its board
+   to the room under it, and doesn't look again when the clock changes */
 .top {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
+    gap: 8px;
     margin-bottom: 8px;
 }
 
 h1 {
     font-size: 20px;
     margin: 0;
+}
+
+.top h1 {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.top .clock {
+    flex: none;
+    white-space: nowrap;
 }
 
 h2 {
@@ -335,7 +350,8 @@ button.link {
     overflow: hidden;
 }
 
-/* Racers beyond the top boards, as a list of scores */
+/* Racers beyond the top boards, as a list of scores: a few rows, as the other races' standings, so
+   a race of a hundred leaves the big board room; the rest scroll */
 .standings {
     list-style: none;
     margin: 8px 0 0;
@@ -345,6 +361,8 @@ button.link {
     gap: 2px 12px;
     font-size: 12px;
     color: var(--muted);
+    max-height: 140px;
+    overflow-y: auto;
 }
 
 .standings li {
@@ -2610,6 +2628,15 @@ html.dash-racing .dash-standings {
     .race-standings {
         max-height: 64px;
         overflow-y: auto;
+    }
+
+    /* 2048's racers beyond the others' thumbnails, as there's no room for them under the boards */
+    .standings {
+        display: none;
+    }
+
+    h1 {
+        font-size: 17px;
     }
 
     /* The scores as they are, and the name in what's left, cut short if need be; and the scores cut

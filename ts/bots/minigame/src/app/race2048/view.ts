@@ -413,11 +413,11 @@ function fitMain(force = false) {
     if (!force && around === fitted) return;
     fitted = around;
     const main = dom.main.el.parentElement!;
-    // The card's name and scores over the board, and its padding round it
-    const card = dom.main.el;
-    const board = dom.main.view.el;
-    const tall = card.offsetHeight - board.offsetHeight;
-    const wide = card.offsetWidth - board.offsetWidth;
+    // The card's name and scores over the board, and its padding round it, unrounded, as roomFor's
+    const card = dom.main.el.getBoundingClientRect();
+    const board = dom.main.view.el.getBoundingClientRect();
+    const tall = card.height - board.height;
+    const wide = card.width - board.width;
     const side = Math.max(140, Math.floor(roomFor(dom.root, [main]) - tall));
     main.style.setProperty("--main-max", `${side + wide}px`);
 }

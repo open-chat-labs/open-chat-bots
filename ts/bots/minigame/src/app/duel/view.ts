@@ -17,6 +17,7 @@ import {
     type Seat,
 } from "../../games/duel/types";
 import { escape, formatClock, formatFirstMove, shortId } from "../format";
+import { roomFor } from "../layout";
 import { fetchUsernames, nameOf } from "../names";
 import type { GameView, Lobby, ViewContext } from "../view";
 
@@ -352,19 +353,7 @@ export function duelView<M, P extends Position<M>>(
     // ratio needs: then it's as tall as they leave, so nothing's cut off in the card's frame
     function fitBoard() {
         if (dom === undefined || !document.body.contains(dom.root)) return;
-        let used = 0;
-        for (const el of dom.root.children) {
-            if (el === dom.board) continue;
-            const style = getComputedStyle(el);
-            if (style.display === "none") continue;
-            used +=
-                (el as HTMLElement).offsetHeight +
-                parseFloat(style.marginTop) +
-                parseFloat(style.marginBottom);
-        }
-        const available =
-            document.documentElement.clientHeight - dom.root.getBoundingClientRect().top - 16;
-        const height = Math.max(140, available - used);
+        const height = Math.max(140, roomFor(dom.root, [dom.board]));
         dom.board.style.setProperty("--board-max", `${Math.floor(height * board.ratio)}px`);
     }
 
