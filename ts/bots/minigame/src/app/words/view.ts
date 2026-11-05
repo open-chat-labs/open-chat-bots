@@ -569,8 +569,9 @@ function othersCard(): Card {
 }
 
 // The tiles are as big as the frame leaves room for: the grid's six rows, with what's around it.
-// Measuring lays the page out, so it's done again only when what's round the grid has changed, or
-// the frame has.
+// They're at most 58px in a card, and bigger in proportion when the column's wider than a card's
+// 440px, eg. full screen on a laptop. Measuring lays the page out, so it's done again only when
+// what's round the grid has changed, or the frame has.
 let fitted = "";
 
 function fit(force = false) {
@@ -586,6 +587,7 @@ function fit(force = false) {
     const gap = 6;
     const byHeight = (roomFor(dom.root, [dom.grid]) - gap * (TRIES - 1)) / TRIES;
     const byWidth = (dom.root.clientWidth - gap * (LENGTH - 1)) / LENGTH;
-    const tile = Math.floor(Math.max(28, Math.min(58, byHeight, byWidth)));
+    const most = Math.max(58, (58 * dom.root.clientWidth) / 440);
+    const tile = Math.floor(Math.max(28, Math.min(most, byHeight, byWidth)));
     dom.grid.style.setProperty("--tile", `${tile}px`);
 }
