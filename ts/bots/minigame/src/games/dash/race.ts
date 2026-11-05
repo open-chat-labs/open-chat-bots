@@ -1,13 +1,12 @@
 // The Dash Race: up to twenty racers run the same course, each with their own runner, which sets
 // off with everyone else's on a count of three, runs by itself, and jumps when they press, higher
-// the longer they hold. The first across the finish
-// line wins, or, when the time's up, whoever got furthest, then whoever got there first. A
-// racer's run is the ticks their button went down and came up (`runner.ts`), which their page
-// plays as they press and sends to the bot as it goes, whole: the bot plays it too, so it knows
-// how far they've got, which everyone sees, and that they did. A racer's run comes to them alone,
-// in the answers to their requests: it isn't in a private part of the state, as the page has to
-// ask the bot as it opens anyway, for the bot's clock, and every racer's run would go with every
-// state.
+// the longer they hold. The first across the finish line wins, or, when the time's up, whoever got
+// furthest, then whoever got there first. A racer's run is the ticks their button went down and
+// came up (`runner.ts`), which their page plays as they press and sends to the bot as it goes,
+// whole: the bot plays it too, so it knows how far they've got, which everyone sees, and that they
+// did. A racer's run comes to them alone, in the answers to their requests: it isn't in a private
+// part of the state, as the page has to ask the bot as it opens anyway, for the bot's clock, and
+// every racer's run would go with every state.
 import { jsonBytes, MAX_END_STATE_BYTES, type Seat } from "../game";
 import { openRace, Race, type RaceData, type RaceOptions } from "../race";
 import { buildCourse, percentOf, pickSections, TILE, type Course } from "./course";
@@ -103,7 +102,7 @@ export class DashRace extends Race<Racer, Ending, DashData, SharedState> {
     }
 
     /** The time limit, from when everyone sets off, after the count of three */
-    protected lengthMs(): number {
+    protected override lengthMs(): number {
         return super.lengthMs() + (START_TICK * 1000) / TICKS_PER_SECOND;
     }
 

@@ -77,8 +77,11 @@ export type Runner = {
     finished?: number;
 };
 
-/** A runner at the start, waiting to set off */
-export function startRunner(course: Course): Runner {
+/**
+ * A runner at the start, waiting to set off with everyone else's, or, as in a race from before they
+ * all did (`STATE_VERSION` 1), for its racer's first press
+ */
+export function startRunner(course: Course, waitsForPress = false): Runner {
     const runner: Runner = {
         mode: "start",
         tick: -1,
@@ -96,7 +99,7 @@ export function startRunner(course: Course): Runner {
         falls: 0,
     };
     spawn(course, runner);
-    runner.mode = "start";
+    if (!waitsForPress) runner.mode = "start";
     runner.furthest = runner.x;
     return runner;
 }

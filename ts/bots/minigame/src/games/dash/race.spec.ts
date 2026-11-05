@@ -167,6 +167,18 @@ describe("a Dash Race", () => {
         expect((race.endState() as SharedState).changes).toEqual([S + 5, S + 7]);
     });
 
+    it("breaks a tie, when the time's up, for whoever got that far first", () => {
+        const { race, clock } = started([0]);
+        clock.now = at(race, S + 200);
+        send(race, "alice", [], S + 199);
+        send(race, "bob", [], S + 199);
+        // As far as each other, alice getting there later, as she might after a fall
+        race.data.players[0].furthestAt += 30;
+        clock.now = race.data.startedAt! + COUNT + 3 * MINUTE;
+        race.endIfTimeUp();
+        expect(race.data.winner).toBe("bob");
+    });
+
     it("says nobody set off when the time's up before anyone has", () => {
         const { race, clock } = started();
         clock.now += COUNT + 3 * MINUTE;

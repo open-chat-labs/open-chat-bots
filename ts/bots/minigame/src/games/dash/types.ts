@@ -6,8 +6,12 @@
 // winner's run, so the page can show it.
 import type { RaceBase } from "../race";
 
-/** Bumped when the shape changes, so an app left open from an older release knows to reload */
-export const STATE_VERSION = 1;
+/**
+ * Bumped when the shape changes, or how a run's played, so an app left open from an older release
+ * knows to reload. In 1, each runner set off on its racer's first press, and times were from the
+ * race's start: the page still reads a race that finished then, as it did then.
+ */
+export const STATE_VERSION = 2;
 
 export const GAME_ID = "dash";
 

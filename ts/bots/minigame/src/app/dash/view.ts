@@ -1,11 +1,11 @@
 // The Dash Race's view: the course on a canvas, scrolling along with the racer's runner, and how
 // far everyone's got under it. Every runner sets off together after a count of three, and runs by
-// itself, and a press on the course, or Space or the up arrow, jumps, higher the longer it's held. The page plays the racer's presses as they
-// make them, a tick at a time on the race's clock (`games/dash/runner.ts`), and sends the bot
-// their run as it goes, whole: the bot plays it too, and answers with the run it has, and its
-// clock, which the page keeps to. As the page opens, it asks the bot for both. Everyone else is
-// drawn faintly where the state says they've got furthest. Someone watching sees the course, and
-// everyone on it the same way.
+// itself, and a press on the course, or Space or the up arrow, jumps, higher the longer it's held.
+// The page plays the racer's presses as they make them, a tick at a time on the race's clock
+// (`games/dash/runner.ts`), and sends the bot their run as it goes, whole: the bot plays it too,
+// and answers with the run it has, and its clock, which the page keeps to. As the page opens, it
+// asks the bot for both. Everyone else is drawn faintly where the state says they've got furthest.
+// Someone watching sees the course, and everyone on it the same way.
 //
 // Once the race is over, the card's end state is its final state: how far everyone got, which a
 // click on a name shows on the course, and the winner's run, which the page can play through.
@@ -105,7 +105,7 @@ let mine: Play | undefined;
 /** How far the bot's clock is ahead of the page's, at least, once the bot has said */
 let offset: number | undefined;
 /** The tick the bot has the racer's run to, and how many changes it has */
-let confirmed = { upTo: -1, changes: 0 };
+let confirmed = { upTo: -1, changes: 0, falls: 0 };
 let sending = false;
 let asked = false;
 let retryAt = 0;
@@ -196,10 +196,8 @@ export const dashView: GameView = {
         if (go !== undefined && go > 0) return "Get ready";
         // Counted from when everyone set off
         const s = shown();
-        const setOff = (START_TICK * 1000) / TICKS_PER_SECOND;
-        return raceClock(
-            s?.startedAt === undefined ? s : { ...s, startedAt: s.startedAt + setOff },
-        );
+        if (s?.startedAt === undefined) return raceClock(s);
+        return raceClock({ ...s, startedAt: s.startedAt + (setOff(s) * 1000) / TICKS_PER_SECOND });
     },
 
     onKey(event) {
@@ -227,11 +225,24 @@ function shown(): SharedState | undefined {
     return end ?? latest;
 }
 
+/**
+ * Whether a race is from before everyone set off together (`STATE_VERSION` 1), when each runner
+ * waited at the start for its racer's first press
+ */
+function waitedForPress(s: SharedState): boolean {
+    return (s.version as number) === 1;
+}
+
+/** The tick a race's times are from: when everyone set off, or its start, from before they did */
+function setOff(s: SharedState): number {
+    return waitedForPress(s) ? 0 : START_TICK;
+}
+
 function readEnd(state: unknown): SharedState | undefined {
     if (state === null || typeof state !== "object") return undefined;
     const s = state as Partial<SharedState>;
     return s.game === GAME_ID &&
-        s.version === STATE_VERSION &&
+        (s.version === STATE_VERSION || (s.version as number | undefined) === 1) &&
         Array.isArray(s.sections) &&
         buildCourse(s.sections) !== undefined &&
         Array.isArray(s.racers) &&
@@ -252,7 +263,8 @@ function courseOf(s: SharedState | undefined): Course | undefined {
 function take(state: SharedState) {
     latest = state;
     // For the count, which someone watching sees too
-    if (state.phase === "active") wake();
+    const go = toGo();
+    if (go !== undefined && go > -GO_TICKS) wake();
     if (state.phase !== "active" || myRacer() === undefined) return;
     if (!asked && Date.now() >= retryAt) {
         asked = true;
@@ -335,8 +347,10 @@ function advance() {
         render();
     } else if (
         mine.runner.tick > confirmed.upTo &&
+        // Running, or waiting with a press or a fall the bot hasn't had
         ((mine.runner.mode !== "start" && mine.runner.mode !== "ready") ||
-            mine.changes.length > confirmed.changes) &&
+            mine.changes.length > confirmed.changes ||
+            mine.runner.falls > confirmed.falls) &&
         Date.now() - sentAt >= SEND_EVERY_MS
     ) {
         void request(true);
@@ -363,10 +377,12 @@ function setButton(on: boolean) {
 async function request(send: boolean) {
     if (ctx === undefined || sending) return;
     let body: Partial<OwnRun> = {};
+    let falls = 0;
     if (send) {
         if (mine === undefined || mine.runner.tick <= confirmed.upTo) return;
         const upTo = mine.runner.tick;
         body = { changes: mine.changes.filter((c) => c <= upTo), upTo };
+        falls = mine.runner.falls;
     }
     if (Date.now() < retryAt) return;
     sending = true;
@@ -386,11 +402,14 @@ async function request(send: boolean) {
             offset = result.ok ? Math.max(offset ?? -Infinity, sample) : sample;
         }
         if (result.own !== undefined) {
-            confirmed = { upTo: result.own.upTo, changes: result.own.changes.length };
             // The bot's run if it couldn't take the page's, or as the page opens, unless the
             // racer's pressed since
             const fresh = mine === undefined || mine.changes.length <= result.own.changes.length;
-            if (!result.ok || (!send && fresh)) setRun(result.own);
+            const taken = !result.ok || (!send && fresh);
+            if (taken) setRun(result.own);
+            // With its falls as the page sent them, or played from the bot's
+            if (taken) falls = mine?.runner.falls ?? 0;
+            confirmed = { upTo: result.own.upTo, changes: result.own.changes.length, falls };
         } else if (!send) {
             asked = false;
             retryAt = Date.now() + RETRY_MS;
@@ -422,8 +441,10 @@ function watch() {
     const s = shown();
     const course = courseOf(s);
     if (s?.changes === undefined || course === undefined) return;
-    const runner = startRunner(course);
-    const first = START_TICK - TICKS_PER_SECOND / 2;
+    const runner = startRunner(course, waitedForPress(s));
+    const first = waitedForPress(s)
+        ? Math.max(0, (s.changes[0] ?? 0) - TICKS_PER_SECOND / 2)
+        : START_TICK - TICKS_PER_SECOND / 2;
     runTo(course, runner, s.changes, first);
     watching = {
         changes: s.changes,
@@ -527,8 +548,11 @@ function render() {
         const winner = s.racers.find((r) => r.id === s.winner);
         const percent =
             course === undefined || winner === undefined ? 0 : percentOf(course, winner.tiles);
-        dom.status.textContent = describeResult(s, winner && { ...winner, percent }, (id) =>
-            nameOf(id, s.names),
+        dom.status.textContent = describeResult(
+            s,
+            winner && { ...winner, percent },
+            (id) => nameOf(id, s.names),
+            setOff(s),
         );
     } else if (runner?.mode === "done") {
         // Until the state says the race is over, as the page knows first
@@ -575,7 +599,9 @@ function renderBanner() {
     const go = toGo();
     let banner = "";
     if (go !== undefined && go > 0) {
-        banner = String(Math.ceil(go / TICKS_PER_SECOND));
+        // No more than the count, whatever the device's clock, until the page has the bot's
+        const count = START_TICK / TICKS_PER_SECOND;
+        banner = String(Math.min(count, Math.ceil(go / TICKS_PER_SECOND)));
     } else if (go !== undefined && go > -GO_TICKS) {
         banner = "Go!";
     } else if (canRace() && runner?.mode === "ready") {
@@ -597,12 +623,12 @@ function renderCount(s: SharedState) {
     const shownRacer = s.racers.find((r) => r.id === focusId(s));
     let text = "";
     if (watching !== undefined) {
-        text = `${nameOf(s.winner, s.names)}'s run · ${runTime(Math.max(0, watching.runner.tick))}`;
+        text = `${nameOf(s.winner, s.names)}'s run · ${runTime(watching.runner.tick, setOff(s))}`;
     } else if (shownRacer !== undefined && course !== undefined) {
         const r = progress(s, shownRacer);
         const where =
             r.finished !== undefined
-                ? runTime(r.finished)
+                ? runTime(r.finished, setOff(s))
                 : `${percentOf(course, r.tiles)}% of the way`;
         const who = r.id === ctx?.oc.userId ? "You" : nameOf(r.id, s.names);
         text = `${who}: ${where}, ${fallsText(r.falls)}`;
@@ -683,7 +709,7 @@ function renderStandings(s: SharedState, finished: boolean, whose: string | unde
             if (row.who.textContent !== who) row.who.textContent = who;
             const where =
                 r.finished !== undefined
-                    ? runTime(r.finished)
+                    ? runTime(r.finished, setOff(s))
                     : course === undefined
                       ? ""
                       : `${percentOf(course, r.tiles)}%`;

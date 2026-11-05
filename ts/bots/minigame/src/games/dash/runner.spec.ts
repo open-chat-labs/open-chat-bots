@@ -85,6 +85,16 @@ describe("a Dash runner", () => {
         expect(r.furthestAt).toBe(START_TICK + 1);
     });
 
+    it("waits for the first press instead, as runners did before setting off together", () => {
+        const r = startRunner(FLAT, true);
+        const x = r.x;
+        runTo(FLAT, r, [], 300);
+        expect(r).toMatchObject({ mode: "ready", x, tick: 300 });
+        // The press only sets it off
+        runTo(FLAT, r, [301, 302], 303);
+        expect(r).toMatchObject({ mode: "run", x: x + 2 * RUN_SPEED, y: GROUND });
+    });
+
     it("jumps higher the longer the button's held, up to near three tiles", () => {
         const tap = jumpHeight(1);
         const longer = jumpHeight(6);
