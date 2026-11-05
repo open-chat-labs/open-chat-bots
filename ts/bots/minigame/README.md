@@ -535,8 +535,9 @@ they've got for everyone else to see.
 - **The page** draws the course on a canvas, twelve tiles across, following the racer's runner,
   with everyone else faint where they've got furthest, and a line under it with everyone's dot. A
   press anywhere on the page but a button, Space or the up arrow jumps, as on a phone a thumb on
-  the course would hide it, and the page doesn't scroll while the racer's running. Someone
-  watching follows the leader.
+  the course would hide it, and the page doesn't scroll while the racer's running. In a card, the
+  keys reach the page only once it has the focus, which a mouse's press gives it, so until then
+  the hint says to click. Someone watching follows the leader.
 
 ## Adding a game
 
@@ -553,7 +554,9 @@ they've got for everyone else to see.
   default, the size the page is laid out for, which gives the frame in the card
   its aspect ratio, and its image, an SVG at that aspect ratio in `src/app/public`, which the
   definition lists with the app. Add the id to `GameKind`. The page is drawn as wide as the card, so
-  it has to work at a few hundred pixels, and full screen.
+  it has to work at a few hundred pixels, and full screen. Cap the game's column at
+  `calc(440px + var(--grow))`, as the others do, so that full screen on a laptop, where the frame's
+  taller than a card, makes its board that much bigger.
 - Add its requests under `src/handlers/api.ts`, through `act`, which verifies the player's token,
   the game's kind and the player's membership, and route them in `src/app.ts`.
 - Draw it under `src/app/<game>/` as a `GameView` (`src/app/view.ts`), and list it in `main.ts`,

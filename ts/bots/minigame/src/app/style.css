@@ -23,6 +23,10 @@
     --disc-1: #3f7fd0;
     /* Reversi's board */
     --felt: #2f7d4f;
+    /* How much taller the frame is than a card (most are 720 high), eg. full screen on a laptop: a
+       game's column, and so its board, is that much wider, so what fits round it in a card still
+       fits */
+    --grow: max(0px, 100vh - 720px);
     color-scheme: light;
 }
 
@@ -285,7 +289,7 @@ button.link {
 /* The big board, the player's own or the leader's */
 .main {
     width: 100%;
-    max-width: 400px;
+    max-width: calc(400px + var(--grow));
     margin: 0 auto;
 }
 
@@ -655,7 +659,7 @@ button.link {
     flex-direction: column;
     flex: 1;
     justify-content: center;
-    max-width: 440px;
+    max-width: calc(440px + var(--grow));
     width: 100%;
     margin: 0 auto;
 }
@@ -1192,7 +1196,7 @@ button.link {
     flex-direction: column;
     flex: 1;
     justify-content: center;
-    max-width: 440px;
+    max-width: calc(440px + var(--grow));
     width: 100%;
     margin: 0 auto;
 }
@@ -1530,7 +1534,7 @@ button.link {
     display: flex;
     flex-direction: column;
     flex: 1;
-    max-width: 440px;
+    max-width: calc(440px + var(--grow));
     width: 100%;
     margin: 0 auto;
 }
@@ -1573,7 +1577,7 @@ button.link {
     display: flex;
     flex-direction: column;
     flex: 1;
-    max-width: 440px;
+    max-width: calc(440px + var(--grow));
     width: 100%;
     margin: 0 auto;
 }
@@ -1664,7 +1668,7 @@ button.link {
     display: flex;
     flex-direction: column;
     flex: 1;
-    max-width: 440px;
+    max-width: calc(440px + var(--grow));
     width: 100%;
     margin: 0 auto;
     --ms-n1: #2f6fd0;
@@ -2014,6 +2018,9 @@ button.link {
     display: flex;
     flex-direction: column;
     align-items: center;
+    width: 100%;
+    max-width: calc(440px + var(--grow));
+    margin: 0 auto;
 }
 
 .wr-status {
@@ -2289,6 +2296,9 @@ button.link {
     display: flex;
     flex-direction: column;
     align-items: center;
+    width: 100%;
+    max-width: calc(440px + var(--grow));
+    margin: 0 auto;
 }
 
 .cr-status {
@@ -2446,7 +2456,7 @@ button.link {
     display: flex;
     flex-direction: column;
     flex: 1;
-    max-width: 440px;
+    max-width: calc(440px + var(--grow));
     width: 100%;
     margin: 0 auto;
 }
