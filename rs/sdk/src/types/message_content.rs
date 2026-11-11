@@ -647,6 +647,9 @@ pub struct PrizeContent {
     pub streak_only: u16,
     pub requires_captcha: bool,
     pub min_chit_earned: u32,
+    /// How long a claimer must have been registered for, if at all.
+    #[serde(default)]
+    pub min_account_age: Option<Milliseconds>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

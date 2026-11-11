@@ -1841,6 +1841,8 @@ function prizeContent(value: ApiPrizeContent): PrizeContent {
         token: value.token_symbol,
         endDate: value.end_date,
         caption: value.caption,
+        minAccountAgeMs:
+            value.min_account_age === undefined ? undefined : Number(value.min_account_age),
     };
 }
 

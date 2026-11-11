@@ -665,6 +665,8 @@ export interface PrizeContent {
     token: string;
     endDate: bigint;
     caption?: string;
+    /** How long a claimer must have been registered for, in ms, if at all. */
+    minAccountAgeMs?: number;
 }
 
 export interface PrizeContentInitial {
