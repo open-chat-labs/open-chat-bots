@@ -514,6 +514,7 @@ mod tests {
                 streak_only: 0,
                 requires_captcha: false,
                 min_chit_earned: 0,
+                min_account_age: None,
             })
         };
 
