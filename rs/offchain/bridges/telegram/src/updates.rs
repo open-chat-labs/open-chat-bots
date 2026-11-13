@@ -40,6 +40,13 @@ impl UpdateHandler {
 
     async fn message(&self, message: Message) -> Result<()> {
         let is_private = message.chat.kind == "private";
+        // Another bot's message, which Telegram only shows the bridge once Bot-to-Bot Communication
+        // Mode is on, is relayed but never answered, as two bots answering each other could go on
+        // forever. Nor is it a command, so a bot can't link itself, which would let it be tipped.
+        let from_bot = is_from_bot(&message);
+        if from_bot && is_private {
+            return Ok(());
+        }
         if let Some(shared) = message.chat_shared.as_ref().filter(|_| is_private) {
             let reply = self.channel_chosen(&message, shared).await;
             // The button it was chosen with is done with
@@ -54,6 +61,7 @@ impl UpdateHandler {
         }
         if let Some((command, arg)) = self
             .command(&message)
+            .filter(|_| !from_bot)
             .filter(|(command, arg)| is_private || is_group_command(command, arg.as_deref()))
         {
             if is_private && command == "bridge" {
@@ -453,7 +461,15 @@ pub fn author(message: &Message) -> BridgedUser {
         display_name: display_name.chars().take(MAX_DISPLAY_NAME_LENGTH).collect(),
         // Filled in by `Telegram::complete_author`, for a message it relays
         photo_id: None,
+        // No one can link a bot, so OpenChat doesn't let anyone tip its messages
+        bot: is_from_bot(message),
     })
+}
+
+/// Whether another bot sent the message. Not a group's anonymous admins, which Telegram sends as a
+/// bot, but with the group as the sender.
+fn is_from_bot(message: &Message) -> bool {
+    message.sender_chat.is_none() && message.from.as_ref().is_some_and(|from| from.is_bot)
 }
 
 /// A Telegram message's text as it's relayed into OpenChat, with labels for media, whose files
@@ -570,6 +586,9 @@ mod tests {
         };
         assert_eq!(user.id, -100);
         assert_eq!(user.display_name, "Example");
+        // Telegram sends a group's anonymous admins as a bot, but they're the group
+        assert!(!user.bot);
+        assert!(!is_from_bot(&anonymous));
 
         let named = message(json!({
             "message_id": 1,
@@ -583,6 +602,25 @@ mod tests {
         assert_eq!(user.id, 42);
         assert_eq!(user.display_name, "Nelly Smith");
         assert_eq!(user.username.as_deref(), Some("nelly"));
+        assert!(!user.bot);
+    }
+
+    // No one can link a bot, so OpenChat doesn't let anyone tip its messages, and the bridge
+    // doesn't answer it
+    #[test]
+    fn another_bots_message_is_flagged_as_a_bots() {
+        let from_bot = message(json!({
+            "message_id": 1,
+            "chat": { "id": -100, "type": "supergroup" },
+            "from": { "id": 7, "is_bot": true, "first_name": "Weather", "username": "weather_bot" },
+            "text": "/status",
+        }));
+        let BridgedUser::Telegram(user) = author(&from_bot) else {
+            panic!("Expected a Telegram user");
+        };
+        assert_eq!(user.id, 7);
+        assert!(user.bot);
+        assert!(is_from_bot(&from_bot));
     }
 
     #[test]

@@ -305,6 +305,7 @@ mod tests {
                 username: None,
                 display_name: "Ann".to_string(),
                 photo_id: photo_id.map(str::to_string),
+                bot: false,
             })
         };
         assert_eq!(

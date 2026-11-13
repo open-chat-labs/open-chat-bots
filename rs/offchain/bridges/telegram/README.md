@@ -63,6 +63,13 @@ the Discord bridge, are in [`../core`](../core).
   as its ledger gives it, a link to the message, and how to link their account. A bot can only
   message a user who has started a chat with it, so Telegram refuses it for anyone who hasn't, or
   who has blocked the bot. That's only logged.
+- **Other bots:** Telegram only shows a bot other bots' messages once its *Bot-to-Bot
+  Communication Mode* is on (see [Setting it up](#setting-it-up)). Their messages are then relayed
+  like anyone's, but:
+  - they're flagged as a bot's, and no one can link a bot, so OpenChat refuses tips on them;
+  - the bridge doesn't answer them, as two bots answering each other could go on forever. A bot's
+    commands, eg. `/start` with a code to link itself, and its private messages to the bridge, are
+    ignored.
 - **State** is kept in DynamoDB, in the same kind of table as the Discord bridge's. The two can share
   a table, as their keys don't overlap.
 - **Avatars:** a Telegram user's profile photo is copied to an S3 bucket behind a CDN, as
@@ -108,6 +115,9 @@ the Discord bridge, are in [`../core`](../core).
    - Note its token and username.
    - Run `/setprivacy` and choose *Disable*, so the bot sees every message in its groups, not just
      commands.
+   - Turn on *Bot-to-Bot Communication Mode*, so it also sees other bots' messages in its groups,
+     and relays them. Telegram doesn't show bots each other's messages otherwise, and `getMe`
+     doesn't say whether it's on, so the bridge can't warn if it's off.
 
 2. **An identity for the OpenChat bot,** made with dfx. Keep it secret, as it's what lets the
    bridge act as the bot. dfx's default storage keeps it encrypted in your keychain.

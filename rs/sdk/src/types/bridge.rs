@@ -134,6 +134,10 @@ pub struct TelegramUser {
     /// its own CDN, since the urls of Telegram's copies contain the bot's token. OpenChat builds the
     /// photo's url from it and the user's id. Up to 64 characters: letters, digits, `_` and `-`.
     pub photo_id: Option<String>,
+    /// A bot, which no one can link to an OpenChat account, so whose relayed messages OpenChat
+    /// doesn't let anyone tip
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub bot: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
