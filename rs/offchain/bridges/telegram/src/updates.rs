@@ -534,26 +534,26 @@ mod tests {
     #[test]
     fn commands_addressed_to_other_bots_are_left() {
         assert_eq!(
-            parse_command("/bridge", "OCBridgeBot"),
+            parse_command("/bridge", "OpenChat_Bot"),
             Some(("bridge".to_string(), None))
         );
         assert_eq!(
-            parse_command("/bridge@ocbridgebot", "OCBridgeBot"),
+            parse_command("/bridge@openchat_bot", "OpenChat_Bot"),
             Some(("bridge".to_string(), None))
         );
-        assert_eq!(parse_command("/bridge@OtherBot", "OCBridgeBot"), None);
+        assert_eq!(parse_command("/bridge@OtherBot", "OpenChat_Bot"), None);
         assert_eq!(
-            parse_command("/start abc123", "OCBridgeBot"),
+            parse_command("/start abc123", "OpenChat_Bot"),
             Some(("start".to_string(), Some("abc123".to_string())))
         );
         assert_eq!(
-            parse_command("/status@OCBridgeBot", "OCBridgeBot"),
+            parse_command("/status@OpenChat_Bot", "OpenChat_Bot"),
             Some(("status".to_string(), None))
         );
         // Linking is done from OpenChat, so /link is just a message
-        assert_eq!(parse_command("/link", "OCBridgeBot"), None);
-        assert_eq!(parse_command("/help", "OCBridgeBot"), None);
-        assert_eq!(parse_command("hello", "OCBridgeBot"), None);
+        assert_eq!(parse_command("/link", "OpenChat_Bot"), None);
+        assert_eq!(parse_command("/help", "OpenChat_Bot"), None);
+        assert_eq!(parse_command("hello", "OpenChat_Bot"), None);
     }
 
     #[test]
@@ -623,7 +623,7 @@ mod tests {
             "text": "/unbridge",
         });
         assert_eq!(
-            message_command(&message(post), "OCBridgeBot"),
+            message_command(&message(post), "OpenChat_Bot"),
             Some(("unbridge".to_string(), None))
         );
 
@@ -635,7 +635,7 @@ mod tests {
             "is_automatic_forward": true,
             "text": "/unbridge",
         }));
-        assert_eq!(message_command(&copy, "OCBridgeBot"), None);
+        assert_eq!(message_command(&copy, "OpenChat_Bot"), None);
     }
 
     #[test]
