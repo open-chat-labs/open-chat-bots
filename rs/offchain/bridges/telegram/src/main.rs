@@ -230,7 +230,7 @@ mod tests {
         let store = BridgeStore::new(Arc::new(InMemoryStore::default()), BridgePlatform::Telegram);
         let platform = Telegram {
             api: api.clone(),
-            username: "OCBridgeBot".to_string(),
+            username: "OpenChat_Bot".to_string(),
             avatars: None,
         };
         let bridge = Arc::new(Bridge::new(openchat, store, platform));
@@ -239,7 +239,7 @@ mod tests {
         let handler = UpdateHandler {
             bridge,
             api,
-            username: "OCBridgeBot".to_string(),
+            username: "OpenChat_Bot".to_string(),
         };
         webhook_router(handler, "secret".to_string())
     }
