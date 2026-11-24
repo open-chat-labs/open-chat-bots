@@ -50,6 +50,11 @@ export type DuelState<M> = {
     host?: string;
     /** Every move so far, as the game's rules write them */
     moves: M[];
+    /**
+     * In a game of chance, eg. backgammon, what the side to move rolled, while the game's on: the
+     * move they make with it carries it, so a replay needs it only for the move to come
+     */
+    roll?: string;
     clock?: ClockSnapshot;
     ending?: Ending;
     startedAt?: number;
@@ -69,6 +74,13 @@ export interface Position<M> {
     legalMoves(): M[];
     /** Plays a move for the side to move, giving why not if it can't be played */
     play(move: M): string | undefined;
+    /** In a game of chance, the side to move rolled this, which their move has to be made with */
+    rolled?(roll: string): void;
+    /**
+     * In a game of chance, the move that stands for none, when the roll gives the side to move
+     * nothing to play: the bot makes it for them
+     */
+    noMove?(): M | undefined;
 }
 
 /** What makes a duel one game rather than another: its rules, and how it says how it ended */
@@ -90,23 +102,33 @@ export type DuelRules<M, P extends Position<M>> = {
      * board size, which only the host's form shows otherwise
      */
     lobbyText?: (settings: Settings) => string;
+    /**
+     * For a game of chance, eg. backgammon's dice: what the bot rolls for the side to move before
+     * each move, which the page can't know ahead. `first` is the game's first roll.
+     */
+    roll?: (random: () => number, first: boolean) => string;
 };
 
 export function other(seat: Seat): Seat {
     return seat === 0 ? 1 : 0;
 }
 
-/** The position after the moves, or an error if one of them can't be played */
+/**
+ * The position after the moves, with the side to move's roll in a game of chance, or an error if
+ * one of them can't be played
+ */
 export function replay<M, P extends Position<M>>(
     rules: DuelRules<M, P>,
     moves: readonly M[],
     settings: Settings,
+    roll?: string,
 ): P {
     const position = rules.start(settings);
     moves.forEach((move, i) => {
         const error = position.play(move);
         if (error !== undefined) throw new Error(`Move ${i + 1}, ${String(move)}: ${error}`);
     });
+    if (roll !== undefined) position.rolled?.(roll);
     return position;
 }
 

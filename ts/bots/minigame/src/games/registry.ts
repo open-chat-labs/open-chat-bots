@@ -2,6 +2,7 @@
 // limits, and how to make one and read one back from the store. Another game adds an entry here,
 // its rules under `games/`, its requests under `handlers/api.ts` and its view under `app/`.
 import type { MiniAppSize } from "@open-ic/openchat-botclient-ts";
+import { BACKGAMMON } from "./backgammon/rules";
 import { ChatManRace, type ChatManData } from "./chatman/race";
 import { CHATMAN_SETTINGS } from "./chatman/settings";
 import { GAME_ID as CHATMAN_ID, MAX_PLAYERS as CHATMAN_MAX_PLAYERS } from "./chatman/types";
@@ -143,6 +144,9 @@ export const REVERSI_GAME = duelType(REVERSI, { width: 440, height: 640 });
 // The board's wider than it's tall
 export const HEX_GAME = duelType(HEX, { width: 440, height: 580 });
 
+// The board's wider than it's tall, with Undo and Done under it
+export const BACKGAMMON_GAME = duelType(BACKGAMMON, { width: 440, height: 600 });
+
 export const MAZE: GameType = {
     id: MAZE_ID,
     title: "Maze Race",
@@ -245,10 +249,13 @@ export const GAMES: readonly GameType[] = [
     WORD_RACE,
     CRATE_RACE,
     DASH_RACE,
+    BACKGAMMON_GAME,
 ];
 
 /** The games played as a duel (`games/duel`), whose moves and resignations are the same requests */
-export const DUELS: readonly GameKind[] = [FOUR, REVERSI_GAME, HEX_GAME].map((game) => game.id);
+export const DUELS: readonly GameKind[] = [FOUR, REVERSI_GAME, HEX_GAME, BACKGAMMON_GAME].map(
+    (game) => game.id,
+);
 
 export function gameType(id: string | undefined): GameType | undefined {
     return GAMES.find((game) => game.id === id);

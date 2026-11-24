@@ -45,6 +45,8 @@ export type DuelData<M> = {
     host?: string;
     hostName?: string;
     moves: M[];
+    /** In a game of chance, what the side to move rolled, while the game's on */
+    roll?: string;
     /**
      * Once the game starts: what each seat had left when its clock last stopped, and when the
      * side to move's turn started, which its clock runs from if it's moved before. Once it's over,
@@ -78,7 +80,7 @@ export class Duel<M, P extends Position<M>> implements Game {
         this.#data = data;
         this.#random = options.random ?? Math.random;
         this.#now = options.now ?? Date.now;
-        this.#position = replay(rules, data.moves, this.settings());
+        this.#position = replay(rules, data.moves, this.settings(), data.roll);
     }
 
     static create<M, P extends Position<M>>(
@@ -200,6 +202,7 @@ export class Duel<M, P extends Position<M>> implements Game {
             const perSide = settings.minutes * 60_000;
             this.#data.clock = { ms: [perSide, perSide], since: now };
             this.#data.startedAt = now;
+            this.#roll(true);
         }
         return this.#data.players.map((p) => p.id);
     }
@@ -323,8 +326,30 @@ export class Duel<M, P extends Position<M>> implements Game {
             clock.since = this.#now();
             const outcome = this.#position.outcome;
             if (outcome !== undefined) this.#end({ kind: "board", winner: outcome.winner });
+            else this.#roll(false);
             return undefined;
         });
+    }
+
+    /**
+     * In a game of chance, rolls for the side to move. While a roll gives them nothing to play,
+     * the bot makes the move that stands for none for them, taking none of their time, and rolls
+     * for the other side.
+     */
+    #roll(first: boolean): void {
+        const roll = this.#rules.roll;
+        if (roll === undefined) return;
+        // Backgammon can't block both sides for good, but the bot isn't to hang if a game could
+        for (let i = 0; i < 100; i++) {
+            this.#data.roll = roll(this.#random, first && i === 0);
+            this.#position.rolled?.(this.#data.roll);
+            const none = this.#position.noMove?.();
+            if (none === undefined) return;
+            const error = this.#position.play(none);
+            if (error !== undefined) throw new Error(`No move: ${error}`);
+            this.#data.moves.push(none);
+            this.#data.clock!.since = this.#now();
+        }
     }
 
     /** The user gives up, whoever's turn it is */
@@ -360,6 +385,7 @@ export class Duel<M, P extends Position<M>> implements Game {
         clock.ms[turn] = this.timeLeft(turn);
         clock.since = this.#now();
         this.#data.ending = ending;
+        this.#data.roll = undefined;
         this.#data.finishedAt ??= clock.since;
     }
 
@@ -378,6 +404,7 @@ export class Duel<M, P extends Position<M>> implements Game {
             settings: this.settings(),
             host: d.host,
             moves: [...d.moves],
+            roll: d.roll,
             clock:
                 d.clock === undefined
                     ? undefined

@@ -14,7 +14,8 @@ export type GameKind =
     | "hex"
     | "words"
     | "crates"
-    | "dash";
+    | "dash"
+    | "backgammon";
 
 export type ConfigureResult = { ok: true } | { ok: false; error: string };
 

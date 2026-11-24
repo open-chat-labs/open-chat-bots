@@ -2,7 +2,7 @@
 
 Games played from MiniApp cards in OpenChat chats. `/play <game>` posts a card with whoever ran the
 command in the game already, as its host; others join from the card, the host starts the game, and
-it's played in the card, in the bot's own page. Eleven games:
+it's played in the card, in the bot's own page. Twelve games:
 
 - a **2048 race**: up to 100 players, each on their own board, and the first to make a 2048 tile
   wins, or the top score when 10 minutes are up. A player whose board gets stuck restarts on a fresh
@@ -61,7 +61,14 @@ it's played in the card, in the bot's own page. Eleven games:
   themselves. A tap anywhere jumps, higher the longer it's held, over spikes and pits and up
   steps, and a spike or a pit sends the runner back to the last checkpoint. The first to the flag
   wins, or whoever got furthest when the 3 minutes are up.
-  It's built from scratch, its courses and look its own (see "Dash Race").
+  It's built from scratch, its courses and look its own (see "Dash Race");
+- **backgammon**: two players, which everyone else can watch, with ten minutes each on the clock
+  and who goes first chosen at random, unless the host sets otherwise. The bot rolls the dice for
+  each turn, the first never a double, and the player moves their checkers a die at a time, with
+  Undo, then sends the turn with Done; a roll with no move is played by the bot. The usual rules:
+  hits and the bar, as many dice used as can be, the higher die if only one can be, bearing off.
+  The first to bear off all 15 wins, the result saying if it's a gammon or a backgammon. There's
+  no doubling cube. Its rules are built from scratch, and it's a duel too.
 
 The bot is a TypeScript Express server, built on the SDK in [`ts/library`](../../library), and the
 page is a small browser app built with Vite from the same source tree, so the server and the page
@@ -87,7 +94,7 @@ which the store, the handlers, the sweep and the publisher use, and which each g
 2. **Joining** goes through OpenChat's buttons on the card. The service asks the bot at
    `POST /mini_app/join`, which looks the user's name up and gives them a seat: up to 100 in a race,
    10 in a maze race, at ChatMan or in a Minesweeper race, 20 in a Word Race, a Crate Race or a
-   Dash Race, two at chess, Four in a Row, Reversi and Hex ("This game is for two" after that, "The
+   Dash Race, two at chess, Four in a Row, Reversi, Hex and backgammon ("This game is for two" after that, "The
    game has started" once it has).
    Leaving, `POST /mini_app/leave`, frees the seat before the start. After it, a race goes on
    without them; a game of two can't, so it ends, the result being that they "left the game". The
@@ -120,6 +127,10 @@ which the store, the handlers, the sweep and the publisher use, and which each g
      and its row 1 to 8 from the top, and `POST /api/reversi/resign`, answering the same way.
    - **Hex**: `POST /api/hex/move` with `{ "move": "e5" }`, the cell, its column from a and its
      row from 1 at the top, or `{ "move": "swap" }`, and `POST /api/hex/resign`.
+   - **Backgammon**: `POST /api/backgammon/move` with `{ "move": "31:8/5,6/5" }`, a whole turn:
+     the dice the state's `roll` gave, the higher first, then each checker moved a die at a time,
+     from the mover's own point to point, counted from 24 down to 1, home, with `bar` and `off`,
+     and `POST /api/backgammon/resign`.
    - **Maze race**: each move goes over the live socket,
      `{ "type": "act", "body": { "move": "left", "n": 7 } }`, where `n` counts the racer's moves
      from 1, and the bot sends the new state to every racer at once; `POST /api/maze/move` with the
@@ -160,7 +171,7 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    state carries what each side has left, whose clock is running, and the time left for a first
    move while one's awaited; the page counts down from the state's `clock.at`, and when the side to
    move's flag falls the other side wins "on time", or it's a draw if they haven't the material to
-   mate with. The duels' clocks are the same, with three or five minutes each unless set, and a
+   mate with. The duels' clocks are the same, with three, five or ten minutes each unless set, and a
    flag falling always loses. A maze race ends when its 3 minutes are up, and whoever's closest to
    the way out wins. ChatMan's boards play on by themselves, so the bot plays them on every second
    too, and publishes them; a game ends when its 3 minutes are up, or everyone's out of lives, and
@@ -289,8 +300,8 @@ service's 16 KB. The page draws the top twenty boards and lists the rest with th
 
 ## Duels
 
-Four in a Row, Reversi and Hex are duels: games for two who take turns, each with a clock for the
-whole game. What every duel shares is in `src/games/duel`: the seats, who goes first (the `first`
+Four in a Row, Reversi, Hex and backgammon are duels: games for two who take turns, each with a
+clock for the whole game. What every duel shares is in `src/games/duel`: the seats, who goes first (the `first`
 setting, "Turn order" in the lobby: random, the host, or the host's opponent), the clocks,
 resigning, leaving, and the result, naming the players with mentions. A game brings its rules, a
 `Position` that the bot and the page both replay from the moves (eg.
@@ -298,7 +309,14 @@ resigning, leaving, and the result, naming the players with mentions. A game bri
 page (`src/app/duel/view.ts`), which can also give a count to show by each player's name and a note
 under whose move it is, as Reversi's discs and passes, and moves that aren't on the board, as
 buttons beside Resign, as Hex's swap. The rules start the board from the game's settings, as Hex's
-size is one, and can add to what the lobby says of the game. Its requests are
+size is one, and can add to what the lobby says of the game. A game of chance, as backgammon is,
+gives its rules a `roll`, which the bot makes for the side to move before each move, as the page
+can't know it ahead: the state carries it as `roll` while the game's on, the move made with it
+carries it, so a replay needs no roll, and when the roll gives the side to move nothing to play
+(the position's `noMove`), the bot plays that for them, taking none of their time, and rolls for
+the other side. A board can keep taps to itself (`onTap`), as backgammon builds a turn a checker
+at a time before it's sent, and its buttons beside Resign can be such taps, as its Undo is. Its
+requests are
 `POST /api/<game>/move` and `POST /api/<game>/resign`, routed for each game in `DUELS`. The state
 carries the moves rather than the board, so it stays small, and the page shows players by their
 usernames, looked up by id (`GET /api/names`), as the card names them:
@@ -313,6 +331,7 @@ usernames, looked up by id (`GET /api/names`), as the card names them:
   "settings": { "first": 0, "minutes": 3 },
   "host": "<user id>",
   "moves": [3, 3, 4],
+  "roll": "31",
   "clock": { "at": 1761800000000, "ms": [176000, 178000], "running": 1 | null },
   "ending": { "kind": "board" | "resignation" | "timeout" | "abandonment", "winner": 0 | 1 | null },
   "startedAt": 1761799990000,
@@ -321,6 +340,7 @@ usernames, looked up by id (`GET /api/names`), as the card names them:
 ```
 
 where `players` are in seat order once the game starts, the first to move first, a seat is 0 or 1,
+`roll` is only in a game of chance,
 `clock` is there once the game has started, with `firstMoveMs`, the time left for a first move,
 added while the side to move has yet to make one, when `running` is null, and `ending` once it's
 over, a `null` winner being a draw. A game called off as a first move wasn't made in time ends
