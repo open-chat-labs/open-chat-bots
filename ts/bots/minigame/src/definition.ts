@@ -22,7 +22,8 @@ export const definition = {
         "or race up to 20 players to guess the same five-letter word, each with six guesses, " +
         "or race up to 20 players to push the same crates onto their goals, each on their own " +
         "copy of the level, or race up to 20 players along the same course, tapping to jump, " +
-        "where the first to the flag wins.",
+        "where the first to the flag wins, or play backgammon, two players racing their " +
+        "checkers home and off the board, which anyone can watch.",
     commands: [
         {
             name: "play",

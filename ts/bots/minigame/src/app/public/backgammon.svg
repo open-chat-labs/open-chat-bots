@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 600" width="440" height="600" role="img" aria-label="Backgammon">
+  <!--
+    Backgammon's image, at the app's aspect ratio (440 by 600): OpenChat shows it in the card's
+    frame box whenever there's no app to show. Its background is opaque, in OpenChat's theme, light
+    or dark (below). No fonts, scripts or references. The board is drawn as the page draws it
+    (src/app/backgammon/view.ts), with a game under way, from the light checkers' side.
+  -->
+  <!-- OpenChat names its theme in the image's fragment, as it does in the app's, eg.
+       backgammon.svg#oc_theme=dark, which targets the group below. In a dark one, the colours are
+       the page's dark ones (style.css). -->
+  <style>
+    :root:has([id="oc_theme=dark"]:target) [fill="#faf8ef"] { fill: #1b1a19 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#7a5230"] { fill: #4f3520 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#2f6b4f"] { fill: #24533d }
+    :root:has([id="oc_theme=dark"]:target) [fill="#d9bf8c"] { fill: #b39a6c }
+    :root:has([id="oc_theme=dark"]:target) [fill="#a3412f"] { fill: #843426 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#5e3f25"] { fill: #3d2918 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#f3eee2"] { fill: #e6dfd0 }
+    :root:has([id="oc_theme=dark"]:target) [fill="#2c2825"] { fill: #1f1c1a }
+  </style>
+  <g id="oc_theme=dark"/>
+  <rect width="440" height="600" fill="#faf8ef"/>
+  <g transform="translate(20 144.16) scale(2.5974)">
+    <rect x="0" y="0" width="154" height="120" rx="2" fill="#7a5230"/>
+    <rect x="4" y="4" width="60" height="112" fill="#2f6b4f"/>
+    <rect x="74" y="4" width="60" height="112" fill="#2f6b4f"/>
+    <rect x="138" y="4" width="12" height="112" fill="#5e3f25"/>
+    <polygon points="124,116 134,116 129.0,68" fill="#a3412f"/>
+    <polygon points="114,116 124,116 119.0,68" fill="#d9bf8c"/>
+    <circle cx="119.0" cy="111.00" r="4.6" fill="#2c2825" stroke="#ffffff59" stroke-width="0.6"/>
+    <circle cx="119.0" cy="101.00" r="4.6" fill="#2c2825" stroke="#ffffff59" stroke-width="0.6"/>
+    <polygon points="104,116 114,116 109.0,68" fill="#a3412f"/>
+    <circle cx="109.0" cy="111.00" r="4.6" fill="#2c2825" stroke="#ffffff59" stroke-width="0.6"/>
+    <circle cx="109.0" cy="101.00" r="4.6" fill="#2c2825" stroke="#ffffff59" stroke-width="0.6"/>
+    <polygon points="94,116 104,116 99.0,68" fill="#d9bf8c"/>
+    <circle cx="99.0" cy="111.00" r="4.6" fill="#f3eee2" stroke="#00000073" stroke-width="0.6"/>
+    <polygon points="84,116 94,116 89.0,68" fill="#a3412f"/>
+    <circle cx="89.0" cy="111.00" r="4.6" fill="#f3eee2" stroke="#00000073" stroke-width="0.6"/>
+    <circle cx="89.0" cy="101.00" r="4.6" fill="#f3eee2" stroke="#00000073" stroke-width="0.6"/>
+    <polygon points="74,116 84,116 79.0,68" fill="#d9bf8c"/>
+    <circle cx="79.0" cy="111.00" r="4.6" fill="#f3eee2" stroke="#00000073" stroke-width="0.6"/>
+    <circle cx="79.0" cy="101.00" r="4.6" fill="#f3eee2" stroke="#00000073" stroke-width="0.6"/>
+    <circle cx="79.0" cy="91.00" r="4.6" fill="#f3eee2" stroke="#00000073" stroke-width="0.6"/>
+    <circle cx="79.0" cy="81.00" r="4.6" fill="#f3eee2" stroke="#00000073" stroke-width="0.6"/>
+    <polygon points="54,116 64,116 59.0,68" fill="#a3412f"/>
+    <polygon points="44,116 54,116 49.0,68" fill="#d9bf8c"/>
+    <circle cx="49.0" cy="111.00" r="4.6" fill="#f3eee2" stroke="#00000073" stroke-width="0.6"/>
+    <circle cx="49.0" cy="101.00" r="4.6" fill="#f3eee2" stroke="#00000073" stroke-width="0.6"/>
+    <polygon points="34,116 44,116 39.0,68" fill="#a3412f"/>
+    <polygon points="24,116 34,116 29.0,68" fill="#d9bf8c"/>
+    <polygon points="14,116 24,116 19.0,68" fill="#a3412f"/>
+    <polygon points="4,116 14,116 9.0,68" fill="#d9bf8c"/>
+    <circle cx="9.0" cy="111.00" r="4.6" fill="#2c2825" stroke="#ffffff59" stroke-width="0.6"/>
+    <circle cx="9.0" cy="101.00" r="4.6" fill="#2c2825" stroke="#ffffff59" stroke-width="0.6"/>
+    <circle cx="9.0" cy="91.00" r="4.6" fill="#2c2825" stroke="#ffffff59" stroke-width="0.6"/>
+    <polygon points="4,4 14,4 9.0,52" fill="#a3412f"/>
+    <circle cx="9.0" cy="9.00" r="4.6" fill="#f3eee2" stroke="#00000073" stroke-width="0.6"/>
+    <circle cx="9.0" cy="19.00" r="4.6" fill="#f3eee2" stroke="#00000073" stroke-width="0.6"/>
+    <circle cx="9.0" cy="29.00" r="4.6" fill="#f3eee2" stroke="#00000073" stroke-width="0.6"/>
+    <circle cx="9.0" cy="39.00" r="4.6" fill="#f3eee2" stroke="#00000073" stroke-width="0.6"/>
+    <polygon points="14,4 24,4 19.0,52" fill="#d9bf8c"/>
+    <polygon points="24,4 34,4 29.0,52" fill="#a3412f"/>
+    <polygon points="34,4 44,4 39.0,52" fill="#d9bf8c"/>
+    <polygon points="44,4 54,4 49.0,52" fill="#a3412f"/>
+    <circle cx="49.0" cy="9.00" r="4.6" fill="#2c2825" stroke="#ffffff59" stroke-width="0.6"/>
+    <circle cx="49.0" cy="19.00" r="4.6" fill="#2c2825" stroke="#ffffff59" stroke-width="0.6"/>
+    <circle cx="49.0" cy="29.00" r="4.6" fill="#2c2825" stroke="#ffffff59" stroke-width="0.6"/>
+    <polygon points="54,4 64,4 59.0,52" fill="#d9bf8c"/>
+    <polygon points="74,4 84,4 79.0,52" fill="#a3412f"/>
+    <circle cx="79.0" cy="9.00" r="4.6" fill="#2c2825" stroke="#ffffff59" stroke-width="0.6"/>
+    <circle cx="79.0" cy="19.00" r="4.6" fill="#2c2825" stroke="#ffffff59" stroke-width="0.6"/>
+    <circle cx="79.0" cy="29.00" r="4.6" fill="#2c2825" stroke="#ffffff59" stroke-width="0.6"/>
+    <circle cx="79.0" cy="39.00" r="4.6" fill="#2c2825" stroke="#ffffff59" stroke-width="0.6"/>
+    <polygon points="84,4 94,4 89.0,52" fill="#d9bf8c"/>
+    <polygon points="94,4 104,4 99.0,52" fill="#a3412f"/>
+    <polygon points="104,4 114,4 109.0,52" fill="#d9bf8c"/>
+    <polygon points="114,4 124,4 119.0,52" fill="#a3412f"/>
+    <polygon points="124,4 134,4 129.0,52" fill="#d9bf8c"/>
+    <circle cx="129.0" cy="9.00" r="4.6" fill="#f3eee2" stroke="#00000073" stroke-width="0.6"/>
+    <circle cx="129.0" cy="19.00" r="4.6" fill="#f3eee2" stroke="#00000073" stroke-width="0.6"/>
+    <circle cx="69.0" cy="49.00" r="4.6" fill="#2c2825" stroke="#ffffff59" stroke-width="0.6"/>
+    <rect x="94.55" y="55.80" width="8.4" height="8.4" rx="1.6" fill="#fbf9f4" stroke="#00000080" stroke-width="0.4"/>
+    <circle cx="96.55" cy="57.80" r="0.85" fill="#3b3630"/>
+    <circle cx="100.95" cy="57.80" r="0.85" fill="#3b3630"/>
+    <circle cx="96.55" cy="60.00" r="0.85" fill="#3b3630"/>
+    <circle cx="100.95" cy="60.00" r="0.85" fill="#3b3630"/>
+    <circle cx="96.55" cy="62.20" r="0.85" fill="#3b3630"/>
+    <circle cx="100.95" cy="62.20" r="0.85" fill="#3b3630"/>
+    <rect x="105.05" y="55.80" width="8.4" height="8.4" rx="1.6" fill="#fbf9f4" stroke="#00000080" stroke-width="0.4"/>
+    <circle cx="107.05" cy="57.80" r="0.85" fill="#3b3630"/>
+    <circle cx="109.25" cy="60.00" r="0.85" fill="#3b3630"/>
+    <circle cx="111.45" cy="62.20" r="0.85" fill="#3b3630"/>
+  </g>
+</svg>

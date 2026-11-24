@@ -42,15 +42,28 @@ export type DuelBoard<M, P extends Position<M>> = {
     ): void;
     /** The move a tapped element with `data-move` stands for */
     moveOf(el: HTMLElement): M | undefined;
+    /**
+     * A tap the board keeps to itself, on an element with `data-action="board"`, while the viewer
+     * can move, eg. backgammon's checkers, moved one at a time before the turn's sent. The page's
+     * drawn again after it.
+     */
+    onTap?(el: HTMLElement, position: P): void;
     /** What a seat has on the board, eg. Reversi's discs, shown by the player's name */
-    score?(position: P, seat: Seat): number;
+    score?(position: P, seat: Seat): number | string;
     /** Something about the position worth saying under whose move it is, eg. that a player passed */
     note?(position: P, name: (seat: Seat) => string): string | undefined;
     /**
      * Moves that aren't on the board, eg. Hex's swap, which the player to move gets as buttons
-     * beside Resign: a button carries `data-move` with the move, as `moveOf` reads it
+     * beside Resign: a button carries `data-move` with the move, as `moveOf` reads it. A button
+     * can be a tap the board keeps to itself instead, eg. backgammon's Undo, carrying `data-tap`
+     * for `onTap`.
      */
-    extraMoves?(position: P): { move: M; label: string }[];
+    extraMoves?(position: P): ExtraButton<M>[];
+};
+
+export type ExtraButton<M> = ({ move: M } | { tap: string }) & {
+    label: string;
+    disabled?: boolean;
 };
 
 type Dom = {
@@ -237,7 +250,7 @@ export function duelView<M, P extends Position<M>>(
         if (dom === undefined || s === undefined || ctx === undefined) return;
         if (s.phase !== "open") fetchUsernames(ctx, s.players);
         const moves = end !== undefined ? end.moves.slice(0, ply) : s.moves;
-        const position = replay(rules, moves, s.settings);
+        const position = replay(rules, moves, s.settings, end === undefined ? s.roll : undefined);
         const mine = mySeat(s);
         const playable = canMove(s, position);
 
@@ -303,10 +316,14 @@ export function duelView<M, P extends Position<M>>(
         dom.resign.disabled = sending;
         const extra = playable ? (board.extraMoves?.(position) ?? []) : [];
         const extraHtml = extra
-            .map(
-                ({ move, label }) =>
-                    `<button type="button" data-action="play" data-move="${escape(String(move))}">${escape(label)}</button>`,
-            )
+            .map((button) => {
+                const action =
+                    "move" in button
+                        ? `data-action="play" data-move="${escape(String(button.move))}"`
+                        : `data-action="board" data-tap="${escape(button.tap)}"`;
+                const disabled = button.disabled === true ? " disabled" : "";
+                return `<button type="button" ${action}${disabled}>${escape(button.label)}</button>`;
+            })
             .join("");
         // Replaced only when it's changed, so a press on a button isn't lost to a redraw
         if (extraDrawn !== extraHtml) {
@@ -441,6 +458,14 @@ export function duelView<M, P extends Position<M>>(
                     if (s === undefined || !canMove(s, replay(rules, s.moves, s.settings))) return;
                     const move = board.moveOf(el);
                     if (move !== undefined) void call("move", { move });
+                    break;
+                }
+                case "board": {
+                    if (s === undefined || board.onTap === undefined) return;
+                    const position = replay(rules, s.moves, s.settings, s.roll);
+                    if (!canMove(s, position)) return;
+                    board.onTap(el, position);
+                    render();
                     break;
                 }
                 case "resign":
