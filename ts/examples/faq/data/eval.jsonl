@@ -1,0 +1,6 @@
+{"query": "What is OpenChat?", "expected_keyword": "decentralized chat platform"}
+{"query": "How do I sign in?", "expected_keyword": "Internet Identity"}
+{"query": "What types of bots exist?", "expected_keyword": "command bots"}
+{"query": "How do bots authenticate with OpenChat?", "expected_keyword": "JWT"}
+{"query": "How can I test a bot locally?", "expected_keyword": "register_bot"}
+{"query": "Where do I register a bot?", "expected_keyword": "register_bot"}
