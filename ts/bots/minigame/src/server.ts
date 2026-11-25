@@ -6,6 +6,8 @@ import {
     type MiniAppServiceClient,
 } from "@open-ic/openchat-botclient-ts";
 import { createApp } from "./app";
+import { StockfishEngine } from "./computer/engine";
+import { ComputerPlayer } from "./computer/player";
 import { configFromEnv } from "./config";
 import type { Deps } from "./deps";
 import { LiveHub } from "./live";
@@ -82,6 +84,11 @@ const deps: Deps = {
     raceSettings: config.raceSettings,
 };
 
+// The computer's moves, at chess against it
+const engine = new StockfishEngine();
+const computer = new ComputerPlayer(engine, store, deps.publisher);
+deps.computer = computer;
+
 deps.publisher.publishUnfinished();
 
 // Players of a live game get each change at once over a socket, wherever the change came from
@@ -94,7 +101,12 @@ const server = app.listen(config.port, () => {
 });
 live.attach(server);
 
-setInterval(() => endGamesOutOfTime(store, deps.publisher), SWEEP_EVERY_MS).unref();
+setInterval(() => {
+    endGamesOutOfTime(store, deps.publisher);
+    // Any game whose move is the computer's and isn't being searched, eg. one loaded as the bot
+    // started, or whose search failed
+    computer.pokeAll();
+}, SWEEP_EVERY_MS).unref();
 
 setInterval(() => {
     const dropped = store.prune();
@@ -103,6 +115,7 @@ setInterval(() => {
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
     process.on(signal, () => {
+        engine.stop();
         store.flush();
         process.exit(0);
     });

@@ -82,6 +82,8 @@ async function act<G extends Game>(
     if (endedNow || changed) {
         deps.store.save();
         deps.publisher.publish(game);
+        // eg. the human's move at chess against the computer, which now replies
+        deps.computer?.poke(game);
     }
     res.status(result.ok ? 200 : 409).json(result);
 }

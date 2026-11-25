@@ -1,8 +1,10 @@
-// A game of chess between two members of a chat, which everyone else can watch. Two join; when the
-// host starts the game, White is whoever the settings say, or is chosen at random, and it's
+// A game of chess between two members of a chat, or between the host and the computer, which
+// everyone else can watch. Two join, or the host alone when the settings pick the computer; when
+// the host starts the game, White is whoever the settings say, or is chosen at random, and it's
 // White's move, with each side's time and the increment from the settings, though a side's clock
 // doesn't run for its first move. The rules and the clocks are the `Match`'s; this knows who plays
-// each side, and what the card and the app are told.
+// each side, and what the card and the app are told. The computer's moves come from the bot's
+// engine (`computer/`), which asks `computerTurn` and answers with `playComputer`.
 import {
     jsonBytes,
     MAX_END_STATE_BYTES,
@@ -14,8 +16,15 @@ import {
 } from "../game";
 import { defaultSettings, type Settings } from "../settings";
 import { describe, Match, type MatchData } from "./match";
-import { CHESS_SETTINGS, WHITE_IS_HOST, WHITE_IS_OPPONENT } from "./settings";
 import {
+    CHESS_SETTINGS,
+    computerLevel,
+    computerName,
+    WHITE_IS_HOST,
+    WHITE_IS_OPPONENT,
+} from "./settings";
+import {
+    COMPUTER,
     GAME_ID,
     STATE_VERSION,
     type ActionResponse,
@@ -130,6 +139,9 @@ export class ChessGame implements Game {
     join(userId: string, name: string): string | undefined {
         if (this.#match !== undefined) return "The game has started";
         if (this.isSeated(userId)) return undefined;
+        if (this.#againstComputer() && userId !== this.#data.host) {
+            return "The host is playing the computer";
+        }
         if (this.#data.players.length >= 2) return "This game is for two";
         this.#data.players.push({ id: userId, name });
         return undefined;
@@ -156,15 +168,30 @@ export class ChessGame implements Game {
 
     cannotStart(): string | undefined {
         if (this.#match !== undefined) return undefined;
+        if (this.#againstComputer()) {
+            const host = this.#data.host;
+            return host !== undefined && this.isSeated(host)
+                ? undefined
+                : "The host plays the computer";
+        }
         if (this.#data.players.length < 2) return "Chess needs two players";
         return undefined;
     }
 
     /**
-     * Starts the game between the two who've joined. White, who moves first, is the host or their
-     * opponent if the settings say so and the host is playing; otherwise it's random.
+     * Starts the game between the two who've joined, or between the host and the computer, with
+     * anyone else who joined meanwhile left out. White, who moves first, is the host or their
+     * opponent if the settings say so and the host is playing; otherwise it's random. The
+     * players the service is told of are only the people.
      */
     start(): string[] {
+        const level = computerLevel(this.settings());
+        if (this.#match === undefined && level !== undefined && this.#data.host !== undefined) {
+            const host = this.#data.players.find((p) => p.id === this.#data.host);
+            if (host !== undefined) {
+                this.#data.players = [host, { id: COMPUTER, name: computerName(level) }];
+            }
+        }
         if (this.#match === undefined && this.#data.players.length === 2) {
             const settings = this.settings();
             const host = this.#data.host;
@@ -187,14 +214,58 @@ export class ChessGame implements Game {
             this.#data.match = this.#match.data;
             this.#data.startedAt = now;
         }
-        return this.#data.players.map((p) => p.id);
+        return this.#data.players.map((p) => p.id).filter((id) => id !== COMPUTER);
     }
 
-    /** The player whose move it is, while the game's on */
+    /** The player whose move it is, while the game's on, but for the computer */
     waitingFor(): string[] {
         if (this.#match === undefined || this.#match.isOver) return [];
         const id = this.#match.turn === "white" ? this.white : this.black;
-        return id === undefined ? [] : [id];
+        return id === undefined || id === COMPUTER ? [] : [id];
+    }
+
+    /** The computer's level, if it plays in this game, or will once it starts */
+    get computerLevel(): number | undefined {
+        if (this.#match === undefined) return computerLevel(this.settings());
+        return this.isSeated(COMPUTER) ? computerLevel(this.settings()) : undefined;
+    }
+
+    #againstComputer(): boolean {
+        return this.#match === undefined
+            ? computerLevel(this.settings()) !== undefined
+            : this.isSeated(COMPUTER);
+    }
+
+    /**
+     * When it's the computer's move: the position, as FEN, its level, and how many moves have
+     * been made, which `playComputer` is given back, so a move found for an earlier position isn't
+     * played
+     */
+    computerTurn(): { fen: string; level: number; ply: number } | undefined {
+        const match = this.#match;
+        const level = this.computerLevel;
+        if (match === undefined || match.isOver || level === undefined) return undefined;
+        const id = match.turn === "white" ? this.white : this.black;
+        if (id !== COMPUTER) return undefined;
+        return { fen: match.fens[match.fens.length - 1], level, ply: match.moves.length };
+    }
+
+    /**
+     * Plays the computer's move, given as UCI, if it's still its move in the position it was
+     * found for, `ply` moves in. Whether it was played.
+     */
+    playComputer(ply: number, uci: string): boolean {
+        const match = this.#match;
+        if (this.computerTurn()?.ply !== ply || match === undefined) return false;
+        // A flag that's fallen first is the result
+        if (this.endIfTimeUp()) return false;
+        const error = match.play(match.turn, uci, this.#now());
+        if (error !== undefined) {
+            console.error(`The computer's move ${uci} wasn't played: ${error}`);
+            return false;
+        }
+        if (match.isOver) this.#finished();
+        return true;
     }
 
     /** Every setting as it stands: the ones chosen over the defaults */
@@ -251,9 +322,16 @@ export class ChessGame implements Game {
         return this.#act(userId, (match, side) => match.resign(side, this.#now()));
     }
 
-    /** Offers the other player a draw, or accepts theirs if it stands, which ends the game */
+    /**
+     * Offers the other player a draw, or accepts theirs if it stands, which ends the game. The
+     * computer plays on.
+     */
     offerDraw(userId: string): ActionResponse {
-        return this.#act(userId, (match, side) => match.offerDraw(side, this.#now()));
+        return this.#act(userId, (match, side) =>
+            this.isSeated(COMPUTER)
+                ? "The computer plays on: resign to end the game"
+                : match.offerDraw(side, this.#now()),
+        );
     }
 
     // Something the user does to the board as the side they play

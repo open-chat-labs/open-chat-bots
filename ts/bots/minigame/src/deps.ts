@@ -1,6 +1,7 @@
 // What the request handlers share
 import type {
     BotClientFactory,
+    MiniAppGame,
     MiniAppServiceClient,
     MiniAppTokens,
 } from "@open-ic/openchat-botclient-ts";
@@ -22,4 +23,6 @@ export type Deps = {
     tokens: () => Promise<MiniAppTokens>;
     /** A race's settings unless the host sets them, eg. a quick race for a test */
     raceSettings?: Settings;
+    /** Plays the computer's move in a game, if it's the computer's move (`computer/player.ts`) */
+    computer?: { poke(game: MiniAppGame): unknown };
 };

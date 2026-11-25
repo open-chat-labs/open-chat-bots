@@ -132,6 +132,17 @@ export interface Game {
     /** The game's whole state, for the store to write; the registry's `fromJson` reads it back */
     toJson(): unknown;
     /**
+     * When it's the move of a side the bot plays itself, the computer at chess: the position, as
+     * FEN, the computer's level, and how many moves have been made. Left out by a game the bot
+     * never plays in.
+     */
+    computerTurn?(): { fen: string; level: number; ply: number } | undefined;
+    /**
+     * Plays the computer's move, found for the position `ply` moves in, if that's still the
+     * position. Whether it was played.
+     */
+    playComputer?(ply: number, move: string): boolean;
+    /**
      * A player's message over the live socket (`live.ts`), for a game played live, eg. a move: the
      * socket's checked their token and that they're seated. Every change goes to everyone connected
      * at once, as the shared state, as well as through the service. Left out by a game that isn't
