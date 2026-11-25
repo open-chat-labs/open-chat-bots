@@ -1,8 +1,8 @@
 // Stockfish itself, run as the bot runs it: a legal move at every level, the mate when there's
-// one at the top level, and a fresh process after it's stopped
+// one at the top level, a search cut short, a fresh process after it's stopped, and a pool
 import { Chess } from "chess.js";
 import { afterAll, describe, expect, it } from "vitest";
-import { LEVELS, StockfishEngine } from "./engine";
+import { LEVELS, StockfishEngine, StockfishPool } from "./engine";
 
 const engine = new StockfishEngine();
 afterAll(() => engine.stop());
@@ -40,5 +40,24 @@ describe("Stockfish", () => {
         engine.stop();
         expect(await engine.bestMove(SCHOLARS, 8)).toBe("h5f7");
         await expect(engine.bestMove(SCHOLARS, 9)).rejects.toThrow("There's no level 9");
+    }, 30_000);
+
+    it("cuts a search short when the computer's short of time", async () => {
+        const fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1";
+        await engine.bestMove(fen, 1);
+        const started = Date.now();
+        expect(isLegal(fen, await engine.bestMove(fen, 8, 50))).toBe(true);
+        // Level 8 would think for a second
+        expect(Date.now() - started).toBeLessThan(600);
+    }, 30_000);
+
+    it("shares searches out across a pool of processes", async () => {
+        const pool = new StockfishPool(2);
+        try {
+            const moves = await Promise.all([1, 2, 3, 4].map(() => pool.bestMove(SCHOLARS, 8)));
+            expect(moves).toEqual(["h5f7", "h5f7", "h5f7", "h5f7"]);
+        } finally {
+            pool.stop();
+        }
     }, 30_000);
 });

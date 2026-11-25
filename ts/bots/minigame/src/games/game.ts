@@ -35,6 +35,9 @@ export type Seat = { id: string; name: string };
 
 export type Phase = "open" | "active" | "finished";
 
+/** The computer's move to find (`Game.computerTurn`) */
+export type ComputerTurn = { fen: string; level: number; ply: number; timeLeftMs: number };
+
 export interface Game {
     readonly kind: GameKind;
     readonly phase: Phase;
@@ -133,13 +136,13 @@ export interface Game {
     toJson(): unknown;
     /**
      * When it's the move of a side the bot plays itself, the computer at chess: the position, as
-     * FEN, the computer's level, and how many moves have been made. Left out by a game the bot
-     * never plays in.
+     * FEN, the computer's level, how many moves have been made, and the computer's time left.
+     * Left out by a game the bot never plays in.
      */
-    computerTurn?(): { fen: string; level: number; ply: number } | undefined;
+    computerTurn?(): ComputerTurn | undefined;
     /**
      * Plays the computer's move, found for the position `ply` moves in, if that's still the
-     * position. Whether it was played.
+     * position. Whether the game changed: the move was played, or the computer's time ran out.
      */
     playComputer?(ply: number, move: string): boolean;
     /**

@@ -2,17 +2,22 @@
 // and the move it finds is played and published, unless the position's moved on meanwhile, eg. as
 // the human resigned. One search per game at a time. A request that changes a game asks straight
 // away (`poke`), and the sweep asks for every game each second (`pokeAll`), so a game loaded as the
-// bot starts, or whose search failed, is picked up. A reply comes no sooner than `minDelayMs`
-// after the human's move, so the computer seems to think, and the human sees their own move land.
-// If the engine fails, the computer plays a legal move at random rather than lose on time.
+// bot starts, or whose search failed, is picked up. The computer's clock runs while it thinks, so
+// a search gets a share of the time it has left, `1 / MOVES_TO_BUDGET`, at most. A reply comes no
+// sooner than `minDelayMs` after the human's move, so the computer seems to think, and the human
+// sees their own move land, unless that share is shorter. If the engine fails, the computer plays
+// a legal move at random rather than lose on time.
 import { miniAppGameKey, type MiniAppGame } from "@open-ic/openchat-botclient-ts";
 import { Chess } from "chess.js";
 import type { Publisher } from "../publisher";
 import type { GameStore } from "../store";
 import type { Engine } from "./engine";
 
-/** How long the computer seems to think, at least */
+/** How long the computer seems to think, at least, when it has the time */
 export const MIN_DELAY_MS = 700;
+
+/** How many more moves the computer budgets its time left for */
+export const MOVES_TO_BUDGET = 40;
 
 export class ComputerPlayer {
     readonly #engine: Engine;
@@ -48,15 +53,16 @@ export class ComputerPlayer {
         if (turn === undefined || this.#thinking.has(key)) return Promise.resolve();
         this.#thinking.add(key);
         const started = Date.now();
+        const budgetMs = turn.timeLeftMs / MOVES_TO_BUDGET;
         return (async () => {
             let move: string;
             try {
-                move = await this.#engine.bestMove(turn.fen, turn.level);
+                move = await this.#engine.bestMove(turn.fen, turn.level, budgetMs);
             } catch (err) {
                 console.error("The engine couldn't find the computer's move:", err);
                 move = this.#anyMove(turn.fen);
             }
-            const wait = this.#minDelayMs - (Date.now() - started);
+            const wait = Math.min(this.#minDelayMs, budgetMs) - (Date.now() - started);
             if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
             const entry = this.#store.get(game);
             if (entry?.play.playComputer?.(turn.ply, move) === true) {

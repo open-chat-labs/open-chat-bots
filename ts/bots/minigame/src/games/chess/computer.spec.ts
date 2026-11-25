@@ -63,10 +63,12 @@ describe("chess against the computer", () => {
         // The computer's move: no one to wait for, as the service sees it
         expect(game.waitingFor()).toEqual([]);
         const turn = game.computerTurn();
+        // Its first move, which has a minute
         expect(turn).toEqual({
             fen: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
             level: 4,
             ply: 1,
+            timeLeftMs: 60_000,
         });
         expect(game.playComputer(0, "e7e5")).toBe(false);
         expect(game.playComputer(1, "e2e4")).toBe(false);
@@ -85,6 +87,28 @@ describe("chess against the computer", () => {
         expect(game.computerTurn()).toBeUndefined();
     });
 
+    it("loses on time if its flag falls before its move comes, which changes the game", () => {
+        let now = START;
+        const game = ChessGame.create({
+            now: () => now,
+            settings: { opponent: 8, white: WHITE_IS_HOST, minutes: 1 },
+            host: { id: "alice", name: "Alice" },
+        });
+        game.join("alice", "Alice");
+        game.start();
+        game.move("alice", "e2e4");
+        expect(game.playComputer(1, "e7e5")).toBe(true);
+        game.move("alice", "d2d4");
+        now += 20_000;
+        // Its clock runs from its second move
+        expect(game.computerTurn()?.timeLeftMs).toBe(40_000);
+        now += 41_000;
+        expect(game.playComputer(3, "d7d5")).toBe(true);
+        expect(game.phase).toBe("finished");
+        expect(game.match?.moves).toEqual(["e4", "e5", "d4"]);
+        expect(game.computerTurn()).toBeUndefined();
+    });
+
     it("moves first as White", () => {
         const { game } = against(1, WHITE_IS_OPPONENT);
         expect(game.start()).toEqual(["alice"]);
@@ -99,7 +123,11 @@ describe("chess against the computer", () => {
         game.start();
         game.move("alice", "e2e4");
         const read = new ChessGame(JSON.parse(JSON.stringify(game.toJson())));
-        expect(read.computerTurn()).toEqual(game.computerTurn());
+        // The game read back keeps time by the real clock, not this test's
+        expect(read.computerTurn()).toEqual({
+            ...game.computerTurn(),
+            timeLeftMs: expect.any(Number),
+        });
     });
 
     it("is chess between people unless chosen", () => {

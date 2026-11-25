@@ -6,7 +6,7 @@ import {
     type MiniAppServiceClient,
 } from "@open-ic/openchat-botclient-ts";
 import { createApp } from "./app";
-import { StockfishEngine } from "./computer/engine";
+import { StockfishPool } from "./computer/engine";
 import { ComputerPlayer } from "./computer/player";
 import { configFromEnv } from "./config";
 import type { Deps } from "./deps";
@@ -85,7 +85,7 @@ const deps: Deps = {
 };
 
 // The computer's moves, at chess against it
-const engine = new StockfishEngine();
+const engine = new StockfishPool();
 const computer = new ComputerPlayer(engine, store, deps.publisher);
 deps.computer = computer;
 

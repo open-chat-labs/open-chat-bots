@@ -39,9 +39,11 @@ describe("the computer", () => {
         await computer.poke(game);
         await first;
         expect(bestMove).toHaveBeenCalledTimes(1);
+        // A fortieth of the minute it has for its first move
         expect(bestMove).toHaveBeenCalledWith(
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
             2,
+            expect.closeTo(1500, -2),
         );
         expect(chess.match?.moves).toEqual(["e4"]);
         expect(publish).toHaveBeenCalledWith(game);

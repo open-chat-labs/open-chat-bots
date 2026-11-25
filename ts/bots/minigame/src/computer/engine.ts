@@ -1,9 +1,12 @@
 // Stockfish, the chess engine the computer plays with: its single-threaded WebAssembly build from
-// the `stockfish` package (GPL-3.0), run as a child process that speaks UCI over its stdin and
-// stdout. Being its own process, a search never holds up the bot's other games. One process
-// searches one position at a time, in the order asked; it's started on the first search, and again
-// after it dies or a search runs over its time.
+// the `stockfish` package (GPL-3.0), run as child processes that speak UCI over their stdin and
+// stdout. Being their own processes, a search never holds up the bot's other games. One process
+// searches one position at a time, in the order asked; it's started on its first search, and
+// again after it dies or a search runs over its time. A pool of them, one per CPU up to
+// `MAX_PROCESSES`, shares the searches out, so games against the computer at once don't all wait
+// on one process.
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { availableParallelism } from "node:os";
 import { createInterface } from "node:readline";
 
 /** How hard the computer tries at each level: Stockfish's Skill Level, and how deep and long */
@@ -27,9 +30,18 @@ export const LEVELS: Record<number, LevelSearch> = {
 
 /** What searches for the computer's move: Stockfish, or a stand-in in a test */
 export interface Engine {
-    /** The best move at the level in the position, as UCI, eg. "e7e5" */
-    bestMove(fen: string, level: number): Promise<string>;
+    /**
+     * The best move at the level in the position, as UCI, eg. "e7e5", searching no longer than
+     * the level's time or `maxMs`, if that's shorter
+     */
+    bestMove(fen: string, level: number, maxMs?: number): Promise<string>;
 }
+
+/** The most Stockfish processes the pool runs */
+export const MAX_PROCESSES = 4;
+
+/** The shortest search asked for, however short of time the computer is */
+const MIN_MOVETIME_MS = 10;
 
 /** How long past its time a search can run before the process is thought stuck */
 const SLACK_MS = 10_000;
@@ -43,6 +55,29 @@ type Waiter = {
     reject: (err: Error) => void;
 };
 
+/** The package's single-threaded lite build, which the bot runs */
+const STOCKFISH_PATH = () => require.resolve("stockfish/bin/stockfish-19-lite-single.js");
+
+/** Stockfish processes, each search going to the one with the fewest to do */
+export class StockfishPool implements Engine {
+    readonly #engines: StockfishEngine[];
+
+    constructor(size = Math.min(MAX_PROCESSES, availableParallelism()), path = STOCKFISH_PATH()) {
+        this.#engines = Array.from({ length: Math.max(1, size) }, () => new StockfishEngine(path));
+    }
+
+    bestMove(fen: string, level: number, maxMs?: number): Promise<string> {
+        const engine = this.#engines.reduce((a, b) => (b.pending < a.pending ? b : a));
+        return engine.bestMove(fen, level, maxMs);
+    }
+
+    /** Stops every process */
+    stop(): void {
+        for (const engine of this.#engines) engine.stop();
+    }
+}
+
+/** One Stockfish process */
 export class StockfishEngine implements Engine {
     readonly #path: string;
     #process?: ChildProcessWithoutNullStreams;
@@ -50,16 +85,29 @@ export class StockfishEngine implements Engine {
     #waiter?: Waiter;
     /** The searches asked for, one after another */
     #queue: Promise<unknown> = Promise.resolve();
+    #pending = 0;
 
     /** `path` is the engine's script, by default the package's single-threaded lite build */
-    constructor(path = require.resolve("stockfish/bin/stockfish-19-lite-single.js")) {
+    constructor(path = STOCKFISH_PATH()) {
         this.#path = path;
     }
 
-    bestMove(fen: string, level: number): Promise<string> {
+    /** How many searches are asked for and not yet answered */
+    get pending(): number {
+        return this.#pending;
+    }
+
+    bestMove(fen: string, level: number, maxMs?: number): Promise<string> {
         const search = LEVELS[level];
         if (search === undefined) return Promise.reject(new Error(`There's no level ${level}`));
-        const result = this.#queue.then(() => this.#search(fen, search));
+        const movetimeMs = Math.max(
+            MIN_MOVETIME_MS,
+            Math.floor(Math.min(search.movetimeMs, maxMs ?? Infinity)),
+        );
+        this.#pending++;
+        const result = this.#queue
+            .then(() => this.#search(fen, { ...search, movetimeMs }))
+            .finally(() => this.#pending--);
         this.#queue = result.catch(() => undefined);
         return result;
     }
@@ -92,6 +140,9 @@ export class StockfishEngine implements Engine {
         const child = spawn(process.execPath, [this.#path], { stdio: "pipe" });
         this.#process = child;
         createInterface({ input: child.stdout }).on("line", (line) => {
+            // A process that's been replaced may still be printing, eg. a stuck search's answer,
+            // which isn't for the search that's waiting now
+            if (this.#process !== child) return;
             const waiter = this.#waiter;
             const value = waiter?.match(line.trim());
             if (waiter !== undefined && value !== undefined) {

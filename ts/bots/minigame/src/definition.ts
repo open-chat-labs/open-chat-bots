@@ -14,8 +14,9 @@ export const definition = {
         "make the target tile wins, or the top score when the time's up (2048 and 10 minutes " +
         "unless the host sets them in the lobby), or play chess, Four in a Row or Reversi, two " +
         "players which anyone in the chat can watch, with the time and who goes first set the " +
-        "same way, or chess against the computer at a level from 1 to 8, or race up to 10 players through the same maze, live, where the first out " +
-        "wins, or play ChatMan, up to 10 players eating the dots in the same mazes, live, " +
+        "same way, or chess against the computer at a level from 1 to 8, or race up to 10 " +
+        "players through the same maze, live, where the first out wins, or play ChatMan, up to " +
+        "10 players eating the dots in the same mazes, live, " +
         "dodging the spam bots, where the top score wins, or race up to 10 players to clear " +
         "the same minefield, each on their own board, where the first to clear it wins, or " +
         "play Hex, two players racing to join their sides of the board, which anyone can watch, " +

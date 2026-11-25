@@ -106,11 +106,10 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    Start button, and the bot refuses anyone else ("Only the host can start the game"), or the host
    if they've left, until they join again; a game made without a host, any player can start. A race
    deals everyone seated a board with two tiles, and it's everyone's turn at once. Chess needs two,
-   or the host alone against the computer, when only the host is a player as far as the service
-   knows,
    picks White at random unless set, lists the players White first, and says it's waiting for White,
    though White's clock doesn't run until White's second move: White has a minute to make the first,
-   and Black a minute after that for theirs, or the game's called off.
+   and Black a minute after that for theirs, or the game's called off. Against the computer, the
+   host starts alone, and the host is the only player the service is told of.
 4. **Moves** go from the page straight to the bot, with the player's token in `x-oc-jwt`, which
    checks the game's own player list on every request and publishes the whole game's state through
    the service after each change, coalescing fast moves into one update every 80 ms. The service
@@ -219,13 +218,15 @@ lite WebAssembly build from the [`stockfish`](https://www.npmjs.com/package/stoc
 (`src/computer/engine.ts`), so a search never holds up the bot's other games. A level is Stockfish's
 Skill Level, which below 20 picks a weaker move from its best few, with a cap on depth and time,
 from Skill 0 at depth 1 for level 1 to full strength at depth 22 within a second for level 8
-(`LEVELS`). One process searches one position at a time. `src/computer/player.ts` asks it for the
+(`LEVELS`). A process searches one position at a time. `src/computer/player.ts` asks for the
 computer's move whenever a request changes a game, as the game starts, and every second for any
 game it isn't searching, eg. one loaded as the bot starts. The move is played only if the
 position is still the one it was found for, and no sooner than 0.7 s after the human's, so the
 human sees their move land; if Stockfish fails, the computer plays a legal move at random rather
-than lose on time. The Docker image keeps only the build that's run, as the package's builds are
-200 MB together.
+than lose on time. The computer's clock runs as it thinks, so a search, and that 0.7 s, take no
+more than a fortieth of the time it has left. There's a process per CPU, up to four
+(`StockfishPool`), each search going to the one with the fewest waiting. The Docker image keeps
+only the build that's run, as the package's builds are 200 MB together.
 
 The chess state everyone sees is the Rust ChessBot's, with the players' names and what each side
 has taken added:

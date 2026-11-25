@@ -9,6 +9,7 @@ import {
     jsonBytes,
     MAX_END_STATE_BYTES,
     PUBLISH_EVERY_MS,
+    type ComputerTurn,
     type ConfigureResult,
     type Game,
     type Host,
@@ -237,28 +238,35 @@ export class ChessGame implements Game {
     }
 
     /**
-     * When it's the computer's move: the position, as FEN, its level, and how many moves have
-     * been made, which `playComputer` is given back, so a move found for an earlier position isn't
-     * played
+     * When it's the computer's move: the position, as FEN, its level, how many moves have been
+     * made, which `playComputer` is given back, so a move found for an earlier position isn't
+     * played, and how long the computer has left to make it, on its clock or for its first move
      */
-    computerTurn(): { fen: string; level: number; ply: number } | undefined {
+    computerTurn(): ComputerTurn | undefined {
         const match = this.#match;
         const level = this.computerLevel;
         if (match === undefined || match.isOver || level === undefined) return undefined;
         const id = match.turn === "white" ? this.white : this.black;
         if (id !== COMPUTER) return undefined;
-        return { fen: match.fens[match.fens.length - 1], level, ply: match.moves.length };
+        const now = this.#now();
+        return {
+            fen: match.fens[match.fens.length - 1],
+            level,
+            ply: match.moves.length,
+            timeLeftMs: match.firstMoveLeft(now) ?? match.timeLeft(match.turn, now),
+        };
     }
 
     /**
      * Plays the computer's move, given as UCI, if it's still its move in the position it was
-     * found for, `ply` moves in. Whether it was played.
+     * found for, `ply` moves in. Whether the game changed: the move was played, or the
+     * computer's time ran out first, which ends the game.
      */
     playComputer(ply: number, uci: string): boolean {
         const match = this.#match;
         if (this.computerTurn()?.ply !== ply || match === undefined) return false;
         // A flag that's fallen first is the result
-        if (this.endIfTimeUp()) return false;
+        if (this.endIfTimeUp()) return true;
         const error = match.play(match.turn, uci, this.#now());
         if (error !== undefined) {
             console.error(`The computer's move ${uci} wasn't played: ${error}`);
