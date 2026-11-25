@@ -14,6 +14,12 @@ export const TIME_PER_SIDE_MS = 10 * 60 * 1000;
 
 export type Side = "white" | "black";
 
+/**
+ * The computer's id where a player's would be, when the host plays the computer: in `players`,
+ * `white` or `black`, and `names`. It isn't an OpenChat user's, which all have a hyphen.
+ */
+export const COMPUTER = "computer";
+
 /** As the Rust bot names the phases */
 export type Status = "Open" | "Active" | "Finished";
 

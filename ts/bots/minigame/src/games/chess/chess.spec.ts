@@ -34,10 +34,10 @@ describe("settings", () => {
             settings: { minutes: 5 },
             host: { id: "alice", name: "Alice" },
         });
-        expect(game.settings()).toEqual({ white: 0, minutes: 5, increment: 0 });
+        expect(game.settings()).toEqual({ opponent: 0, white: 0, minutes: 5, increment: 0 });
         // The host's name is known before they've joined
         expect(game.shared()).toMatchObject({
-            settings: { white: 0, minutes: 5, increment: 0 },
+            settings: { opponent: 0, white: 0, minutes: 5, increment: 0 },
             host: "alice",
             names: { alice: "Alice" },
         });
@@ -46,7 +46,7 @@ describe("settings", () => {
             error: "Only the host can change the settings",
         });
         expect(game.configure("alice", { increment: 2 })).toEqual({ ok: true });
-        expect(game.settings()).toEqual({ white: 0, minutes: 5, increment: 2 });
+        expect(game.settings()).toEqual({ opponent: 0, white: 0, minutes: 5, increment: 2 });
         game.join("alice", "Alice");
         game.join("bob", "Bob");
         game.start();
@@ -137,7 +137,7 @@ describe("joining and starting", () => {
             names: { alice: "Alice", bob: "Bob" },
             white: null,
             black: null,
-            settings: { white: 0, minutes: 10, increment: 0 },
+            settings: { opponent: 0, white: 0, minutes: 10, increment: 0 },
             host: null,
         });
 

@@ -35,6 +35,9 @@ export type Seat = { id: string; name: string };
 
 export type Phase = "open" | "active" | "finished";
 
+/** The computer's move to find (`Game.computerTurn`) */
+export type ComputerTurn = { fen: string; level: number; ply: number; timeLeftMs: number };
+
 export interface Game {
     readonly kind: GameKind;
     readonly phase: Phase;
@@ -131,6 +134,17 @@ export interface Game {
     endState(): unknown;
     /** The game's whole state, for the store to write; the registry's `fromJson` reads it back */
     toJson(): unknown;
+    /**
+     * When it's the move of a side the bot plays itself, the computer at chess: the position, as
+     * FEN, the computer's level, how many moves have been made, and the computer's time left.
+     * Left out by a game the bot never plays in.
+     */
+    computerTurn?(): ComputerTurn | undefined;
+    /**
+     * Plays the computer's move, found for the position `ply` moves in, if that's still the
+     * position. Whether the game changed: the move was played, or the computer's time ran out.
+     */
+    playComputer?(ply: number, move: string): boolean;
     /**
      * A player's message over the live socket (`live.ts`), for a game played live, eg. a move: the
      * socket's checked their token and that they're seated. Every change goes to everyone connected

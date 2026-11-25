@@ -6,12 +6,17 @@
 //
 // Each player's row shows the pieces they've taken, and how far ahead they are, if they are.
 //
+// The host can play the computer instead of someone in the chat, at a level from 1 to 8: the bot
+// plays its moves, and the page says it's thinking while it's the computer's move. There's no
+// draw to offer it.
+//
 // Once the game's over, the card keeps how it ended, which OpenChat hands the page as the end
 // state: the result, who played, the moves, and the position before each move and after the last.
 // The view then shows the final position and lets the viewer step through the game: Previous and
 // Next, the arrow keys, or a tap on a move. PGN gives the game as PGN, for the viewer to copy into
 // any chess program.
 import {
+    COMPUTER,
     GAME_ID,
     STATE_VERSION,
     type ActionResponse,
@@ -22,7 +27,13 @@ import {
 } from "../../games/chess/types";
 import { capturedBetween, materialLead, TAKEN_ORDER } from "../../games/chess/material";
 import { toPgn } from "../../games/chess/pgn";
-import { CHESS_SETTINGS, WHITE_IS_HOST, WHITE_IS_OPPONENT } from "../../games/chess/settings";
+import {
+    CHESS_SETTINGS,
+    computerLevel,
+    computerName,
+    WHITE_IS_HOST,
+    WHITE_IS_OPPONENT,
+} from "../../games/chess/settings";
 import { escape, formatClock, formatFirstMove, shortId } from "../format";
 import { roomFor } from "../layout";
 import type { BaseState, GameView, Lobby, ViewContext } from "../view";
@@ -121,17 +132,26 @@ export const chessView: GameView = {
     lobby(state): Lobby {
         const s = state as SharedState;
         const { white, minutes, increment } = s.settings;
+        const level = computerLevel(s.settings);
         const host = s.host === null ? undefined : (s.names[s.host] ?? shortId(s.host));
         // The host is White, or their opponent is, only if the host plays: otherwise it's random
         const hostPlays = s.host !== null && s.players.includes(s.host);
+        const opponent =
+            level !== undefined
+                ? "<strong>the computer</strong>"
+                : `<strong>${escape(host ?? "")}</strong>'s opponent`;
         const whiteText =
             white === WHITE_IS_HOST && host !== undefined
                 ? `<strong>${escape(host)}</strong> plays as White${hostPlays ? "" : " if they join"}`
                 : white === WHITE_IS_OPPONENT && host !== undefined
-                  ? `<strong>${escape(host)}</strong>'s opponent plays as White${hostPlays ? "" : " if they join"}`
+                  ? `${opponent} plays as White${hostPlays || level !== undefined ? "" : " if they join"}`
                   : "White chosen at random";
         // One line of what's set, the increment only when there is one: people know the rules
         const parts = [`<strong>${minutes} minute${minutes === 1 ? "" : "s"}</strong> each`];
+        if (level !== undefined) {
+            const who = escape(host ?? "The host");
+            parts.unshift(`<strong>${who}</strong> plays the computer at <strong>level ${level}</strong>`);
+        }
         if (increment > 0) {
             parts.push(
                 `<strong>${increment} second${increment === 1 ? "" : "s"}</strong> added per move`,
@@ -140,8 +160,11 @@ export const chessView: GameView = {
         parts.push(whiteText);
         return {
             blurb: `${parts.join(", ")}.`,
-            seats: s.players.map((id) => ({ id, name: s.names[id] ?? shortId(id) })),
-            hint: "Start once you're both here.",
+            seats: [
+                ...s.players.map((id) => ({ id, name: s.names[id] ?? shortId(id) })),
+                ...(level === undefined ? [] : [{ id: COMPUTER, name: computerName(level) }]),
+            ],
+            hint: level === undefined ? "Start once you're both here." : "Start when you're ready.",
             host: s.host ?? undefined,
             hostName: s.host === null ? undefined : s.names[s.host],
             settings: { specs: CHESS_SETTINGS, current: s.settings },
@@ -725,8 +748,10 @@ function renderStatus() {
         text = "Waiting for the game to start";
     } else {
         const turn = shared.turn ?? "white";
-        // A first move's clock doesn't run, but it has to be made in time, counted down here
-        if (firstMoveMs() !== undefined) {
+        if (shared[turn] === COMPUTER) {
+            text = "The computer is thinking…";
+        } else if (firstMoveMs() !== undefined) {
+            // A first move's clock doesn't run, but it has to be made in time, counted down here
             text = mine === turn ? "Your first move" : `${sideName(turn)}'s first move`;
         } else {
             text = mine === turn ? "Your move" : `${sideName(turn)} to move`;
@@ -740,13 +765,16 @@ function renderStatus() {
         }
     }
     dom.status.textContent = text;
-    if (firstMoveMs() !== undefined) dom.status.append(dom.firstMove);
+    const thinking = shared.status === "Active" && shared[shared.turn ?? "white"] === COMPUTER;
+    if (firstMoveMs() !== undefined && !thinking) dom.status.append(dom.firstMove);
     dom.offer.textContent = offer;
     const playing = player && mine !== undefined && shared.status === "Active" && ctx?.oc.finished !== true;
     dom.controls.hidden = !playing;
     if (playing) {
         const theirs = mine === "white" ? "black" : "white";
         dom.draw.textContent = shared.draw_offer === theirs ? "Accept draw" : "Offer draw";
+        // The computer plays on
+        dom.draw.hidden = shared[theirs] === COMPUTER;
         dom.draw.disabled = shared.draw_offer === mine || sending;
         dom.resign.disabled = sending;
     }

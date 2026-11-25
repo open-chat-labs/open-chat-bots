@@ -15,7 +15,8 @@ it's played in the card, in the bot's own page. Twelve games:
   a flag falling, resignation or an agreed draw. Each player's row shows the pieces they've taken
   and how far ahead they are, and a finished game can be copied as PGN, for any chess program.
   The pieces are JohnPablok's improved Cburnett set (CC-BY-SA 3.0; see
-  [`src/app/chess/pieces`](src/app/chess/pieces));
+  [`src/app/chess/pieces`](src/app/chess/pieces)). The host can play the computer instead, at a
+  level from 1 to 8, which the bot plays with Stockfish (see "The computer at chess");
 - **Four in a Row**: two players, which everyone else can watch, taking turns to drop a disc into a
   grid seven wide and six high, with three minutes each on the clock and who goes first chosen at
   random, unless the host sets otherwise. Four in a line, across, up or on a diagonal, wins, and a
@@ -107,7 +108,8 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    deals everyone seated a board with two tiles, and it's everyone's turn at once. Chess needs two,
    picks White at random unless set, lists the players White first, and says it's waiting for White,
    though White's clock doesn't run until White's second move: White has a minute to make the first,
-   and Black a minute after that for theirs, or the game's called off.
+   and Black a minute after that for theirs, or the game's called off. Against the computer, the
+   host starts alone, and the host is the only player the service is told of.
 4. **Moves** go from the page straight to the bot, with the player's token in `x-oc-jwt`, which
    checks the game's own player list on every request and publishes the whole game's state through
    the service after each change, coalescing fast moves into one update every 80 ms. The service
@@ -198,6 +200,33 @@ which the store, the handlers, the sweep and the publisher use, and which each g
    allowed, leaves it selected for the viewer to copy. A duel's end state is its final shared state, whose moves the page replays to step
    through, and a maze race's is too, with the maze's seed, so the page carves the maze again and
    draws the way out. ChatMan's is its final state, every board as it finished.
+
+## The computer at chess
+
+The chess lobby's first setting, `opponent`, is who the host plays: someone in the chat (0), or the
+computer at a level from 1, which a beginner can beat, to 8 (`COMPUTER_LEVELS`). Against the
+computer, no one else can join ("The host is playing the computer"), and the host starts the game
+alone; anyone who joined before the host chose the computer is left out at the start. The
+computer sits in the other seat as the id `computer` (`COMPUTER`), which isn't an OpenChat user's,
+named "Computer (level 3)": the state's `players`, `white` or `black` and `names` carry it, but the
+service is only told of the host, and whose turn it is is no one while it's the computer's. It
+plays on: it never offers or takes a draw, and the page has no Offer draw for it.
+
+The computer's moves come from [Stockfish](https://stockfishchess.org) 19, the single-threaded
+lite WebAssembly build from the [`stockfish`](https://www.npmjs.com/package/stockfish) package
+(GPL-3.0, which goes with this repository's AGPL-3.0), run as a child process speaking UCI
+(`src/computer/engine.ts`), so a search never holds up the bot's other games. A level is Stockfish's
+Skill Level, which below 20 picks a weaker move from its best few, with a cap on depth and time,
+from Skill 0 at depth 1 for level 1 to full strength at depth 22 within a second for level 8
+(`LEVELS`). A process searches one position at a time. `src/computer/player.ts` asks for the
+computer's move whenever a request changes a game, as the game starts, and every second for any
+game it isn't searching, eg. one loaded as the bot starts. The move is played only if the
+position is still the one it was found for, and no sooner than 0.7 s after the human's, so the
+human sees their move land; if Stockfish fails, the computer plays a legal move at random rather
+than lose on time. The computer's clock runs as it thinks, so a search, and that 0.7 s, take no
+more than a fortieth of the time it has left. There's a process per CPU, up to four
+(`StockfishPool`), each search going to the one with the fewest waiting. The Docker image keeps
+only the build that's run, as the package's builds are 200 MB together.
 
 The chess state everyone sees is the Rust ChessBot's, with the players' names and what each side
 has taken added:

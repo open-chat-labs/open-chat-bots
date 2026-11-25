@@ -14,7 +14,10 @@ RUN cd library && npm run build
 COPY bots/minigame/package.json bots/minigame/package-lock.json bots/minigame/
 RUN cd bots/minigame && npm ci --no-audit --no-fund
 COPY bots/minigame/ bots/minigame/
+# Of Stockfish's builds, which are 200 MB together, only the single-threaded lite one is run
+# (`src/computer/engine.ts`)
 RUN cd bots/minigame && npm run build && npm prune --omit=dev --ignore-scripts \
+    && find node_modules/stockfish/bin -type f ! -name '*-lite-single.*' -delete \
     && cd ../../library && npm prune --omit=dev --ignore-scripts
 
 FROM node:22-alpine
